@@ -18,11 +18,11 @@ export async function POST(req: Request) {
     description: `Flight lesson booked by ${name} (${email})`,
     start: {
       dateTime: `${date}T${time}:00`,
-      timeZone: "Your_Timezone",
+      timeZone: "America/New_York", // Adjust this to Isaac's timezone
     },
     end: {
       dateTime: `${date}T${Number.parseInt(time.split(":")[0]) + 2}:${time.split(":")[1]}:00`,
-      timeZone: "Your_Timezone",
+      timeZone: "America/New_York", // Adjust this to Isaac's timezone
     },
   }
 
@@ -37,7 +37,8 @@ export async function POST(req: Request) {
       headers: { "Content-Type": "application/json" },
     })
   } catch (error) {
-    return new Response(JSON.stringify({ success: false, error: error.message }), {
+    console.error("Error in book function:", error)
+    return new Response(JSON.stringify({ success: false, error: "An error occurred while booking" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     })
