@@ -3,12 +3,22 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 
-const PaymentForm = ({ onSubmit }) => {
+interface PaymentDetails {
+  cardNumber: string
+  expiry: string
+  cvc: string
+}
+
+interface PaymentFormProps {
+  onSubmit: (details: PaymentDetails) => void
+}
+
+const PaymentForm: React.FC<PaymentFormProps> = ({ onSubmit }) => {
   const [cardNumber, setCardNumber] = useState("")
   const [expiry, setExpiry] = useState("")
   const [cvc, setCvc] = useState("")
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSubmit({ cardNumber, expiry, cvc })
   }

@@ -5,15 +5,48 @@ import { motion } from "framer-motion"
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 
-const BookingForm = ({ onSubmit }) => {
+interface BookingDetails {
+  date: Date
+  time: string
+  name: string
+  email: string
+}
+
+interface BookingFormProps {
+  onSubmit: (details: BookingDetails) => void
+}
+
+const BookingForm: React.FC<BookingFormProps> = ({ onSubmit }) => {
   const [date, setDate] = useState(new Date())
   const [time, setTime] = useState("")
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit({ date, time, name, email })
+    setIsLoading(true)
+    setError("")
+
+    try {
+      const response = await fetch("/.netlify/functions/book", {
+        method: "POST",
+        body: JSON.stringify({ date: date.toISOString().split("T")[0], time, name, email }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        onSubmit({ date, time, name, email })
+      } else {
+        setError("Booking failed. Please try again.")
+      }
+    } catch (error) {
+      setError("An error occurred. Please try again.")
+    }
+
+    setIsLoading(false)
   }
 
   return (
@@ -54,7 +87,7 @@ const BookingForm = ({ onSubmit }) => {
         <label htmlFor="date" className="block mb-2">
           Date
         </label>
-        <DatePicker selected={date} onChange={(date) => setDate(date)} className="w-full p-2 border rounded" />
+        <DatePicker selected={date} onChange={(date: Date) => setDate(date)} className="w-full p-2 border rounded" />
       </div>
       <div className="mb-4">
         <label htmlFor="time" className="block mb-2">
@@ -74,11 +107,13 @@ const BookingForm = ({ onSubmit }) => {
           <option value="15:00">03:00 PM</option>
         </select>
       </div>
+      {error && <p className="text-red-500 mb-4">{error}</p>}
       <button
         type="submit"
         className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition duration-300"
+        disabled={isLoading}
       >
-        Proceed to Payment
+        {isLoading ? "Booking..." : "Proceed to Payment"}
       </button>
     </motion.form>
   )

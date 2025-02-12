@@ -5,16 +5,29 @@ import { motion } from "framer-motion"
 import BookingForm from "../components/BookingForm"
 import PaymentForm from "../components/PaymentForm"
 
+interface BookingDetails {
+  date: Date
+  time: string
+  name: string
+  email: string
+}
+
+interface PaymentDetails {
+  cardNumber: string
+  expiry: string
+  cvc: string
+}
+
 export default function Booking() {
   const [bookingStep, setBookingStep] = useState(1)
-  const [bookingDetails, setBookingDetails] = useState(null)
+  const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null)
 
-  const handleBookingSubmit = (details) => {
+  const handleBookingSubmit = (details: BookingDetails) => {
     setBookingDetails(details)
     setBookingStep(2)
   }
 
-  const handlePaymentSubmit = (paymentDetails) => {
+  const handlePaymentSubmit = (paymentDetails: PaymentDetails) => {
     // Here you would typically send the booking and payment details to your server
     console.log("Booking:", bookingDetails)
     console.log("Payment:", paymentDetails)
