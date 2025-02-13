@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { createContext, useContext, useState, type ReactNode } from "react"
+import React from "react"
 
 interface BookingContextType {
   bookingStep: number
@@ -10,11 +9,11 @@ interface BookingContextType {
   setBookingDetails: React.Dispatch<React.SetStateAction<any>>
 }
 
-const BookingContext = createContext<BookingContextType | undefined>(undefined)
+const BookingContext = React.createContext<BookingContextType | undefined>(undefined)
 
-export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [bookingStep, setBookingStep] = useState(1)
-  const [bookingDetails, setBookingDetails] = useState(null)
+export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [bookingStep, setBookingStep] = React.useState(1)
+  const [bookingDetails, setBookingDetails] = React.useState(null)
 
   return (
     <BookingContext.Provider value={{ bookingStep, setBookingStep, bookingDetails, setBookingDetails }}>
@@ -24,7 +23,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
 }
 
 export const useBooking = () => {
-  const context = useContext(BookingContext)
+  const context = React.useContext(BookingContext)
   if (context === undefined) {
     throw new Error("useBooking must be used within a BookingProvider")
   }
