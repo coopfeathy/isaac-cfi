@@ -1,16 +1,10 @@
 import Image from "next/image"
 import Link from "next/link"
-import { motion } from "framer-motion"
 
 export default function Home() {
   return (
     <div className="container mx-auto px-4">
-      <motion.section
-        className="text-center py-20"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
+      <section className="text-center py-20">
         <h1 className="text-4xl font-bold mb-4">Start Your Journey to the Skies with Isaac</h1>
         <p className="text-xl mb-8">Book your flight lessons today and experience the thrill of flying!</p>
         <Link
@@ -19,14 +13,9 @@ export default function Home() {
         >
           Book Now
         </Link>
-      </motion.section>
+      </section>
 
-      <motion.section
-        className="grid md:grid-cols-3 gap-8 py-12"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2, duration: 0.5 }}
-      >
+      <section className="grid md:grid-cols-3 gap-8 py-12">
         <div className="text-center">
           <Image
             src="/placeholder.svg?height=100&width=100"
@@ -60,7 +49,7 @@ export default function Home() {
           <h2 className="text-2xl font-semibold mb-2">Flexible Scheduling</h2>
           <p>Choose from a variety of time slots that fit your busy lifestyle.</p>
         </div>
-      </motion.section>
+      </section>
     </div>
   )
 }

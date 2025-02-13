@@ -1,5 +1,4 @@
 "use client"
-
 import { motion } from "framer-motion"
 import BookingForm from "../components/BookingForm"
 import PaymentForm from "../components/PaymentForm"
