@@ -2,7 +2,7 @@ import type { Handler } from "@netlify/functions"
 import Stripe from "stripe"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-01-27.acacia",
+  apiVersion: "2022-11-15",
 })
 
 const handler: Handler = async (event) => {
