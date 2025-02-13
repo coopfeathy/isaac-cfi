@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { createContext, useContext, useState } from "react"
+import { createContext, useContext, useState, type ReactNode } from "react"
 
 interface BookingContextType {
   bookingStep: number
@@ -12,7 +12,7 @@ interface BookingContextType {
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined)
 
-export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [bookingStep, setBookingStep] = useState(1)
   const [bookingDetails, setBookingDetails] = useState(null)
 
