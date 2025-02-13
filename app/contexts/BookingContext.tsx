@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { createContext, useState, ReactNode } from 'react';
 
 interface BookingContextType {
   bookingStep: number
