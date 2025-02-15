@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { motion } from "framer-motion"
 
@@ -11,7 +13,7 @@ const Header = () => {
     >
       <nav className="container mx-auto flex justify-between items-center">
         <Link href="/" className="text-2xl font-bold">
-          Isaac&apos;s Flight School
+          Isaac's Flight School
         </Link>
         <ul className="flex space-x-4">
           <li>
