@@ -28,6 +28,8 @@ const config: Config = {
         "accordion-up": "accordion-up 0.2s ease-out",
       },
       colors: {
+        golden: "#C59A2A",
+        darkText: "#0B0B0B",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

@@ -1,5 +1,13 @@
+// Merlin Flight Training - Create Free Booking (no payment)
+// Netlify Function for free introductory lessons
+
 import type { Handler } from "@netlify/functions"
-import { google } from "googleapis"
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 const handler: Handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -7,48 +15,76 @@ const handler: Handler = async (event) => {
   }
 
   try {
-    const { date, time, name, email } = JSON.parse(event.body || "{}")
+    const { slotId, userId, notes } = JSON.parse(event.body || "{}")
 
-    const auth = new google.auth.GoogleAuth({
-      credentials: {
-        client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-      },
-      scopes: ["https://www.googleapis.com/auth/calendar"],
-    })
-
-    const calendar = google.calendar({ version: "v3", auth })
-
-    const calendarEvent = {
-      summary: `Flight Lesson with ${name}`,
-      description: `Flight lesson booked by ${name} (${email})`,
-      start: {
-        dateTime: `${date}T${time}:00`,
-        timeZone: "America/New_York", // Adjust this to Isaac's timezone
-      },
-      end: {
-        dateTime: `${date}T${Number.parseInt(time.split(":")[0]) + 2}:${time.split(":")[1]}:00`,
-        timeZone: "America/New_York", // Adjust this to Isaac's timezone
-      },
+    if (!slotId || !userId) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Missing required fields: slotId and userId' })
+      }
     }
 
-    const response = await calendar.events.insert({
-      calendarId: "isaacthecfi@gmail.com",
-      requestBody: calendarEvent,
-    })
+    // Verify slot is available
+    const { data: slot, error: slotError } = await supabase
+      .from('slots')
+      .select('*')
+      .eq('id', slotId)
+      .single()
+
+    if (slotError || !slot) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: 'Slot not found' })
+      }
+    }
+
+    if (slot.is_booked) {
+      return {
+        statusCode: 409,
+        body: JSON.stringify({ error: 'Slot is already booked' })
+      }
+    }
+
+    // Create booking
+    const { data: booking, error: bookingError } = await supabase
+      .from('bookings')
+      .insert([{
+        slot_id: slotId,
+        user_id: userId,
+        status: 'confirmed',
+        notes
+      }])
+      .select()
+      .single()
+
+    if (bookingError) {
+      console.error('Booking error:', bookingError)
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'Failed to create booking' })
+      }
+    }
+
+    // Mark slot as booked
+    await supabase
+      .from('slots')
+      .update({ is_booked: true })
+      .eq('id', slotId)
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ success: true, eventId: response.data.id }),
+      body: JSON.stringify({ success: true, booking })
     }
+
   } catch (error) {
     console.error("Error in book function:", error)
     return {
       statusCode: 500,
-      body: JSON.stringify({ success: false, error: "An error occurred while booking" }),
+      body: JSON.stringify({ success: false, error: "An error occurred while booking" })
     }
   }
 }
 
 export { handler }
+
 
