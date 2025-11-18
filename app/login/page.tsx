@@ -20,10 +20,11 @@ export default function LoginPage() {
 
     try {
       await signIn(email)
-      setMessage('Check your email for the magic link!')
-    } catch (error) {
+      setMessage('Check your email for the magic link! It may take a few minutes to arrive.')
+    } catch (error: any) {
       console.error('Sign in error:', error)
-      setMessage('Error signing in. Please try again.')
+      const errorMessage = error?.message || 'Error signing in. Please try again.'
+      setMessage(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -42,8 +43,22 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-            Authentication failed. Please try again.
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+            {error === 'no_code' && (
+              <div>
+                <p className="font-semibold mb-2">Authentication setup required</p>
+                <p className="text-xs">You need to configure Supabase redirect URLs:</p>
+                <ol className="text-xs mt-2 ml-4 list-decimal space-y-1">
+                  <li>Go to <a href="https://supabase.com/dashboard/project/fwttykpznnoupoxowvlg/auth/url-configuration" target="_blank" className="underline font-medium">Supabase Dashboard</a></li>
+                  <li>Add <code className="bg-red-100 px-1 rounded">http://localhost:3000/auth/callback</code> to Redirect URLs</li>
+                  <li>Click Save and try signing in again</li>
+                </ol>
+              </div>
+            )}
+            {error === 'exchange_failed' && 'Failed to complete sign in. The link may have expired.'}
+            {error === 'callback_failed' && 'Authentication callback failed. Please try again.'}
+            {error === 'no_session' && 'No active session found. Please sign in again.'}
+            {!['no_code', 'exchange_failed', 'callback_failed', 'no_session'].includes(error) && 'Authentication failed. Please try again.'}
           </div>
         )}
 

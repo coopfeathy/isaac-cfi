@@ -3,41 +3,63 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 11, 11, 11;
-  --background-rgb: 255, 255, 255;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 4%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 4%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 4%;
+  --primary: 0 0% 9%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 0 0% 96%;
+  --accent-foreground: 0 0% 9%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 89%;
+  --input: 0 0% 89%;
+  --ring: 0 0% 4%;
+  --radius: 0.5rem;
 }
 
 * {
-  box-sizing: border-box;
+  border-color: hsl(var(--border));
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-rgb));
-  min-height: 100vh;
+  background-color: white;
+  color: black;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
+html {
+  scroll-behavior: smooth;
 }
 
-/* Add some custom styles for form inputs */
-input[type="text"],
-input[type="email"],
-select {
-  @apply w-full p-2 border rounded;
+::selection {
+  background-color: #C59A2A;
+  color: #000000;
 }
 
-/* Style the DatePicker component */
-.react-datepicker-wrapper {
-  width: 100%;
+::-webkit-scrollbar {
+  width: 10px;
 }
 
-.react-datepicker__input-container input {
-  @apply w-full p-2 border rounded;
+::-webkit-scrollbar-track {
+  background: #ffffff;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C59A2A;
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(197, 154, 42, 0.8);
 }
 

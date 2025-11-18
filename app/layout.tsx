@@ -1,11 +1,9 @@
 import "./globals.css"
 import { Inter } from "next/font/google"
 import Footer from "./components/Footer"
-import dynamic from "next/dynamic"
+import SimpleHeader from "./components/SimpleHeader"
 import type React from "react"
 import { AuthProvider } from "./contexts/AuthContext"
-
-const DynamicHeader = dynamic(() => import("./components/Header"), { ssr: false })
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -23,7 +21,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
-          <DynamicHeader />
+          <SimpleHeader />
           <main>{children}</main>
           <Footer />
         </AuthProvider>
