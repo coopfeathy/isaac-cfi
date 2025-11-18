@@ -22,12 +22,6 @@ export default function BookingsPage() {
     }
   }, [user, authLoading, router])
 
-  useEffect(() => {
-    if (user) {
-      fetchBookings()
-    }
-  }, [user])
-
   const fetchBookings = async () => {
     if (!user) return
 
@@ -50,6 +44,13 @@ export default function BookingsPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (user) {
+      fetchBookings()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
