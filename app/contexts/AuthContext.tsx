@@ -85,6 +85,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error
   }
 
+  // Check if user is admin (case-insensitive email comparison)
+  const isAdmin = user?.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase()
+
   const value = {
     user,
     profile,
@@ -92,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     signIn,
     signOut,
-    isAdmin: profile?.is_admin ?? false,
+    isAdmin,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
