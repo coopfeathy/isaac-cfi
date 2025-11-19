@@ -15,6 +15,13 @@ export default function SimpleHeader() {
     window.location.href = '/'
   }
 
+  // Debug logging
+  console.log('SimpleHeader Debug:', {
+    user: user?.email,
+    isAdmin,
+    adminEmail: process.env.NEXT_PUBLIC_ADMIN_EMAIL
+  })
+
   return (
     <header style={{ 
       backgroundColor: 'white', 
