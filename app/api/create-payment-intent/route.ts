@@ -4,16 +4,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2022-11-15',
 })
 
-export default async function handler(req: any, context: any) {
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
-
+export async function POST(req: Request) {
   try {
-    const { amount, slotId } = JSON.parse(req.body)
+    const { amount, slotId } = await req.json()
 
     // Create a PaymentIntent with the order amount and currency
     const paymentIntent = await stripe.paymentIntents.create({
@@ -45,8 +38,4 @@ export default async function handler(req: any, context: any) {
       }
     )
   }
-}
-
-export const config = {
-  path: '/api/create-payment-intent',
 }
