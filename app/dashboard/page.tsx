@@ -146,11 +146,6 @@ export default function AdminPage() {
   }
 
   const handleImageUpload = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      alert('Please select an image file')
-      return
-    }
-
     setUploadingImage(true)
     try {
       const formData = new FormData()
@@ -164,11 +159,17 @@ export default function AdminPage() {
       const data = await response.json()
       if (!response.ok) throw new Error(data.error)
 
-      // Insert markdown image syntax at cursor position
-      const imageMarkdown = `\n![Image description](${data.url})\n`
-      setBlogContent(prev => prev + imageMarkdown)
+      // Insert markdown syntax based on file type
+      let fileMarkdown = ''
+      if (file.type.startsWith('image/')) {
+        fileMarkdown = `\n![Image description](${data.url})\n`
+      } else {
+        // For non-images (PDFs, docs, etc.), create a link
+        fileMarkdown = `\n[${file.name}](${data.url})\n`
+      }
+      setBlogContent(prev => prev + fileMarkdown)
       setShowImageUpload(false)
-      alert('Image uploaded! Update the description in the markdown.')
+      alert('File uploaded successfully!')
     } catch (error: any) {
       alert(`Upload failed: ${error.message}`)
     } finally {
@@ -510,7 +511,7 @@ ${blogContent}
         {activeTab === 'blog' && (
           <div className="space-y-6">
             {/* Existing Posts List */}
-            {existingPosts.length > 0 && !editingPost && (
+            {!editingPost && (
               <div className="bg-white rounded-lg shadow-md p-8">
                 <h2 className="text-2xl font-bold text-darkText mb-6">Existing Blog Posts</h2>
                 <div className="space-y-4">
@@ -560,7 +561,7 @@ ${blogContent}
             )}
 
             {/* Blog Editor Form */}
-            {(editingPost || existingPosts.length === 0) && (
+            {editingPost && (
               <div className="bg-white rounded-lg shadow-md p-8">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-bold text-darkText">
@@ -640,16 +641,15 @@ ${blogContent}
                         onClick={() => setShowImageUpload(!showImageUpload)}
                         className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
                       >
-                        {showImageUpload ? 'Hide' : 'Add Image'}
+                        {showImageUpload ? 'Hide' : 'Add File'}
                       </button>
                     </div>
                     
                     {showImageUpload && (
                       <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-sm text-blue-800 mb-2">Upload an image:</p>
+                        <p className="text-sm text-blue-800 mb-2">Upload any file (images, PDFs, documents):</p>
                         <input
                           type="file"
-                          accept="image/*"
                           onChange={(e) => {
                             const file = e.target.files?.[0]
                             if (file) handleImageUpload(file)
