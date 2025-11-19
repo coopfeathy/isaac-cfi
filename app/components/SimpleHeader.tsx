@@ -3,9 +3,17 @@
 import Link from "next/link"
 import Image from "next/image"
 import { useState } from "react"
+import { useAuth } from "../contexts/AuthContext"
+import { supabase } from "@/lib/supabase"
 
 export default function SimpleHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { user, isAdmin } = useAuth()
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/'
+  }
 
   return (
     <header style={{ 
@@ -93,22 +101,58 @@ export default function SimpleHeader() {
                 FAQ
               </Link>
             </li>
-            <li>
-              <Link 
-                href="/login" 
-                style={{ 
-                  backgroundColor: '#000', 
-                  color: '#fff', 
-                  padding: '10px 30px', 
-                  borderRadius: '8px', 
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  display: 'inline-block'
-                }}
-              >
-                Sign In
-              </Link>
-            </li>
+            {user ? (
+              <>
+                {isAdmin && (
+                  <li>
+                    <Link href="/admin" style={{ color: '#C59A2A', fontWeight: 600, textDecoration: 'none' }}>
+                      Admin
+                    </Link>
+                  </li>
+                )}
+                <li>
+                  <Link href="/bookings" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
+                    My Bookings
+                  </Link>
+                </li>
+                <li style={{ color: '#6B7280', fontSize: '14px' }}>
+                  {user.email}
+                </li>
+                <li>
+                  <button 
+                    onClick={handleSignOut}
+                    style={{ 
+                      backgroundColor: '#EF4444', 
+                      color: '#fff', 
+                      padding: '10px 30px', 
+                      borderRadius: '8px', 
+                      fontWeight: 600,
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Sign Out
+                  </button>
+                </li>
+              </>
+            ) : (
+              <li>
+                <Link 
+                  href="/login" 
+                  style={{ 
+                    backgroundColor: '#000', 
+                    color: '#fff', 
+                    padding: '10px 30px', 
+                    borderRadius: '8px', 
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                    display: 'inline-block'
+                  }}
+                >
+                  Sign In
+                </Link>
+              </li>
+            )}
           </ul>
         </div>
 
@@ -209,24 +253,93 @@ export default function SimpleHeader() {
                   FAQ
                 </Link>
               </li>
-              <li>
-                <Link 
-                  href="/login" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ 
-                    backgroundColor: '#000', 
-                    color: '#fff', 
-                    padding: '12px 16px', 
-                    borderRadius: '8px', 
-                    fontWeight: 600,
-                    textDecoration: 'none',
-                    display: 'block',
-                    textAlign: 'center'
-                  }}
-                >
-                  Sign In
-                </Link>
-              </li>
+              {user ? (
+                <>
+                  {isAdmin && (
+                    <li>
+                      <Link 
+                        href="/admin" 
+                        onClick={() => setMobileMenuOpen(false)}
+                        style={{ 
+                          color: '#C59A2A', 
+                          fontWeight: 600, 
+                          textDecoration: 'none',
+                          display: 'block',
+                          padding: '12px 16px',
+                          borderRadius: '8px'
+                        }}
+                      >
+                        Admin
+                      </Link>
+                    </li>
+                  )}
+                  <li>
+                    <Link 
+                      href="/bookings" 
+                      onClick={() => setMobileMenuOpen(false)}
+                      style={{ 
+                        color: '#374151', 
+                        fontWeight: 500, 
+                        textDecoration: 'none',
+                        display: 'block',
+                        padding: '12px 16px',
+                        borderRadius: '8px'
+                      }}
+                    >
+                      My Bookings
+                    </Link>
+                  </li>
+                  <li style={{ 
+                    color: '#6B7280', 
+                    fontSize: '14px',
+                    padding: '12px 16px'
+                  }}>
+                    {user.email}
+                  </li>
+                  <li>
+                    <button 
+                      onClick={() => {
+                        setMobileMenuOpen(false)
+                        handleSignOut()
+                      }}
+                      style={{ 
+                        backgroundColor: '#EF4444', 
+                        color: '#fff', 
+                        padding: '12px 16px', 
+                        borderRadius: '8px', 
+                        fontWeight: 600,
+                        textDecoration: 'none',
+                        display: 'block',
+                        textAlign: 'center',
+                        width: '100%',
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Sign Out
+                    </button>
+                  </li>
+                </>
+              ) : (
+                <li>
+                  <Link 
+                    href="/login" 
+                    onClick={() => setMobileMenuOpen(false)}
+                    style={{ 
+                      backgroundColor: '#000', 
+                      color: '#fff', 
+                      padding: '12px 16px', 
+                      borderRadius: '8px', 
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                      display: 'block',
+                      textAlign: 'center'
+                    }}
+                  >
+                    Sign In
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
         )}

@@ -12,7 +12,7 @@ export default function AdminPage() {
   const [slots, setSlots] = useState<Slot[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'slots' | 'bookings'>('slots')
+  const [activeTab, setActiveTab] = useState<'slots' | 'bookings' | 'blog'>('slots')
   
   // New slot form
   const [showAddSlot, setShowAddSlot] = useState(false)
@@ -23,6 +23,13 @@ export default function AdminPage() {
     price: '',
     description: ''
   })
+
+  // Blog form state
+  const [blogTitle, setBlogTitle] = useState('')
+  const [blogAuthor, setBlogAuthor] = useState('Isaac Prestwich, CFII')
+  const [blogExcerpt, setBlogExcerpt] = useState('')
+  const [blogContent, setBlogContent] = useState('')
+  const [blogMessage, setBlogMessage] = useState('')
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -112,6 +119,49 @@ export default function AdminPage() {
     }
   }
 
+  const handleCreateBlogPost = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setBlogMessage('')
+
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const slug = blogTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '')
+
+      const content = `---
+title: "${blogTitle}"
+date: "${today}"
+author: "${blogAuthor}"
+excerpt: "${blogExcerpt}"
+---
+
+${blogContent}
+`
+
+      // Create the blog post file via API
+      const response = await fetch('/api/create-blog-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug: `${today}-${slug}`,
+          content,
+        }),
+      })
+
+      if (!response.ok) throw new Error('Failed to create blog post')
+
+      setBlogMessage('Blog post created successfully!')
+      // Reset form
+      setBlogTitle('')
+      setBlogExcerpt('')
+      setBlogContent('')
+    } catch (error: any) {
+      setBlogMessage(`Error: ${error.message}`)
+    }
+  }
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -150,6 +200,16 @@ export default function AdminPage() {
             }`}
           >
             View Bookings ({bookings.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('blog')}
+            className={`px-6 py-3 rounded-lg font-bold transition-colors ${
+              activeTab === 'blog'
+                ? 'bg-golden text-darkText'
+                : 'bg-white text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Create Blog Post
           </button>
         </div>
 
@@ -326,6 +386,96 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Blog Tab */}
+        {activeTab === 'blog' && (
+          <div className="bg-white rounded-lg shadow-md p-8">
+            <h2 className="text-2xl font-bold text-darkText mb-6">Create New Blog Post</h2>
+            
+            {blogMessage && (
+              <div
+                className={`mb-6 p-4 rounded-lg ${
+                  blogMessage.startsWith('Error')
+                    ? 'bg-red-100 text-red-700'
+                    : 'bg-green-100 text-green-700'
+                }`}
+              >
+                {blogMessage}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateBlogPost} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Title
+                </label>
+                <input
+                  type="text"
+                  value={blogTitle}
+                  onChange={(e) => setBlogTitle(e.target.value)}
+                  placeholder="e.g., 5 Tips for Your First Solo Flight"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Author
+                </label>
+                <input
+                  type="text"
+                  value={blogAuthor}
+                  onChange={(e) => setBlogAuthor(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Excerpt
+                </label>
+                <textarea
+                  value={blogExcerpt}
+                  onChange={(e) => setBlogExcerpt(e.target.value)}
+                  placeholder="A brief summary that appears in the blog list..."
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Content (Markdown supported)
+                </label>
+                <textarea
+                  value={blogContent}
+                  onChange={(e) => setBlogContent(e.target.value)}
+                  placeholder="Write your blog post content here. You can use Markdown formatting..."
+                  rows={15}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent font-mono text-sm"
+                  required
+                />
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Markdown Tips:</strong> Use # for headers, ** for bold, * for italic,
+                  - for lists, and [text](url) for links.
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-golden text-darkText font-bold py-3 px-6 rounded-lg hover:bg-opacity-90 transition-colors"
+              >
+                Create Blog Post
+              </button>
+            </form>
           </div>
         )}
       </div>
