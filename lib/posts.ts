@@ -4,7 +4,7 @@ import matter from 'gray-matter'
 import { remark } from 'remark'
 import html from 'remark-html'
 
-const postsDirectory = path.join(process.cwd(), 'content/posts')
+const postsDirectory = path.join(process.cwd(), 'app/blog')
 
 export interface PostData {
   slug: string
@@ -35,10 +35,9 @@ export function getAllPosts(): PostData[] {
           title: data.title || '',
           date: data.date || '',
           excerpt: data.excerpt || '',
-          published: data.published ?? false,
+          published: true, // All blog posts in app/blog are published
         }
       })
-      .filter(post => post.published)
       .sort((a, b) => (a.date < b.date ? 1 : -1))
 
     return allPostsData
@@ -67,7 +66,7 @@ export async function getPostBySlug(slug: string): Promise<PostData | null> {
       title: data.title || '',
       date: data.date || '',
       excerpt: data.excerpt || '',
-      published: data.published ?? false,
+      published: true,
       content: contentHtml,
     }
   } catch (error) {
