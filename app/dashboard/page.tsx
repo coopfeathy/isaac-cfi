@@ -63,8 +63,17 @@ export default function AdminPage() {
         supabase.from('bookings').select('*, slots(*), profiles(full_name, phone)').order('created_at', { ascending: false })
       ])
 
-      if (slotsData.data) setSlots(slotsData.data)
-      if (bookingsData.data) setBookings(bookingsData.data as any)
+      console.log('Slots data:', slotsData)
+      console.log('Bookings data:', bookingsData)
+
+      if (slotsData.data) {
+        console.log('Setting slots:', slotsData.data.length, 'slots')
+        setSlots(slotsData.data)
+      }
+      if (bookingsData.data) {
+        console.log('Setting bookings:', bookingsData.data.length, 'bookings')
+        setBookings(bookingsData.data as any)
+      }
     } catch (error) {
       console.error('Error fetching admin data:', error)
     } finally {
