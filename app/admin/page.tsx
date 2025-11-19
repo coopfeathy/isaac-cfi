@@ -32,9 +32,13 @@ export default function AdminPage() {
   const [blogMessage, setBlogMessage] = useState('')
 
   useEffect(() => {
+    console.log('Admin Page Debug:', { authLoading, user: user?.email, isAdmin })
+    
     if (!authLoading && !user) {
+      console.log('Redirecting to login - no user')
       router.push('/login')
     } else if (!authLoading && user && !isAdmin) {
+      console.log('Redirecting to home - not admin')
       router.push('/')
     }
   }, [user, isAdmin, authLoading, router])
@@ -162,7 +166,7 @@ ${blogContent}
     }
   }
 
-  if (authLoading || loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-golden"></div>
@@ -170,8 +174,12 @@ ${blogContent}
     )
   }
 
+  if (!user) {
+    return null // Will redirect in useEffect
+  }
+
   if (!isAdmin) {
-    return null
+    return null // Will redirect in useEffect
   }
 
   return (
