@@ -112,8 +112,8 @@ export default function SimpleHeader() {
               <>
                 {isAdmin && (
                   <li>
-                    <Link href="/admin" style={{ color: '#C59A2A', fontWeight: 600, textDecoration: 'none' }}>
-                      Admin
+                    <Link href="/dashboard" style={{ color: '#C59A2A', fontWeight: 600, textDecoration: 'none' }}>
+                      Dashboard
                     </Link>
                   </li>
                 )}
@@ -265,7 +265,7 @@ export default function SimpleHeader() {
                   {isAdmin && (
                     <li>
                       <Link 
-                        href="/admin" 
+                        href="/dashboard" 
                         onClick={() => setMobileMenuOpen(false)}
                         style={{ 
                           color: '#C59A2A', 
@@ -276,7 +276,7 @@ export default function SimpleHeader() {
                           borderRadius: '8px'
                         }}
                       >
-                        Admin
+                        Dashboard
                       </Link>
                     </li>
                   )}
