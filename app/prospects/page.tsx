@@ -47,7 +47,7 @@ export default function ProspectsPage() {
       const { data, error } = await supabase
         .from('prospects')
         .select('*')
-        .order('next_follow_up', { ascending: true, nullsLast: true })
+        .order('next_follow_up', { ascending: true, nullsFirst: false })
 
       if (error) throw error
       setProspects(data || [])
