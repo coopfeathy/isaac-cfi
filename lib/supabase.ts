@@ -52,3 +52,74 @@ export interface Post {
   created_at: string
   updated_at: string
 }
+
+// CRM Types
+export interface Prospect {
+  id: string
+  full_name: string
+  email: string | null
+  phone: string | null
+  meeting_location: string | null
+  meeting_date: string | null
+  notes: string | null
+  interest_level: 'hot' | 'warm' | 'cold' | null
+  status: 'active' | 'converted' | 'lost' | 'inactive'
+  next_follow_up: string | null
+  follow_up_frequency: number
+  source: string | null
+  created_at: string
+  updated_at: string
+  created_by: string | null
+}
+
+export interface Student {
+  id: string
+  user_id: string | null
+  full_name: string
+  email: string | null
+  phone: string | null
+  certificate_type: string | null
+  certificate_number: string | null
+  medical_class: 'first' | 'second' | 'third' | 'basic_med' | null
+  medical_expiration: string | null
+  flight_review_date: string | null
+  flight_review_due: string | null
+  ipc_date: string | null
+  ipc_due: string | null
+  rental_checkout_date: string | null
+  rental_currency_due: string | null
+  total_hours: number
+  pic_hours: number
+  dual_hours: number
+  instrument_hours: number
+  training_stage: string | null
+  notes: string | null
+  status: 'active' | 'inactive' | 'completed' | 'on_hold'
+  created_at: string
+  updated_at: string
+}
+
+export interface Communication {
+  id: string
+  prospect_id: string | null
+  student_id: string | null
+  type: 'email' | 'sms' | 'phone' | 'in_person' | 'note'
+  subject: string | null
+  message: string | null
+  sent_at: string
+  sent_by: string | null
+  status: 'scheduled' | 'sent' | 'delivered' | 'failed' | 'opened'
+}
+
+export interface Reminder {
+  id: string
+  prospect_id: string | null
+  student_id: string | null
+  title: string
+  description: string | null
+  due_date: string
+  reminder_type: 'follow_up' | 'flight_review' | 'ipc' | 'medical' | 'rental_currency' | 'custom' | null
+  status: 'pending' | 'completed' | 'dismissed'
+  created_at: string
+  completed_at: string | null
+}
