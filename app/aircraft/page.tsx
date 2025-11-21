@@ -2,10 +2,15 @@
 
 import Link from "next/link"
 import ImageCarousel from "@/app/components/ImageCarousel"
+import ContactModal from "@/app/components/ContactModal"
+import { useState } from "react"
 
 export default function AircraftPage() {
+  const [isContactOpen, setIsContactOpen] = useState(false)
+  const [selectedAircraft, setSelectedAircraft] = useState<string | undefined>()
   return (
-    <div className="min-h-screen bg-white">
+    <>
+      <div className="min-h-screen bg-white">
       {/* Hero Section */}
       <section className="relative py-20 sm:py-24 md:py-32 overflow-hidden" style={{
         backgroundImage: `url('/images/our-aircraft-header.jpg')`,
@@ -99,12 +104,15 @@ export default function AircraftPage() {
                     </div>
                   </div>
 
-                  <Link
-                    href="mailto:Isaac.Imp.Prestwich@gmail.com"
+                  <button
+                    onClick={() => {
+                      setSelectedAircraft("N888MS Sport Cruiser")
+                      setIsContactOpen(true)
+                    }}
                     className="block w-full text-center px-8 py-4 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300 transform hover:scale-105 shadow-lg"
                   >
                     Contact Instructors
-                  </Link>
+                  </button>
                 </div>
               </div>
             </div>
@@ -181,12 +189,15 @@ export default function AircraftPage() {
                     </ul>
                   </div>
 
-                  <Link
-                    href="mailto:Isaac.Imp.Prestwich@gmail.com"
+                  <button
+                    onClick={() => {
+                      setSelectedAircraft("N2152Z Piper Warrior")
+                      setIsContactOpen(true)
+                    }}
                     className="block w-full text-center px-8 py-4 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300 transform hover:scale-105 shadow-lg"
                   >
                     Contact Instructors
-                  </Link>
+                  </button>
                 </div>
               </div>
             </div>
@@ -255,12 +266,17 @@ export default function AircraftPage() {
                     </ul>
                   </div>
 
-                  <Link
-                    href="mailto:Isaac.Imp.Prestwich@gmail.com"
-                    className="block w-full text-center px-8 py-4 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300 transform hover:scale-105 shadow-lg"
+                  <a
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setSelectedAircraft("N1624Q Cessna 150")
+                      setIsContactOpen(true)
+                    }}
+                    href="#"
+                    className="block w-full text-center px-8 py-4 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300 transform hover:scale-105 shadow-lg cursor-pointer"
                   >
                     Contact Instructors
-                  </Link>
+                  </a>
                 </div>
               </div>
             </div>
@@ -305,6 +321,12 @@ export default function AircraftPage() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+      <ContactModal 
+        isOpen={isContactOpen} 
+        onClose={() => setIsContactOpen(false)}
+        aircraftName={selectedAircraft}
+      />
+    </>
   )
 }

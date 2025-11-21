@@ -244,7 +244,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Welcome / About Isaac Section */
+      {/* Welcome / About Isaac Section */}
       <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-gray-50 to-white relative">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12 sm:mb-16">
@@ -281,7 +281,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-}
+
       {/* What Makes a Safe Pilot Section */}
       <section className="py-16 sm:py-20 md:py-24 bg-black text-white relative overflow-hidden">
         {/* Background Pattern */}
