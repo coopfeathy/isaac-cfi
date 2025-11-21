@@ -1,38 +1,38 @@
 'use client'
 
+import React from "react"
 import Link from "next/link"
-import { useAuth } from "./contexts/AuthContext"
 
 export default function Home() {
-  const { user } = useAuth()
-
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section */}
       <section className="relative min-h-[85vh] sm:min-h-[90vh] flex items-center justify-center bg-black overflow-hidden">
-        {/* Animated Background Pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 0 L60 40 L100 50 L60 60 L50 100 L40 60 L0 50 L40 40 Z' fill='%23C59A2A' fill-opacity='0.1'/%3E%3C/svg%3E")`,
-            backgroundSize: '100px 100px',
-          }} />
-        </div>
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/flightTakeoff.mov" type="video/quicktime" />
+          <source src="/flightTakeoff.mov" type="video/mp4" />
+        </video>
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black opacity-90" />
+        <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/50 to-black/60" />
         
         <div className="relative z-10 text-center text-white px-4 sm:px-6 max-w-6xl mx-auto">
-          <p className="text-lg sm:text-xl md:text-2xl text-gray-300 font-light mb-3 sm:mb-4 tracking-wide">
-            Merlin Flight Training
-          </p>
-          <div className="mb-4 sm:mb-6 inline-block">
-            <div className="w-16 sm:w-20 h-1 bg-golden mx-auto rounded-full" />
-          </div>
-          <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold mb-4 sm:mb-6 leading-tight tracking-tight">
-            Soar Above<br />
-            <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">New York City</span>
+          <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold mb-6 sm:mb-8 tracking-tight">
+            <div className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent leading-none mb-2">Experience</div>
+            <div className="text-white leading-none mb-2">Flight Training</div>
+            <Link 
+              href="/discovery-flight"
+              className="inline-block bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent hover:from-yellow-300 hover:via-yellow-200 hover:to-yellow-300 transition-all duration-300 cursor-pointer"
+            >
+              Now
+            </Link>
           </h1>
-          <p className="text-base sm:text-lg md:text-xl mb-8 sm:mb-12 text-gray-300 max-w-3xl mx-auto font-light leading-relaxed px-4">
-            Experience breathtaking flight tours and professional flight training with FAA-certified instructors
+          <p className="text-base sm:text-lg md:text-xl mb-16 sm:mb-20 md:mb-24 text-gray-300 max-w-3xl mx-auto font-light leading-relaxed px-4">
+            Breathtaking flight memories and professional flight training with FAA-certified instructors
           </p>
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 justify-center items-center px-4">
             <Link
@@ -123,23 +123,83 @@ export default function Home() {
               <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
             </div>
             <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black mb-4 sm:mb-6 tracking-tight">
-              Located in New Jersey
+              Our Locations
             </h3>
-            <p className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto font-light mb-6 leading-relaxed">
-              South Jersey Regional Airport is our home base, where our aircraft is mainly located.
+            <p className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto font-light mb-8 leading-relaxed">
+              We operate from three convenient locations across New Jersey and New York
             </p>
-            <div className="bg-gradient-to-br from-gray-50 to-white p-6 sm:p-8 rounded-2xl border border-gray-200 max-w-2xl mx-auto">
-              <p className="text-gray-700 font-medium mb-2">📍 68 Stacy Haines Rd, Lumberton, NJ</p>
-              <p className="text-gray-600 font-light text-sm sm:text-base">Parking next to Runway Cafe is available for new or prospective students.</p>
-              <p className="text-gray-600 font-light text-sm sm:text-base mt-4">
-                We can move our aircraft for extended periods of time and are open to transporting our aircraft for extended training to meet our students' needs.
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              {/* Location 1: Lumberton, NJ */}
+              <div className="bg-gradient-to-br from-gray-50 to-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg">
+                <div className="w-12 h-12 bg-golden/10 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                  <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <h4 className="text-xl font-bold text-black mb-2">Lumberton, NJ</h4>
+                <p className="text-golden font-semibold mb-3">N888MS Sport Cruiser</p>
+                <p className="text-gray-600 font-medium mb-1 text-sm">N14 - Flying W Airport</p>
+                <p className="text-gray-500 text-xs mb-4">68 Stacy Haines Rd, Lumberton, NJ</p>
+                <a
+                  href="https://maps.google.com/?q=Flying+W+Airport+Lumberton+NJ"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
+                >
+                  View on Map
+                </a>
+              </div>
+
+              {/* Location 2: Long Island, NY */}
+              <div className="bg-gradient-to-br from-gray-50 to-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg">
+                <div className="w-12 h-12 bg-golden/10 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                  <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <h4 className="text-xl font-bold text-black mb-2">Long Island, NY</h4>
+                <p className="text-golden font-semibold mb-3">N2152Z Piper Warrior</p>
+                <p className="text-gray-600 font-medium mb-1 text-sm">FRG - Republic Airport</p>
+                <p className="text-gray-500 text-xs mb-4">Farmingdale, New York</p>
+                <a
+                  href="https://maps.google.com/?q=Republic+Airport+Farmingdale+NY"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
+                >
+                  View on Map
+                </a>
+              </div>
+
+              {/* Location 3: Warwick, NY */}
+              <div className="bg-gradient-to-br from-gray-50 to-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg">
+                <div className="w-12 h-12 bg-golden/10 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                  <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <h4 className="text-xl font-bold text-black mb-2">Warwick, NY</h4>
+                <p className="text-golden font-semibold mb-3">N1624Q Cessna 150</p>
+                <p className="text-gray-600 font-medium mb-1 text-sm">N72 - Warwick Municipal</p>
+                <p className="text-gray-500 text-xs mb-4">Warwick, New York</p>
+                <a
+                  href="https://maps.google.com/?q=Warwick+Municipal+Airport+NY"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
+                >
+                  View on Map
+                </a>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Welcome / About Isaac Section */}
+      {/* Welcome / About Isaac Section */
       <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-gray-50 to-white relative">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12 sm:mb-16">
@@ -176,7 +236,7 @@ export default function Home() {
           </div>
         </div>
       </section>
-
+}
       {/* What Makes a Safe Pilot Section */}
       <section className="py-16 sm:py-20 md:py-24 bg-black text-white relative overflow-hidden">
         {/* Background Pattern */}
@@ -467,16 +527,13 @@ export default function Home() {
             Ready to <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Take Flight</span>?
           </h2>
           <p className="text-lg sm:text-xl md:text-2xl mb-10 sm:mb-12 text-gray-300 max-w-3xl mx-auto font-light leading-relaxed px-4">
-            {user 
-              ? "Browse available slots and book your next adventure today."
-              : "Sign in to view available slots and start your aviation journey."
-            }
+            Browse available slots and book your next adventure today.
           </p>
           <Link
-            href={user ? "/schedule" : "/login"}
+            href="/schedule"
             className="inline-block w-full sm:w-auto px-10 sm:px-14 py-4 sm:py-5 bg-golden text-black font-bold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-golden/50 text-base sm:text-lg relative overflow-hidden group mx-4"
           >
-            <span className="relative z-10">{user ? "View Schedule" : "Get Started"}</span>
+            <span className="relative z-10">View Schedule</span>
             <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-golden opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </Link>
         </div>
