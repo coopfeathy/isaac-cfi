@@ -130,69 +130,105 @@ export default function Home() {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {/* Location 1: Lumberton, NJ */}
-              <div className="bg-gradient-to-br from-gray-50 to-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg">
-                <div className="w-12 h-12 bg-golden/10 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                  <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+              <div className="relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80">
+                {/* Aerial Background Image */}
+                <div 
+                  className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-300"
+                  style={{
+                    backgroundImage: 'url("/images/flying-w-airport.png")'
+                  }}
+                />
+                {/* Dark Overlay */}
+                <div className="absolute inset-0 bg-black/50 group-hover:bg-black/40 transition-colors duration-300" />
+                {/* Content */}
+                <div className="relative z-10 flex flex-col justify-end h-full">
+                  <div className="w-12 h-12 bg-golden/20 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                    <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <h4 className="text-xl font-bold text-white mb-2">Lumberton, NJ</h4>
+                  <p className="text-golden font-semibold mb-3">N888MS Sport Cruiser</p>
+                  <p className="text-gray-200 font-medium mb-1 text-sm">N14 - Flying W Airport</p>
+                  <p className="text-gray-300 text-xs mb-4">68 Stacy Haines Rd, Lumberton, NJ</p>
+                  <a
+                    href="https://maps.google.com/?q=Flying+W+Airport+Lumberton+NJ"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
+                  >
+                    View on Map
+                  </a>
                 </div>
-                <h4 className="text-xl font-bold text-black mb-2">Lumberton, NJ</h4>
-                <p className="text-golden font-semibold mb-3">N888MS Sport Cruiser</p>
-                <p className="text-gray-600 font-medium mb-1 text-sm">N14 - Flying W Airport</p>
-                <p className="text-gray-500 text-xs mb-4">68 Stacy Haines Rd, Lumberton, NJ</p>
-                <a
-                  href="https://maps.google.com/?q=Flying+W+Airport+Lumberton+NJ"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
-                >
-                  View on Map
-                </a>
               </div>
 
               {/* Location 2: Long Island, NY */}
-              <div className="bg-gradient-to-br from-gray-50 to-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg">
-                <div className="w-12 h-12 bg-golden/10 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                  <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+              <div className="relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80">
+                {/* Aerial Background Image */}
+                <div 
+                  className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-300"
+                  style={{
+                    backgroundImage: 'url("/images/republic-airport.png")'
+                  }}
+                />
+                {/* Dark Overlay */}
+                <div className="absolute inset-0 bg-black/50 group-hover:bg-black/40 transition-colors duration-300" />
+                {/* Content */}
+                <div className="relative z-10 flex flex-col justify-end h-full">
+                  <div className="w-12 h-12 bg-golden/20 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                    <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <h4 className="text-xl font-bold text-white mb-2">Long Island, NY</h4>
+                  <p className="text-golden font-semibold mb-3">N2152Z Piper Warrior</p>
+                  <p className="text-gray-200 font-medium mb-1 text-sm">FRG - Republic Airport</p>
+                  <p className="text-gray-300 text-xs mb-4">Farmingdale, New York</p>
+                  <a
+                    href="https://maps.google.com/?q=Republic+Airport+Farmingdale+NY"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
+                  >
+                    View on Map
+                  </a>
                 </div>
-                <h4 className="text-xl font-bold text-black mb-2">Long Island, NY</h4>
-                <p className="text-golden font-semibold mb-3">N2152Z Piper Warrior</p>
-                <p className="text-gray-600 font-medium mb-1 text-sm">FRG - Republic Airport</p>
-                <p className="text-gray-500 text-xs mb-4">Farmingdale, New York</p>
-                <a
-                  href="https://maps.google.com/?q=Republic+Airport+Farmingdale+NY"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
-                >
-                  View on Map
-                </a>
               </div>
 
               {/* Location 3: Warwick, NY */}
-              <div className="bg-gradient-to-br from-gray-50 to-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg">
-                <div className="w-12 h-12 bg-golden/10 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                  <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+              <div className="relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80">
+                {/* Aerial Background Image */}
+                <div 
+                  className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-300"
+                  style={{
+                    backgroundImage: 'url("/images/warwick-airport.png")'
+                  }}
+                />
+                {/* Dark Overlay */}
+                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors duration-300" />
+                {/* Content */}
+                <div className="relative z-10 flex flex-col justify-end h-full">
+                  <div className="w-12 h-12 bg-golden/20 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                    <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <h4 className="text-xl font-bold text-white mb-2">Warwick, NY</h4>
+                  <p className="text-golden font-semibold mb-3">N1624Q Cessna 150</p>
+                  <p className="text-gray-200 font-medium mb-1 text-sm">N72 - Warwick Municipal</p>
+                  <p className="text-gray-300 text-xs mb-4">Warwick, New York</p>
+                  <a
+                    href="https://maps.google.com/?q=Warwick+Municipal+Airport+NY"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
+                  >
+                    View on Map
+                  </a>
                 </div>
-                <h4 className="text-xl font-bold text-black mb-2">Warwick, NY</h4>
-                <p className="text-golden font-semibold mb-3">N1624Q Cessna 150</p>
-                <p className="text-gray-600 font-medium mb-1 text-sm">N72 - Warwick Municipal</p>
-                <p className="text-gray-500 text-xs mb-4">Warwick, New York</p>
-                <a
-                  href="https://maps.google.com/?q=Warwick+Municipal+Airport+NY"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
-                >
-                  View on Map
-                </a>
               </div>
             </div>
           </div>
