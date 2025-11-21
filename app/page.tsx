@@ -2,8 +2,15 @@
 
 import React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 export default function Home() {
+  const router = useRouter()
+
+  const handleBookFlight = () => {
+    router.push('/schedule?showBooking=true')
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <section className="relative min-h-[85vh] sm:min-h-[90vh] flex items-center justify-center bg-black overflow-hidden">
@@ -35,13 +42,13 @@ export default function Home() {
             Breathtaking flight memories and professional flight training with FAA-certified instructors
           </p>
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 justify-center items-center px-4">
-            <Link
-              href="/schedule"
+            <button
+              onClick={handleBookFlight}
               className="w-full sm:w-auto group px-8 sm:px-10 py-3 sm:py-4 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-golden/50 text-base sm:text-lg relative overflow-hidden text-center"
             >
               <span className="relative z-10">Book Your Flight</span>
               <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-golden opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            </Link>
+            </button>
             <Link
               href="/faq"
               className="w-full sm:w-auto px-8 sm:px-10 py-3 sm:py-4 bg-transparent text-white font-semibold rounded-lg hover:bg-white/10 transition-all duration-300 border-2 border-white/30 hover:border-golden text-base sm:text-lg backdrop-blur-sm text-center"

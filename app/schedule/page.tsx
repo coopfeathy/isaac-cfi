@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { Slot } from '@/lib/supabase'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import BookingFormModal from '../components/BookingFormModal'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -199,16 +200,25 @@ function BookingModal({ slot, onClose, onSuccess }: BookingModalProps) {
 export default function SchedulePage() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [slots, setSlots] = useState<Slot[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'training' | 'tour'>('all')
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
+  const [showBookingForm, setShowBookingForm] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login')
     }
   }, [user, authLoading, router])
+
+  useEffect(() => {
+    // Check if we should show the booking form from homepage
+    if (searchParams?.get('showBooking') === 'true') {
+      setShowBookingForm(true)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (user) {
@@ -391,6 +401,12 @@ export default function SchedulePage() {
           onSuccess={handleBookingSuccess}
         />
       )}
+
+      {/* Booking Form Modal - For homepage "Book Your Flight" button */}
+      <BookingFormModal
+        isOpen={showBookingForm}
+        onClose={() => setShowBookingForm(false)}
+      />
     </div>
   )
 }
