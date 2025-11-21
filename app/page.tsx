@@ -130,7 +130,7 @@ export default function Home() {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {/* Location 1: Lumberton, NJ */}
-              <div className="relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80">
+              <a href="/aircraft#n888ms" className="block relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80">
                 {/* Aerial Background Image */}
                 <div 
                   className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-300"
@@ -152,19 +152,22 @@ export default function Home() {
                   <p className="text-golden font-semibold mb-3">N888MS Sport Cruiser</p>
                   <p className="text-gray-200 font-medium mb-1 text-sm">N14 - Flying W Airport</p>
                   <p className="text-gray-300 text-xs mb-4">68 Stacy Haines Rd, Lumberton, NJ</p>
-                  <a
-                    href="https://maps.google.com/?q=Flying+W+Airport+Lumberton+NJ"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
-                  >
-                    View on Map
-                  </a>
+                  <div className="flex gap-2">
+                    <a
+                      href="https://maps.google.com/?q=Flying+W+Airport+Lumberton+NJ"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex-1 text-center px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
+                    >
+                      View on Map
+                    </a>
+                  </div>
                 </div>
-              </div>
+              </a>
 
               {/* Location 2: Long Island, NY */}
-              <div className="relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80">
+              <a href="/aircraft#n2152z" className="block relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80">
                 {/* Aerial Background Image */}
                 <div 
                   className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-300"
@@ -186,19 +189,22 @@ export default function Home() {
                   <p className="text-golden font-semibold mb-3">N2152Z Piper Warrior</p>
                   <p className="text-gray-200 font-medium mb-1 text-sm">FRG - Republic Airport</p>
                   <p className="text-gray-300 text-xs mb-4">Farmingdale, New York</p>
-                  <a
-                    href="https://maps.google.com/?q=Republic+Airport+Farmingdale+NY"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
-                  >
-                    View on Map
-                  </a>
+                  <div className="flex gap-2">
+                    <a
+                      href="https://maps.google.com/?q=Republic+Airport+Farmingdale+NY"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex-1 text-center px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
+                    >
+                      View on Map
+                    </a>
+                  </div>
                 </div>
-              </div>
+              </a>
 
               {/* Location 3: Warwick, NY */}
-              <div className="relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80">
+              <a href="/aircraft#n1624q" className="block relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80">
                 {/* Aerial Background Image */}
                 <div 
                   className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-300"
@@ -220,16 +226,19 @@ export default function Home() {
                   <p className="text-golden font-semibold mb-3">N1624Q Cessna 150</p>
                   <p className="text-gray-200 font-medium mb-1 text-sm">N72 - Warwick Municipal</p>
                   <p className="text-gray-300 text-xs mb-4">Warwick, New York</p>
-                  <a
-                    href="https://maps.google.com/?q=Warwick+Municipal+Airport+NY"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
-                  >
-                    View on Map
-                  </a>
+                  <div className="flex gap-2">
+                    <a
+                      href="https://maps.google.com/?q=Warwick+Municipal+Airport+NY"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex-1 text-center px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
+                    >
+                      View on Map
+                    </a>
+                  </div>
                 </div>
-              </div>
+              </a>
             </div>
           </div>
         </div>

@@ -40,7 +40,7 @@ export default function AircraftPage() {
           <div className="space-y-16 sm:space-y-20 md:space-y-24">
             
             {/* Aircraft 1: Sport Cruiser */}
-            <div className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden">
+            <div id="n888ms" className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden scroll-mt-32">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
                 <div className="h-64 sm:h-80 lg:h-full flex items-center justify-center">
                   <ImageCarousel 
@@ -110,7 +110,7 @@ export default function AircraftPage() {
             </div>
 
             {/* Aircraft 2: Piper Warrior */}
-            <div className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden">
+            <div id="n2152z" className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden scroll-mt-32">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
                 <div className="h-64 sm:h-80 lg:h-full flex items-center justify-center order-2 lg:order-1">
                   <ImageCarousel 
@@ -192,7 +192,7 @@ export default function AircraftPage() {
             </div>
 
             {/* Aircraft 3: Cessna 150 */}
-            <div className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden">
+            <div id="n1624q" className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden scroll-mt-32">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
                 <div className="h-64 sm:h-80 lg:h-full flex items-center justify-center">
                   <ImageCarousel 
