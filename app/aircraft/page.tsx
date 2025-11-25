@@ -120,7 +120,7 @@ export default function AircraftPage() {
             {/* Aircraft 2: Piper Warrior */}
             <div id="n2152z" className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden scroll-mt-32">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-                <div className="h-64 sm:h-80 lg:h-full flex items-center justify-center order-2 lg:order-1">
+                <div className="h-64 sm:h-80 lg:h-full flex items-center justify-center">
                   <ImageCarousel 
                     images={[
                       '/images/n2152z-1.JPG',
@@ -133,7 +133,7 @@ export default function AircraftPage() {
                     alt="N2152Z Piper Warrior"
                   />
                 </div>
-                <div className="p-8 sm:p-10 md:p-12 order-1 lg:order-2">
+                <div className="p-8 sm:p-10 md:p-12">
                   <div className="flex items-start justify-between mb-6">
                     <div>
                       <h2 className="text-3xl sm:text-4xl font-bold text-black mb-2">N2152Z Piper Warrior</h2>
