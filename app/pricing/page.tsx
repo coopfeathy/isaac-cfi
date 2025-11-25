@@ -471,35 +471,35 @@ export default function PricingPage() {
 
             <div className="space-y-6 sm:space-y-8">
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-                <h3 className="text-lg sm:text-xl font-bold text-black mb-3 text-golden">Are there any hidden fees?</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-golden mb-3">Are there any hidden fees?</h3>
                 <p className="text-gray-700 leading-relaxed font-light text-sm sm:text-base">
                   No. Our rates are all-inclusive. The price you see includes fuel, maintenance, insurance, and all equipment. With flight hour blocks, you save additional money compared to hourly rates.
                 </p>
               </div>
 
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-                <h3 className="text-lg sm:text-xl font-bold text-black mb-3 text-golden">Do I need a medical certificate?</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-golden mb-3">Do I need a medical certificate?</h3>
                 <p className="text-gray-700 leading-relaxed font-light text-sm sm:text-base">
                   For discovery flights and recreational flying, you do not need a medical certificate. For commercial training or pilot certification, an FAA medical certificate is required.
                 </p>
               </div>
 
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-                <h3 className="text-lg sm:text-xl font-bold text-black mb-3 text-golden">Can I cancel or reschedule?</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-golden mb-3">Can I cancel or reschedule?</h3>
                 <p className="text-gray-700 leading-relaxed font-light text-sm sm:text-base">
                   Yes. We offer flexible rescheduling based on instructor and aircraft availability. Please contact us for our cancellation policy details.
                 </p>
               </div>
 
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-                <h3 className="text-lg sm:text-xl font-bold text-black mb-3 text-golden">How do block hours work?</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-golden mb-3">How do block hours work?</h3>
                 <p className="text-gray-700 leading-relaxed font-light text-sm sm:text-base">
                   Purchase a 10-hour block at a discounted rate and use your hours within the contract period. Block hours provide savings of $5–10 per hour compared to standard hourly rates.
                 </p>
               </div>
 
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-                <h3 className="text-lg sm:text-xl font-bold text-black mb-3 text-golden">What about fuel surcharges?</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-golden mb-3">What about fuel surcharges?</h3>
                 <p className="text-gray-700 leading-relaxed font-light text-sm sm:text-base">
                   There are no fuel surcharges. Fuel costs are included in our hourly rates. Our transparent pricing means you know exactly what you'll pay.
                 </p>

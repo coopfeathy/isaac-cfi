@@ -104,6 +104,11 @@ export default function SimpleHeader() {
               </Link>
             </li>
             <li>
+              <Link href="/pricing" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
+                Pricing
+              </Link>
+            </li>
+            <li>
               <Link href="/faq" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
                 FAQ
               </Link>
@@ -254,6 +259,22 @@ export default function SimpleHeader() {
                   }}
                 >
                   Blog
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/pricing" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{ 
+                    color: '#374151', 
+                    fontWeight: 500, 
+                    textDecoration: 'none',
+                    display: 'block',
+                    padding: '12px 16px',
+                    borderRadius: '8px'
+                  }}
+                >
+                  Pricing
                 </Link>
               </li>
               <li>

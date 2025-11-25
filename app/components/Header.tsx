@@ -44,29 +44,29 @@ const Header = () => {
           </button>
 
           {/* Desktop navigation - shows at 640px+ */}
-          <ul className="hidden sm:flex space-x-2 md:space-x-4 lg:space-x-6 xl:space-x-8 items-center" style={{ display: 'flex', gap: '20px', listStyle: 'none', alignItems: 'center' }}>
+          <ul className="hidden sm:flex space-x-2 md:space-x-4 lg:space-x-6 xl:space-x-8 items-center">
             <li>
-              <Link href="/" className="text-gray-700 hover:text-golden transition-all duration-300 font-medium px-3 py-2 rounded-lg hover:bg-golden/5" style={{ color: '#374151', fontWeight: 500, padding: '8px 12px' }}>
+              <Link href="/" className="text-gray-700 hover:text-golden transition-all duration-300 font-medium px-3 py-2 rounded-lg hover:bg-golden/5">
                 Home
               </Link>
             </li>
             <li>
-              <Link href="/schedule" className="text-gray-700 hover:text-golden transition-all duration-300 font-medium px-3 py-2 rounded-lg hover:bg-golden/5" style={{ color: '#374151', fontWeight: 500, padding: '8px 12px' }}>
+              <Link href="/schedule" className="text-gray-700 hover:text-golden transition-all duration-300 font-medium px-3 py-2 rounded-lg hover:bg-golden/5">
                 Schedule
               </Link>
             </li>
             <li>
-              <Link href="/blog" className="text-gray-700 hover:text-golden transition-all duration-300 font-medium px-3 py-2 rounded-lg hover:bg-golden/5" style={{ color: '#374151', fontWeight: 500, padding: '8px 12px' }}>
+              <Link href="/blog" className="text-gray-700 hover:text-golden transition-all duration-300 font-medium px-3 py-2 rounded-lg hover:bg-golden/5">
                 Blog
               </Link>
             </li>
             <li>
-              <Link href="/pricing" className="text-gray-700 hover:text-golden transition-all duration-300 font-medium px-3 py-2 rounded-lg hover:bg-golden/5" style={{ color: '#374151', fontWeight: 500, padding: '8px 12px' }}>
+              <Link href="/pricing" className="text-gray-700 hover:text-golden transition-all duration-300 font-medium px-3 py-2 rounded-lg hover:bg-golden/5">
                 Pricing
               </Link>
             </li>
             <li>
-              <Link href="/faq" className="text-gray-700 hover:text-golden transition-all duration-300 font-medium px-3 py-2 rounded-lg hover:bg-golden/5" style={{ color: '#374151', fontWeight: 500, padding: '8px 12px' }}>
+              <Link href="/faq" className="text-gray-700 hover:text-golden transition-all duration-300 font-medium px-3 py-2 rounded-lg hover:bg-golden/5">
                 FAQ
               </Link>
             </li>
@@ -99,7 +99,6 @@ const Header = () => {
                 <Link
                   href="/login"
                   className="px-8 py-2.5 bg-black text-white rounded-lg hover:bg-golden hover:text-black transition-all duration-300 font-semibold shadow-md hover:shadow-lg"
-                  style={{ backgroundColor: '#000', color: '#fff', padding: '10px 32px', borderRadius: '8px', fontWeight: 600 }}
                 >
                   Sign In
                 </Link>
