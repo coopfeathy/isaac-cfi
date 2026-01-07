@@ -208,12 +208,6 @@ export default function SchedulePage() {
   const [showBookingForm, setShowBookingForm] = useState(false)
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login')
-    }
-  }, [user, authLoading, router])
-
-  useEffect(() => {
     // Check if we should show the booking form from homepage
     if (searchParams?.get('showBooking') === 'true') {
       setShowBookingForm(true)
@@ -221,10 +215,8 @@ export default function SchedulePage() {
   }, [searchParams])
 
   useEffect(() => {
-    if (user) {
-      fetchSlots()
-    }
-  }, [user])
+    fetchSlots()
+  }, [])
 
   const fetchSlots = async () => {
     setLoading(true)
@@ -299,98 +291,17 @@ export default function SchedulePage() {
           </p>
         </div>
 
-        {/* Filter Buttons */}
-        <div className="flex justify-center gap-4 mb-8">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-              filter === 'all'
-                ? 'bg-golden text-darkText'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilter('training')}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-              filter === 'training'
-                ? 'bg-golden text-darkText'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Flight Training
-          </button>
-          <button
-            onClick={() => setFilter('tour')}
-            className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-              filter === 'tour'
-                ? 'bg-golden text-darkText'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            NYC Tours
-          </button>
+        {/* Calendly Widget */}
+        <div className="mb-12">
+          <iframe 
+            src="https://calendly.com/merlinflighttraining"
+            width="100%"
+            height="700"
+            frameBorder="0"
+            title="Calendly Scheduling"
+            style={{ border: 'none', overflow: 'hidden' }}
+          ></iframe>
         </div>
-
-        {/* Slots Grid */}
-        {filteredSlots.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600 text-lg">
-              No available slots found. Check back soon!
-            </p>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSlots.map((slot) => (
-              <div
-                key={slot.id}
-                className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow"
-              >
-                <div className="mb-4">
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                    slot.type === 'tour'
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-green-100 text-green-800'
-                  }`}>
-                    {slot.type === 'tour' ? 'NYC Tour' : 'Flight Training'}
-                  </span>
-                </div>
-                
-                <h3 className="text-xl font-bold text-darkText mb-2">
-                  {slot.description || (slot.type === 'tour' ? 'NYC Flight Tour' : 'Flight Lesson')}
-                </h3>
-                
-                <div className="space-y-2 mb-4 text-gray-600">
-                  <p className="flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    {formatDate(slot.start_time)}
-                  </p>
-                  <p className="flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-darkText">
-                    ${(slot.price / 100).toFixed(2)}
-                  </span>
-                  <button
-                    onClick={() => handleBook(slot)}
-                    className="px-6 py-2 bg-golden text-darkText font-bold rounded-lg hover:bg-opacity-90 transition-colors"
-                  >
-                    Book Now
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Booking Modal */}

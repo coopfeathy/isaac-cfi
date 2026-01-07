@@ -23,13 +23,7 @@ export default function Home() {
         <div className="relative z-10 text-center text-white px-4 sm:px-6 max-w-6xl mx-auto">
           <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold mb-6 sm:mb-8 tracking-tight">
             <div className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent leading-none mb-2">Experience</div>
-            <div className="text-white leading-none mb-2">Flight Training</div>
-            <Link 
-              href="/discovery-flight"
-              className="inline-block bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent hover:from-yellow-300 hover:via-yellow-200 hover:to-yellow-300 transition-all duration-300 cursor-pointer"
-            >
-              Now
-            </Link>
+            <div className="text-white leading-none">Flight Training</div>
           </h1>
           <p className="text-base sm:text-lg md:text-xl mb-16 sm:mb-20 md:mb-24 text-gray-300 max-w-3xl mx-auto font-light leading-relaxed px-4">
             Breathtaking flight memories and professional flight training with FAA-certified instructors
