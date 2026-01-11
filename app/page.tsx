@@ -30,7 +30,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 justify-center items-center px-4">
             <Link
-              href="/schedule?showBooking=true"
+              href="/schedule"
               className="w-full sm:w-auto group px-8 sm:px-10 py-3 sm:py-4 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-golden/50 text-base sm:text-lg relative overflow-hidden text-center"
             >
               <span className="relative z-10">Book Your Flight</span>
