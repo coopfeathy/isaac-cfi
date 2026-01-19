@@ -2,6 +2,17 @@
 
 import React from "react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
+import ImageCarousel from "@/app/components/ImageCarousel"
+
+const LocationsMap = dynamic(() => import("@/app/components/LocationsMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[400px] flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-golden"></div>
+    </div>
+  ),
+})
 
 export default function Home() {
   return (
@@ -22,11 +33,11 @@ export default function Home() {
         
         <div className="relative z-10 text-center text-white px-4 sm:px-6 max-w-6xl mx-auto">
           <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold mb-6 sm:mb-8 tracking-tight">
-            <div className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent leading-none mb-2">Experience</div>
+            <div className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent leading-none mb-2">One - on - One</div>
             <div className="text-white leading-none">Flight Training</div>
           </h1>
           <p className="text-base sm:text-lg md:text-xl mb-16 sm:mb-20 md:mb-24 text-gray-300 max-w-3xl mx-auto font-light leading-relaxed px-4">
-            Breathtaking flight memories and professional flight training with FAA-certified instructors
+            FAA-Certified Instructors, Breathtaking flight memories, and Professional Flight Training with Merlin Flight Training
           </p>
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 justify-center items-center px-4">
             <Link
@@ -42,6 +53,265 @@ export default function Home() {
             >
               Learn More
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Locations Section */}
+      <section className="py-16 sm:py-20 md:py-24 bg-white relative">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-golden to-transparent" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center mb-12 sm:mb-16">
+            {/* Left Side - Text */}
+            <div className="text-center lg:text-left">
+              <div className="inline-block mb-4">
+                <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
+              </div>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-4 sm:mb-5 tracking-tight">
+                Our <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Locations</span>
+              </h2>
+              <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-xl mx-auto lg:mx-0 font-light leading-relaxed">
+                Serving pilots across New Jersey and New York with convenient airport locations
+              </p>
+            </div>
+
+            {/* Right Side - Map */}
+            <div className="h-[350px] sm:h-[400px] lg:h-[450px] rounded-2xl overflow-hidden border border-gray-200 shadow-lg">
+              <LocationsMap />
+            </div>
+          </div>
+
+          {/* Location Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+            {/* Lumberton, NJ */}
+            <a 
+              href="https://maps.apple.com/?q=Flying+W+Airport+N14+Lumberton+NJ"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative rounded-2xl overflow-hidden border-2 border-golden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
+            >
+              <div className="relative h-40 sm:h-48">
+                <img 
+                  src="/images/flying-w-airport.png" 
+                  alt="Flying W Airport" 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/40" />
+                {/* Location Pin Icon */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full border-2 border-golden bg-black/30 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-golden" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-900 p-5 text-center">
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">Lumberton, NJ</h3>
+                <p className="text-golden font-semibold mb-2">N888MS Sport Cruiser</p>
+                <p className="text-white text-sm mb-1">N14 - Flying W Airport</p>
+                <p className="text-gray-400 text-xs mb-4">68 Stacy Haines Rd, Lumberton, NJ</p>
+                <div className="bg-black text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-golden group-hover:text-black transition-all duration-300">
+                  View on Map
+                </div>
+              </div>
+            </a>
+
+            {/* Long Island, NY */}
+            <a 
+              href="https://maps.apple.com/?q=FRG+Republic+Airport+Farmingdale+NY"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative rounded-2xl overflow-hidden border-2 border-golden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
+            >
+              <div className="relative h-40 sm:h-48">
+                <img 
+                  src="/images/republic-airport.png" 
+                  alt="Republic Airport" 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/40" />
+                {/* Location Pin Icon */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full border-2 border-golden bg-black/30 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-golden" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-900 p-5 text-center">
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">Long Island, NY</h3>
+                <p className="text-golden font-semibold mb-2">N2152Z Piper Warrior</p>
+                <p className="text-white text-sm mb-1">FRG - Republic Airport</p>
+                <p className="text-gray-400 text-xs mb-4">Farmingdale, New York</p>
+                <div className="bg-black text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-golden group-hover:text-black transition-all duration-300">
+                  View on Map
+                </div>
+              </div>
+            </a>
+
+            {/* Warwick, NY */}
+            <a 
+              href="https://maps.apple.com/?q=N72+Warwick+Municipal+Airport+Warwick+NY"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative rounded-2xl overflow-hidden border-2 border-golden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
+            >
+              <div className="relative h-40 sm:h-48">
+                <img 
+                  src="/images/warwick-airport.png" 
+                  alt="Warwick Municipal Airport" 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black/40" />
+                {/* Location Pin Icon */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full border-2 border-golden bg-black/30 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-golden" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-900 p-5 text-center">
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">Warwick, NY</h3>
+                <p className="text-golden font-semibold mb-2">N1624Q Cessna 150</p>
+                <p className="text-white text-sm mb-1">N72 - Warwick Municipal</p>
+                <p className="text-gray-400 text-xs mb-4">Warwick, New York</p>
+                <div className="bg-black text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-golden group-hover:text-black transition-all duration-300">
+                  View on Map
+                </div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Aircraft Fleet Section */}
+      <section className="py-16 sm:py-20 md:py-24 bg-white relative">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-golden to-transparent" />
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12 sm:mb-16">
+            <div className="inline-block mb-4">
+              <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
+            </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-4 sm:mb-5 tracking-tight px-4">
+              Our <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Aircraft</span>
+            </h2>
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto font-light px-4 leading-relaxed">
+              Choose from our fleet of well-maintained, modern aircraft for your training or rental needs
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+            {/* N888MS Sport Cruiser */}
+            <div className="group bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-2xl overflow-hidden">
+              <div className="h-48 sm:h-56">
+                <ImageCarousel 
+                  images={[
+                    '/images/n888ms-1.JPG',
+                    '/images/n888ms-2.JPG',
+                    '/images/n888ms-3.JPG',
+                  ]}
+                  objectPositions={[
+                    'center center',
+                    'center center',
+                    'center bottom',
+                  ]}
+                  alt="N888MS Sport Cruiser"
+                />
+              </div>
+              <div className="p-6 sm:p-8">
+                <h3 className="text-xl sm:text-2xl font-bold text-black mb-2 group-hover:text-golden transition-colors duration-300">
+                  N888MS Sport Cruiser
+                </h3>
+                <p className="text-golden font-semibold mb-1">Lumberton, NJ</p>
+                <p className="text-gray-600 text-sm mb-3 font-light">Great for building time and logging XC Hours.</p>
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-gray-500 text-sm">From</span>
+                  <span className="text-2xl font-bold text-golden">$152.50<span className="text-sm text-gray-500">/hr</span></span>
+                </div>
+                <Link
+                  href="/aircraft#n888ms"
+                  className="block w-full text-center px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
+                >
+                  View Details
+                </Link>
+              </div>
+            </div>
+
+            {/* N2152Z Piper Warrior */}
+            <div className="group bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-2xl overflow-hidden">
+              <div className="h-48 sm:h-56">
+                <ImageCarousel 
+                  images={[
+                    '/images/n2152z-1.JPG',
+                    '/images/n2152z-2.JPG',
+                  ]}
+                  objectPositions={[
+                    'center center',
+                    'center center',
+                  ]}
+                  alt="N2152Z Piper Warrior"
+                />
+              </div>
+              <div className="p-6 sm:p-8">
+                <h3 className="text-xl sm:text-2xl font-bold text-black mb-2 group-hover:text-golden transition-colors duration-300">
+                  N2152Z Piper Warrior
+                </h3>
+                <p className="text-golden font-semibold mb-1">Long Island, NY</p>
+                <p className="text-gray-600 text-sm mb-3 font-light">IFR Certified, Perfect for the professional pilot.</p>
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-gray-500 text-sm">From</span>
+                  <span className="text-2xl font-bold text-golden">$185<span className="text-sm text-gray-500">/hr</span></span>
+                </div>
+                <Link
+                  href="/aircraft#n2152z"
+                  className="block w-full text-center px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
+                >
+                  View Details
+                </Link>
+              </div>
+            </div>
+
+            {/* N1624Q Cessna 150 */}
+            <div className="group bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-2xl overflow-hidden">
+              <div className="h-48 sm:h-56">
+                <ImageCarousel 
+                  images={[
+                    '/images/n1624q-1.JPG',
+                    '/images/n1624q-2.JPG',
+                    '/images/n1624q-3.JPG',
+                  ]}
+                  objectPositions={[
+                    'center center',
+                    'center center',
+                    'center center',
+                  ]}
+                  alt="N1624Q Cessna 150"
+                />
+              </div>
+              <div className="p-6 sm:p-8">
+                <h3 className="text-xl sm:text-2xl font-bold text-black mb-2 group-hover:text-golden transition-colors duration-300">
+                  N1624Q Cessna 150
+                </h3>
+                <p className="text-golden font-semibold mb-1">Warwick, NY</p>
+                <p className="text-gray-600 text-sm mb-3 font-light">6 Pack, Excellent for the casual flyer.</p>
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-gray-500 text-sm">From</span>
+                  <span className="text-2xl font-bold text-golden">$150<span className="text-sm text-gray-500">/hr</span></span>
+                </div>
+                <Link
+                  href="/aircraft#n1624q"
+                  className="block w-full text-center px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
+                >
+                  View Details
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>

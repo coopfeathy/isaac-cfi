@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import ContactModal from "@/app/components/ContactModal"
+import CalendlyButton, { openCalendly } from "@/app/components/CalendlyButton"
 
 export default function PricingPage() {
   const [isContactOpen, setIsContactOpen] = useState(false)
@@ -178,98 +179,99 @@ export default function PricingPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10 mb-12">
-              {/* Standard Instruction */}
+            <div className="max-w-4xl mx-auto mb-12">
+              {/* Instruction Rate Card */}
               <div className="bg-white p-8 sm:p-10 md:p-12 rounded-3xl shadow-xl border border-gray-200 hover:border-golden transition-all duration-300">
-                <h3 className="text-2xl sm:text-3xl font-bold text-black mb-6">Standard Instruction</h3>
-                <p className="text-gray-600 leading-relaxed mb-6 font-light text-sm sm:text-base">
-                  One-on-one personalized training at your pace. Perfect for those balancing flight training with work or other commitments.
-                </p>
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl sm:text-3xl font-bold text-black mb-2">Flight Instruction</h3>
+                  <p className="text-gray-600 font-light">
+                    One-on-one personalized training with FAA-certified instructors
+                  </p>
+                </div>
                 
-                <div className="mb-8 pb-8 border-b border-gray-200">
-                  <p className="text-sm text-gray-500 mb-2">Instructor Rate</p>
-                  <p className="text-4xl sm:text-5xl font-bold text-golden mb-4">$65<span className="text-base text-gray-500">/hr</span></p>
-                  <p className="text-gray-600 text-sm font-light">Dual instruction rate includes aircraft rental</p>
+                {/* Rate Display */}
+                <div className="text-center mb-8 pb-8 border-b border-gray-200">
+                  <p className="text-5xl sm:text-6xl font-bold text-golden mb-2">$75<span className="text-xl text-gray-500">/hr</span></p>
+                  <p className="text-gray-600 font-light">Same rate for flight and ground instruction</p>
                 </div>
 
-                <ul className="space-y-3 mb-8">
-                  <li className="flex items-start">
-                    <svg className="w-5 h-5 text-golden mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                {/* Pricing Breakdown */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                  <div className="bg-gray-50 p-6 rounded-2xl">
+                    <div className="flex items-center mb-3">
+                      <div className="w-10 h-10 bg-golden/10 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-5 h-5 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                        </svg>
+                      </div>
+                      <h4 className="font-semibold text-black">Flight Time</h4>
+                    </div>
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      Instruction time while in the aircraft. Billed based on Hobbs time.
+                    </p>
+                  </div>
+
+                  <div className="bg-gray-50 p-6 rounded-2xl">
+                    <div className="flex items-center mb-3">
+                      <div className="w-10 h-10 bg-golden/10 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-5 h-5 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                      </div>
+                      <h4 className="font-semibold text-black">Ground Time</h4>
+                    </div>
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      Preflight briefings, post-flight debriefs, and ground school sessions.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Example Box */}
+                <div className="bg-golden/5 border border-golden/20 p-6 rounded-2xl mb-8">
+                  <h4 className="font-semibold text-black mb-3 flex items-center">
+                    <svg className="w-5 h-5 text-golden mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    What to Expect
+                  </h4>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    A typical lesson includes flight time plus 20–30 minutes of ground instruction for preflight preparation and post-flight review. For example, a 2.0-hour flight would typically result in 2.4–2.6 hours of total instruction time billed.
+                  </p>
+                </div>
+
+                {/* Features */}
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-golden mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-gray-700 font-light text-sm sm:text-base">Flexible scheduling</span>
-                  </li>
-                  <li className="flex items-start">
-                    <svg className="w-5 h-5 text-golden mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <span className="text-gray-700 text-sm">Flexible scheduling</span>
+                  </div>
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-golden mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-gray-700 font-light text-sm sm:text-base">Personalized training plan</span>
-                  </li>
-                  <li className="flex items-start">
-                    <svg className="w-5 h-5 text-golden mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <span className="text-gray-700 text-sm">Personalized training</span>
+                  </div>
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-golden mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
-                    <span className="text-gray-700 font-light text-sm sm:text-base">All certificate levels</span>
-                  </li>
-                </ul>
+                    <span className="text-gray-700 text-sm">All certificate levels</span>
+                  </div>
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-golden mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700 text-sm">FAA-certified instructors</span>
+                  </div>
+                </div>
 
                 <button
-                  onClick={() => {
-                    setSelectedAircraft("Flight Instruction")
-                    setIsContactOpen(true)
-                  }}
-                  className="w-full px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300 transform hover:scale-105"
+                  onClick={() => openCalendly()}
+                  className="w-full px-6 py-4 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300 transform hover:scale-105"
                 >
                   Schedule a Lesson
-                </button>
-              </div>
-
-              {/* Fast Track Training */}
-              <div className="bg-gradient-to-br from-golden/10 to-white p-8 sm:p-10 md:p-12 rounded-3xl shadow-xl border-2 border-golden relative overflow-hidden">
-                <div className="absolute -top-4 right-6 bg-golden text-black px-4 py-1 rounded-full text-sm font-bold">
-                  Intensive
-                </div>
-                
-                <h3 className="text-2xl sm:text-3xl font-bold text-black mb-6 mt-2">Fast Track Training</h3>
-                <p className="text-gray-600 leading-relaxed mb-6 font-light text-sm sm:text-base">
-                  Accelerated training program for dedicated students. Complete your certification faster with intensive, daily instruction.
-                </p>
-                
-                <div className="mb-8 pb-8 border-b border-golden/20">
-                  <p className="text-sm text-gray-600 mb-2">Instructor Rate</p>
-                  <p className="text-4xl sm:text-5xl font-bold text-golden mb-4">$75<span className="text-base text-gray-600">/hr</span></p>
-                  <p className="text-gray-600 text-sm font-light">Intensive program with priority scheduling</p>
-                </div>
-
-                <ul className="space-y-3 mb-8">
-                  <li className="flex items-start">
-                    <svg className="w-5 h-5 text-golden mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-gray-700 font-light text-sm sm:text-base">Daily instruction available</span>
-                  </li>
-                  <li className="flex items-start">
-                    <svg className="w-5 h-5 text-golden mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-gray-700 font-light text-sm sm:text-base">Priority booking</span>
-                  </li>
-                  <li className="flex items-start">
-                    <svg className="w-5 h-5 text-golden mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-gray-700 font-light text-sm sm:text-base">Faster certification path</span>
-                  </li>
-                </ul>
-
-                <button
-                  onClick={() => {
-                    setSelectedAircraft("Fast Track Training")
-                    setIsContactOpen(true)
-                  }}
-                  className="w-full px-6 py-3 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105"
-                >
-                  Get Fast Track Info
                 </button>
               </div>
             </div>
@@ -526,24 +528,24 @@ export default function PricingPage() {
               Ready to <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Start Flying</span>?
             </h2>
             <p className="text-lg sm:text-xl md:text-2xl mb-10 text-gray-300 max-w-3xl mx-auto font-light leading-relaxed">
-              Contact us today to schedule your discovery flight or discuss your training goals
+              Schedule your discovery flight or training session today
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <CalendlyButton
+                className="inline-block px-10 py-4 font-bold text-lg"
+                variant="primary"
+              >
+                Schedule Now
+              </CalendlyButton>
               <button
                 onClick={() => {
                   setSelectedAircraft("Flight Inquiry")
                   setIsContactOpen(true)
                 }}
-                className="inline-block px-10 py-4 bg-golden text-black font-bold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 shadow-2xl"
+                className="inline-block px-10 py-4 bg-white/10 text-white font-bold rounded-lg hover:bg-white/20 transition-all duration-300 border-2 border-white/30 hover:border-golden"
               >
                 Contact Us
               </button>
-              <Link
-                href="/schedule"
-                className="inline-block px-10 py-4 bg-white/10 text-white font-bold rounded-lg hover:bg-white/20 transition-all duration-300 border-2 border-white/30 hover:border-golden"
-              >
-                View Schedule
-              </Link>
             </div>
           </div>
         </section>

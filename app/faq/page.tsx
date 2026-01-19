@@ -1,9 +1,12 @@
 "use client"
 
 import { useState } from "react"
+import CalendlyButton from "@/app/components/CalendlyButton"
+import ContactModal from "@/app/components/ContactModal"
 
 export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null)
+  const [isContactOpen, setIsContactOpen] = useState(false)
 
   const faqs = [
     {
@@ -12,7 +15,7 @@ export default function FAQ() {
     },
     {
       question: "How to get started?",
-      answer: "Getting started is easy! First, schedule a discovery flight to experience flying firsthand and meet our instructors. Then, apply for your FAA Medical Certificate through an Aviation Medical Examiner (AME). We'll help you apply for your Student Pilot Certificate through IACRA and create a personalized training plan. Contact us at Isaac.Imp.Prestwich@gmail.com or call +1 (208) 301-2629 to begin your journey."
+      answer: "Getting started is easy! First, schedule a discovery flight to experience flying firsthand and meet our instructors. Then, apply for your FAA Medical Certificate through an Aviation Medical Examiner (AME). We'll help you apply for your Student Pilot Certificate through IACRA and create a personalized training plan. Contact us at MerlinFlightTraining@gmail.com or call +1 (208) 301-2629 to begin your journey."
     },
     {
       question: "How much does flight training cost?",
@@ -218,6 +221,53 @@ export default function FAQ() {
         </div>
       </section>
 
+      {/* Free Resources Section */}
+      <section className="py-16 sm:py-20 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10">
+            <div className="inline-block mb-4">
+              <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
+            </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-black mb-4 tracking-tight">
+              Free <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Resources</span>
+            </h2>
+            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto font-light">
+              Download helpful materials to start your aviation journey
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-gray-50 to-white p-8 sm:p-10 rounded-3xl border border-gray-200 hover:border-golden transition-all duration-300 shadow-lg max-w-2xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              <div className="flex-shrink-0">
+                <img 
+                  src="/images/learn-to-fly-cover.png" 
+                  alt="Learn to Fly Guide Cover"
+                  className="w-32 h-40 sm:w-36 sm:h-44 object-cover rounded-lg shadow-md border border-gray-200"
+                />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <h3 className="text-xl sm:text-2xl font-bold text-black mb-2">Learn to Fly Guide</h3>
+                <p className="text-gray-600 font-light mb-4">
+                  A comprehensive guide from Sporty's covering everything you need to know about learning to fly. Perfect for prospective students.
+                </p>
+                <a
+                  href="https://www.regionflyers.com/wp-content/uploads/2024/09/Sportys-Learn-to-Fly-Book.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download PDF
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-20 sm:py-24 md:py-32 bg-black text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
@@ -236,24 +286,30 @@ export default function FAQ() {
             Still Have <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Questions</span>?
           </h2>
           <p className="text-lg sm:text-xl md:text-2xl mb-10 text-gray-300 max-w-3xl mx-auto font-light leading-relaxed">
-            We're here to help! Contact us and we'll answer any questions you have about flight training.
+            We're here to help! Schedule a call or send us a message.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="mailto:Isaac.Imp.Prestwich@gmail.com"
-              className="inline-block px-10 py-4 bg-golden text-black font-bold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 shadow-2xl"
+            <CalendlyButton
+              className="inline-block px-10 py-4 font-bold text-lg"
+              variant="primary"
             >
-              Email Us
-            </a>
-            <a
-              href="tel:+12083012629"
+              Schedule a Call
+            </CalendlyButton>
+            <button
+              onClick={() => setIsContactOpen(true)}
               className="inline-block px-10 py-4 bg-white/10 text-white font-bold rounded-lg hover:bg-white/20 transition-all duration-300 border-2 border-white/30 hover:border-golden"
             >
-              Call Now
-            </a>
+              Contact Us
+            </button>
           </div>
         </div>
       </section>
+
+      <ContactModal 
+        isOpen={isContactOpen} 
+        onClose={() => setIsContactOpen(false)}
+        aircraftName="Question from FAQ"
+      />
     </div>
   )
 }

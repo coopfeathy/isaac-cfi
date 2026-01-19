@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import type { Slot } from '@/lib/supabase'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import Head from 'next/head'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -271,28 +272,39 @@ export default function SchedulePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-darkText mb-4">
-            Available Slots
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Hero Section */}
+      <section className="relative py-12 sm:py-16 overflow-hidden flex-shrink-0" style={{
+        backgroundImage: `url('/images/our-aircraft-header.jpg')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center 60%',
+      }}>
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black opacity-90" />
+        
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 text-center">
+          <div className="mb-4 inline-block">
+            <div className="w-16 sm:w-20 h-1 bg-golden mx-auto rounded-full" />
+          </div>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 tracking-tight">
+            Schedule Your <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Flight</span>
           </h1>
-          <p className="text-gray-600">
-            Choose from our available flight training sessions and NYC tours
+          <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto font-light leading-relaxed">
+            Book your flight training session or discovery flight online
           </p>
         </div>
+      </section>
 
-        {/* Calendly Widget */}
-        <div className="mb-12">
-          <iframe 
-            src="https://calendly.com/merlinflighttraining"
-            width="100%"
-            height="700"
-            frameBorder="0"
-            title="Calendly Scheduling"
-            style={{ border: 'none', overflow: 'hidden' }}
-          ></iframe>
-        </div>
+      {/* Calendly Embed - Full remaining height */}
+      <div className="flex-1 min-h-[600px]">
+        <iframe
+          src="https://calendly.com/merlinflighttraining?hide_gdpr_banner=1&background_color=ffffff&text_color=1a1a1a&primary_color=c59a2a"
+          width="100%"
+          height="100%"
+          frameBorder="0"
+          title="Schedule a Flight"
+          className="w-full h-full"
+          style={{ minHeight: '600px' }}
+        />
       </div>
 
       {/* Booking Modal */}

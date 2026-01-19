@@ -4,6 +4,7 @@ import Link from "next/link"
 import ImageCarousel from "@/app/components/ImageCarousel"
 import ContactModal from "@/app/components/ContactModal"
 import { useState } from "react"
+import CalendlyButton from "@/app/components/CalendlyButton"
 
 export default function AircraftPage() {
   const [isContactOpen, setIsContactOpen] = useState(false)
@@ -70,7 +71,7 @@ export default function AircraftPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-gray-500">From</p>
-                      <p className="text-2xl sm:text-3xl font-bold text-golden">$147.50<span className="text-base text-gray-500">/hr</span></p>
+                      <p className="text-2xl sm:text-3xl font-bold text-golden">$152.50<span className="text-base text-gray-500">/hr</span></p>
                     </div>
                   </div>
                   
@@ -303,21 +304,24 @@ export default function AircraftPage() {
             Ready to <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Get Started</span>?
           </h2>
           <p className="text-lg sm:text-xl md:text-2xl mb-10 text-gray-300 max-w-3xl mx-auto font-light leading-relaxed">
-            Contact us today to schedule your training or rental
+            Schedule a lesson or contact us to learn more about our fleet
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="mailto:Isaac.Imp.Prestwich@gmail.com"
-              className="inline-block px-10 py-4 bg-golden text-black font-bold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 shadow-2xl"
+            <CalendlyButton
+              className="inline-block px-10 py-4 font-bold text-lg"
+              variant="primary"
             >
-              Email Us
-            </Link>
-            <Link
-              href="tel:+12083012629"
+              Schedule Now
+            </CalendlyButton>
+            <button
+              onClick={() => {
+                setSelectedAircraft("Aircraft Inquiry")
+                setIsContactOpen(true)
+              }}
               className="inline-block px-10 py-4 bg-white/10 text-white font-bold rounded-lg hover:bg-white/20 transition-all duration-300 border-2 border-white/30 hover:border-golden"
             >
-              Call Now
-            </Link>
+              Contact Us
+            </button>
           </div>
         </div>
       </section>

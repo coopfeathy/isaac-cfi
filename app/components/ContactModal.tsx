@@ -17,15 +17,18 @@ export default function ContactModal({ isOpen, onClose, aircraftName }: ContactM
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setError(null); // Clear error when user types
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
       const response = await fetch('/api/contact', {
@@ -37,6 +40,8 @@ export default function ContactModal({ isOpen, onClose, aircraftName }: ContactM
         }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         setSuccess(true);
         setFormData({ name: '', email: '', phone: '', message: '' });
@@ -44,9 +49,12 @@ export default function ContactModal({ isOpen, onClose, aircraftName }: ContactM
           setSuccess(false);
           onClose();
         }, 2000);
+      } else {
+        setError(data.error || 'Failed to send message. Please try again.');
       }
-    } catch (error) {
-      console.error('Error sending message:', error);
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -147,6 +155,12 @@ export default function ContactModal({ isOpen, onClose, aircraftName }: ContactM
                   placeholder="Tell us more about your inquiry..."
                 />
               </div>
+
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <button

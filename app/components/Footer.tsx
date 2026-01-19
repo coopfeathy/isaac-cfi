@@ -54,8 +54,8 @@ const Footer = () => {
           <div>
             <h4 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6 text-golden">Contact</h4>
             <div className="space-y-2 sm:space-y-3">
-              <a href="mailto:Isaac.Imp.Prestwich@gmail.com" className="text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base block">
-                Isaac.Imp.Prestwich@gmail.com
+              <a href="mailto:MerlinFlightTraining@gmail.com" className="text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base block">
+                MerlinFlightTraining@gmail.com
               </a>
               <a href="tel:+12083012629" className="text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base block">
                 +1 (208) 301-2629
