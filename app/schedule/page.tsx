@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -197,7 +197,7 @@ function BookingModal({ slot, onClose, onSuccess }: BookingModalProps) {
   )
 }
 
-export default function SchedulePage() {
+function SchedulePageContent() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -316,5 +316,17 @@ export default function SchedulePage() {
         />
       )}
     </div>
+  )
+}
+
+export default function SchedulePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">Loading schedule...</div>
+      </div>
+    }>
+      <SchedulePageContent />
+    </Suspense>
   )
 }
