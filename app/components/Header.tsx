@@ -71,6 +71,11 @@ const Header = () => {
               </Link>
             </li>
             <li>
+              <Link href="/apply" className="text-gray-700 hover:text-golden transition-all duration-300 font-medium px-3 py-2 rounded-lg hover:bg-golden/5">
+                Apply
+              </Link>
+            </li>
+            <li>
               <Link href="/faq" className="text-gray-700 hover:text-golden transition-all duration-300 font-medium px-3 py-2 rounded-lg hover:bg-golden/5">
                 FAQ
               </Link>
@@ -144,6 +149,11 @@ const Header = () => {
               <li>
                 <Link href="/pricing" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-golden hover:bg-golden/5 transition-all duration-300 font-medium px-4 py-3 rounded-lg">
                   Pricing
+                </Link>
+              </li>
+              <li>
+                <Link href="/apply" onClick={() => setMobileMenuOpen(false)} className="block text-gray-700 hover:text-golden hover:bg-golden/5 transition-all duration-300 font-medium px-4 py-3 rounded-lg">
+                  Apply
                 </Link>
               </li>
               <li>

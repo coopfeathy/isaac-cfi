@@ -2,17 +2,9 @@
 
 import React from "react"
 import Link from "next/link"
-import dynamic from "next/dynamic"
 import ImageCarousel from "@/app/components/ImageCarousel"
-
-const LocationsMap = dynamic(() => import("@/app/components/LocationsMap"), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-[400px] flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-golden"></div>
-    </div>
-  ),
-})
+import LocationsMap from "@/app/components/LocationsMap"
+import TypingEffect from "@/app/components/TypingEffect"
 
 export default function Home() {
   return (
@@ -33,7 +25,12 @@ export default function Home() {
         
         <div className="relative z-10 text-center text-white px-4 sm:px-6 max-w-6xl mx-auto">
           <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold mb-6 sm:mb-8 tracking-tight">
-            <div className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent leading-none mb-2">One - on - One</div>
+            <div className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent leading-none mb-2">
+              <TypingEffect 
+                words={['Merlin', 'Tailored', 'One - on - One', 'Career', 'Private Pilot', 'Instrument Pilot', 'Commercial Pilot']}
+                wordPauseDuration={{ 0: 10000 }}
+              />
+            </div>
             <div className="text-white leading-none">Flight Training</div>
           </h1>
           <p className="text-base sm:text-lg md:text-xl mb-16 sm:mb-20 md:mb-24 text-gray-300 max-w-3xl mx-auto font-light leading-relaxed px-4">
@@ -41,17 +38,11 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 justify-center items-center px-4">
             <Link
-              href="/schedule"
+              href="/discovery-flight-funnel"
               className="w-full sm:w-auto group px-8 sm:px-10 py-3 sm:py-4 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-golden/50 text-base sm:text-lg relative overflow-hidden text-center"
             >
-              <span className="relative z-10">Book Your Flight</span>
+              <span className="relative z-10">Schedule Your Flight</span>
               <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-golden opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            </Link>
-            <Link
-              href="/faq"
-              className="w-full sm:w-auto px-8 sm:px-10 py-3 sm:py-4 bg-transparent text-white font-semibold rounded-lg hover:bg-white/10 transition-all duration-300 border-2 border-white/30 hover:border-golden text-base sm:text-lg backdrop-blur-sm text-center"
-            >
-              Learn More
             </Link>
           </div>
         </div>
