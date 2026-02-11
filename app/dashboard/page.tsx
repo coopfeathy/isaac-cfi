@@ -13,7 +13,7 @@ export default function AdminPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'slots' | 'bookings' | 'leads' | 'blog'>('slots')
+  const [activeTab, setActiveTab] = useState<'slots' | 'bookings' | 'leads' | 'blog' | 'email'>('slots')
   
   // New slot form
   const [showAddSlot, setShowAddSlot] = useState(false)
@@ -36,6 +36,15 @@ export default function AdminPage() {
   const [existingPosts, setExistingPosts] = useState<any[]>([])
   const [showImageUpload, setShowImageUpload] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+
+  // Email campaign state
+  const [emailSubject, setEmailSubject] = useState('')
+  const [emailMessage, setEmailMessage] = useState('')
+  const [emailRecipients, setEmailRecipients] = useState<string[]>([])
+  const [recipientType, setRecipientType] = useState<'all' | 'students' | 'prospects' | 'leads' | 'custom'>('all')
+  const [customEmails, setCustomEmails] = useState('')
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [emailStatus, setEmailStatus] = useState('')
 
   useEffect(() => {
     console.log('Admin Page Debug:', { authLoading, user: user?.email, isAdmin })
@@ -233,6 +242,97 @@ export default function AdminPage() {
     }
   }
 
+  const handleSendEmail = async () => {
+    if (!emailSubject || !emailMessage) {
+      setEmailStatus('Please fill in subject and message')
+      return
+    }
+
+    if (emailRecipients.length === 0) {
+      setEmailStatus('Please select recipients')
+      return
+    }
+
+    setSendingEmail(true)
+    setEmailStatus('Sending emails...')
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setEmailStatus('Not authenticated')
+        return
+      }
+
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          type: 'broadcast',
+          recipients: emailRecipients,
+          subject: emailSubject,
+          message: emailMessage
+        })
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        setEmailStatus(`✅ Successfully sent to ${emailRecipients.length} recipient(s)!`)
+        setEmailSubject('')
+        setEmailMessage('')
+        setEmailRecipients([])
+        setCustomEmails('')
+      } else {
+        setEmailStatus(`❌ Error: ${result.error}`)
+      }
+    } catch (error: any) {
+      setEmailStatus(`❌ Error: ${error.message}`)
+    } finally {
+      setSendingEmail(false)
+    }
+  }
+
+  const handleLoadRecipients = async () => {
+    setEmailStatus('Loading recipients...')
+    try {
+      let emails: string[] = []
+
+      switch (recipientType) {
+        case 'all':
+          const { data: allProfiles } = await supabase.from('profiles').select('email')
+          emails = allProfiles?.map(p => p.email).filter(Boolean) || []
+          break
+
+        case 'students':
+          const { data: students } = await supabase.from('students').select('email')
+          emails = students?.map(s => s.email).filter(Boolean) || []
+          break
+
+        case 'prospects':
+          const { data: prospects } = await supabase.from('prospects').select('email')
+          emails = prospects?.map(p => p.email).filter(Boolean) || []
+          break
+
+        case 'leads':
+          const { data: leadsData } = await supabase.from('discovery_flight_signups').select('email')
+          emails = leadsData?.map(l => l.email).filter(Boolean) || []
+          break
+
+        case 'custom':
+          emails = customEmails.split(',').map(e => e.trim()).filter(Boolean)
+          break
+      }
+
+      setEmailRecipients(emails)
+      setEmailStatus(`✅ Loaded ${emails.length} recipient(s)`)
+    } catch (error: any) {
+      setEmailStatus(`❌ Error loading recipients: ${error.message}`)
+    }
+  }
+
   const handleSaveBlogPost = async (e: React.FormEvent) => {
     e.preventDefault()
     setBlogMessage('')
@@ -351,6 +451,16 @@ ${blogContent}
             }`}
           >
             Create Blog Post
+          </button>
+          <button
+            onClick={() => setActiveTab('email')}
+            className={`px-6 py-3 rounded-lg font-bold transition-colors ${
+              activeTab === 'email'
+                ? 'bg-golden text-darkText'
+                : 'bg-white text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Email Campaigns
           </button>
         </div>
 
@@ -772,6 +882,123 @@ ${blogContent}
                 </form>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Email Campaigns Tab */}
+        {activeTab === 'email' && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Email Broadcast Campaign</h2>
+
+            {emailStatus && (
+              <div className={`mb-6 p-4 rounded-lg ${
+                emailStatus.startsWith('✅') ? 'bg-green-50 text-green-800' : 
+                emailStatus.startsWith('❌') ? 'bg-red-50 text-red-800' : 
+                'bg-blue-50 text-blue-800'
+              }`}>
+                {emailStatus}
+              </div>
+            )}
+
+            <div className="space-y-6">
+              {/* Recipient Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Recipients
+                </label>
+                <select
+                  value={recipientType}
+                  onChange={(e) => setRecipientType(e.target.value as any)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent mb-3"
+                >
+                  <option value="all">All Users</option>
+                  <option value="students">Students Only</option>
+                  <option value="prospects">Prospects Only</option>
+                  <option value="leads">Discovery Flight Leads</option>
+                  <option value="custom">Custom Email List</option>
+                </select>
+
+                {recipientType === 'custom' && (
+                  <textarea
+                    value={customEmails}
+                    onChange={(e) => setCustomEmails(e.target.value)}
+                    placeholder="Enter email addresses separated by commas&#10;example@email.com, another@email.com"
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent mb-3"
+                  />
+                )}
+
+                <button
+                  onClick={handleLoadRecipients}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Load Recipients
+                </button>
+
+                {emailRecipients.length > 0 && (
+                  <p className="mt-3 text-sm text-gray-600">
+                    {emailRecipients.length} recipient(s) selected
+                  </p>
+                )}
+              </div>
+
+              {/* Email Subject */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Subject *
+                </label>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  placeholder="e.g., New Aircraft Added to Our Fleet!"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  required
+                />
+              </div>
+
+              {/* Email Message */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Message *
+                </label>
+                <textarea
+                  value={emailMessage}
+                  onChange={(e) => setEmailMessage(e.target.value)}
+                  placeholder="Write your email message here...&#10;&#10;You can include:&#10;- Announcements&#10;- Special offers&#10;- Event updates&#10;- Training tips"
+                  rows={12}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  required
+                />
+              </div>
+
+              {/* Preview */}
+              {emailMessage && (
+                <div className="border-2 border-gray-200 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Preview</h3>
+                  <div className="bg-gray-50 p-4 rounded">
+                    <p className="font-semibold text-lg mb-2">{emailSubject || 'Subject line'}</p>
+                    <div className="whitespace-pre-wrap text-gray-700">{emailMessage}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Send Button */}
+              <button
+                onClick={handleSendEmail}
+                disabled={sendingEmail || emailRecipients.length === 0}
+                className="w-full bg-golden text-darkText font-bold py-3 px-6 rounded-lg hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {sendingEmail ? 'Sending...' : `Send to ${emailRecipients.length} Recipient(s)`}
+              </button>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800">
+                  <strong>Note:</strong> Make sure you have configured your Resend API key in the environment variables.
+                  Emails will be sent from: <code className="bg-yellow-100 px-1 rounded">noreply@isaac-cfi.netlify.app</code>
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>
