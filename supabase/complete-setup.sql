@@ -438,8 +438,8 @@ CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders(status);
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
+NEW.updated_at = NOW();
+RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -447,9 +447,9 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name, created_at)
-  VALUES (NEW.id, NEW.raw_user_meta_data->>'full_name', NOW());
-  RETURN NEW;
+INSERT INTO public.profiles (id, full_name, created_at)
+VALUES (NEW.id, NEW.raw_user_meta_data->>'full_name', NOW());
+RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
