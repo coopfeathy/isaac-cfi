@@ -70,14 +70,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signIn = async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
+    try {
+      console.log('Attempting sign in for:', email)
+      console.log('Redirect URL:', `${window.location.origin}/auth/callback`)
+      
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
 
-    if (error) throw error
+      console.log('Sign in response:', { data, error })
+
+      if (error) {
+        console.error('Supabase sign in error:', error)
+        throw new Error(error.message || 'Failed to send magic link')
+      }
+
+      return
+    } catch (error: any) {
+      console.error('Sign in error:', error)
+      throw new Error(error.message || 'Failed to connect to authentication service. Please check your internet connection and try again.')
+    }
   }
 
   const signOut = async () => {

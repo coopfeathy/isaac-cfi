@@ -2,11 +2,14 @@
 
 import React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import ImageCarousel from "@/app/components/ImageCarousel"
 import LocationsMap from "@/app/components/LocationsMap"
 import TypingEffect from "@/app/components/TypingEffect"
 
 export default function Home() {
+  const router = useRouter()
+  
   return (
     <div className="min-h-screen bg-white">
       <section className="relative min-h-[85vh] sm:min-h-[90vh] flex items-center justify-center bg-black overflow-hidden">
@@ -385,7 +388,10 @@ export default function Home() {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {/* Location 1: Lumberton, NJ */}
-              <a href="/aircraft#n888ms" className="block relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80">
+              <div 
+                onClick={() => router.push('/aircraft#n888ms')}
+                className="block relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80 cursor-pointer"
+              >
                 {/* Aerial Background Image */}
                 <div 
                   className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-300"
@@ -419,10 +425,13 @@ export default function Home() {
                     </a>
                   </div>
                 </div>
-              </a>
+              </div>
 
               {/* Location 2: Long Island, NY */}
-              <a href="/aircraft#n2152z" className="block relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80">
+              <div 
+                onClick={() => router.push('/aircraft#n2152z')}
+                className="block relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80 cursor-pointer"
+              >
                 {/* Aerial Background Image */}
                 <div 
                   className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-300"
@@ -456,10 +465,13 @@ export default function Home() {
                     </a>
                   </div>
                 </div>
-              </a>
+              </div>
 
               {/* Location 3: Warwick, NY */}
-              <a href="/aircraft#n1624q" className="block relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80">
+              <div 
+                onClick={() => router.push('/aircraft#n1624q')}
+                className="block relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80 cursor-pointer"
+              >
                 {/* Aerial Background Image */}
                 <div 
                   className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-300"
@@ -493,7 +505,7 @@ export default function Home() {
                     </a>
                   </div>
                 </div>
-              </a>
+              </div>
             </div>
           </div>
         </div>

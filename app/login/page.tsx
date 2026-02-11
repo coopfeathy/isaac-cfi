@@ -20,11 +20,11 @@ export default function LoginPage() {
 
     try {
       await signIn(email)
-      setMessage('Check your email for the magic link! It may take a few minutes to arrive.')
+      setMessage('✉️ Check your email for the magic link! It may take a few minutes to arrive.')
     } catch (error: any) {
       console.error('Sign in error:', error)
       const errorMessage = error?.message || 'Error signing in. Please try again.'
-      setMessage(errorMessage)
+      setMessage(`❌ ${errorMessage}`)
     } finally {
       setLoading(false)
     }
@@ -63,7 +63,7 @@ export default function LoginPage() {
         )}
 
         {message && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+          <div className={`${message.startsWith('❌') ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'} border px-4 py-3 rounded`}>
             {message}
           </div>
         )}

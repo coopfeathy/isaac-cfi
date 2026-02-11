@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  experimental: {
-    serverComponentsExternalPackages: ['googleapis'],
-  },
+  serverExternalPackages: ['googleapis'],
+  // Empty turbopack config to silence warning - app works fine with default Turbopack
+  turbopack: {},
   webpack: (config) => {
     // Ignore optional dependencies that cause warnings
     config.resolve.alias = {

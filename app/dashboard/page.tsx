@@ -11,8 +11,9 @@ export default function AdminPage() {
   const router = useRouter()
   const [slots, setSlots] = useState<Slot[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
+  const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'slots' | 'bookings' | 'blog'>('slots')
+  const [activeTab, setActiveTab] = useState<'slots' | 'bookings' | 'leads' | 'blog'>('slots')
   
   // New slot form
   const [showAddSlot, setShowAddSlot] = useState(false)
@@ -52,6 +53,7 @@ export default function AdminPage() {
     if (user && isAdmin) {
       fetchData()
       fetchBlogPosts()
+      fetchLeads()
     }
   }, [user, isAdmin])
 
@@ -78,6 +80,23 @@ export default function AdminPage() {
       console.error('Error fetching admin data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchLeads = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('discovery_flight_signups')
+        .select('*')
+        .order('created_at', { ascending: false })
+      
+      if (error) {
+        console.error('Error fetching leads:', error)
+      } else if (data) {
+        setLeads(data)
+      }
+    } catch (error) {
+      console.error('Error fetching leads:', error)
     }
   }
 
@@ -314,6 +333,16 @@ ${blogContent}
             View Bookings ({bookings.length})
           </button>
           <button
+            onClick={() => setActiveTab('leads')}
+            className={`px-6 py-3 rounded-lg font-bold transition-colors ${
+              activeTab === 'leads'
+                ? 'bg-golden text-darkText'
+                : 'bg-white text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            Discovery Leads ({leads.length})
+          </button>
+          <button
             onClick={() => setActiveTab('blog')}
             className={`px-6 py-3 rounded-lg font-bold transition-colors ${
               activeTab === 'blog'
@@ -512,6 +541,51 @@ ${blogContent}
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Leads Tab */}
+        {activeTab === 'leads' && (
+          <div>
+            <h2 className="text-2xl font-bold text-darkText mb-6">Discovery Flight Leads</h2>
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Email
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Submitted
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {leads.length === 0 ? (
+                      <tr>
+                        <td colSpan={2} className="px-6 py-4 text-center text-gray-500">
+                          No leads yet
+                        </td>
+                      </tr>
+                    ) : (
+                      leads.map((lead) => (
+                        <tr key={lead.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{lead.email}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-500">
+                              {new Date(lead.created_at).toLocaleString()}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
