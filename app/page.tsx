@@ -39,12 +39,12 @@ export default function Home() {
           <p className="text-base sm:text-lg md:text-xl mb-16 sm:mb-20 md:mb-24 text-gray-300 max-w-3xl mx-auto font-light leading-relaxed px-4">
             FAA-Certified Instructors, Breathtaking flight memories, and Professional Flight Training with Merlin Flight Training
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 justify-center items-center px-4">
+          <div className="flex justify-center">
             <Link
               href="/discovery-flight-funnel"
-              className="w-full sm:w-auto group px-8 sm:px-10 py-3 sm:py-4 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-golden/50 text-base sm:text-lg relative overflow-hidden text-center"
+              className="group px-8 sm:px-10 py-3 sm:py-4 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-golden/50 text-base sm:text-lg relative overflow-hidden text-center"
             >
-              <span className="relative z-10">Schedule Your Flight</span>
+              <span className="relative z-10">Apply Now</span>
               <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-golden opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </Link>
           </div>

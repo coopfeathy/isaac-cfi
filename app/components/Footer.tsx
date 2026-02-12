@@ -57,8 +57,8 @@ const Footer = () => {
               <a href="mailto:MerlinFlightTraining@gmail.com" className="text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base block">
                 MerlinFlightTraining@gmail.com
               </a>
-              <a href="tel:+12083012629" className="text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base block">
-                +1 (208) 301-2629
+              <a href="tel:+19294874717" className="text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base block">
+                +1 (929) 487-4717
               </a>
             </div>
           </div>

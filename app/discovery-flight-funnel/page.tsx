@@ -64,7 +64,7 @@ export default function DiscoveryFlightFunnel() {
               </span>
             </h1>
             <p className="text-gray-300 text-lg font-light">
-              Get exclusive details about your discovery flight experience
+              Get exclusive details about our flight training and speak with our instructors.
             </p>
           </div>
 
