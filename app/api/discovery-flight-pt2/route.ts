@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update the onboarding_funnel record for this email
+    // Update the prospect_information record for this email
     const { error } = await supabase
-      .from('onboarding_funnel')
+      .from('prospect_information')
       .update({
         english_proficient: englishFirstLanguage,
         interested_in_instructing: flightInstructorInterest,

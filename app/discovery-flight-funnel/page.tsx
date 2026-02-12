@@ -16,7 +16,7 @@ export default function DiscoveryFlightFunnel() {
     setError('')
 
     try {
-      // Send email to backend to save to onboarding_funnel table
+      // Send email to backend to save to prospect_information table
       const response = await fetch('/api/discovery-flight-signup', {
         method: 'POST',
         headers: {

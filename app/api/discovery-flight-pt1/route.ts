@@ -24,9 +24,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Save to Supabase onboarding_funnel table
+    // Save to Supabase prospect_information table
     const { error } = await supabase
-      .from('onboarding_funnel')
+      .from('prospect_information')
       .update({
         citizenship: citizenship,
         first_name: firstName,

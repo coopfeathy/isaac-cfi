@@ -13,9 +13,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Save to Supabase onboarding_funnel table (Upsert to handle duplicates)
+    // Save to Supabase prospect_information table (Upsert to handle duplicates)
     const { error } = await supabase
-      .from('onboarding_funnel')
+      .from('prospect_information')
       .upsert(
         {
           email,
