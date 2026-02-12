@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function DiscoveryFlightPt4() {
+function DiscoveryFlightPt4Content() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams?.get('email') || ''
@@ -50,5 +51,17 @@ export default function DiscoveryFlightPt4() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function DiscoveryFlightPt4() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-golden animate-pulse">Loading...</div>
+      </div>
+    }>
+      <DiscoveryFlightPt4Content />
+    </Suspense>
   )
 }

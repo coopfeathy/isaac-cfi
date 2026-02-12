@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function DiscoveryFlightPt3() {
+function DiscoveryFlightPt3Content() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams?.get('email') || ''
@@ -175,5 +175,17 @@ export default function DiscoveryFlightPt3() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function DiscoveryFlightPt3() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-golden animate-pulse">Loading...</div>
+      </div>
+    }>
+      <DiscoveryFlightPt3Content />
+    </Suspense>
   )
 }
