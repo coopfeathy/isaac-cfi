@@ -26,14 +26,22 @@ export default function DiscoveryFlightFunnel() {
       })
 
       if (!response.ok) {
-        const data = await response.json()
-        setError(data.error || 'Failed to save email. Please try again.')
+        let errorMessage = 'Failed to save email. Please try again.'
+        try {
+          const data = await response.json()
+          errorMessage = data.error || errorMessage
+        } catch (e) {
+            // If JSON parse fails, use status text
+            console.error('Failed to parse error response', e)
+            errorMessage = `Server Error: ${response.status} ${response.statusText}`
+        }
+        setError(errorMessage)
         setIsSubmitting(false)
         return
       }
     } catch (error) {
       console.error('Error submitting form:', error)
-      setError('An error occurred. Please try again.')
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred')
       setIsSubmitting(false)
       return
     }
