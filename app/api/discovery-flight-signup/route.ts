@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Supabase error:', error)
       return NextResponse.json(
-        { error: 'Failed to save email' },
+        { error: error.message || 'Failed to save email', details: error },
         { status: 500 }
       )
     }
