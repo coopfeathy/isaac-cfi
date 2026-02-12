@@ -1,11 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 export default function DiscoveryFlightPt2() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const email = searchParams.get('email') || ''
+
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState('')
   const [formData, setFormData] = useState({
     englishFirstLanguage: '',
     flightInstructorInterest: '',
@@ -27,22 +31,31 @@ export default function DiscoveryFlightPt2() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setError('')
 
     try {
-      // Save form data
-      await fetch('/api/discovery-flight-pt2', {
+      const response = await fetch('/api/discovery-flight-pt2', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, email }),
       })
+
+      if (!response.ok) {
+        const data = await response.json()
+        setError(data.error || 'Failed to save form data. Please try again.')
+        setIsSubmitting(false)
+        return
+      }
     } catch (error) {
       console.error('Error submitting form:', error)
+      setError('An error occurred. Please try again.')
+      setIsSubmitting(false)
+      return
     }
 
-    // Navigate to next page regardless of fetch success/failure
-    router.push('/discovery-flight-pt3')
+    router.push(`/discovery-flight-pt3?email=${encodeURIComponent(email)}`)
   }
 
   return (
@@ -220,13 +233,28 @@ export default function DiscoveryFlightPt2() {
             </div>
 
             {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full px-6 py-3 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105"
-            >
-              {isSubmitting ? 'Submitting...' : 'Continue to Next Step'}
-            </button>
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="flex-1 px-6 py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-all duration-300"
+              >
+                Go Back
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 px-6 py-3 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105"
+              >
+                {isSubmitting ? 'Submitting...' : 'Continue to Next Step'}
+              </button>
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg mt-4">
+                <p className="text-red-300 text-sm">{error}</p>
+              </div>
+            )}
           </form>
         </div>
       </div>

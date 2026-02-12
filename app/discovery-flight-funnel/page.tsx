@@ -8,26 +8,38 @@ export default function DiscoveryFlightFunnel() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setError('')
 
     try {
-      // Send email to backend (you can set up an API endpoint to handle this)
-      await fetch('/api/discovery-flight-signup', {
+      // Send email to backend to save to onboarding_funnel table
+      const response = await fetch('/api/discovery-flight-signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email }),
       })
+
+      if (!response.ok) {
+        const data = await response.json()
+        setError(data.error || 'Failed to save email. Please try again.')
+        setIsSubmitting(false)
+        return
+      }
     } catch (error) {
       console.error('Error submitting form:', error)
+      setError('An error occurred. Please try again.')
+      setIsSubmitting(false)
+      return
     }
 
-    // Navigate to next page regardless of fetch success/failure
-    router.push('/discovery-flight-pt1')
+    // Navigate to next page after successful submission
+    router.push(`/discovery-flight-pt1?email=${encodeURIComponent(email)}`)
   }
 
   return (
@@ -63,6 +75,12 @@ export default function DiscoveryFlightFunnel() {
                 className="w-full px-4 py-3 rounded-lg bg-white/10 border border-golden/30 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden focus:border-transparent transition-all duration-300"
               />
             </div>
+
+            {error && (
+              <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
+                <p className="text-red-300 text-sm">{error}</p>
+              </div>
+            )}
 
             <button
               type="submit"

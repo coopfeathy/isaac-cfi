@@ -13,9 +13,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Save to Supabase discovery_flight_signups table
+    // Save to Supabase onboarding_funnel table
     const { error } = await supabase
-      .from('discovery_flight_signups')
+      .from('onboarding_funnel')
       .insert([
         {
           email,

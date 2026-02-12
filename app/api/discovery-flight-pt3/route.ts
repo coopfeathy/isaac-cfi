@@ -3,24 +3,33 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const data = await request.json()
+    const {
+      selectedLocation,
+      email
+    } = await request.json()
 
-    // Save to Supabase discovery_flight_pt3 table
+    // Validate required fields
+    if (!email) {
+      return NextResponse.json(
+        { error: 'Email is required to update form' },
+        { status: 400 }
+      )
+    }
+
+    // Update the onboarding_funnel record for this email
     const { error } = await supabase
-      .from('discovery_flight_pt3')
-      .insert([
-        {
-          selected_location: data.selectedLocation,
-          created_at: new Date().toISOString(),
-        },
-      ])
+      .from('onboarding_funnel')
+      .update({
+        preferred_location: selectedLocation,
+        current_step: 3,
+      })
+      .eq('email', email)
 
     if (error) {
       console.error('Supabase error:', error)
-      // Don't fail the request, just log it
       return NextResponse.json(
-        { message: 'Data processing in progress' },
-        { status: 200 }
+        { error: 'Failed to save form data' },
+        { status: 500 }
       )
     }
 
@@ -30,10 +39,9 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     console.error('API error:', error)
-    // Return success anyway so redirect happens
     return NextResponse.json(
-      { message: 'Form submitted' },
-      { status: 200 }
+      { error: 'Internal server error' },
+      { status: 500 }
     )
   }
 }

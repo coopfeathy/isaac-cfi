@@ -3,30 +3,45 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const data = await request.json()
+    const {
+      englishFirstLanguage,
+      flightInstructorInterest,
+      medicalConcerns,
+      pilotCertificates,
+      heightFeet,
+      heightInches,
+      weight,
+      email
+    } = await request.json()
 
-    // Save to Supabase discovery_flight_pt2 table
+    // Validate required fields
+    if (!email) {
+      return NextResponse.json(
+        { error: 'Email is required to update form' },
+        { status: 400 }
+      )
+    }
+
+    // Update the onboarding_funnel record for this email
     const { error } = await supabase
-      .from('discovery_flight_pt2')
-      .insert([
-        {
-          english_first_language: data.englishFirstLanguage,
-          flight_instructor_interest: data.flightInstructorInterest,
-          medical_concerns: data.medicalConcerns,
-          pilot_certificates: data.pilotCertificates,
-          height_feet: data.heightFeet || null,
-          height_inches: data.heightInches || null,
-          weight: data.weight || null,
-          created_at: new Date().toISOString(),
-        },
-      ])
+      .from('onboarding_funnel')
+      .update({
+        english_proficient: englishFirstLanguage,
+        interested_in_instructing: flightInstructorInterest,
+        medical_concerns: medicalConcerns,
+        current_certificates: pilotCertificates,
+        height_feet: heightFeet ? parseInt(heightFeet) : null,
+        height_inches: heightInches ? parseInt(heightInches) : null,
+        weight_lbs: weight ? parseInt(weight) : null,
+        current_step: 2,
+      })
+      .eq('email', email)
 
     if (error) {
       console.error('Supabase error:', error)
-      // Don't fail the request, just log it
       return NextResponse.json(
-        { message: 'Data processing in progress' },
-        { status: 200 }
+        { error: 'Failed to save form data' },
+        { status: 500 }
       )
     }
 
@@ -36,10 +51,9 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     console.error('API error:', error)
-    // Return success anyway so redirect happens
     return NextResponse.json(
-      { message: 'Form submitted' },
-      { status: 200 }
+      { error: 'Internal server error' },
+      { status: 500 }
     )
   }
 }
