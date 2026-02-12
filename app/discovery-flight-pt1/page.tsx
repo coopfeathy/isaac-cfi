@@ -7,7 +7,7 @@ import Link from 'next/link'
 export default function DiscoveryFlightPt1() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const email = searchParams.get('email') || ''
+  const email = searchParams?.get('email') || ''
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
