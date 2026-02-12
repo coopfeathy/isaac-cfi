@@ -13,15 +13,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Save to Supabase onboarding_funnel table
+    // Save to Supabase onboarding_funnel table (Upsert to handle duplicates)
     const { error } = await supabase
       .from('onboarding_funnel')
-      .insert([
+      .upsert(
         {
           email,
-          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          // Only set created_at if it's a new record - unfortunately standard upsert updates it too if we provide it in the object
+          // So we skip created_at here to rely on default, or we just accept updating it.
+          // Better strategy: Let Postgres handle created_at default, only send email.
         },
-      ])
+        { onConflict: 'email' }
+      )
 
     if (error) {
       console.error('Supabase error:', error)

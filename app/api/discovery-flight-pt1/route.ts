@@ -35,6 +35,8 @@ export async function POST(request: NextRequest) {
         dob: dateOfBirth,
         training_objective: trainingObjective,
         training_start_timeframe: trainingStart,
+        is_for_someone_else: isForSomeoneElse,
+        agree_to_sms: agreeToSMS,
         current_step: 1,
       })
       .eq('email', email)
