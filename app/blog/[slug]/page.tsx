@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { getPostBySlug, getAllPosts } from '@/lib/posts'
 
 export async function generateStaticParams() {
@@ -7,6 +8,44 @@ export async function generateStaticParams() {
   return posts.map((post) => ({
     slug: post.slug,
   }))
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string }
+}): Promise<Metadata> {
+  const post = await getPostBySlug(params.slug)
+
+  if (!post || !post.published) {
+    return {
+      title: 'Post Not Found',
+    }
+  }
+
+  const baseUrl = 'https://merlinflight.com'
+  const postUrl = `${baseUrl}/blog/${post.slug}`
+
+  return {
+    title: `${post.title} | Merlin Flight Training Blog`,
+    description: post.excerpt || post.title,
+    openGraph: {
+      title: post.title,
+      description: post.excerpt || post.title,
+      url: postUrl,
+      type: 'article',
+      authors: ['Merlin Flight Training'],
+      publishedTime: post.date,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt || post.title,
+    },
+    alternates: {
+      canonical: postUrl,
+    },
+  }
 }
 
 export default async function BlogPost({ params }: { params: { slug: string } }) {

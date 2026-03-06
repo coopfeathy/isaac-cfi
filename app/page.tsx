@@ -6,6 +6,19 @@ import { useRouter } from "next/navigation"
 import ImageCarousel from "@/app/components/ImageCarousel"
 import LocationsMap from "@/app/components/LocationsMap"
 import TypingEffect from "@/app/components/TypingEffect"
+import type { Metadata } from "next"
+
+// Export metadata for the home page
+export const metadata: Metadata = {
+  title: "Merlin Flight Training | NYC Pilot Training & Flight Lessons",
+  description: "Professional FAA-certified flight training in NYC and New Jersey. Book your discovery flight or get started with private, instrument, and commercial pilot training.",
+  openGraph: {
+    title: "Merlin Flight Training | NYC Pilot Training",
+    description: "FAA-certified flight training with experienced instructors.",
+    url: "https://merlinflight.com",
+    type: "website",
+  },
+}
 
 export default function Home() {
   const router = useRouter()

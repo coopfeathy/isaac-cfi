@@ -2,8 +2,12 @@
 
 import Link from "next/link"
 import { useState } from "react"
+import type { Metadata } from "next"
 import ContactModal from "@/app/components/ContactModal"
 import CalendlyButton, { openCalendly } from "@/app/components/CalendlyButton"
+
+// Note: Metadata for client components should be defined in a parent layout.tsx or using generateMetadata
+// This is here for reference but will be handled through dynamic metadata generation
 
 export default function PricingPage() {
   const [isContactOpen, setIsContactOpen] = useState(false)

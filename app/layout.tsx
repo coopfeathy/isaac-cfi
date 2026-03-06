@@ -4,10 +4,48 @@ import SimpleHeader from "./components/SimpleHeader"
 import type React from "react"
 import { AuthProvider } from "./contexts/AuthContext"
 import { CalendlyProvider } from "./components/CalendlyButton"
+import type { Metadata } from "next"
 
-export const metadata = {
-  title: "Merlin Flight Training",
-  description: "Book your flight lessons and NYC flight tours with Merlin Flight Training",
+export const metadata: Metadata = {
+  title: "Merlin Flight Training | NYC Pilot Training & Flight Lessons",
+  description: "Professional FAA-certified flight training in NYC and New Jersey. Private, instrument, and commercial pilot training. Book your discovery flight today.",
+  keywords: ["flight training", "pilot training", "NYC", "New Jersey", "discovery flight", "flight lessons", "FAA certified instructor"],
+  authors: [{ name: "Merlin Flight Training" }],
+  creator: "Merlin Flight Training",
+  publisher: "Merlin Flight Training",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://merlinflight.com",
+    siteName: "Merlin Flight Training",
+    title: "Merlin Flight Training | Professional Pilot Training",
+    description: "FAA-certified flight training with experienced instructors. Private, instrument, and commercial pilot certifications.",
+    images: [
+      {
+        url: "/images/merlin-og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Merlin Flight Training - Professional Flight Training in NYC",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Merlin Flight Training | NYC Pilot Training",
+    description: "Professional FAA-certified flight training in NYC and New Jersey.",
+    images: ["/images/merlin-og-image.jpg"],
+    creator: "@merlinflight",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  alternates: {
+    canonical: "https://merlinflight.com",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 }
 
 export default function RootLayout({
@@ -15,8 +53,73 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const schemaData = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: "Merlin Flight Training",
+    description: "Professional FAA-certified flight training in NYC and New Jersey",
+    url: "https://merlinflight.com",
+    telephone: "+1-XXX-XXX-XXXX",
+    image: "https://merlinflight.com/images/merlin-logo.png",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "Flying W Airport, N14",
+      addressLocality: "Lumberton",
+      addressRegion: "NJ",
+      postalCode: "08048",
+      addressCountry: "US",
+    },
+    areaServed: [
+      {
+        "@type": "State",
+        name: "New Jersey",
+      },
+      {
+        "@type": "State",
+        name: "New York",
+      },
+    ],
+    sameAs: [
+      "https://www.facebook.com/merlinflight",
+      "https://www.instagram.com/merlinflight",
+      "https://www.linkedin.com/company/merlin-flight-training",
+    ],
+    services: [
+      {
+        "@type": "Service",
+        name: "Private Pilot Training",
+        description: "FAA-certified private pilot certification training",
+      },
+      {
+        "@type": "Service",
+        name: "Instrument Pilot Training",
+        description: "Advanced instrument rating training",
+      },
+      {
+        "@type": "Service",
+        name: "Commercial Pilot Training",
+        description: "Commercial pilot certification training",
+      },
+      {
+        "@type": "Service",
+        name: "Discovery Flights",
+        description: "Introductory flight experience",
+      },
+    ],
+  }
+
   return (
     <html lang="en">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#000000" />
+        <link rel="canonical" href="https://merlinflight.com" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaData) }}
+        />
+      </head>
       <body className="font-sans antialiased">
         <AuthProvider>
           <CalendlyProvider>

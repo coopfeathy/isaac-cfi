@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /api
+Disallow: /auth
+Disallow: /*.json$
+Disallow: /secret
+
+Crawl-delay: 1
+
+Sitemap: https://merlinflight.com/sitemap.xml
+Sitemap: https://merlinflight.com/sitemap-blog.xml
