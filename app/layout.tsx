@@ -9,11 +9,15 @@ import type { Metadata } from "next"
 export const metadata: Metadata = {
   metadataBase: new URL("https://merlinflight.com"),
   title: "Merlin Flight Training | NYC Pilot Training & Flight Lessons",
-  description: "Professional flight training in NYC & New Jersey. Private, instrument & commercial certifications. Book your discovery flight today.",
+  description: "Professional FAA-certified flight training in NYC and New Jersey. Private pilot, instrument rating, and commercial certifications. Book your discovery flight today.",
   keywords: ["flight training", "pilot training", "NYC", "New Jersey", "discovery flight", "flight lessons", "FAA certified instructor"],
   authors: [{ name: "Merlin Flight Training" }],
   creator: "Merlin Flight Training",
   publisher: "Merlin Flight Training",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
