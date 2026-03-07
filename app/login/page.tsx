@@ -37,10 +37,19 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const error = searchParams?.get('error')
 
+  // Load saved email on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('signin_email')
+    if (saved) setEmail(saved)
+  }, [])
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setMessage('')
+    
+    // Save email for next time
+    localStorage.setItem('signin_email', email)
 
     try {
       await signIn(email)
@@ -71,10 +80,25 @@ function LoginForm() {
             {error === 'no_code' && (
               <AuthSetupError />
             )}
-            {error === 'exchange_failed' && 'Failed to complete sign in. The link may have expired.'}
-            {error === 'callback_failed' && 'Authentication callback failed. Please try again.'}
+            {error === 'exchange_failed' && (
+              <div>
+                <p className="font-semibold mb-1">Link expired or invalid</p>
+                <p className="text-xs">The magic link is valid for 1 hour. Request a new one below.</p>
+              </div>
+            )}
+            {error === 'callback_failed' && (
+              <div>
+                <p className="font-semibold mb-1">Authentication error</p>
+                <p className="text-xs">Please try signing in again. If the problem persists, contact support.</p>
+              </div>
+            )}
             {error === 'no_session' && 'No active session found. Please sign in again.'}
-            {!['no_code', 'exchange_failed', 'callback_failed', 'no_session'].includes(error) && 'Authentication failed. Please try again.'}
+            {!['no_code', 'exchange_failed', 'callback_failed', 'no_session'].includes(error) && (
+              <div>
+                <p className="font-semibold mb-1">Authentication failed</p>
+                <p className="text-xs">Please try again or contact support if the issue persists.</p>
+              </div>
+            )}
           </div>
         )}
 

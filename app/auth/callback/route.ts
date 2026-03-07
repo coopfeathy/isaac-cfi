@@ -15,20 +15,25 @@ export async function GET(request: Request) {
 
   // If there's a code, exchange it for a session
   if (code) {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-    
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-    
-    if (exchangeError) {
-      console.error('Error exchanging code for session:', exchangeError)
-      return NextResponse.redirect(new URL('/login?error=exchange_failed', requestUrl.origin))
-    }
+    try {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+      
+      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+      
+      if (exchangeError) {
+        console.error('Error exchanging code for session:', exchangeError)
+        return NextResponse.redirect(new URL('/login?error=exchange_failed', requestUrl.origin))
+      }
 
-    // Redirect to schedule page after successful authentication
-    return NextResponse.redirect(new URL('/schedule', requestUrl.origin))
+      // Redirect to schedule page after successful authentication
+      return NextResponse.redirect(new URL('/schedule', requestUrl.origin))
+    } catch (err) {
+      console.error('Unexpected error in auth callback:', err)
+      return NextResponse.redirect(new URL('/login?error=callback_failed', requestUrl.origin))
+    }
   }
 
   // No code found, redirect to login
