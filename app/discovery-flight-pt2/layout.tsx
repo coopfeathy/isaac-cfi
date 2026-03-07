@@ -3,8 +3,7 @@ import type React from "react"
 
 export const metadata: Metadata = {
   title: "Discovery Flight Questionnaire Step 2 | Merlin Flight Training",
-  description:
-    "Step 2 of 4 in your discovery flight intake form.",
+  description: "Discovery flight questionnaire - Step 2 of 4.",
   robots: {
     index: false,
     follow: false,

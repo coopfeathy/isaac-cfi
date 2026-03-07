@@ -9,7 +9,7 @@ import type { Metadata } from "next"
 export const metadata: Metadata = {
   metadataBase: new URL("https://merlinflight.com"),
   title: "Merlin Flight Training | NYC Pilot Training & Flight Lessons",
-  description: "Professional FAA-certified flight training in NYC and New Jersey. Private, instrument, and commercial pilot training. Book your discovery flight today.",
+  description: "Professional flight training in NYC & New Jersey. Private, instrument & commercial certifications. Book your discovery flight today.",
   keywords: ["flight training", "pilot training", "NYC", "New Jersey", "discovery flight", "flight lessons", "FAA certified instructor"],
   authors: [{ name: "Merlin Flight Training" }],
   creator: "Merlin Flight Training",
@@ -78,9 +78,11 @@ export default function RootLayout({
       },
     ],
     sameAs: [
-      "https://www.facebook.com/merlinflight",
+      "https://www.facebook.com/MerlinFlightTraining",
       "https://www.instagram.com/merlinflight",
       "https://www.linkedin.com/company/merlin-flight-training",
+      "https://www.youtube.com/@merlinflight",
+      "https://x.com/merlinflight",
     ],
     services: [
       {

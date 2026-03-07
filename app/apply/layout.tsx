@@ -3,8 +3,7 @@ import type React from "react"
 
 export const metadata: Metadata = {
   title: "Apply For Flight Training | Merlin Flight Training",
-  description:
-    "Apply to begin your flight training journey with Merlin Flight Training. Share your goals and we will help map your path to pilot certification.",
+  description: "Apply for flight training. Share your goals and we'll map your path to pilot certification.",
   openGraph: {
     title: "Apply For Flight Training | Merlin Flight Training",
     description:

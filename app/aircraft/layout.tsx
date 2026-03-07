@@ -3,7 +3,7 @@ import type React from "react"
 
 export const metadata: Metadata = {
   title: "Our Fleet | Merlin Flight Training",
-  description: "Explore our diverse fleet of well-maintained aircraft. From Cessna 172s for training to advanced aircraft for complex operations.",
+  description: "Explore our fleet of well-maintained aircraft for training & advanced operations.",
   openGraph: {
     title: "Our Fleet | Merlin Flight Training",
     description: "Explore our diverse fleet of well-maintained aircraft",
