@@ -186,6 +186,90 @@ When deploying to production:
 
 ---
 
+## Netlify Migration (Database + Users)
+
+Important: Netlify hosts your app, but your database and auth users should remain in Supabase. You do not migrate database/auth into Netlify itself.
+
+### 1. Create/prepare target Supabase project
+
+1. Create a new Supabase project for production (if needed)
+2. Run SQL in this order:
+   - `supabase/complete-setup.sql`
+   - `supabase/learn-platform-schema.sql`
+3. Confirm tables exist: `profiles`, `courses`, `units`, `lessons`, `videos`, `enrollments`, `progress`
+
+### 2. Migrate database rows
+
+Use Supabase dashboard backups or SQL export/import from source project to target project.
+
+Minimum tables to migrate:
+- `profiles`
+- `slots`
+- `bookings`
+- `prospects`
+- `students`
+- `communications`
+- `reminders`
+- `courses`
+- `units`
+- `lessons`
+- `videos`
+- `enrollments`
+- `progress`
+
+### 3. Migrate auth users
+
+Supabase auth users live in `auth.users` and should be migrated between Supabase projects (not Netlify).
+
+Options:
+1. Use Supabase project migration tools/backups if available on your plan.
+2. If not available, re-invite users by email in the new project.
+
+After migration, ensure each migrated user has a `profiles` row and `is_admin` set correctly.
+
+### 4. Configure Netlify environment variables
+
+In Netlify Dashboard -> Site settings -> Environment variables, set:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_NEW_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_NEW_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY=YOUR_NEW_SERVICE_ROLE_KEY
+NEXT_PUBLIC_SITE_URL=https://YOUR_NETLIFY_SITE_URL
+NEXT_PUBLIC_ADMIN_EMAIL=Isaac.Imp.Prestwich@gmail.com
+RESEND_API_KEY=YOUR_RESEND_KEY
+STRIPE_SECRET_KEY=...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=...
+STRIPE_WEBHOOK_SECRET=...
+GOOGLE_CLIENT_EMAIL=...
+GOOGLE_PRIVATE_KEY=...
+GOOGLE_CALENDAR_ID=...
+```
+
+Note: `SUPABASE_SERVICE_ROLE_KEY` is required for secure server-only admin actions like listing users for course enrollment.
+
+### 5. Update Supabase Auth URLs
+
+In target Supabase project:
+1. Authentication -> URL Configuration
+2. Set Site URL to your Netlify production URL
+3. Add Redirect URL:
+   - `https://YOUR_NETLIFY_SITE_URL/auth/callback`
+
+### 6. Email setup
+
+Email sending remains via Resend (or another provider). Netlify does not replace your transactional email provider.
+
+### 7. Final verification
+
+1. Deploy on Netlify
+2. Sign in with magic link
+3. Confirm admin can open `/admin/enrollments`
+4. Confirm admin can assign students to courses
+5. Confirm students can access `/learn` and watch videos
+
+---
+
 ## Need Help?
 
 - Check the test page: http://localhost:3000/test-supabase

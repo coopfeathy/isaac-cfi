@@ -50,14 +50,37 @@ export default function AdminStudentEnrollmentPage() {
   }, [isAdmin, router])
 
   const handleCourseSelect = async (courseId: string) => {
+    if (!courseId) {
+      setSelectedCourse(null)
+      setStudents([])
+      return
+    }
+
     setSelectedCourse(courseId)
     setLoading(true)
 
     try {
-      // Get all users
-      const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-      if (usersError) throw usersError
+      if (!session?.access_token) {
+        throw new Error("Missing session token")
+      }
+
+      const usersResponse = await fetch("/api/admin/users", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      if (!usersResponse.ok) {
+        const errorBody = await usersResponse.json().catch(() => ({}))
+        throw new Error(errorBody.error || "Failed to load users")
+      }
+
+      const usersJson = await usersResponse.json()
+      const users: Array<{ id: string; email: string; full_name: string | null }> = usersJson.users || []
 
       // Get enrollments for this course
       const { data: enrollments } = await supabase
@@ -69,8 +92,8 @@ export default function AdminStudentEnrollmentPage() {
 
       const studentList = users.map((user) => ({
         id: user.id,
-        email: user.email || "",
-        full_name: user.user_metadata?.full_name,
+        email: user.email,
+        full_name: user.full_name,
         is_enrolled: enrolledIds.has(user.id),
       }))
 

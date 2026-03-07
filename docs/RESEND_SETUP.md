@@ -3,6 +3,8 @@
 ## Overview
 Resend is integrated into your application for sending transactional emails and email broadcast campaigns from the admin dashboard.
 
+Netlify hosts your Next.js app, but email delivery still runs through Resend.
+
 ## Step 1: Get Your Resend API Key
 
 1. Go to [resend.com](https://resend.com) and sign up or log in
@@ -24,6 +26,8 @@ RESEND_API_KEY=re_your_actual_api_key_here
 2. Add new variable:
    - Key: `RESEND_API_KEY`
    - Value: Your Resend API key
+
+If you're migrating to a new Netlify site, copy this variable to the new site before switching DNS or domain traffic.
 
 ## Step 3: Verify Domain (Optional but Recommended)
 
