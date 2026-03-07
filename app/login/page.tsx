@@ -1,8 +1,32 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '../contexts/AuthContext'
+
+function AuthSetupError() {
+  const [redirectUrl, setRedirectUrl] = useState<string>('')
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setRedirectUrl(`${window.location.origin}/auth/callback`)
+    }
+  }, [])
+
+  return (
+    <div>
+      <p className="font-semibold mb-2">Authentication setup required</p>
+      <p className="text-xs">You need to configure Supabase redirect URLs:</p>
+      <ol className="text-xs mt-2 ml-4 list-decimal space-y-1">
+        <li>Go to <a href="https://supabase.com/dashboard/project/fwttykpznnoupoxowvlg/auth/url-configuration" target="_blank" rel="noopener noreferrer" className="underline font-medium">Supabase Dashboard → Authentication → URL Configuration</a></li>
+        {redirectUrl && (
+          <li>Add <code className="bg-red-100 px-1 rounded">{redirectUrl}</code> to "Redirect URLs"</li>
+        )}
+        <li>Click "Save" and try signing in again</li>
+      </ol>
+    </div>
+  )
+}
 
 function LoginForm() {
   const [email, setEmail] = useState('')
@@ -45,15 +69,7 @@ function LoginForm() {
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
             {error === 'no_code' && (
-              <div>
-                <p className="font-semibold mb-2">Authentication setup required</p>
-                <p className="text-xs">You need to configure Supabase redirect URLs:</p>
-                <ol className="text-xs mt-2 ml-4 list-decimal space-y-1">
-                  <li>Go to <a href="https://supabase.com/dashboard/project/fwttykpznnoupoxowvlg/auth/url-configuration" target="_blank" className="underline font-medium">Supabase Dashboard</a></li>
-                  <li>Add <code className="bg-red-100 px-1 rounded">http://localhost:3000/auth/callback</code> to Redirect URLs</li>
-                  <li>Click Save and try signing in again</li>
-                </ol>
-              </div>
+              <AuthSetupError />
             )}
             {error === 'exchange_failed' && 'Failed to complete sign in. The link may have expired.'}
             {error === 'callback_failed' && 'Authentication callback failed. Please try again.'}
