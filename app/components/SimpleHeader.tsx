@@ -99,8 +99,8 @@ export default function SimpleHeader() {
               </Link>
             </li>
             <li>
-              <Link href="/blog" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                Blog
+              <Link href="/learn" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
+                Learn
               </Link>
             </li>
             <li>
