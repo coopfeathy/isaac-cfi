@@ -7,6 +7,7 @@ import { CalendlyProvider } from "./components/CalendlyButton"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://merlinflight.com"),
   title: "Merlin Flight Training | NYC Pilot Training & Flight Lessons",
   description: "Professional FAA-certified flight training in NYC and New Jersey. Private, instrument, and commercial pilot training. Book your discovery flight today.",
   keywords: ["flight training", "pilot training", "NYC", "New Jersey", "discovery flight", "flight lessons", "FAA certified instructor"],
@@ -39,9 +40,6 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
-  },
-  alternates: {
-    canonical: "https://merlinflight.com",
   },
   formatDetection: {
     telephone: false,
@@ -114,7 +112,6 @@ export default function RootLayout({
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#000000" />
-        <link rel="canonical" href="https://merlinflight.com" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaData) }}

@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og'
 
 export const runtime = 'nodejs'
 
-export async function GET() {
+export default async function Icon() {
   return new ImageResponse(
     (
       <div
