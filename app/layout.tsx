@@ -82,11 +82,11 @@ export default function RootLayout({
       },
     ],
     sameAs: [
-      "https://www.facebook.com/MerlinFlightTraining",
-      "https://www.instagram.com/merlinflight",
+      "https://www.facebook.com/people/Merlin-Flight-Training/61584960395153",
+      "https://www.instagram.com/merlinflighttraining",
       "https://www.linkedin.com/company/merlin-flight-training",
-      "https://www.youtube.com/@merlinflight",
-      "https://x.com/merlinflight",
+      "https://www.youtube.com/@MerlinFlightTraining",
+      "https://www.tiktok.com/@isaacthecfi",
     ],
     services: [
       {
