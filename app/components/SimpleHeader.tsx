@@ -116,23 +116,11 @@ export default function SimpleHeader() {
             {user ? (
               <>
                 {isAdmin && (
-                  <>
-                    <li>
-                      <Link href="/dashboard" style={{ color: '#C59A2A', fontWeight: 600, textDecoration: 'none' }}>
-                        Dashboard
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/prospects" style={{ color: '#C59A2A', fontWeight: 600, textDecoration: 'none' }}>
-                        Prospects
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/students" style={{ color: '#C59A2A', fontWeight: 600, textDecoration: 'none' }}>
-                        Students
-                      </Link>
-                    </li>
-                  </>
+                  <li>
+                    <Link href="/admin" style={{ color: '#C59A2A', fontWeight: 600, textDecoration: 'none' }}>
+                      Admin
+                    </Link>
+                  </li>
                 )}
                 <li>
                   <Link href="/bookings" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
@@ -296,56 +284,22 @@ export default function SimpleHeader() {
               {user ? (
                 <>
                   {isAdmin && (
-                    <>
-                      <li>
-                        <Link 
-                          href="/dashboard" 
-                          onClick={() => setMobileMenuOpen(false)}
-                          style={{ 
-                            color: '#C59A2A', 
-                            fontWeight: 600, 
-                            textDecoration: 'none',
-                            display: 'block',
-                            padding: '12px 16px',
-                            borderRadius: '8px'
-                          }}
-                        >
-                          Dashboard
-                        </Link>
-                      </li>
-                      <li>
-                        <Link 
-                          href="/prospects" 
-                          onClick={() => setMobileMenuOpen(false)}
-                          style={{ 
-                            color: '#C59A2A', 
-                            fontWeight: 600, 
-                            textDecoration: 'none',
-                            display: 'block',
-                            padding: '12px 16px',
-                            borderRadius: '8px'
-                          }}
-                        >
-                          Prospects
-                        </Link>
-                      </li>
-                      <li>
-                        <Link 
-                          href="/students" 
-                          onClick={() => setMobileMenuOpen(false)}
-                          style={{ 
-                            color: '#C59A2A', 
-                            fontWeight: 600, 
-                            textDecoration: 'none',
-                            display: 'block',
-                            padding: '12px 16px',
-                            borderRadius: '8px'
-                          }}
-                        >
-                          Students
-                        </Link>
-                      </li>
-                    </>
+                    <li>
+                      <Link 
+                        href="/admin" 
+                        onClick={() => setMobileMenuOpen(false)}
+                        style={{ 
+                          color: '#C59A2A', 
+                          fontWeight: 600, 
+                          textDecoration: 'none',
+                          display: 'block',
+                          padding: '12px 16px',
+                          borderRadius: '8px'
+                        }}
+                      >
+                        Admin
+                      </Link>
+                    </li>
                   )}
                   <li>
                     <Link 
