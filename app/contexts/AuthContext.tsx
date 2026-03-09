@@ -102,8 +102,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Prefer DB-backed admin role, with email fallback for bootstrap scenarios.
+  // Support multiple admin emails separated by commas
+  const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase().split(',').map(e => e.trim()) || []
   const isAdmin = Boolean(profile?.is_admin) ||
-    user?.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase()
+    (user?.email ? adminEmails.includes(user.email.toLowerCase()) : false)
 
   const value = {
     user,
