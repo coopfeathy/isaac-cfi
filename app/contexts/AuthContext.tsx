@@ -71,13 +71,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string) => {
     try {
+      const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
       console.log('Attempting sign in for:', email)
-      console.log('Redirect URL:', `${window.location.origin}/auth/callback`)
+      console.log('Redirect URL:', redirectUrl)
       
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: redirectUrl,
         },
       })
 
