@@ -19,7 +19,7 @@ interface Course {
 }
 
 export default function AdminStudentEnrollmentPage() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, loading: authLoading } = useAuth()
   const router = useRouter()
   const [courses, setCourses] = useState<Course[]>([])
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null)
@@ -28,6 +28,10 @@ export default function AdminStudentEnrollmentPage() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
     if (!isAdmin) {
       router.push("/login")
       return
@@ -47,7 +51,7 @@ export default function AdminStudentEnrollmentPage() {
     }
 
     fetchCourses()
-  }, [isAdmin, router])
+  }, [authLoading, isAdmin, router])
 
   const handleCourseSelect = async (courseId: string) => {
     if (!courseId) {

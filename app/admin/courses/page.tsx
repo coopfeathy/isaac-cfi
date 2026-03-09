@@ -15,13 +15,18 @@ interface Course {
 }
 
 export default function AdminCoursesPage() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, loading: authLoading } = useAuth()
   const router = useRouter()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
     if (!isAdmin) {
+      setLoading(false)
       router.push("/login")
       return
     }
@@ -43,7 +48,7 @@ export default function AdminCoursesPage() {
     }
 
     fetchCourses()
-  }, [isAdmin, router])
+  }, [authLoading, isAdmin, router])
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure? This will delete the course and all lessons.")) return

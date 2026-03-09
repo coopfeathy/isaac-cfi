@@ -22,7 +22,7 @@ interface Lesson {
 export default function ManageVideosPage() {
   const params = useParams()
   const lessonId = params.lessonId as string
-  const { isAdmin } = useAuth()
+  const { isAdmin, loading: authLoading } = useAuth()
   const router = useRouter()
   const [lesson, setLesson] = useState<Lesson | null>(null)
   const [videos, setVideos] = useState<Video[]>([])
@@ -32,7 +32,12 @@ export default function ManageVideosPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
     if (!isAdmin) {
+      setLoading(false)
       router.push("/login")
       return
     }
@@ -63,7 +68,7 @@ export default function ManageVideosPage() {
     }
 
     fetchLesson()
-  }, [lessonId, isAdmin, router])
+  }, [authLoading, lessonId, isAdmin, router])
 
   const handleUploadVideo = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -35,7 +35,7 @@ interface Course {
 export default function EditCoursePage() {
   const params = useParams()
   const courseId = params.courseId as string
-  const { isAdmin } = useAuth()
+  const { isAdmin, loading: authLoading } = useAuth()
   const router = useRouter()
   const [course, setCourse] = useState<Course | null>(null)
   const [units, setUnits] = useState<Unit[]>([])
@@ -47,7 +47,12 @@ export default function EditCoursePage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
     if (!isAdmin) {
+      setLoading(false)
       router.push("/login")
       return
     }
@@ -91,7 +96,7 @@ export default function EditCoursePage() {
     }
 
     fetchCourse()
-  }, [courseId, isAdmin, router])
+  }, [authLoading, courseId, isAdmin, router])
 
   const handleAddUnit = async () => {
     if (!newUnitTitle.trim()) return

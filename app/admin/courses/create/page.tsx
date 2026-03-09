@@ -7,12 +7,20 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 export default function CreateCoursePage() {
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, loading: authLoading } = useAuth()
   const router = useRouter()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  if (authLoading) {
+    return (
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 20px" }}>
+        <p>Checking admin access...</p>
+      </div>
+    )
+  }
 
   if (!isAdmin) {
     return (

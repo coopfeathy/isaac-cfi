@@ -101,8 +101,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error
   }
 
-  // Check if user is admin (case-insensitive email comparison)
-  const isAdmin = user?.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase()
+  // Prefer DB-backed admin role, with email fallback for bootstrap scenarios.
+  const isAdmin = Boolean(profile?.is_admin) ||
+    user?.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase()
 
   const value = {
     user,
