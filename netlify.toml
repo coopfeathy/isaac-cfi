@@ -4,6 +4,7 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  NEXT_PUBLIC_SITE_URL = "https://merlinflighttraining.com"
 
 [functions]
   directory = "netlify/functions"
