@@ -9,8 +9,10 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================
--- COURSES TABLE
+-- STEP 1: CREATE ALL TABLES FIRST
 -- ============================================
+
+-- COURSES TABLE
 CREATE TABLE IF NOT EXISTS courses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
@@ -21,9 +23,75 @@ CREATE TABLE IF NOT EXISTS courses (
   is_published BOOLEAN DEFAULT false
 );
 
-ALTER TABLE courses ENABLE ROW LEVEL SECURITY;
+-- UNITS TABLE (modules within a course)
+CREATE TABLE IF NOT EXISTS units (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  order_index INTEGER NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- Drop existing policies
+-- LESSONS TABLE
+CREATE TABLE IF NOT EXISTS lessons (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  unit_id UUID NOT NULL REFERENCES units(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  order_index INTEGER NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- VIDEOS TABLE
+CREATE TABLE IF NOT EXISTS videos (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_id UUID NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  storage_path TEXT NOT NULL,
+  duration_seconds INTEGER,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ENROLLMENTS TABLE
+CREATE TABLE IF NOT EXISTS enrollments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  assigned_at TIMESTAMPTZ DEFAULT NOW(),
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  UNIQUE(course_id, student_id)
+);
+
+-- PROGRESS TABLE
+-- PROGRESS TABLE
+CREATE TABLE IF NOT EXISTS progress (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_id UUID NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  percent_watched INTEGER DEFAULT 0 CHECK (percent_watched >= 0 AND percent_watched <= 100),
+  last_watched_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(lesson_id, student_id)
+);
+
+-- ============================================
+-- STEP 2: ENABLE ROW LEVEL SECURITY ON ALL TABLES
+-- ============================================
+ALTER TABLE courses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE units ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lessons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE videos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE enrollments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE progress ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- STEP 3: DROP ANY EXISTING POLICIES
+-- ============================================
+-- Courses
 DROP POLICY IF EXISTS "Published courses are viewable by everyone" ON courses;
 DROP POLICY IF EXISTS "Enrolled students can view their courses" ON courses;
 DROP POLICY IF EXISTS "Admins can view all courses" ON courses;
@@ -31,7 +99,44 @@ DROP POLICY IF EXISTS "Admins can create courses" ON courses;
 DROP POLICY IF EXISTS "Course creator can update their course" ON courses;
 DROP POLICY IF EXISTS "Admins can delete courses" ON courses;
 
--- Create policies
+-- Units
+DROP POLICY IF EXISTS "Units are viewable if course is viewable" ON units;
+DROP POLICY IF EXISTS "Admins can manage units" ON units;
+DROP POLICY IF EXISTS "Admins can update units" ON units;
+DROP POLICY IF EXISTS "Admins can delete units" ON units;
+
+-- Lessons
+DROP POLICY IF EXISTS "Lessons are viewable if unit's course is viewable" ON lessons;
+DROP POLICY IF EXISTS "Admins can manage lessons" ON lessons;
+DROP POLICY IF EXISTS "Admins can update lessons" ON lessons;
+DROP POLICY IF EXISTS "Admins can delete lessons" ON lessons;
+
+-- Videos
+DROP POLICY IF EXISTS "Videos are viewable if lesson's course is viewable" ON videos;
+DROP POLICY IF EXISTS "Admins can manage videos" ON videos;
+DROP POLICY IF EXISTS "Admins can update videos" ON videos;
+DROP POLICY IF EXISTS "Admins can delete videos" ON videos;
+
+-- Enrollments
+DROP POLICY IF EXISTS "Students can view their own enrollments" ON enrollments;
+DROP POLICY IF EXISTS "Admins can view all enrollments" ON enrollments;
+DROP POLICY IF EXISTS "Admins can create enrollments" ON enrollments;
+DROP POLICY IF EXISTS "Admins can delete enrollments" ON enrollments;
+
+-- Progress
+DROP POLICY IF EXISTS "Students can view their own progress" ON progress;
+DROP POLICY IF EXISTS "Admins can view all progress" ON progress;
+DROP POLICY IF EXISTS "Students can update their own progress" ON progress;
+DROP POLICY IF EXISTS "Admins can update progress" ON progress;
+DROP POLICY IF EXISTS "Students can insert their own progress" ON progress;
+
+-- ============================================
+-- STEP 4: CREATE ALL POLICIES (NOW ALL TABLES EXIST)
+-- ============================================
+
+-- ============================================
+-- COURSES POLICIES
+-- ============================================
 CREATE POLICY "Published courses are viewable by everyone"
   ON courses FOR SELECT
   USING (is_published = true);
@@ -88,26 +193,8 @@ CREATE POLICY "Admins can delete courses"
   );
 
 -- ============================================
--- UNITS TABLE (modules within a course)
+-- UNITS POLICIES
 -- ============================================
-CREATE TABLE IF NOT EXISTS units (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  order_index INTEGER NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE units ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policies
-DROP POLICY IF EXISTS "Units are viewable if course is viewable" ON units;
-DROP POLICY IF EXISTS "Admins can manage units" ON units;
-DROP POLICY IF EXISTS "Admins can update units" ON units;
-DROP POLICY IF EXISTS "Admins can delete units" ON units;
-
--- Create policies
 CREATE POLICY "Units are viewable if course is viewable"
   ON units FOR SELECT
   USING (
@@ -161,26 +248,8 @@ CREATE POLICY "Admins can delete units"
   );
 
 -- ============================================
--- LESSONS TABLE
+-- LESSONS POLICIES
 -- ============================================
-CREATE TABLE IF NOT EXISTS lessons (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  unit_id UUID NOT NULL REFERENCES units(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  order_index INTEGER NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE lessons ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policies
-DROP POLICY IF EXISTS "Lessons are viewable if unit's course is viewable" ON lessons;
-DROP POLICY IF EXISTS "Admins can manage lessons" ON lessons;
-DROP POLICY IF EXISTS "Admins can update lessons" ON lessons;
-DROP POLICY IF EXISTS "Admins can delete lessons" ON lessons;
-
--- Create policies
 CREATE POLICY "Lessons are viewable if unit's course is viewable"
   ON lessons FOR SELECT
   USING (
@@ -235,27 +304,8 @@ CREATE POLICY "Admins can delete lessons"
   );
 
 -- ============================================
--- VIDEOS TABLE
+-- VIDEOS POLICIES
 -- ============================================
-CREATE TABLE IF NOT EXISTS videos (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lesson_id UUID NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  storage_path TEXT NOT NULL,
-  duration_seconds INTEGER,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE videos ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policies
-DROP POLICY IF EXISTS "Videos are viewable if lesson's course is viewable" ON videos;
-DROP POLICY IF EXISTS "Admins can manage videos" ON videos;
-DROP POLICY IF EXISTS "Admins can update videos" ON videos;
-DROP POLICY IF EXISTS "Admins can delete videos" ON videos;
-
--- Create policies
 CREATE POLICY "Videos are viewable if lesson's course is viewable"
   ON videos FOR SELECT
   USING (
@@ -311,27 +361,8 @@ CREATE POLICY "Admins can delete videos"
   );
 
 -- ============================================
--- ENROLLMENTS TABLE
+-- ENROLLMENTS POLICIES
 -- ============================================
-CREATE TABLE IF NOT EXISTS enrollments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
-  student_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  assigned_at TIMESTAMPTZ DEFAULT NOW(),
-  started_at TIMESTAMPTZ,
-  completed_at TIMESTAMPTZ,
-  UNIQUE(course_id, student_id)
-);
-
-ALTER TABLE enrollments ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policies
-DROP POLICY IF EXISTS "Students can view their own enrollments" ON enrollments;
-DROP POLICY IF EXISTS "Admins can view all enrollments" ON enrollments;
-DROP POLICY IF EXISTS "Admins can create enrollments" ON enrollments;
-DROP POLICY IF EXISTS "Admins can delete enrollments" ON enrollments;
-
--- Create policies
 CREATE POLICY "Students can view their own enrollments"
   ON enrollments FOR SELECT
   USING (auth.uid() = student_id);
@@ -367,29 +398,8 @@ CREATE POLICY "Admins can delete enrollments"
   );
 
 -- ============================================
--- PROGRESS TABLE
+-- PROGRESS POLICIES
 -- ============================================
-CREATE TABLE IF NOT EXISTS progress (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  lesson_id UUID NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
-  student_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  percent_watched INTEGER DEFAULT 0 CHECK (percent_watched >= 0 AND percent_watched <= 100),
-  last_watched_at TIMESTAMPTZ DEFAULT NOW(),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(lesson_id, student_id)
-);
-
-ALTER TABLE progress ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policies
-DROP POLICY IF EXISTS "Students can view their own progress" ON progress;
-DROP POLICY IF EXISTS "Admins can view all progress" ON progress;
-DROP POLICY IF EXISTS "Students can update their own progress" ON progress;
-DROP POLICY IF EXISTS "Admins can update progress" ON progress;
-DROP POLICY IF EXISTS "Students can insert their own progress" ON progress;
-
--- Create policies
 CREATE POLICY "Students can view their own progress"
   ON progress FOR SELECT
   USING (auth.uid() = student_id);
