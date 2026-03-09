@@ -71,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string) => {
     try {
-      const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`
+      const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/login`
       console.log('Attempting sign in for:', email)
       console.log('Redirect URL:', redirectUrl)
       

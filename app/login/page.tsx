@@ -4,35 +4,11 @@ import { useState, Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '../contexts/AuthContext'
 
-function AuthSetupError() {
-  const [redirectUrl, setRedirectUrl] = useState<string>('')
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setRedirectUrl(`${window.location.origin}/auth/callback`)
-    }
-  }, [])
-
-  return (
-    <div>
-      <p className="font-semibold mb-2">Authentication setup required</p>
-      <p className="text-xs">You need to configure Supabase redirect URLs:</p>
-      <ol className="text-xs mt-2 ml-4 list-decimal space-y-1">
-        <li>Go to <a href="https://supabase.com/dashboard/project/fwttykpznnoupoxowvlg/auth/url-configuration" target="_blank" rel="noopener noreferrer" className="underline font-medium">Supabase Dashboard → Authentication → URL Configuration</a></li>
-        {redirectUrl && (
-          <li>Add <code className="bg-red-100 px-1 rounded">{redirectUrl}</code> to "Redirect URLs"</li>
-        )}
-        <li>Click "Save" and try signing in again</li>
-      </ol>
-    </div>
-  )
-}
-
 function LoginForm() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-  const { signIn } = useAuth()
+  const { signIn, user, loading: authLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const error = searchParams?.get('error')
@@ -42,6 +18,13 @@ function LoginForm() {
     const saved = localStorage.getItem('signin_email')
     if (saved) setEmail(saved)
   }, [])
+
+  // If magic link sign-in completes on this page, continue to schedule.
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace('/schedule')
+    }
+  }, [authLoading, user, router])
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,7 +61,10 @@ function LoginForm() {
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
             {error === 'no_code' && (
-              <AuthSetupError />
+              <div>
+                <p className="font-semibold mb-1">Invalid sign-in link</p>
+                <p className="text-xs">Please request a new magic link and open it in the same browser.</p>
+              </div>
             )}
             {error === 'exchange_failed' && (
               <div>
