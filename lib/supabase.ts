@@ -13,13 +13,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Log for debugging (remove in production)
-console.log('Supabase URL:', supabaseUrl)
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    flowType: 'pkce'
   }
 })
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 interface ContactModalProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface ContactModalProps {
 }
 
 export default function ContactModal({ isOpen, onClose, aircraftName }: ContactModalProps) {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -18,6 +20,17 @@ export default function ContactModal({ isOpen, onClose, aircraftName }: ContactM
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Autofill form with user data when modal opens or user changes
+  useEffect(() => {
+    if (isOpen && user) {
+      setFormData((prev) => ({
+        ...prev,
+        email: user.email || prev.email,
+        name: user.user_metadata?.full_name || prev.name,
+      }));
+    }
+  }, [isOpen, user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

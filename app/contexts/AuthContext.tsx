@@ -24,24 +24,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Auto-login as admin on localhost for development
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      setUser({
-        id: 'dev-admin',
-        email: 'admin@localhost',
-        user_metadata: { name: 'Dev Admin' },
-      } as any)
-      setProfile({
-        id: 'dev-admin',
-        full_name: 'Dev Admin',
-        phone: null,
-        is_admin: true,
-        created_at: new Date().toISOString(),
-      })
-      setLoading(false)
-      return
-    }
-
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
@@ -89,13 +71,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string) => {
     try {
+      const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/login`
       console.log('Attempting sign in for:', email)
-      console.log('Redirect URL:', `${window.location.origin}/auth/callback`)
+      console.log('Redirect URL:', redirectUrl)
       
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: redirectUrl,
         },
       })
 
@@ -118,8 +101,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error
   }
 
-  // Check if user is admin (case-insensitive email comparison, or if profile has is_admin flag)
-  const isAdmin = user?.email?.toLowerCase() === process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase() || profile?.is_admin === true
+  // Prefer DB-backed admin role, with email fallback for bootstrap scenarios.
+  // Support multiple admin emails separated by commas
+  const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase().split(',').map(e => e.trim()) || []
+  const isAdmin = Boolean(profile?.is_admin) ||
+    (user?.email ? adminEmails.includes(user.email.toLowerCase()) : false)
 
   const value = {
     user,
