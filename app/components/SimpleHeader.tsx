@@ -19,7 +19,7 @@ export default function SimpleHeader() {
     <header style={{ 
       backgroundColor: 'white', 
       borderBottom: '1px solid #e5e7eb',
-      padding: '12px 20px',
+      padding: 'calc(10px + env(safe-area-inset-top, 0px)) 16px 10px',
       position: 'sticky',
       top: 0,
       zIndex: 50
@@ -49,7 +49,9 @@ export default function SimpleHeader() {
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             style={{
               display: 'none',
-              padding: '8px',
+              minHeight: '44px',
+              minWidth: '44px',
+              padding: '10px',
               border: 'none',
               background: 'transparent',
               cursor: 'pointer'
@@ -96,6 +98,13 @@ export default function SimpleHeader() {
                 Learn
               </Link>
             </li>
+            {user && (
+              <li>
+                <Link href="/progress" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
+                  Progress
+                </Link>
+              </li>
+            )}
             <li>
               <Link href="/pricing" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
                 Pricing
@@ -165,7 +174,7 @@ export default function SimpleHeader() {
         {mobileMenuOpen && (
           <div style={{
             marginTop: '20px',
-            paddingTop: '20px',
+            paddingTop: '12px',
             borderTop: '1px solid #e5e7eb'
           }}
           className="mobile-nav"
@@ -187,7 +196,7 @@ export default function SimpleHeader() {
                     fontWeight: 500, 
                     textDecoration: 'none',
                     display: 'block',
-                    padding: '12px 16px',
+                    padding: '14px 16px',
                     borderRadius: '8px'
                   }}
                 >
@@ -203,7 +212,7 @@ export default function SimpleHeader() {
                     fontWeight: 500, 
                     textDecoration: 'none',
                     display: 'block',
-                    padding: '12px 16px',
+                    padding: '14px 16px',
                     borderRadius: '8px'
                   }}
                 >
@@ -219,7 +228,7 @@ export default function SimpleHeader() {
                     fontWeight: 500, 
                     textDecoration: 'none',
                     display: 'block',
-                    padding: '12px 16px',
+                    padding: '14px 16px',
                     borderRadius: '8px'
                   }}
                 >
@@ -235,13 +244,31 @@ export default function SimpleHeader() {
                     fontWeight: 500, 
                     textDecoration: 'none',
                     display: 'block',
-                    padding: '12px 16px',
+                    padding: '14px 16px',
                     borderRadius: '8px'
                   }}
                 >
                   Blog
                 </Link>
               </li>
+              {user && (
+                <li>
+                  <Link 
+                    href="/progress" 
+                    onClick={() => setMobileMenuOpen(false)}
+                    style={{ 
+                      color: '#374151', 
+                      fontWeight: 500, 
+                      textDecoration: 'none',
+                      display: 'block',
+                      padding: '14px 16px',
+                      borderRadius: '8px'
+                    }}
+                  >
+                    Progress
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link 
                   href="/pricing" 
@@ -251,7 +278,7 @@ export default function SimpleHeader() {
                     fontWeight: 500, 
                     textDecoration: 'none',
                     display: 'block',
-                    padding: '12px 16px',
+                    padding: '14px 16px',
                     borderRadius: '8px'
                   }}
                 >
@@ -267,7 +294,7 @@ export default function SimpleHeader() {
                     fontWeight: 500, 
                     textDecoration: 'none',
                     display: 'block',
-                    padding: '12px 16px',
+                    padding: '14px 16px',
                     borderRadius: '8px'
                   }}
                 >
@@ -286,7 +313,7 @@ export default function SimpleHeader() {
                           fontWeight: 600, 
                           textDecoration: 'none',
                           display: 'block',
-                          padding: '12px 16px',
+                          padding: '14px 16px',
                           borderRadius: '8px'
                         }}
                       >
@@ -303,7 +330,7 @@ export default function SimpleHeader() {
                         fontWeight: 500, 
                         textDecoration: 'none',
                         display: 'block',
-                        padding: '12px 16px',
+                        padding: '14px 16px',
                         borderRadius: '8px'
                       }}
                     >
@@ -326,7 +353,7 @@ export default function SimpleHeader() {
                       style={{ 
                         backgroundColor: '#EF4444', 
                         color: '#fff', 
-                        padding: '12px 16px', 
+                        padding: '14px 16px', 
                         borderRadius: '8px', 
                         fontWeight: 600,
                         textDecoration: 'none',
@@ -349,7 +376,7 @@ export default function SimpleHeader() {
                     style={{ 
                       backgroundColor: '#000', 
                       color: '#fff', 
-                      padding: '12px 16px', 
+                      padding: '14px 16px', 
                       borderRadius: '8px', 
                       fontWeight: 600,
                       textDecoration: 'none',
@@ -373,6 +400,10 @@ export default function SimpleHeader() {
           }
           .mobile-menu-btn {
             display: block !important;
+          }
+          header {
+            backdrop-filter: saturate(180%) blur(8px);
+            background-color: rgba(255, 255, 255, 0.95) !important;
           }
         }
         @media (min-width: 769px) {

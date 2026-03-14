@@ -57,6 +57,26 @@ export default function LearnPage() {
         Complete lessons and track your progress
       </p>
 
+      {user && (
+        <div style={{ marginBottom: "24px" }}>
+          <Link
+            href="/progress"
+            style={{
+              display: "inline-block",
+              backgroundColor: "#111827",
+              color: "white",
+              padding: "10px 18px",
+              borderRadius: "8px",
+              textDecoration: "none",
+              fontWeight: "600",
+              fontSize: "14px",
+            }}
+          >
+            View My Progress Dashboard
+          </Link>
+        </div>
+      )}
+
       {isAdmin && (
         <div style={{ marginBottom: "30px" }}>
           <Link

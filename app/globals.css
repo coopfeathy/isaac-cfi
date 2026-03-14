@@ -25,6 +25,10 @@
   --input: 0 0% 89%;
   --ring: 0 0% 4%;
   --radius: 0.5rem;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
 }
 
 * {
@@ -41,6 +45,22 @@ body {
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background: #ffffff;
+}
+
+body {
+  padding-bottom: var(--safe-area-bottom);
+  overscroll-behavior-y: none;
+}
+
+a,
+button,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: rgba(197, 154, 42, 0.2);
 }
 
 ::selection {

@@ -92,6 +92,22 @@ export default function AdminDashboardPage() {
             >
               Assign Students
             </Link>
+            <Link
+              href="/admin/progress"
+              style={{
+                display: "block",
+                padding: "10px 16px",
+                backgroundColor: "#7C3AED",
+                color: "white",
+                borderRadius: "8px",
+                textDecoration: "none",
+                fontWeight: "600",
+                textAlign: "center",
+                fontSize: "14px"
+              }}
+            >
+              Lesson Debriefs
+            </Link>
           </div>
         </div>
 
@@ -255,6 +271,7 @@ export default function AdminDashboardPage() {
         </h3>
         <ul style={{ fontSize: "14px", color: "#78350F", lineHeight: "1.8", paddingLeft: "20px" }}>
           <li><strong>Learn Platform:</strong> Create courses, add units/lessons, upload videos, and assign students</li>
+          <li><strong>Debriefs:</strong> Update syllabus progress, rate lesson performance, and email students automatically</li>
           <li><strong>Students:</strong> View all registered users and their training progress</li>
           <li><strong>Prospects:</strong> Manage leads and potential students from discovery flights</li>
           <li><strong>Bookings:</strong> Manage flight slots, bookings, and schedules</li>

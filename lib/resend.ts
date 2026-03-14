@@ -60,4 +60,46 @@ export const emailTemplates = {
       </div>
     `,
   }),
+
+  // Lesson debrief + progress update sent after an instructor evaluation
+  lessonEvaluation: (payload: {
+    studentName: string
+    courseTitle: string
+    lessonTitle?: string | null
+    performanceRating: number
+    strengths?: string | null
+    improvements?: string | null
+    homework?: string | null
+    nextLessonFocus?: string | null
+    progressSummary: Array<{ title: string; status: string }>
+  }) => ({
+    subject: `Lesson Debrief: ${payload.courseTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #111827;">
+        <h1 style="color: #1e3a8a; margin-bottom: 8px;">Lesson Debrief</h1>
+        <p style="margin-top: 0; color: #4b5563;">Hi ${payload.studentName}, here is your latest update from Merlin Flight Training.</p>
+
+        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 20px 0;">
+          <p style="margin: 0 0 8px 0;"><strong>Course:</strong> ${payload.courseTitle}</p>
+          ${payload.lessonTitle ? `<p style="margin: 0 0 8px 0;"><strong>Lesson:</strong> ${payload.lessonTitle}</p>` : ""}
+          <p style="margin: 0;"><strong>Performance Rating:</strong> ${payload.performanceRating}/5</p>
+        </div>
+
+        ${payload.strengths ? `<h3 style="margin-bottom: 6px;">What Went Well</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.strengths}</p>` : ""}
+        ${payload.improvements ? `<h3 style="margin-bottom: 6px;">What To Improve</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.improvements}</p>` : ""}
+        ${payload.homework ? `<h3 style="margin-bottom: 6px;">Homework</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.homework}</p>` : ""}
+        ${payload.nextLessonFocus ? `<h3 style="margin-bottom: 6px;">Next Lesson Focus</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.nextLessonFocus}</p>` : ""}
+
+        <h3 style="margin-bottom: 8px;">Syllabus Progress Snapshot</h3>
+        <ul style="padding-left: 20px;">
+          ${payload.progressSummary
+            .slice(0, 10)
+            .map((item) => `<li style="margin-bottom: 6px;"><strong>${item.title}:</strong> ${item.status.replace(/_/g, " ")}</li>`)
+            .join("")}
+        </ul>
+
+        <p style="margin-top: 24px; color: #4b5563;">You can always log in to view your full progress dashboard.</p>
+      </div>
+    `,
+  }),
 }

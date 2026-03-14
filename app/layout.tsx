@@ -4,7 +4,7 @@ import SimpleHeader from "./components/SimpleHeader"
 import type React from "react"
 import { AuthProvider } from "./contexts/AuthContext"
 import { CalendlyProvider } from "./components/CalendlyButton"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://merlinflight.com"),
@@ -48,6 +48,18 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Merlin Flight",
+  },
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#000000",
 }
 
 export default function RootLayout({
@@ -116,8 +128,9 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#000000" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaData) }}
