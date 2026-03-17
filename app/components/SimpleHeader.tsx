@@ -8,7 +8,23 @@ import { supabase } from "@/lib/supabase"
 
 export default function SimpleHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mobileLearnMenuOpen, setMobileLearnMenuOpen] = useState(false)
+  const [desktopLearnMenuOpen, setDesktopLearnMenuOpen] = useState(false)
   const { user, isAdmin } = useAuth()
+  const primaryNavLinksBeforeLearn = [
+    { href: '/', label: 'Home' },
+    { href: '/schedule', label: 'Schedule' },
+    { href: '/aircraft', label: 'Aircraft' },
+  ]
+  const primaryNavLinksAfterLearn = [
+    { href: '/pricing', label: 'Pricing' },
+    { href: '/faq', label: 'FAQ' },
+  ]
+
+  const learnMenuLinks = [
+    { href: '/blog', label: 'Blog' },
+    ...(user ? [{ href: '/progress', label: 'Progress' }] : []),
+  ]
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -46,7 +62,13 @@ export default function SimpleHeader() {
           
           {/* Mobile menu button */}
           <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={() => {
+              const nextState = !mobileMenuOpen
+              setMobileMenuOpen(nextState)
+              if (!nextState) {
+                setMobileLearnMenuOpen(false)
+              }
+            }}
             style={{
               display: 'none',
               minHeight: '44px',
@@ -78,43 +100,66 @@ export default function SimpleHeader() {
           }}
           className="desktop-nav"
           >
-            <li>
-              <Link href="/" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                Home
-              </Link>
-            </li>
-            <li>
-              <Link href="/schedule" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                Schedule
-              </Link>
-            </li>
-            <li>
-              <Link href="/aircraft" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                Aircraft
-              </Link>
-            </li>
-            <li>
+            {primaryNavLinksBeforeLearn.map((link) => (
+              <li key={link.href}>
+                <Link href={link.href} style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+            <li
+              style={{ position: 'relative' }}
+              onMouseEnter={() => setDesktopLearnMenuOpen(true)}
+              onMouseLeave={() => setDesktopLearnMenuOpen(false)}
+            >
               <Link href="/learn" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
                 Learn
               </Link>
+              {desktopLearnMenuOpen && (
+                <ul style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 10px)',
+                  left: 0,
+                  listStyle: 'none',
+                  margin: 0,
+                  padding: '8px',
+                  minWidth: '180px',
+                  backgroundColor: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  boxShadow: '0 12px 24px rgba(0, 0, 0, 0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                  zIndex: 60,
+                }}>
+                  {learnMenuLinks.map((link) => (
+                    <li key={link.href}>
+                      <Link
+                        href={link.href}
+                        style={{
+                          color: '#374151',
+                          fontWeight: 500,
+                          textDecoration: 'none',
+                          display: 'block',
+                          padding: '10px 12px',
+                          borderRadius: '6px',
+                        }}
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
-            {user && (
-              <li>
-                <Link href="/progress" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                  Progress
+            {primaryNavLinksAfterLearn.map((link) => (
+              <li key={link.href}>
+                <Link href={link.href} style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
+                  {link.label}
                 </Link>
               </li>
-            )}
-            <li>
-              <Link href="/pricing" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                Pricing
-              </Link>
-            </li>
-            <li>
-              <Link href="/faq" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                FAQ
-              </Link>
-            </li>
+            ))}
             {user ? (
               <>
                 {isAdmin && (
@@ -187,75 +232,14 @@ export default function SimpleHeader() {
               flexDirection: 'column',
               gap: '10px'
             }}>
-              <li>
-                <Link 
-                  href="/" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ 
-                    color: '#374151', 
-                    fontWeight: 500, 
-                    textDecoration: 'none',
-                    display: 'block',
-                    padding: '14px 16px',
-                    borderRadius: '8px'
-                  }}
-                >
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/schedule" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ 
-                    color: '#374151', 
-                    fontWeight: 500, 
-                    textDecoration: 'none',
-                    display: 'block',
-                    padding: '14px 16px',
-                    borderRadius: '8px'
-                  }}
-                >
-                  Schedule
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/aircraft" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ 
-                    color: '#374151', 
-                    fontWeight: 500, 
-                    textDecoration: 'none',
-                    display: 'block',
-                    padding: '14px 16px',
-                    borderRadius: '8px'
-                  }}
-                >
-                  Aircraft
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/blog" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ 
-                    color: '#374151', 
-                    fontWeight: 500, 
-                    textDecoration: 'none',
-                    display: 'block',
-                    padding: '14px 16px',
-                    borderRadius: '8px'
-                  }}
-                >
-                  Blog
-                </Link>
-              </li>
-              {user && (
-                <li>
+              {primaryNavLinksBeforeLearn.map((link) => (
+                <li key={link.href}>
                   <Link 
-                    href="/progress" 
-                    onClick={() => setMobileMenuOpen(false)}
+                    href={link.href} 
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      setMobileLearnMenuOpen(false)
+                    }}
                     style={{ 
                       color: '#374151', 
                       fontWeight: 500, 
@@ -265,49 +249,115 @@ export default function SimpleHeader() {
                       borderRadius: '8px'
                     }}
                   >
-                    Progress
+                    {link.label}
                   </Link>
                 </li>
-              )}
+              ))}
               <li>
-                <Link 
-                  href="/pricing" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ 
-                    color: '#374151', 
-                    fontWeight: 500, 
+                <button
+                  onClick={() => setMobileLearnMenuOpen(!mobileLearnMenuOpen)}
+                  style={{
+                    color: '#374151',
+                    fontWeight: 500,
                     textDecoration: 'none',
-                    display: 'block',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                     padding: '14px 16px',
-                    borderRadius: '8px'
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: 'transparent',
+                    width: '100%',
+                    textAlign: 'left',
+                    cursor: 'pointer',
                   }}
                 >
-                  Pricing
-                </Link>
+                  Learn
+                  <span style={{ fontSize: '14px', color: '#6B7280' }}>{mobileLearnMenuOpen ? '−' : '+'}</span>
+                </button>
+                {mobileLearnMenuOpen && (
+                  <ul style={{
+                    listStyle: 'none',
+                    margin: '4px 0 0 0',
+                    padding: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                  }}>
+                    <li>
+                      <Link 
+                        href="/learn" 
+                        onClick={() => {
+                          setMobileMenuOpen(false)
+                          setMobileLearnMenuOpen(false)
+                        }}
+                        style={{ 
+                          color: '#374151', 
+                          fontWeight: 500, 
+                          textDecoration: 'none',
+                          display: 'block',
+                          padding: '12px 16px 12px 30px',
+                          borderRadius: '8px'
+                        }}
+                      >
+                        Learn
+                      </Link>
+                    </li>
+                    {learnMenuLinks.map((link) => (
+                      <li key={link.href}>
+                        <Link 
+                          href={link.href} 
+                          onClick={() => {
+                            setMobileMenuOpen(false)
+                            setMobileLearnMenuOpen(false)
+                          }}
+                          style={{ 
+                            color: '#374151', 
+                            fontWeight: 500, 
+                            textDecoration: 'none',
+                            display: 'block',
+                            padding: '12px 16px 12px 30px',
+                            borderRadius: '8px'
+                          }}
+                        >
+                          {link.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
-              <li>
-                <Link 
-                  href="/faq" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ 
-                    color: '#374151', 
-                    fontWeight: 500, 
-                    textDecoration: 'none',
-                    display: 'block',
-                    padding: '14px 16px',
-                    borderRadius: '8px'
-                  }}
-                >
-                  FAQ
-                </Link>
-              </li>
+              {primaryNavLinksAfterLearn.map((link) => (
+                <li key={link.href}>
+                  <Link 
+                    href={link.href}
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      setMobileLearnMenuOpen(false)
+                    }}
+                    style={{ 
+                      color: '#374151', 
+                      fontWeight: 500, 
+                      textDecoration: 'none',
+                      display: 'block',
+                      padding: '14px 16px',
+                      borderRadius: '8px'
+                    }}
+                  >
+                      {link.label}
+                  </Link>
+                </li>
+                ))}
               {user ? (
                 <>
                   {isAdmin && (
                     <li>
                       <Link 
                         href="/admin" 
-                        onClick={() => setMobileMenuOpen(false)}
+                        onClick={() => {
+                          setMobileMenuOpen(false)
+                          setMobileLearnMenuOpen(false)
+                        }}
                         style={{ 
                           color: '#C59A2A', 
                           fontWeight: 600, 
@@ -324,7 +374,10 @@ export default function SimpleHeader() {
                   <li>
                     <Link 
                       href="/bookings" 
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false)
+                        setMobileLearnMenuOpen(false)
+                      }}
                       style={{ 
                         color: '#374151', 
                         fontWeight: 500, 
@@ -372,7 +425,10 @@ export default function SimpleHeader() {
                 <li>
                   <Link 
                     href="/login" 
-                    onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        setMobileMenuOpen(false)
+                        setMobileLearnMenuOpen(false)
+                      }}
                     style={{ 
                       backgroundColor: '#000', 
                       color: '#fff', 
