@@ -11,6 +11,7 @@ interface SimulatorImage {
 
 export default function RedBirdSimulator() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [isImageLoading, setIsImageLoading] = useState(true)
 
   const images: SimulatorImage[] = [
     {
@@ -40,10 +41,12 @@ export default function RedBirdSimulator() {
   ]
 
   const nextImage = () => {
+    setIsImageLoading(true)
     setCurrentImageIndex((prev) => (prev + 1) % images.length)
   }
 
   const prevImage = () => {
+    setIsImageLoading(true)
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
   }
 
@@ -54,12 +57,26 @@ export default function RedBirdSimulator() {
           {/* Image Carousel */}
           <div className="flex flex-col items-center">
             <div className="relative w-full aspect-square rounded-lg overflow-hidden shadow-2xl mb-4">
+              <div
+                className={`absolute inset-0 bg-gradient-to-br from-gray-700 via-gray-800 to-gray-900 transition-opacity duration-300 ${
+                  isImageLoading ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="h-10 w-10 border-2 border-white/30 border-t-golden rounded-full animate-spin" />
+                </div>
+              </div>
               <Image
                 src={images[currentImageIndex].src}
                 alt={images[currentImageIndex].alt}
                 fill
-                className="object-cover"
+                className={`object-cover transition-opacity duration-500 ${
+                  isImageLoading ? 'opacity-0' : 'opacity-100'
+                }`}
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 40vw"
                 priority
+                onLoad={() => setIsImageLoading(false)}
               />
             </div>
 
@@ -87,7 +104,10 @@ export default function RedBirdSimulator() {
               {images.map((_, index) => (
                 <button
                   key={index}
-                  onClick={() => setCurrentImageIndex(index)}
+                  onClick={() => {
+                    setIsImageLoading(true)
+                    setCurrentImageIndex(index)
+                  }}
                   className={`h-2 rounded-full transition-all ${
                     index === currentImageIndex
                       ? 'bg-golden w-8'
