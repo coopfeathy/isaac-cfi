@@ -9,6 +9,14 @@ import { supabase } from "@/lib/supabase"
 export default function SimpleHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { user, isAdmin } = useAuth()
+  const primaryNavLinks = [
+    { href: '/', label: 'Home' },
+    { href: '/schedule', label: 'Schedule' },
+    { href: '/aircraft', label: 'Aircraft' },
+    { href: '/learn', label: 'Learn' },
+    { href: '/pricing', label: 'Pricing' },
+    { href: '/faq', label: 'FAQ' },
+  ]
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -19,7 +27,7 @@ export default function SimpleHeader() {
     <header style={{ 
       backgroundColor: 'white', 
       borderBottom: '1px solid #e5e7eb',
-      padding: '12px 20px',
+      padding: 'calc(10px + env(safe-area-inset-top, 0px)) 16px 10px',
       position: 'sticky',
       top: 0,
       zIndex: 50
@@ -49,7 +57,9 @@ export default function SimpleHeader() {
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             style={{
               display: 'none',
-              padding: '8px',
+              minHeight: '44px',
+              minWidth: '44px',
+              padding: '10px',
               border: 'none',
               background: 'transparent',
               cursor: 'pointer'
@@ -76,36 +86,13 @@ export default function SimpleHeader() {
           }}
           className="desktop-nav"
           >
-            <li>
-              <Link href="/" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                Home
-              </Link>
-            </li>
-            <li>
-              <Link href="/schedule" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                Schedule
-              </Link>
-            </li>
-            <li>
-              <Link href="/aircraft" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                Aircraft
-              </Link>
-            </li>
-            <li>
-              <Link href="/learn" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                Learn
-              </Link>
-            </li>
-            <li>
-              <Link href="/pricing" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                Pricing
-              </Link>
-            </li>
-            <li>
-              <Link href="/faq" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                FAQ
-              </Link>
-            </li>
+            {primaryNavLinks.map((link) => (
+              <li key={link.href}>
+                <Link href={link.href} style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
+                  {link.label}
+                </Link>
+              </li>
+            ))}
             {user ? (
               <>
                 {isAdmin && (
@@ -115,11 +102,6 @@ export default function SimpleHeader() {
                     </Link>
                   </li>
                 )}
-                <li>
-                  <Link href="/bookings" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                    My Bookings
-                  </Link>
-                </li>
                 <li style={{ color: '#6B7280', fontSize: '14px' }}>
                   {user.email}
                 </li>
@@ -165,7 +147,7 @@ export default function SimpleHeader() {
         {mobileMenuOpen && (
           <div style={{
             marginTop: '20px',
-            paddingTop: '20px',
+            paddingTop: '12px',
             borderTop: '1px solid #e5e7eb'
           }}
           className="mobile-nav"
@@ -178,102 +160,24 @@ export default function SimpleHeader() {
               flexDirection: 'column',
               gap: '10px'
             }}>
-              <li>
-                <Link 
-                  href="/" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ 
-                    color: '#374151', 
-                    fontWeight: 500, 
-                    textDecoration: 'none',
-                    display: 'block',
-                    padding: '12px 16px',
-                    borderRadius: '8px'
-                  }}
-                >
-                  Home
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/schedule" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ 
-                    color: '#374151', 
-                    fontWeight: 500, 
-                    textDecoration: 'none',
-                    display: 'block',
-                    padding: '12px 16px',
-                    borderRadius: '8px'
-                  }}
-                >
-                  Schedule
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/aircraft" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ 
-                    color: '#374151', 
-                    fontWeight: 500, 
-                    textDecoration: 'none',
-                    display: 'block',
-                    padding: '12px 16px',
-                    borderRadius: '8px'
-                  }}
-                >
-                  Aircraft
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/blog" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ 
-                    color: '#374151', 
-                    fontWeight: 500, 
-                    textDecoration: 'none',
-                    display: 'block',
-                    padding: '12px 16px',
-                    borderRadius: '8px'
-                  }}
-                >
-                  Blog
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/pricing" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ 
-                    color: '#374151', 
-                    fontWeight: 500, 
-                    textDecoration: 'none',
-                    display: 'block',
-                    padding: '12px 16px',
-                    borderRadius: '8px'
-                  }}
-                >
-                  Pricing
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  href="/faq" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ 
-                    color: '#374151', 
-                    fontWeight: 500, 
-                    textDecoration: 'none',
-                    display: 'block',
-                    padding: '12px 16px',
-                    borderRadius: '8px'
-                  }}
-                >
-                  FAQ
-                </Link>
-              </li>
+              {primaryNavLinks.map((link) => (
+                <li key={link.href}>
+                  <Link 
+                    href={link.href} 
+                    onClick={() => setMobileMenuOpen(false)}
+                    style={{ 
+                      color: '#374151', 
+                      fontWeight: 500, 
+                      textDecoration: 'none',
+                      display: 'block',
+                      padding: '14px 16px',
+                      borderRadius: '8px'
+                    }}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
               {user ? (
                 <>
                   {isAdmin && (
@@ -286,7 +190,7 @@ export default function SimpleHeader() {
                           fontWeight: 600, 
                           textDecoration: 'none',
                           display: 'block',
-                          padding: '12px 16px',
+                          padding: '14px 16px',
                           borderRadius: '8px'
                         }}
                       >
@@ -294,22 +198,6 @@ export default function SimpleHeader() {
                       </Link>
                     </li>
                   )}
-                  <li>
-                    <Link 
-                      href="/bookings" 
-                      onClick={() => setMobileMenuOpen(false)}
-                      style={{ 
-                        color: '#374151', 
-                        fontWeight: 500, 
-                        textDecoration: 'none',
-                        display: 'block',
-                        padding: '12px 16px',
-                        borderRadius: '8px'
-                      }}
-                    >
-                      My Bookings
-                    </Link>
-                  </li>
                   <li style={{ 
                     color: '#6B7280', 
                     fontSize: '14px',
@@ -326,7 +214,7 @@ export default function SimpleHeader() {
                       style={{ 
                         backgroundColor: '#EF4444', 
                         color: '#fff', 
-                        padding: '12px 16px', 
+                        padding: '14px 16px', 
                         borderRadius: '8px', 
                         fontWeight: 600,
                         textDecoration: 'none',
@@ -349,7 +237,7 @@ export default function SimpleHeader() {
                     style={{ 
                       backgroundColor: '#000', 
                       color: '#fff', 
-                      padding: '12px 16px', 
+                      padding: '14px 16px', 
                       borderRadius: '8px', 
                       fontWeight: 600,
                       textDecoration: 'none',
@@ -373,6 +261,10 @@ export default function SimpleHeader() {
           }
           .mobile-menu-btn {
             display: block !important;
+          }
+          header {
+            backdrop-filter: saturate(180%) blur(8px);
+            background-color: rgba(255, 255, 255, 0.95) !important;
           }
         }
         @media (min-width: 769px) {
