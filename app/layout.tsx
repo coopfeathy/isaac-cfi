@@ -142,6 +142,7 @@ export default function RootLayout({
           <CalendlyProvider>
             <SimpleHeader />
             <main>{children}</main>
+            <RedBirdSimulator />
             <Footer />
           </CalendlyProvider>
         </AuthProvider>
