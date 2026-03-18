@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useAuth } from "@/app/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
+import LearningHubLayout from "@/app/components/LearningHubLayout"
 
 type Course = {
   id: string
@@ -175,12 +176,22 @@ export default function ProgressPage() {
     )
   }
 
+  const totalItems = items.length
+  const proficientItems = items.filter((item) => progressLookup[item.id]?.status === "proficient").length
+  const overallCompletion = totalItems > 0 ? Math.round((proficientItems / totalItems) * 100) : 0
+
   return (
-    <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "32px 16px 48px" }}>
-      <h1 style={{ marginBottom: "8px" }}>My Training Progress</h1>
-      <p style={{ color: "#6B7280", marginTop: 0 }}>
-        Track your syllabus milestones and review your latest lesson debriefs.
-      </p>
+    <LearningHubLayout
+      title="My Training Progress"
+      subtitle="Track syllabus mastery and review instructor debriefs from recent flights."
+      activeTab="progress"
+      stats={[
+        { label: "Enrolled Courses", value: String(courses.length) },
+        { label: "Proficient Items", value: `${proficientItems}/${totalItems || 0}` },
+        { label: "Overall Completion", value: `${overallCompletion}%` },
+      ]}
+      cta={{ href: "/learn", label: "Open Courses" }}
+    >
 
       {courses.length === 0 ? (
         <div style={{ background: "#F3F4F6", border: "1px solid #D1D5DB", borderRadius: "10px", padding: "20px" }}>
@@ -283,6 +294,6 @@ export default function ProgressPage() {
           </div>
         )}
       </section>
-    </div>
+    </LearningHubLayout>
   )
 }

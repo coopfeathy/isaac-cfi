@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useAuth } from "../contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link"
+import LearningHubLayout from "@/app/components/LearningHubLayout"
 
 interface Course {
   id: string
@@ -16,6 +17,8 @@ interface Course {
 export default function LearnPage() {
   const { user, isAdmin } = useAuth()
   const [courses, setCourses] = useState<Course[]>([])
+  const [watchedLessons, setWatchedLessons] = useState(0)
+  const [completedLessons, setCompletedLessons] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -26,20 +29,31 @@ export default function LearnPage() {
       }
 
       try {
-        // Get courses the student is enrolled in
-        const { data, error } = await supabase
-          .from("enrollments")
-          .select("course_id, courses!inner(id, title, description, is_published)")
-          .eq("student_id", user.id)
+        const [enrollmentResult, progressResult] = await Promise.all([
+          supabase
+            .from("enrollments")
+            .select("course_id, courses!inner(id, title, description, is_published)")
+            .eq("student_id", user.id),
+          supabase
+            .from("progress")
+            .select("percent_watched")
+            .eq("student_id", user.id),
+        ])
 
-        if (error) throw error
+        if (enrollmentResult.error) throw enrollmentResult.error
 
-        const enrolledCourses = data?.map((e: any) => ({
+        const enrolledCourses = enrollmentResult.data?.map((e: any) => ({
           ...e.courses,
           enrollment: { id: e.course_id }
         })) || []
 
         setCourses(enrolledCourses)
+
+        const progressRecords = progressResult.data || []
+        const watched = progressRecords.filter((entry: { percent_watched: number | null }) => (entry.percent_watched || 0) > 0).length
+        const completed = progressRecords.filter((entry: { percent_watched: number | null }) => (entry.percent_watched || 0) >= 90).length
+        setWatchedLessons(watched)
+        setCompletedLessons(completed)
       } catch (error) {
         console.error("Error loading courses:", error)
       } finally {
@@ -50,32 +64,20 @@ export default function LearnPage() {
     fetchCourses()
   }, [user])
 
-  return (
-    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 20px" }}>
-      <h1 style={{ marginBottom: "10px" }}>Flight Training Courses</h1>
-      <p style={{ color: "#6B7280", marginBottom: "40px" }}>
-        Complete lessons and track your progress
-      </p>
+  const completionRate = watchedLessons > 0 ? Math.round((completedLessons / watchedLessons) * 100) : 0
 
-      {user && (
-        <div style={{ marginBottom: "24px" }}>
-          <Link
-            href="/progress"
-            style={{
-              display: "inline-block",
-              backgroundColor: "#111827",
-              color: "white",
-              padding: "10px 18px",
-              borderRadius: "8px",
-              textDecoration: "none",
-              fontWeight: "600",
-              fontSize: "14px",
-            }}
-          >
-            View My Progress Dashboard
-          </Link>
-        </div>
-      )}
+  return (
+    <LearningHubLayout
+      title="Flight Training Courses"
+      subtitle="Your enrolled curriculum, lessons, and learning resources in one place."
+      activeTab="learn"
+      stats={[
+        { label: "Assigned Courses", value: String(courses.length) },
+        { label: "Lessons Started", value: String(watchedLessons) },
+        { label: "Completion Rate", value: `${completionRate}%` },
+      ]}
+      cta={user ? { href: "/progress", label: "Open Progress" } : { href: "/login", label: "Sign In" }}
+    >
 
       {isAdmin && (
         <div style={{ marginBottom: "30px" }}>
@@ -172,6 +174,6 @@ export default function LearnPage() {
           ))}
         </div>
       )}
-    </div>
+    </LearningHubLayout>
   )
 }
