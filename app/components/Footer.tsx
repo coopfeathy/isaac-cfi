@@ -48,6 +48,11 @@ const Footer = () => {
                   FAQ
                 </Link>
               </li>
+              <li>
+                <Link href="/support" className="text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base">
+                  Support
+                </Link>
+              </li>
             </ul>
           </div>
           
@@ -55,8 +60,8 @@ const Footer = () => {
             <h4 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6 text-golden">Connect</h4>
             <div className="space-y-4">
               <div className="space-y-2 sm:space-y-3">
-                <a href="mailto:MerlinFlightTraining@gmail.com" className="text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base block">
-                  MerlinFlightTraining@gmail.com
+                <a href="mailto:merlinflighttraining@gmail.com" className="text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base block">
+                  merlinflighttraining@gmail.com
                 </a>
                 <a href="tel:+19294874717" className="text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base block">
                   +1 (929) 487-4717

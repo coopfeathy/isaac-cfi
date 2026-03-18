@@ -15,7 +15,7 @@ export default function FAQ() {
     },
     {
       question: "How to get started?",
-      answer: "Getting started is easy! First, schedule a discovery flight to experience flying firsthand and meet our instructors. Then, apply for your FAA Medical Certificate through an Aviation Medical Examiner (AME). We'll help you apply for your Student Pilot Certificate through IACRA and create a personalized training plan. Contact us at MerlinFlightTraining@gmail.com or call +1 (208) 301-2629 to begin your journey."
+      answer: "Getting started is easy! First, schedule a discovery flight to experience flying firsthand and meet our instructors. Then, apply for your FAA Medical Certificate through an Aviation Medical Examiner (AME). We'll help you apply for your Student Pilot Certificate through IACRA and create a personalized training plan. Contact us at merlinflighttraining@gmail.com or call +1 (929) 487-4717 to begin your journey."
     },
     {
       question: "How much does flight training cost?",

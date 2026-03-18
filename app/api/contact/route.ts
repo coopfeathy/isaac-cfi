@@ -54,7 +54,7 @@ Reply directly to this email to respond to the inquiry.
     // Here's an example using Resend (you'd need to set up RESEND_API_KEY in env)
     
     const RESEND_API_KEY = process.env.RESEND_API_KEY
-    const TO_EMAIL = process.env.CONTACT_EMAIL || 'MerlinFlightTraining@gmail.com'
+    const TO_EMAIL = process.env.CONTACT_EMAIL || 'merlinflighttraining@gmail.com'
 
     if (RESEND_API_KEY) {
       // Use Resend if API key is available
