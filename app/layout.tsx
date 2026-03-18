@@ -6,6 +6,7 @@ import { AuthProvider } from "./contexts/AuthContext"
 import { CalendlyProvider } from "./components/CalendlyButton"
 import type { Metadata, Viewport } from "next"
 
+import RedBirdSimulator from "./components/RedBirdSimulator"
 export const metadata: Metadata = {
   metadataBase: new URL("https://merlinflight.com"),
   title: "Merlin Flight Training | NYC Pilot Training & Flight Lessons",
