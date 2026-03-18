@@ -51,7 +51,7 @@ export default function LearningHubLayout({
         <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
           <div>
             <p style={{ margin: 0, fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em", color: "#4B5563", textTransform: "uppercase" }}>
-              Student Learning Hub
+              FAA Training Command Center
             </p>
             <h1 style={{ margin: "6px 0", fontSize: "30px" }}>{title}</h1>
             <p style={{ margin: 0, color: "#4B5563" }}>{subtitle}</p>

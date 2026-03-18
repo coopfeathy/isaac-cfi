@@ -68,15 +68,15 @@ export default function LearnPage() {
 
   return (
     <LearningHubLayout
-      title="Flight Training Courses"
-      subtitle="Your enrolled curriculum, lessons, and learning resources in one place."
+      title="Pilot Training Mission Dashboard"
+      subtitle="Master each stage, complete assigned coursework, and stay on track for your next checkride milestone."
       activeTab="learn"
       stats={[
         { label: "Assigned Courses", value: String(courses.length) },
         { label: "Lessons Started", value: String(watchedLessons) },
         { label: "Completion Rate", value: `${completionRate}%` },
       ]}
-      cta={user ? { href: "/progress", label: "Open Progress" } : { href: "/login", label: "Sign In" }}
+      cta={user ? { href: "/progress", label: "Review Readiness" } : { href: "/login", label: "Sign In To Start" }}
     >
 
       {isAdmin && (

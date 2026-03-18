@@ -14,7 +14,6 @@ export default function SimpleHeader() {
     { href: '/schedule', label: 'Schedule' },
     { href: '/aircraft', label: 'Aircraft' },
     { href: '/learn', label: 'Learn' },
-    { href: '/blog', label: 'Blog' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/faq', label: 'FAQ' },
   ]
@@ -94,13 +93,6 @@ export default function SimpleHeader() {
                 </Link>
               </li>
             ))}
-            {user && (
-              <li>
-                <Link href="/progress" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                  Progress
-                </Link>
-              </li>
-            )}
             {user ? (
               <>
                 {isAdmin && (
@@ -110,11 +102,6 @@ export default function SimpleHeader() {
                     </Link>
                   </li>
                 )}
-                <li>
-                  <Link href="/bookings" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                    My Bookings
-                  </Link>
-                </li>
                 <li style={{ color: '#6B7280', fontSize: '14px' }}>
                   {user.email}
                 </li>
@@ -191,24 +178,6 @@ export default function SimpleHeader() {
                   </Link>
                 </li>
               ))}
-              {user && (
-                <li>
-                  <Link 
-                    href="/progress"
-                    onClick={() => setMobileMenuOpen(false)}
-                    style={{ 
-                      color: '#374151', 
-                      fontWeight: 500, 
-                      textDecoration: 'none',
-                      display: 'block',
-                      padding: '14px 16px',
-                      borderRadius: '8px'
-                    }}
-                  >
-                    Progress
-                  </Link>
-                </li>
-              )}
               {user ? (
                 <>
                   {isAdmin && (
@@ -229,22 +198,6 @@ export default function SimpleHeader() {
                       </Link>
                     </li>
                   )}
-                  <li>
-                    <Link 
-                      href="/bookings" 
-                      onClick={() => setMobileMenuOpen(false)}
-                      style={{ 
-                        color: '#374151', 
-                        fontWeight: 500, 
-                        textDecoration: 'none',
-                        display: 'block',
-                        padding: '14px 16px',
-                        borderRadius: '8px'
-                      }}
-                    >
-                      My Bookings
-                    </Link>
-                  </li>
                   <li style={{ 
                     color: '#6B7280', 
                     fontSize: '14px',

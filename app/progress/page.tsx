@@ -182,15 +182,15 @@ export default function ProgressPage() {
 
   return (
     <LearningHubLayout
-      title="My Training Progress"
-      subtitle="Track syllabus mastery and review instructor debriefs from recent flights."
+      title="Performance and Checkride Readiness"
+      subtitle="See where you are strong, what still needs work, and what to focus on before your next evaluation flight."
       activeTab="progress"
       stats={[
         { label: "Enrolled Courses", value: String(courses.length) },
         { label: "Proficient Items", value: `${proficientItems}/${totalItems || 0}` },
         { label: "Overall Completion", value: `${overallCompletion}%` },
       ]}
-      cta={{ href: "/learn", label: "Open Courses" }}
+      cta={{ href: "/learn", label: "Continue Coursework" }}
     >
 
       {courses.length === 0 ? (
