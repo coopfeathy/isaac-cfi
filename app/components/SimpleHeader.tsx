@@ -8,22 +8,15 @@ import { supabase } from "@/lib/supabase"
 
 export default function SimpleHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [mobileLearnMenuOpen, setMobileLearnMenuOpen] = useState(false)
-  const [desktopLearnMenuOpen, setDesktopLearnMenuOpen] = useState(false)
   const { user, isAdmin } = useAuth()
-  const primaryNavLinksBeforeLearn = [
+  const primaryNavLinks = [
     { href: '/', label: 'Home' },
     { href: '/schedule', label: 'Schedule' },
     { href: '/aircraft', label: 'Aircraft' },
-  ]
-  const primaryNavLinksAfterLearn = [
+    { href: '/learn', label: 'Learn' },
+    { href: '/blog', label: 'Blog' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/faq', label: 'FAQ' },
-  ]
-
-  const learnMenuLinks = [
-    { href: '/blog', label: 'Blog' },
-    ...(user ? [{ href: '/progress', label: 'Progress' }] : []),
   ]
 
   const handleSignOut = async () => {
@@ -62,13 +55,7 @@ export default function SimpleHeader() {
           
           {/* Mobile menu button */}
           <button
-            onClick={() => {
-              const nextState = !mobileMenuOpen
-              setMobileMenuOpen(nextState)
-              if (!nextState) {
-                setMobileLearnMenuOpen(false)
-              }
-            }}
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             style={{
               display: 'none',
               minHeight: '44px',
@@ -100,66 +87,20 @@ export default function SimpleHeader() {
           }}
           className="desktop-nav"
           >
-            {primaryNavLinksBeforeLearn.map((link) => (
+            {primaryNavLinks.map((link) => (
               <li key={link.href}>
                 <Link href={link.href} style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
                   {link.label}
                 </Link>
               </li>
             ))}
-            <li
-              style={{ position: 'relative' }}
-              onMouseEnter={() => setDesktopLearnMenuOpen(true)}
-              onMouseLeave={() => setDesktopLearnMenuOpen(false)}
-            >
-              <Link href="/learn" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                Learn
-              </Link>
-              {desktopLearnMenuOpen && (
-                <ul style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 10px)',
-                  left: 0,
-                  listStyle: 'none',
-                  margin: 0,
-                  padding: '8px',
-                  minWidth: '180px',
-                  backgroundColor: '#fff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 12px 24px rgba(0, 0, 0, 0.08)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                  zIndex: 60,
-                }}>
-                  {learnMenuLinks.map((link) => (
-                    <li key={link.href}>
-                      <Link
-                        href={link.href}
-                        style={{
-                          color: '#374151',
-                          fontWeight: 500,
-                          textDecoration: 'none',
-                          display: 'block',
-                          padding: '10px 12px',
-                          borderRadius: '6px',
-                        }}
-                      >
-                        {link.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-            {primaryNavLinksAfterLearn.map((link) => (
-              <li key={link.href}>
-                <Link href={link.href} style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
-                  {link.label}
+            {user && (
+              <li>
+                <Link href="/progress" style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
+                  Progress
                 </Link>
               </li>
-            ))}
+            )}
             {user ? (
               <>
                 {isAdmin && (
@@ -232,14 +173,11 @@ export default function SimpleHeader() {
               flexDirection: 'column',
               gap: '10px'
             }}>
-              {primaryNavLinksBeforeLearn.map((link) => (
+              {primaryNavLinks.map((link) => (
                 <li key={link.href}>
                   <Link 
                     href={link.href} 
-                    onClick={() => {
-                      setMobileMenuOpen(false)
-                      setMobileLearnMenuOpen(false)
-                    }}
+                    onClick={() => setMobileMenuOpen(false)}
                     style={{ 
                       color: '#374151', 
                       fontWeight: 500, 
@@ -253,88 +191,11 @@ export default function SimpleHeader() {
                   </Link>
                 </li>
               ))}
-              <li>
-                <button
-                  onClick={() => setMobileLearnMenuOpen(!mobileLearnMenuOpen)}
-                  style={{
-                    color: '#374151',
-                    fontWeight: 500,
-                    textDecoration: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '14px 16px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: 'transparent',
-                    width: '100%',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Learn
-                  <span style={{ fontSize: '14px', color: '#6B7280' }}>{mobileLearnMenuOpen ? '−' : '+'}</span>
-                </button>
-                {mobileLearnMenuOpen && (
-                  <ul style={{
-                    listStyle: 'none',
-                    margin: '4px 0 0 0',
-                    padding: 0,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px',
-                  }}>
-                    <li>
-                      <Link 
-                        href="/learn" 
-                        onClick={() => {
-                          setMobileMenuOpen(false)
-                          setMobileLearnMenuOpen(false)
-                        }}
-                        style={{ 
-                          color: '#374151', 
-                          fontWeight: 500, 
-                          textDecoration: 'none',
-                          display: 'block',
-                          padding: '12px 16px 12px 30px',
-                          borderRadius: '8px'
-                        }}
-                      >
-                        Learn
-                      </Link>
-                    </li>
-                    {learnMenuLinks.map((link) => (
-                      <li key={link.href}>
-                        <Link 
-                          href={link.href} 
-                          onClick={() => {
-                            setMobileMenuOpen(false)
-                            setMobileLearnMenuOpen(false)
-                          }}
-                          style={{ 
-                            color: '#374151', 
-                            fontWeight: 500, 
-                            textDecoration: 'none',
-                            display: 'block',
-                            padding: '12px 16px 12px 30px',
-                            borderRadius: '8px'
-                          }}
-                        >
-                          {link.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-              {primaryNavLinksAfterLearn.map((link) => (
-                <li key={link.href}>
+              {user && (
+                <li>
                   <Link 
-                    href={link.href}
-                    onClick={() => {
-                      setMobileMenuOpen(false)
-                      setMobileLearnMenuOpen(false)
-                    }}
+                    href="/progress"
+                    onClick={() => setMobileMenuOpen(false)}
                     style={{ 
                       color: '#374151', 
                       fontWeight: 500, 
@@ -344,20 +205,17 @@ export default function SimpleHeader() {
                       borderRadius: '8px'
                     }}
                   >
-                      {link.label}
+                    Progress
                   </Link>
                 </li>
-                ))}
+              )}
               {user ? (
                 <>
                   {isAdmin && (
                     <li>
                       <Link 
                         href="/admin" 
-                        onClick={() => {
-                          setMobileMenuOpen(false)
-                          setMobileLearnMenuOpen(false)
-                        }}
+                        onClick={() => setMobileMenuOpen(false)}
                         style={{ 
                           color: '#C59A2A', 
                           fontWeight: 600, 
@@ -374,10 +232,7 @@ export default function SimpleHeader() {
                   <li>
                     <Link 
                       href="/bookings" 
-                      onClick={() => {
-                        setMobileMenuOpen(false)
-                        setMobileLearnMenuOpen(false)
-                      }}
+                      onClick={() => setMobileMenuOpen(false)}
                       style={{ 
                         color: '#374151', 
                         fontWeight: 500, 
@@ -425,10 +280,7 @@ export default function SimpleHeader() {
                 <li>
                   <Link 
                     href="/login" 
-                      onClick={() => {
-                        setMobileMenuOpen(false)
-                        setMobileLearnMenuOpen(false)
-                      }}
+                    onClick={() => setMobileMenuOpen(false)}
                     style={{ 
                       backgroundColor: '#000', 
                       color: '#fff', 

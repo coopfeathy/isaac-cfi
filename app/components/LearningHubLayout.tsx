@@ -26,7 +26,7 @@ const TABS: Array<{ key: HubTab; href: string; label: string }> = [
   { key: "learn", href: "/learn", label: "Courses" },
   { key: "progress", href: "/progress", label: "Progress" },
   { key: "bookings", href: "/bookings", label: "Bookings" },
-  { key: "blog", href: "/blog", label: "Resources" },
+  { key: "blog", href: "/blog", label: "Blog" },
 ]
 
 export default function LearningHubLayout({
