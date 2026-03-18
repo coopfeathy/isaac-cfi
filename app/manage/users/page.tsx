@@ -134,7 +134,7 @@ function AddUserModal({ isOpen, onClose, onAdd }: { isOpen: boolean; onClose: ()
         throw new Error(data.error || 'Failed to create user')
       }
 
-      onAdd({ ...formData, id: data.user.id } as Profile)
+      onAdd({ ...formData, id: data.user.id, full_name: `${formData.first_name} ${formData.last_name}`.trim() } as unknown as Profile)
       setStep(1)
       setFormData({
         first_name: '',
