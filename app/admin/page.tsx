@@ -109,7 +109,7 @@ function AdminPageContent() {
     try {
       const [slotsData, bookingsData] = await Promise.all([
         supabase.from('slots').select('*').order('start_time', { ascending: true }),
-        supabase.from('bookings').select('*, slots(*), profiles(full_name, phone)').order('created_at', { ascending: false })
+        supabase.from('bookings').select('*, slots(*)').order('created_at', { ascending: false })
       ])
 
       console.log('Slots data:', slotsData)
@@ -133,8 +133,9 @@ function AdminPageContent() {
   const fetchLeads = async () => {
     try {
       const { data, error } = await supabase
-        .from('discovery_flight_signups')
-        .select('*')
+        .from('prospects')
+        .select('id, email, created_at, source')
+        .in('source', ['onboarding_funnel', 'discovery_flight'])
         .order('created_at', { ascending: false })
       
       if (error) {
@@ -502,20 +503,16 @@ function AdminPageContent() {
 
       switch (recipientType) {
         case 'all':
-          // Get prospects from onboarding funnel
-          const { data: allProspects } = await supabase.from('prospect_information').select('email')
+          // Prospects now includes discovery funnel + discovery flight sources
+          const { data: allProspects } = await supabase.from('prospects').select('email')
           const prospectEmails = allProspects?.map(p => p.email).filter(Boolean) || []
-          
-          // Get leads from discovery flight
-          const { data: discoveryLeads } = await supabase.from('discovery_flight_signups').select('email')
-          const leadEmails = discoveryLeads?.map(l => l.email).filter(Boolean) || []
           
           // Get enrolled students
           const { data: studentsData } = await supabase.from('students').select('email')
           const studentEmails = studentsData?.map(s => s.email).filter(Boolean) || []
           
           // Combine and deduplicate
-          emails = [...new Set([...prospectEmails, ...leadEmails, ...studentEmails])]
+          emails = [...new Set([...prospectEmails, ...studentEmails])]
           break
 
         case 'students':
@@ -524,13 +521,15 @@ function AdminPageContent() {
           break
 
         case 'prospects':
-          // Query prospect_information table (actual prospect data from funnel)
-          const { data: prospects } = await supabase.from('prospect_information').select('email')
+          const { data: prospects } = await supabase.from('prospects').select('email')
           emails = prospects?.map(p => p.email).filter(Boolean) || []
           break
 
         case 'leads':
-          const { data: leadsData } = await supabase.from('discovery_flight_signups').select('email')
+          const { data: leadsData } = await supabase
+            .from('prospects')
+            .select('email')
+            .in('source', ['onboarding_funnel', 'discovery_flight'])
           emails = leadsData?.map(l => l.email).filter(Boolean) || []
           break
 
@@ -658,15 +657,15 @@ ${blogContent}
               <h2 className="text-2xl font-bold text-green-600 mb-2">📅 Bookings & Schedule</h2>
               <p className="text-gray-600 mb-6">Manage flight bookings, slots, and scheduling</p>
               <div className="flex flex-col gap-2">
-                <button onClick={() => { setActiveTab('slots'); setShowDashboard(true); }} className="px-4 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 text-center">
+                <Link href="/admin/slots" className="px-4 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 text-center">
                   Manage Slots
-                </button>
-                <button onClick={() => { setActiveTab('bookings'); setShowDashboard(true); }} className="px-4 py-2 bg-cyan-500 text-white font-bold rounded hover:bg-cyan-600 text-center">
+                </Link>
+                <Link href="/admin/bookings" className="px-4 py-2 bg-cyan-500 text-white font-bold rounded hover:bg-cyan-600 text-center">
                   View Bookings
-                </button>
-                <button onClick={() => { setActiveTab('leads'); setShowDashboard(true); }} className="px-4 py-2 bg-indigo-600 text-white font-bold rounded hover:bg-indigo-700 text-center">
+                </Link>
+                <Link href="/admin/leads" className="px-4 py-2 bg-indigo-600 text-white font-bold rounded hover:bg-indigo-700 text-center">
                   Discovery Leads
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -675,15 +674,15 @@ ${blogContent}
               <h2 className="text-2xl font-bold text-orange-600 mb-2">📝 Content Management</h2>
               <p className="text-gray-600 mb-6">Manage blog posts, social media, and email campaigns</p>
               <div className="flex flex-col gap-2">
-                <button onClick={() => { setActiveTab('blog'); setShowDashboard(true); }} className="px-4 py-2 bg-blue-500 text-white font-bold rounded hover:bg-blue-600 text-center">
+                <Link href="/admin/blog" className="px-4 py-2 bg-blue-500 text-white font-bold rounded hover:bg-blue-600 text-center">
                   Create Blog Post
-                </button>
-                <button onClick={() => { setActiveTab('social'); setShowDashboard(true); }} className="px-4 py-2 bg-pink-600 text-white font-bold rounded hover:bg-pink-700 text-center">
+                </Link>
+                <Link href="/admin/social" className="px-4 py-2 bg-pink-600 text-white font-bold rounded hover:bg-pink-700 text-center">
                   Manage Social Posts
-                </button>
-                <button onClick={() => { setActiveTab('email'); setShowDashboard(true); }} className="px-4 py-2 bg-orange-600 text-white font-bold rounded hover:bg-orange-700 text-center">
+                </Link>
+                <Link href="/admin/email" className="px-4 py-2 bg-orange-600 text-white font-bold rounded hover:bg-orange-700 text-center">
                   Email Campaigns
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -719,68 +718,24 @@ ${blogContent}
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          <button
-            onClick={() => setActiveTab('slots')}
-            className={`px-6 py-3 rounded-lg font-bold transition-colors whitespace-nowrap ${
-              activeTab === 'slots'
-                ? 'bg-golden text-darkText'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Manage Slots ({slots.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('bookings')}
-            className={`px-6 py-3 rounded-lg font-bold transition-colors whitespace-nowrap ${
-              activeTab === 'bookings'
-                ? 'bg-golden text-darkText'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            View Bookings ({bookings.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('leads')}
-            className={`px-6 py-3 rounded-lg font-bold transition-colors whitespace-nowrap ${
-              activeTab === 'leads'
-                ? 'bg-golden text-darkText'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Discovery Leads ({leads.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('blog')}
-            className={`px-6 py-3 rounded-lg font-bold transition-colors whitespace-nowrap ${
-              activeTab === 'blog'
-                ? 'bg-golden text-darkText'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Create Blog Post
-          </button>
-          <button
-            onClick={() => setActiveTab('social')}
-            className={`px-6 py-3 rounded-lg font-bold transition-colors whitespace-nowrap ${
-              activeTab === 'social'
-                ? 'bg-golden text-darkText'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Social Media ({socialPosts.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('email')}
-            className={`px-6 py-3 rounded-lg font-bold transition-colors whitespace-nowrap ${
-              activeTab === 'email'
-                ? 'bg-golden text-darkText'
-                : 'bg-white text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            Email Campaigns
-          </button>
+        <div className="mb-8 bg-white rounded-lg shadow-md p-6">
+          <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Focused Workspace</p>
+          <h2 className="text-2xl font-bold text-darkText mb-2">
+            {activeTab === 'slots' && 'Manage Slots'}
+            {activeTab === 'bookings' && 'View Bookings'}
+            {activeTab === 'leads' && 'Discovery Leads'}
+            {activeTab === 'blog' && 'Create Blog Post'}
+            {activeTab === 'social' && 'Social Media'}
+            {activeTab === 'email' && 'Email Campaigns'}
+          </h2>
+          <p className="text-gray-600">
+            {activeTab === 'slots' && `Create and manage availability. Current slots: ${slots.length}.`}
+            {activeTab === 'bookings' && `Review customer booking statuses. Current bookings: ${bookings.length}.`}
+            {activeTab === 'leads' && `Track discovery flight signups and outreach. Current leads: ${leads.length}.`}
+            {activeTab === 'blog' && 'Write, edit, and publish blog content.'}
+            {activeTab === 'social' && `Manage linked social video posts. Current posts: ${socialPosts.length}.`}
+            {activeTab === 'email' && 'Load recipients and send campaign emails.'}
+          </p>
         </div>
 
         {/* Slots Tab */}
@@ -910,8 +865,7 @@ ${blogContent}
                     <h3 className="text-xl font-bold text-darkText mb-1">
                       {booking.slots?.type === 'tour' ? 'NYC Tour' : 'Flight Training'}
                     </h3>
-                    {booking.profiles?.full_name && <p className="text-gray-600">Customer: {booking.profiles.full_name}</p>}
-                    {booking.profiles?.phone && <p className="text-gray-600">Phone: {booking.profiles.phone}</p>}
+                    {booking.user_id && <p className="text-gray-600">Customer ID: {booking.user_id}</p>}
                   </div>
                   <select
                     value={booking.status}

@@ -1,8 +1,9 @@
-import { supabase } from '@/lib/supabase'
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = getSupabaseAdmin()
     const { email } = await request.json()
 
     // Validate email
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
       .from('prospects')
       .select('id')
       .eq('email', email)
-      .single()
+      .maybeSingle()
 
     if (existingProspect) {
       // Prospect exists, just update timestamp

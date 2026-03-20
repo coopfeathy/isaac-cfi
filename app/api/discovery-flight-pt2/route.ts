@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { NextRequest, NextResponse } from 'next/server'
 
 function mergeSection(existingNotes: string | null, sectionTitle: string, sectionBody: string): string {
@@ -19,6 +19,7 @@ function mergeSection(existingNotes: string | null, sectionTitle: string, sectio
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = getSupabaseAdmin()
     const {
       englishFirstLanguage,
       flightInstructorInterest,
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
       .from('prospects')
       .select('notes')
       .eq('email', email)
-      .single()
+      .maybeSingle()
 
     const mergedNotes = mergeSection(existingProspect?.notes ?? null, 'Step 2 - Qualifications', sectionBody)
 
