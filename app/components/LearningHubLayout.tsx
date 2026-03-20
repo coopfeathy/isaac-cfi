@@ -40,7 +40,7 @@ export default function LearningHubLayout({
   cta,
 }: LearningHubLayoutProps) {
   return (
-    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 16px 48px" }}>
+    <>
       {headerVariant === "schedule" ? (
         <section className="relative py-12 sm:py-16 overflow-hidden mb-5" style={{
           backgroundImage: `url('/images/our-aircraft-header.jpg')`,
@@ -54,55 +54,57 @@ export default function LearningHubLayout({
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 tracking-tight">{title}</h1>
             <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto font-light leading-relaxed">{subtitle}</p>
-            {cta && (
-              <div className="mt-5">
+          </div>
+        </section>
+      ) : null}
+
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: headerVariant === "schedule" ? "0 16px 48px" : "0 16px 48px" }}>
+        {headerVariant !== "schedule" ? (
+          <div
+            style={{
+              border: "1px solid #E5E7EB",
+              borderRadius: "16px",
+              padding: "20px",
+              background: "linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 100%)",
+              margin: "28px 0 18px",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+              <div>
+                <p style={{ margin: 0, fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em", color: "#4B5563", textTransform: "uppercase" }}>
+                  FAA Training Command Center
+                </p>
+                <h1 style={{ margin: "6px 0", fontSize: "30px" }}>{title}</h1>
+                <p style={{ margin: 0, color: "#4B5563" }}>{subtitle}</p>
+              </div>
+              {cta && (
                 <Link
                   href={cta.href}
-                  className="inline-block bg-golden text-darkText rounded-lg px-4 py-2 font-bold text-sm hover:bg-opacity-90 transition-opacity"
+                  style={{
+                    backgroundColor: "#111827",
+                    color: "#fff",
+                    borderRadius: "10px",
+                    textDecoration: "none",
+                    padding: "10px 14px",
+                    fontWeight: 700,
+                    fontSize: "14px",
+                  }}
                 >
                   {cta.label}
                 </Link>
-              </div>
-            )}
-          </div>
-        </section>
-      ) : (
-        <div
-          style={{
-            border: "1px solid #E5E7EB",
-            borderRadius: "16px",
-            padding: "20px",
-            background: "linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 100%)",
-            margin: "28px 0 18px",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
-            <div>
-              <p style={{ margin: 0, fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em", color: "#4B5563", textTransform: "uppercase" }}>
-                FAA Training Command Center
-              </p>
-              <h1 style={{ margin: "6px 0", fontSize: "30px" }}>{title}</h1>
-              <p style={{ margin: 0, color: "#4B5563" }}>{subtitle}</p>
+              )}
             </div>
-            {cta && (
-              <Link
-                href={cta.href}
-                style={{
-                  backgroundColor: "#111827",
-                  color: "#fff",
-                  borderRadius: "10px",
-                  textDecoration: "none",
-                  padding: "10px 14px",
-                  fontWeight: 700,
-                  fontSize: "14px",
-                }}
-              >
-                {cta.label}
-              </Link>
-            )}
           </div>
-        </div>
-      )}
+        ) : cta ? (
+          <div className="mb-4 flex justify-end">
+            <Link
+              href={cta.href}
+              className="inline-block bg-golden text-darkText rounded-lg px-4 py-2 font-bold text-sm hover:bg-opacity-90 transition-opacity"
+            >
+              {cta.label}
+            </Link>
+          </div>
+        ) : null}
 
       <div className="hub-grid" style={{ display: "grid", gap: "16px", gridTemplateColumns: "260px minmax(0, 1fr)" }}>
         <aside style={{ display: "grid", gap: "12px", alignContent: "start" }}>
@@ -151,6 +153,7 @@ export default function LearningHubLayout({
           }
         }
       `}</style>
-    </div>
+      </div>
+    </>
   )
 }
