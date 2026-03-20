@@ -657,10 +657,10 @@ ${blogContent}
               <h2 className="text-2xl font-bold text-blue-600 mb-2">👥 Students & Prospects</h2>
               <p className="text-gray-600 mb-6">View and manage students, prospects, and leads</p>
               <div className="flex flex-col gap-2">
-                <Link href="/students" className="px-4 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 text-center">
+                <Link href="/admin/students" className="px-4 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 text-center">
                   Students
                 </Link>
-                <Link href="/prospects" className="px-4 py-2 bg-purple-500 text-white font-bold rounded hover:bg-purple-600 text-center">
+                <Link href="/admin/prospects" className="px-4 py-2 bg-purple-500 text-white font-bold rounded hover:bg-purple-600 text-center">
                   Prospects
                 </Link>
               </div>
@@ -677,8 +677,8 @@ ${blogContent}
                 <Link href="/admin/bookings" className="px-4 py-2 bg-cyan-500 text-white font-bold rounded hover:bg-cyan-600 text-center">
                   View Bookings
                 </Link>
-                <Link href="/admin/leads" className="px-4 py-2 bg-indigo-600 text-white font-bold rounded hover:bg-indigo-700 text-center">
-                  Discovery Leads
+                <Link href="/admin/prospects" className="px-4 py-2 bg-indigo-600 text-white font-bold rounded hover:bg-indigo-700 text-center">
+                  Manage Prospects
                 </Link>
               </div>
             </div>
