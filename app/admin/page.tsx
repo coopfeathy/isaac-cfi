@@ -502,8 +502,20 @@ function AdminPageContent() {
 
       switch (recipientType) {
         case 'all':
-          const { data: allProfiles } = await supabase.from('profiles').select('email')
-          emails = allProfiles?.map(p => p.email).filter(Boolean) || []
+          // Get prospects from onboarding funnel
+          const { data: allProspects } = await supabase.from('prospect_information').select('email')
+          const prospectEmails = allProspects?.map(p => p.email).filter(Boolean) || []
+          
+          // Get leads from discovery flight
+          const { data: discoveryLeads } = await supabase.from('discovery_flight_signups').select('email')
+          const leadEmails = discoveryLeads?.map(l => l.email).filter(Boolean) || []
+          
+          // Get enrolled students
+          const { data: studentsData } = await supabase.from('students').select('email')
+          const studentEmails = studentsData?.map(s => s.email).filter(Boolean) || []
+          
+          // Combine and deduplicate
+          emails = [...new Set([...prospectEmails, ...leadEmails, ...studentEmails])]
           break
 
         case 'students':
@@ -512,7 +524,8 @@ function AdminPageContent() {
           break
 
         case 'prospects':
-          const { data: prospects } = await supabase.from('prospects').select('email')
+          // Query prospect_information table (actual prospect data from funnel)
+          const { data: prospects } = await supabase.from('prospect_information').select('email')
           emails = prospects?.map(p => p.email).filter(Boolean) || []
           break
 
