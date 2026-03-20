@@ -16,6 +16,7 @@ type LearningHubLayoutProps = {
   activeTab: HubTab
   stats: HubStat[]
   children: React.ReactNode
+  headerVariant?: "card" | "schedule"
   cta?: {
     href: string
     label: string
@@ -35,45 +36,73 @@ export default function LearningHubLayout({
   activeTab,
   stats,
   children,
+  headerVariant = "card",
   cta,
 }: LearningHubLayoutProps) {
   return (
-    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "28px 16px 48px" }}>
-      <div
-        style={{
-          border: "1px solid #E5E7EB",
-          borderRadius: "16px",
-          padding: "20px",
-          background: "linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 100%)",
-          marginBottom: "18px",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
-          <div>
-            <p style={{ margin: 0, fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em", color: "#4B5563", textTransform: "uppercase" }}>
-              FAA Training Command Center
-            </p>
-            <h1 style={{ margin: "6px 0", fontSize: "30px" }}>{title}</h1>
-            <p style={{ margin: 0, color: "#4B5563" }}>{subtitle}</p>
+    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 16px 48px" }}>
+      {headerVariant === "schedule" ? (
+        <section className="relative py-12 sm:py-16 overflow-hidden mb-5" style={{
+          backgroundImage: `url('/images/our-aircraft-header.jpg')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center 60%',
+        }}>
+          <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black opacity-90" />
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 text-center">
+            <div className="mb-4 inline-block">
+              <div className="w-16 sm:w-20 h-1 bg-golden mx-auto rounded-full" />
+            </div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 tracking-tight">{title}</h1>
+            <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto font-light leading-relaxed">{subtitle}</p>
+            {cta && (
+              <div className="mt-5">
+                <Link
+                  href={cta.href}
+                  className="inline-block bg-golden text-darkText rounded-lg px-4 py-2 font-bold text-sm hover:bg-opacity-90 transition-opacity"
+                >
+                  {cta.label}
+                </Link>
+              </div>
+            )}
           </div>
-          {cta && (
-            <Link
-              href={cta.href}
-              style={{
-                backgroundColor: "#111827",
-                color: "#fff",
-                borderRadius: "10px",
-                textDecoration: "none",
-                padding: "10px 14px",
-                fontWeight: 700,
-                fontSize: "14px",
-              }}
-            >
-              {cta.label}
-            </Link>
-          )}
+        </section>
+      ) : (
+        <div
+          style={{
+            border: "1px solid #E5E7EB",
+            borderRadius: "16px",
+            padding: "20px",
+            background: "linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 100%)",
+            margin: "28px 0 18px",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+            <div>
+              <p style={{ margin: 0, fontSize: "12px", fontWeight: 700, letterSpacing: "0.08em", color: "#4B5563", textTransform: "uppercase" }}>
+                FAA Training Command Center
+              </p>
+              <h1 style={{ margin: "6px 0", fontSize: "30px" }}>{title}</h1>
+              <p style={{ margin: 0, color: "#4B5563" }}>{subtitle}</p>
+            </div>
+            {cta && (
+              <Link
+                href={cta.href}
+                style={{
+                  backgroundColor: "#111827",
+                  color: "#fff",
+                  borderRadius: "10px",
+                  textDecoration: "none",
+                  padding: "10px 14px",
+                  fontWeight: 700,
+                  fontSize: "14px",
+                }}
+              >
+                {cta.label}
+              </Link>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="hub-grid" style={{ display: "grid", gap: "16px", gridTemplateColumns: "260px minmax(0, 1fr)" }}>
         <aside style={{ display: "grid", gap: "12px", alignContent: "start" }}>

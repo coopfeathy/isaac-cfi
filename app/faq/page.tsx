@@ -38,7 +38,7 @@ export default function FAQ() {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="relative py-20 sm:py-24 md:py-32 bg-black overflow-hidden">
+      <section className="relative py-12 sm:py-16 bg-black overflow-hidden">
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0" style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 0 L60 40 L100 50 L60 60 L50 100 L40 60 L0 50 L40 40 Z' fill='%23C59A2A' fill-opacity='0.1'/%3E%3C/svg%3E")`,
@@ -48,13 +48,13 @@ export default function FAQ() {
         <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black opacity-90" />
         
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 text-center">
-          <div className="mb-6 inline-block">
+          <div className="mb-4 inline-block">
             <div className="w-16 sm:w-20 h-1 bg-golden mx-auto rounded-full" />
           </div>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 tracking-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 tracking-tight">
             Frequently Asked <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Questions</span>
           </h1>
-          <p className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto font-light leading-relaxed">
+          <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto font-light leading-relaxed">
             Have Questions about Flight Training?
           </p>
         </div>

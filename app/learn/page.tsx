@@ -68,9 +68,10 @@ export default function LearnPage() {
 
   return (
     <LearningHubLayout
-      title="Pilot Training Mission Dashboard"
-      subtitle="Master each stage, complete assigned coursework, and stay on track for your next checkride milestone."
+      title="Learn Flight Training"
+      subtitle="Build knowledge, track your coursework, and stay checkride-ready with your assigned lessons."
       activeTab="learn"
+      headerVariant="schedule"
       stats={[
         { label: "Assigned Courses", value: String(courses.length) },
         { label: "Lessons Started", value: String(watchedLessons) },

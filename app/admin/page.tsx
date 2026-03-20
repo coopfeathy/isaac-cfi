@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, Suspense, Fragment } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -36,6 +36,7 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
   const [prospects, setProspects] = useState<any[]>([])
   const [prospectSource, setProspectSource] = useState<'all' | 'discovery_flight'>('all')
   const [prospectView, setProspectView] = useState<'list' | 'cards'>('cards')
+  const [expandedProspectId, setExpandedProspectId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<AdminTab>(forcedTab || 'slots')
   
@@ -145,7 +146,7 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
     try {
       const { data, error } = await supabase
         .from('prospects')
-        .select('id, email, created_at, source, phone, full_name, interest_level')
+        .select('id, email, created_at, source, phone, full_name, interest_level, status, notes, meeting_location, meeting_date, next_follow_up, follow_up_frequency, updated_at')
         .order('next_follow_up', { ascending: true, nullsFirst: false })
       
       if (error) {
@@ -625,6 +626,10 @@ ${blogContent}
   }
 
   const filteredProspects = prospects.filter((p) => prospectSource === 'all' || p.source === prospectSource)
+  const formatDateTime = (value?: string | null) => {
+    if (!value) return '-'
+    return new Date(value).toLocaleString()
+  }
 
   const shouldShowWorkspace = Boolean(forcedTab || isAdminTab(searchParams.get('tab')))
 
@@ -1007,6 +1012,33 @@ ${blogContent}
                       <p><span className="font-semibold text-gray-900">Source:</span> {prospect.source?.replace('_', ' ') || '-'}</p>
                       <p><span className="font-semibold text-gray-900">Submitted:</span> {new Date(prospect.created_at).toLocaleDateString()}</p>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setExpandedProspectId(expandedProspectId === prospect.id ? null : prospect.id)}
+                      className="mt-4 inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                    >
+                      {expandedProspectId === prospect.id ? 'Hide details' : 'View details'}
+                    </button>
+
+                    {expandedProspectId === prospect.id && (
+                      <div className="mt-4 rounded-lg bg-gray-50 border border-gray-200 p-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
+                          <p><span className="font-semibold text-gray-900">Status:</span> {prospect.status || '-'}</p>
+                          <p><span className="font-semibold text-gray-900">Meeting Location:</span> {prospect.meeting_location || '-'}</p>
+                          <p><span className="font-semibold text-gray-900">Meeting Date:</span> {formatDateTime(prospect.meeting_date)}</p>
+                          <p><span className="font-semibold text-gray-900">Next Follow-up:</span> {formatDateTime(prospect.next_follow_up)}</p>
+                          <p><span className="font-semibold text-gray-900">Follow-up Frequency:</span> {prospect.follow_up_frequency ? `${prospect.follow_up_frequency} days` : '-'}</p>
+                          <p><span className="font-semibold text-gray-900">Last Updated:</span> {formatDateTime(prospect.updated_at)}</p>
+                        </div>
+                        {prospect.notes && (
+                          <div className="mt-3 border-t border-gray-200 pt-3">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Notes</p>
+                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{prospect.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1022,26 +1054,58 @@ ${blogContent}
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interest</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredProspects.map((prospect) => (
-                        <tr key={prospect.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{prospect.email}</div></td>
-                          <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{prospect.full_name || '-'}</div></td>
-                          <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{prospect.phone || '-'}</div></td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              prospect.interest_level === 'hot' ? 'bg-red-100 text-red-800' :
-                              prospect.interest_level === 'warm' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-blue-100 text-blue-800'
-                            }`}>
-                              {prospect.interest_level || 'unknown'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{prospect.source?.replace('_', ' ') || '-'}</div></td>
-                          <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{new Date(prospect.created_at).toLocaleDateString()}</div></td>
-                        </tr>
+                        <Fragment key={prospect.id}>
+                          <tr key={`${prospect.id}-row`} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{prospect.email}</div></td>
+                            <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{prospect.full_name || '-'}</div></td>
+                            <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{prospect.phone || '-'}</div></td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                prospect.interest_level === 'hot' ? 'bg-red-100 text-red-800' :
+                                prospect.interest_level === 'warm' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-blue-100 text-blue-800'
+                              }`}>
+                                {prospect.interest_level || 'unknown'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{prospect.source?.replace('_', ' ') || '-'}</div></td>
+                            <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{new Date(prospect.created_at).toLocaleDateString()}</div></td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <button
+                                type="button"
+                                onClick={() => setExpandedProspectId(expandedProspectId === prospect.id ? null : prospect.id)}
+                                className="inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                              >
+                                {expandedProspectId === prospect.id ? 'Hide details' : 'View details'}
+                              </button>
+                            </td>
+                          </tr>
+                          {expandedProspectId === prospect.id && (
+                            <tr key={`${prospect.id}-details`} className="bg-gray-50">
+                              <td colSpan={7} className="px-6 py-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-700">
+                                  <p><span className="font-semibold text-gray-900">Status:</span> {prospect.status || '-'}</p>
+                                  <p><span className="font-semibold text-gray-900">Meeting Location:</span> {prospect.meeting_location || '-'}</p>
+                                  <p><span className="font-semibold text-gray-900">Meeting Date:</span> {formatDateTime(prospect.meeting_date)}</p>
+                                  <p><span className="font-semibold text-gray-900">Next Follow-up:</span> {formatDateTime(prospect.next_follow_up)}</p>
+                                  <p><span className="font-semibold text-gray-900">Follow-up Frequency:</span> {prospect.follow_up_frequency ? `${prospect.follow_up_frequency} days` : '-'}</p>
+                                  <p><span className="font-semibold text-gray-900">Last Updated:</span> {formatDateTime(prospect.updated_at)}</p>
+                                </div>
+                                {prospect.notes && (
+                                  <div className="mt-3 border-t border-gray-200 pt-3">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1">Notes</p>
+                                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{prospect.notes}</p>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
                       ))}
                     </tbody>
                   </table>

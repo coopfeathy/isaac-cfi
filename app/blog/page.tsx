@@ -12,7 +12,15 @@ export default async function BlogPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-darkText mb-12">Blog & Videos</h1>
+        <div className="mb-12 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-4xl font-bold text-darkText">Blog & Videos</h1>
+          <Link
+            href="/learn"
+            className="inline-flex items-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
+          >
+            ← Back to Learn
+          </Link>
+        </div>
 
         {/* Social Media Videos Section */}
         <div className="mb-16">

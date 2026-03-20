@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { Booking, Slot } from '@/lib/supabase'
+import Link from 'next/link'
 
 interface BookingWithSlot extends Booking {
   slots?: Slot
@@ -90,7 +91,15 @@ export default function BookingsPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold text-darkText mb-8">My Bookings</h1>
+        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-4xl font-bold text-darkText">My Bookings</h1>
+          <Link
+            href="/learn"
+            className="inline-flex items-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
+          >
+            ← Back to Learn
+          </Link>
+        </div>
 
         {bookings.length === 0 ? (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
