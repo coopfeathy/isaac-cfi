@@ -2,6 +2,8 @@
 // Currently set up for Instagram and TikTok embeds
 // You can extend this to fetch from actual APIs
 
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
+
 export interface SocialMediaPost {
   id: string
   platform: 'instagram' | 'tiktok' | 'youtube' | 'facebook'
@@ -40,16 +42,23 @@ export function getFacebookEmbedUrl(videoUrl: string): string {
 // - Facebook Graph API
 
 export async function fetchSocialMediaPosts(): Promise<SocialMediaPost[]> {
-  // This is where you would make API calls to fetch posts from social media
-  // For now, returning an empty array - you'll need to set up actual integrations
-  
   try {
-    // Example: Fetch from a Supabase table that stores social media post metadata
-    // const { data } = await supabaseAdmin.from('social_media_posts').select('*').order('date', { ascending: false })
-    // return data || []
-    
-    // Placeholder return
-    return []
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return []
+    }
+
+    const supabaseAdmin = getSupabaseAdmin()
+    const { data, error } = await supabaseAdmin
+      .from('social_media_posts')
+      .select('id, platform, url, title, thumbnail, date, type')
+      .order('date', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching social media posts:', error)
+      return []
+    }
+
+    return (data || []) as SocialMediaPost[]
   } catch (error) {
     console.error('Error fetching social media posts:', error)
     return []

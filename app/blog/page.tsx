@@ -1,9 +1,13 @@
 import Link from 'next/link'
 import { getAllPosts } from '@/lib/posts'
 import SocialMediaFeed from '@/app/components/SocialMediaFeed'
+import { fetchSocialMediaPosts } from '@/lib/social-media'
 
-export default function BlogPage() {
+export const revalidate = 300
+
+export default async function BlogPage() {
   const posts = getAllPosts()
+  const socialPosts = await fetchSocialMediaPosts()
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -21,7 +25,7 @@ export default function BlogPage() {
             Follow us on Instagram, TikTok, and YouTube for the latest flight training content and aviation updates. Click on any video below to watch it on the platform where it was posted.
           </p>
           
-          <SocialMediaFeed posts={[]} isLoading={false} />
+          <SocialMediaFeed posts={socialPosts} isLoading={false} />
           
           <div className="mt-8 text-center">
             <p className="text-gray-600 mb-4">Follow us for more content:</p>
