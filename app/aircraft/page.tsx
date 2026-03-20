@@ -4,7 +4,6 @@ import Link from "next/link"
 import ImageCarousel from "@/app/components/ImageCarousel"
 import ContactModal from "@/app/components/ContactModal"
 import { useState } from "react"
-import CalendlyButton from "@/app/components/CalendlyButton"
 
 export default function AircraftPage() {
   const [isContactOpen, setIsContactOpen] = useState(false)
@@ -307,12 +306,12 @@ export default function AircraftPage() {
             Schedule a lesson or contact us to learn more about our fleet
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <CalendlyButton
-              className="inline-block px-10 py-4 font-bold text-lg"
-              variant="primary"
+            <Link
+              href="/schedule"
+              className="inline-block px-10 py-4 font-bold text-lg rounded-lg bg-golden text-darkText hover:bg-opacity-90 transition-all duration-300"
             >
               Schedule Now
-            </CalendlyButton>
+            </Link>
             <button
               onClick={() => {
                 setSelectedAircraft("Aircraft Inquiry")

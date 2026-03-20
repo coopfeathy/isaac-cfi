@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { useState } from "react"
 import ContactModal from "@/app/components/ContactModal"
-import CalendlyButton from "@/app/components/CalendlyButton"
 
 // Instructor data - easy to update when adding photos or new instructors
 const instructors = [
@@ -222,12 +221,12 @@ export default function InstructorsPage() {
               Schedule your first lesson or get in touch with any questions
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <CalendlyButton
-                className="inline-block px-10 py-4 font-bold text-lg"
-                variant="primary"
+              <Link
+                href="/schedule"
+                className="inline-block px-10 py-4 font-bold text-lg bg-golden text-darkText rounded-lg hover:bg-opacity-90 transition-all duration-300"
               >
                 Schedule a Lesson
-              </CalendlyButton>
+              </Link>
               <button
                 onClick={() => setIsContactOpen(true)}
                 className="inline-block px-10 py-4 bg-white/10 text-white font-bold rounded-lg hover:bg-white/20 transition-all duration-300 border-2 border-white/30 hover:border-golden"

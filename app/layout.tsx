@@ -3,7 +3,6 @@ import Footer from "./components/Footer"
 import SimpleHeader from "./components/SimpleHeader"
 import type React from "react"
 import { AuthProvider } from "./contexts/AuthContext"
-import { CalendlyProvider } from "./components/CalendlyButton"
 import type { Metadata, Viewport } from "next"
 
 import RedBirdSimulator from "./components/RedBirdSimulator"
@@ -139,12 +138,10 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased">
         <AuthProvider>
-          <CalendlyProvider>
-            <SimpleHeader />
-            <main>{children}</main>
-            <RedBirdSimulator />
-            <Footer />
-          </CalendlyProvider>
+          <SimpleHeader />
+          <main>{children}</main>
+          <RedBirdSimulator />
+          <Footer />
         </AuthProvider>
       </body>
     </html>

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import CalendlyButton from "@/app/components/CalendlyButton"
+import ContactModal from "@/app/components/ContactModal"
 
 export default function DiscoveryFlight() {
   return (
@@ -162,12 +162,12 @@ export default function DiscoveryFlight() {
               Book your discovery flight today and experience the freedom of flight
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <CalendlyButton
-                className="w-full sm:w-auto px-10 py-4 text-lg"
-                variant="primary"
+              <Link
+                href="/schedule"
+                className="w-full sm:w-auto px-10 py-4 text-lg font-bold text-darkText rounded-lg bg-golden hover:bg-opacity-90 transition-all duration-300"
               >
                 Book Your Discovery Flight
-              </CalendlyButton>
+              </Link>
               <Link
                 href="/faq"
                 className="w-full sm:w-auto px-10 py-4 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 transition-all duration-300 text-lg text-center"

@@ -4,7 +4,6 @@ import Link from "next/link"
 import { useState } from "react"
 import type { Metadata } from "next"
 import ContactModal from "@/app/components/ContactModal"
-import CalendlyButton, { openCalendly } from "@/app/components/CalendlyButton"
 
 // Note: Metadata for client components should be defined in a parent layout.tsx or using generateMetadata
 // This is here for reference but will be handled through dynamic metadata generation
@@ -271,12 +270,12 @@ export default function PricingPage() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => openCalendly()}
-                  className="w-full px-6 py-4 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300 transform hover:scale-105"
+                <Link
+                  href="/schedule"
+                  className="w-full px-6 py-4 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300 transform hover:scale-105 text-center"
                 >
                   Schedule a Lesson
-                </button>
+                </Link>
               </div>
             </div>
 
@@ -535,12 +534,12 @@ export default function PricingPage() {
               Schedule your discovery flight or training session today
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <CalendlyButton
-                className="inline-block px-10 py-4 font-bold text-lg"
-                variant="primary"
+              <Link
+                href="/schedule"
+                className="inline-block px-10 py-4 font-bold text-lg bg-golden text-darkText rounded-lg hover:bg-opacity-90 transition-all duration-300"
               >
                 Schedule Now
-              </CalendlyButton>
+              </Link>
               <button
                 onClick={() => {
                   setSelectedAircraft("Flight Inquiry")

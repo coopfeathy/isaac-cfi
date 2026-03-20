@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import CalendlyButton from "@/app/components/CalendlyButton"
+import Link from "next/link"
 import ContactModal from "@/app/components/ContactModal"
 
 export default function FAQ() {
@@ -289,12 +289,12 @@ export default function FAQ() {
             We're here to help! Schedule a call or send us a message.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <CalendlyButton
-              className="inline-block px-10 py-4 font-bold text-lg"
-              variant="primary"
+            <Link
+              href="/schedule"
+              className="inline-block px-10 py-4 font-bold text-lg bg-golden text-darkText rounded-lg hover:bg-opacity-90 transition-all duration-300"
             >
               Schedule a Call
-            </CalendlyButton>
+            </Link>
             <button
               onClick={() => setIsContactOpen(true)}
               className="inline-block px-10 py-4 bg-white/10 text-white font-bold rounded-lg hover:bg-white/20 transition-all duration-300 border-2 border-white/30 hover:border-golden"
