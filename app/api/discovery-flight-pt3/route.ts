@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       .from('prospects')
       .update({
         meeting_location: selectedLocation,
-        source: 'onboarding_funnel',
+        source: 'discovery_flight',
         notes: mergedNotes,
         updated_at: new Date().toISOString(),
       })

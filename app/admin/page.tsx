@@ -34,7 +34,7 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
   const [slots, setSlots] = useState<Slot[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
   const [prospects, setProspects] = useState<any[]>([])
-  const [prospectSource, setProspectSource] = useState<'all' | 'discovery_flight' | 'onboarding_funnel'>('all')
+  const [prospectSource, setProspectSource] = useState<'all' | 'discovery_flight'>('all')
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<AdminTab>(forcedTab || 'slots')
   
@@ -541,7 +541,7 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
           const { data: leadsData } = await supabase
             .from('prospects')
             .select('email')
-            .in('source', ['onboarding_funnel', 'discovery_flight'])
+            .eq('source', 'discovery_flight')
           emails = leadsData?.map(l => l.email).filter(Boolean) || []
           break
 
@@ -953,12 +953,11 @@ ${blogContent}
                 <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Source</label>
                 <select
                   value={prospectSource}
-                  onChange={(e) => setProspectSource(e.target.value as 'all' | 'discovery_flight' | 'onboarding_funnel')}
+                  onChange={(e) => setProspectSource(e.target.value as 'all' | 'discovery_flight')}
                   className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-golden focus:border-golden"
                 >
                   <option value="all">All Prospects</option>
                   <option value="discovery_flight">Discovery Flight</option>
-                  <option value="onboarding_funnel">Onboarding Funnel</option>
                 </select>
               </div>
             </div>

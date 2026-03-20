@@ -3,7 +3,17 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin()
+    let supabase
+    try {
+      supabase = getSupabaseAdmin()
+    } catch {
+      console.error('Supabase admin client failed to initialize — SUPABASE_SERVICE_ROLE_KEY may be missing in environment')
+      return NextResponse.json(
+        { error: 'Server configuration error. Please contact support.' },
+        { status: 500 }
+      )
+    }
+
     const { email } = await request.json()
 
     // Validate email
@@ -43,7 +53,7 @@ export async function POST(request: NextRequest) {
           {
             email,
             full_name: email.split('@')[0], // Use email prefix as placeholder name
-            source: 'onboarding_funnel',
+            source: 'discovery_flight',
             status: 'active',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),

@@ -98,7 +98,7 @@ SELECT
     'For Someone Else: ', COALESCE(CAST(is_for_someone_else AS VARCHAR), 'Unknown'), ' | ',
     'Agreed to SMS: ', COALESCE(CAST(agree_to_sms AS VARCHAR), 'Unknown')
   ) as notes,
-  'onboarding_funnel' as source,
+  'discovery_flight' as source,
   created_at,
   'active' as status,
   'warm' as interest_level
@@ -192,7 +192,7 @@ LIMIT 5;
 /*
 After migration, your admin email code will automatically work because:
 1. Updated handleLoadRecipients already queries 'prospects' table
-2. All your prospect_information data is now in prospects with source="onboarding_funnel"
+2. All your prospect_information data is now in prospects with source="discovery_flight"
 3. All discovery_flight_signups are now in prospects with source="discovery_flight"
 4. Future signups should go directly to prospects table
 

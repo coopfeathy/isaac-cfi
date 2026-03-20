@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     const { error } = await supabase
       .from('prospects')
       .update({
-        source: 'onboarding_funnel',
+        source: 'discovery_flight',
         notes: mergedNotes,
         updated_at: new Date().toISOString(),
       })

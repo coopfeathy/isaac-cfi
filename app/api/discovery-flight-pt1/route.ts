@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       .update({
         full_name: `${firstName} ${lastName}`.trim(),
         phone: phoneNumber,
-        source: 'onboarding_funnel',
+        source: 'discovery_flight',
         notes: mergedNotes,
         updated_at: new Date().toISOString(),
       })
