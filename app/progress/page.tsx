@@ -191,7 +191,6 @@ export default function ProgressPage() {
         { label: "Proficient Items", value: `${proficientItems}/${totalItems || 0}` },
         { label: "Overall Completion", value: `${overallCompletion}%` },
       ]}
-      cta={{ href: "/learn", label: "Continue Coursework" }}
     >
 
       {courses.length === 0 ? (
