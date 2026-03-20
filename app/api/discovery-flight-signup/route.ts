@@ -13,26 +13,49 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Save to Supabase prospect_information table (Upsert to handle duplicates)
-    const { error } = await supabase
-      .from('prospect_information')
-      .upsert(
-        {
-          email,
-          updated_at: new Date().toISOString(),
-          // Only set created_at if it's a new record - unfortunately standard upsert updates it too if we provide it in the object
-          // So we skip created_at here to rely on default, or we just accept updating it.
-          // Better strategy: Let Postgres handle created_at default, only send email.
-        },
-        { onConflict: 'email' }
-      )
+    // Check if prospect already exists
+    const { data: existingProspect } = await supabase
+      .from('prospects')
+      .select('id')
+      .eq('email', email)
+      .single()
 
-    if (error) {
-      console.error('Supabase error:', error)
-      return NextResponse.json(
-        { error: error.message || 'Failed to save email', details: error },
-        { status: 500 }
-      )
+    if (existingProspect) {
+      // Prospect exists, just update timestamp
+      const { error: updateError } = await supabase
+        .from('prospects')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('email', email)
+
+      if (updateError) {
+        console.error('Supabase error:', updateError)
+        return NextResponse.json(
+          { error: updateError.message || 'Failed to update email' },
+          { status: 500 }
+        )
+      }
+    } else {
+      // Create new prospect
+      const { error: insertError } = await supabase
+        .from('prospects')
+        .insert([
+          {
+            email,
+            full_name: email.split('@')[0], // Use email prefix as placeholder name
+            source: 'onboarding_funnel',
+            status: 'active',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }
+        ])
+
+      if (insertError) {
+        console.error('Supabase error:', insertError)
+        return NextResponse.json(
+          { error: insertError.message || 'Failed to save email' },
+          { status: 500 }
+        )
+      }
     }
 
     return NextResponse.json(

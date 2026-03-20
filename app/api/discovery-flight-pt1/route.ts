@@ -1,6 +1,22 @@
 import { supabase } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 
+function mergeSection(existingNotes: string | null, sectionTitle: string, sectionBody: string): string {
+  const escapedTitle = sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const sectionPattern = new RegExp(`--- ${escapedTitle} ---[\\s\\S]*?(?=\\n\\n--- |$)`, 'm')
+  const nextSection = `--- ${sectionTitle} ---\n${sectionBody.trim()}`
+
+  if (!existingNotes || !existingNotes.trim()) {
+    return nextSection
+  }
+
+  if (sectionPattern.test(existingNotes)) {
+    return existingNotes.replace(sectionPattern, nextSection)
+  }
+
+  return `${existingNotes.trim()}\n\n${nextSection}`
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { 
@@ -24,20 +40,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Save to Supabase prospect_information table
+    const sectionBody = [
+      'Funnel Step: 1/4',
+      `DOB: ${dateOfBirth}`,
+      `Citizenship: ${citizenship}`,
+      `Training Objective: ${trainingObjective}`,
+      `Training Start: ${trainingStart}`,
+      `For Someone Else: ${isForSomeoneElse}`,
+      `Agree to SMS: ${agreeToSMS}`
+    ].join('\n')
+
+    const { data: existingProspect } = await supabase
+      .from('prospects')
+      .select('notes')
+      .eq('email', email)
+      .single()
+
+    const mergedNotes = mergeSection(existingProspect?.notes ?? null, 'Step 1 - Basics', sectionBody)
+
+    // Update prospect record with merged notes so earlier step data is preserved
     const { error } = await supabase
-      .from('prospect_information')
+      .from('prospects')
       .update({
-        citizenship: citizenship,
-        first_name: firstName,
-        last_name: lastName,
-        phone_number: phoneNumber,
-        dob: dateOfBirth,
-        training_objective: trainingObjective,
-        training_start_timeframe: trainingStart,
-        is_for_someone_else: isForSomeoneElse,
-        agree_to_sms: agreeToSMS,
-        current_step: 1,
+        full_name: `${firstName} ${lastName}`.trim(),
+        phone: phoneNumber,
+        source: 'onboarding_funnel',
+        notes: mergedNotes,
+        updated_at: new Date().toISOString(),
       })
       .eq('email', email)
 

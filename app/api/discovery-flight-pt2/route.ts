@@ -1,6 +1,22 @@
 import { supabase } from '@/lib/supabase'
 import { NextRequest, NextResponse } from 'next/server'
 
+function mergeSection(existingNotes: string | null, sectionTitle: string, sectionBody: string): string {
+  const escapedTitle = sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const sectionPattern = new RegExp(`--- ${escapedTitle} ---[\\s\\S]*?(?=\\n\\n--- |$)`, 'm')
+  const nextSection = `--- ${sectionTitle} ---\n${sectionBody.trim()}`
+
+  if (!existingNotes || !existingNotes.trim()) {
+    return nextSection
+  }
+
+  if (sectionPattern.test(existingNotes)) {
+    return existingNotes.replace(sectionPattern, nextSection)
+  }
+
+  return `${existingNotes.trim()}\n\n${nextSection}`
+}
+
 export async function POST(request: NextRequest) {
   try {
     const {
@@ -22,18 +38,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update the prospect_information record for this email
+    const sectionBody = [
+      'Funnel Step: 2/4',
+      `English First Language: ${englishFirstLanguage}`,
+      `Flight Instructor Interest: ${flightInstructorInterest}`,
+      `Medical Concerns: ${medicalConcerns}`,
+      `Pilot Certificates: ${pilotCertificates}`,
+      `Height: ${heightFeet}' ${heightInches}"`,
+      `Weight: ${weight} lbs`
+    ].join('\n')
+
+    const { data: existingProspect } = await supabase
+      .from('prospects')
+      .select('notes')
+      .eq('email', email)
+      .single()
+
+    const mergedNotes = mergeSection(existingProspect?.notes ?? null, 'Step 2 - Qualifications', sectionBody)
+
+    // Update the prospect record for this email and preserve previous notes
     const { error } = await supabase
-      .from('prospect_information')
+      .from('prospects')
       .update({
-        english_proficient: englishFirstLanguage,
-        interested_in_instructing: flightInstructorInterest,
-        medical_concerns: medicalConcerns,
-        current_certificates: pilotCertificates,
-        height_feet: heightFeet ? parseInt(heightFeet) : null,
-        height_inches: heightInches ? parseInt(heightInches) : null,
-        weight_lbs: weight ? parseInt(weight) : null,
-        current_step: 2,
+        source: 'onboarding_funnel',
+        notes: mergedNotes,
+        updated_at: new Date().toISOString(),
       })
       .eq('email', email)
 
