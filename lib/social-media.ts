@@ -3,6 +3,7 @@
 // You can extend this to fetch from actual APIs
 
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { createClient } from '@supabase/supabase-js'
 
 export interface SocialMediaPost {
   id: string
@@ -43,22 +44,43 @@ export function getFacebookEmbedUrl(videoUrl: string): string {
 
 export async function fetchSocialMediaPosts(): Promise<SocialMediaPost[]> {
   try {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return []
+    const hasServiceRole = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
+    const hasAnonConfig = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+
+    if (hasServiceRole) {
+      const supabaseAdmin = getSupabaseAdmin()
+      const { data, error } = await supabaseAdmin
+        .from('social_media_posts')
+        .select('id, platform, url, title, thumbnail, date, type')
+        .order('date', { ascending: false })
+
+      if (!error) {
+        return (data || []) as SocialMediaPost[]
+      }
+
+      console.error('Error fetching social media posts with service role:', error)
     }
 
-    const supabaseAdmin = getSupabaseAdmin()
-    const { data, error } = await supabaseAdmin
-      .from('social_media_posts')
-      .select('id, platform, url, title, thumbnail, date, type')
-      .order('date', { ascending: false })
+    if (hasAnonConfig) {
+      // Fallback for public blog page when service role is unavailable in runtime env.
+      const supabasePublic = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+      )
 
-    if (error) {
-      console.error('Error fetching social media posts:', error)
-      return []
+      const { data, error } = await supabasePublic
+        .from('social_media_posts')
+        .select('id, platform, url, title, thumbnail, date, type')
+        .order('date', { ascending: false })
+
+      if (!error) {
+        return (data || []) as SocialMediaPost[]
+      }
+
+      console.error('Error fetching social media posts with anon key:', error)
     }
 
-    return (data || []) as SocialMediaPost[]
+    return []
   } catch (error) {
     console.error('Error fetching social media posts:', error)
     return []

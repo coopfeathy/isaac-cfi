@@ -101,10 +101,21 @@ end
 $$;
 
 -- Optional: allow public read access if you ever query with anon key directly
--- create policy "Public can read social media posts"
--- on public.social_media_posts
--- for select
--- using (true);
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename = 'social_media_posts'
+      and policyname = 'Public can read social media posts'
+  ) then
+    create policy "Public can read social media posts"
+      on public.social_media_posts
+      for select
+      using (true);
+  end if;
+end
+$$;
 
 -- Seed examples (safe to remove)
 insert into public.social_media_posts (platform, url, title, thumbnail, date, type)
