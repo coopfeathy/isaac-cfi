@@ -77,7 +77,6 @@ export default function LearnPage() {
         { label: "Lessons Started", value: String(watchedLessons) },
         { label: "Completion Rate", value: `${completionRate}%` },
       ]}
-      cta={user ? { href: "/progress", label: "Review Readiness" } : { href: "/login", label: "Sign In To Start" }}
     >
 
       {isAdmin && (

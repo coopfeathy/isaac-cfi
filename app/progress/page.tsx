@@ -185,6 +185,7 @@ export default function ProgressPage() {
       title="Performance and Checkride Readiness"
       subtitle="See where you are strong, what still needs work, and what to focus on before your next evaluation flight."
       activeTab="progress"
+      headerVariant="schedule"
       stats={[
         { label: "Enrolled Courses", value: String(courses.length) },
         { label: "Proficient Items", value: `${proficientItems}/${totalItems || 0}` },
