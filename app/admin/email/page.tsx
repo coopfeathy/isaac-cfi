@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation'
+import { AdminWorkspacePage } from '../page'
 
 export default function AdminEmailPage() {
-  redirect('/admin?tab=email')
+  return <AdminWorkspacePage tab="email" />
 }

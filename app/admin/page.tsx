@@ -21,7 +21,13 @@ interface SocialMediaPost {
   created_at: string
 }
 
-function AdminPageContent() {
+type AdminTab = 'slots' | 'bookings' | 'leads' | 'blog' | 'social' | 'email'
+
+const isAdminTab = (value: string | null): value is AdminTab => {
+  return value === 'slots' || value === 'bookings' || value === 'leads' || value === 'blog' || value === 'social' || value === 'email'
+}
+
+function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
   const { user, isAdmin, loading: authLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -29,8 +35,7 @@ function AdminPageContent() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [leads, setLeads] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [showDashboard, setShowDashboard] = useState(false)
-  const [activeTab, setActiveTab] = useState<'slots' | 'bookings' | 'leads' | 'blog' | 'social' | 'email'>('slots')
+  const [activeTab, setActiveTab] = useState<AdminTab>(forcedTab || 'slots')
   
   // New slot form
   const [showAddSlot, setShowAddSlot] = useState(false)
@@ -92,17 +97,20 @@ function AdminPageContent() {
   useEffect(() => {
     if (!user || !isAdmin) return
 
-    const tab = searchParams.get('tab')
-    if (tab === 'slots' || tab === 'bookings' || tab === 'leads' || tab === 'blog' || tab === 'social' || tab === 'email') {
-      setActiveTab(tab)
-      setShowDashboard(true)
+    if (forcedTab) {
+      setActiveTab(forcedTab)
+    } else {
+      const tab = searchParams.get('tab')
+      if (isAdminTab(tab)) {
+        setActiveTab(tab)
+      }
     }
 
     fetchData()
     fetchBlogPosts()
     fetchLeads()
     fetchSocialPosts()
-  }, [user, isAdmin, searchParams])
+  }, [user, isAdmin, searchParams, forcedTab])
 
   const fetchData = async () => {
     setLoading(true)
@@ -611,8 +619,10 @@ ${blogContent}
     return null
   }
 
+  const shouldShowWorkspace = Boolean(forcedTab || isAdminTab(searchParams.get('tab')))
+
   // Landing Page View
-  if (!showDashboard) {
+  if (!shouldShowWorkspace) {
     return (
       <div className="min-h-screen bg-gray-50 py-12 px-4">
         <div className="max-w-6xl mx-auto">
@@ -713,9 +723,9 @@ ${blogContent}
             <h1 className="text-4xl font-bold text-darkText">Admin Dashboard</h1>
             <p className="text-gray-600">Welcome back, {user?.email}</p>
           </div>
-          <button onClick={() => setShowDashboard(false)} className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded hover:bg-gray-100">
+          <Link href="/admin" className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded hover:bg-gray-100">
             ← Back to Admin
-          </button>
+          </Link>
         </div>
 
         <div className="mb-8 bg-white rounded-lg shadow-md p-6">
@@ -1225,6 +1235,18 @@ export default function AdminPage() {
       </div>
     }>
       <AdminPageContent />
+    </Suspense>
+  )
+}
+
+export function AdminWorkspacePage({ tab }: { tab: AdminTab }) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-golden"></div>
+      </div>
+    }>
+      <AdminPageContent forcedTab={tab} />
     </Suspense>
   )
 }

@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation'
+import { AdminWorkspacePage } from '../page'
 
 export default function AdminSlotsPage() {
-  redirect('/admin?tab=slots')
+  return <AdminWorkspacePage tab="slots" />
 }
