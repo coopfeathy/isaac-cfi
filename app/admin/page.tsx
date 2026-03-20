@@ -21,10 +21,10 @@ interface SocialMediaPost {
   created_at: string
 }
 
-type AdminTab = 'slots' | 'bookings' | 'leads' | 'blog' | 'social' | 'email'
+type AdminTab = 'slots' | 'bookings' | 'prospects' | 'blog' | 'social' | 'email'
 
 const isAdminTab = (value: string | null): value is AdminTab => {
-  return value === 'slots' || value === 'bookings' || value === 'leads' || value === 'blog' || value === 'social' || value === 'email'
+  return value === 'slots' || value === 'bookings' || value === 'prospects' || value === 'blog' || value === 'social' || value === 'email'
 }
 
 function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
@@ -33,15 +33,17 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
   const searchParams = useSearchParams()
   const [slots, setSlots] = useState<Slot[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
-  const [leads, setLeads] = useState<any[]>([])
+  const [prospects, setProspects] = useState<any[]>([])
+  const [prospectSource, setProspectSource] = useState<'all' | 'discovery_flight' | 'onboarding_funnel'>('all')
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<AdminTab>(forcedTab || 'slots')
   
   // New slot form
   const [showAddSlot, setShowAddSlot] = useState(false)
   const [newSlot, setNewSlot] = useState({
-    start_time: '',
-    end_time: '',
+    date: '',
+    startTime: '',
+    duration: '60',
     type: 'training',
     customType: '',
     price: '',
@@ -108,7 +110,7 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
 
     fetchData()
     fetchBlogPosts()
-    fetchLeads()
+    fetchProspects()
     fetchSocialPosts()
   }, [user, isAdmin, searchParams, forcedTab])
 
@@ -138,21 +140,20 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
     }
   }
 
-  const fetchLeads = async () => {
+  const fetchProspects = async () => {
     try {
       const { data, error } = await supabase
         .from('prospects')
-        .select('id, email, created_at, source')
-        .in('source', ['onboarding_funnel', 'discovery_flight'])
-        .order('created_at', { ascending: false })
+        .select('id, email, created_at, source, phone, full_name, interest_level')
+        .order('next_follow_up', { ascending: true, nullsFirst: false })
       
       if (error) {
-        console.error('Error fetching leads:', error)
+        console.error('Error fetching prospects:', error)
       } else if (data) {
-        setLeads(data)
+        setProspects(data)
       }
     } catch (error) {
-      console.error('Error fetching leads:', error)
+      console.error('Error fetching prospects:', error)
     }
   }
 
@@ -307,10 +308,12 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
     
     try {
       const slotType = newSlot.customType.trim() || newSlot.type
+      const startDateTime = new Date(`${newSlot.date}T${newSlot.startTime}`)
+      const endDateTime = new Date(startDateTime.getTime() + parseInt(newSlot.duration) * 60 * 1000)
       
       const { error } = await supabase.from('slots').insert([{
-        start_time: newSlot.start_time,
-        end_time: newSlot.end_time,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
         type: slotType,
         price: parseInt(newSlot.price),
         description: newSlot.description || null
@@ -320,8 +323,9 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
       
       setShowAddSlot(false)
       setNewSlot({
-        start_time: '',
-        end_time: '',
+        date: '',
+        startTime: '',
+        duration: '60',
         type: 'training',
         customType: '',
         price: '',
@@ -733,7 +737,7 @@ ${blogContent}
           <h2 className="text-2xl font-bold text-darkText mb-2">
             {activeTab === 'slots' && 'Manage Slots'}
             {activeTab === 'bookings' && 'View Bookings'}
-            {activeTab === 'leads' && 'Discovery Leads'}
+            {activeTab === 'prospects' && 'Manage Prospects'}
             {activeTab === 'blog' && 'Create Blog Post'}
             {activeTab === 'social' && 'Social Media'}
             {activeTab === 'email' && 'Email Campaigns'}
@@ -741,7 +745,7 @@ ${blogContent}
           <p className="text-gray-600">
             {activeTab === 'slots' && `Create and manage availability for the native schedule page. Current slots: ${slots.length}.`}
             {activeTab === 'bookings' && `Review booking statuses and export Apple Calendar files. Current bookings: ${bookings.length}.`}
-            {activeTab === 'leads' && `Track discovery flight signups and outreach. Current leads: ${leads.length}.`}
+            {activeTab === 'prospects' && `Manage all prospects and leads from discovery flights and funnels. Total: ${prospects.length}.`}
             {activeTab === 'blog' && 'Write, edit, and publish blog content.'}
             {activeTab === 'social' && `Manage linked social video posts. Current posts: ${socialPosts.length}.`}
             {activeTab === 'email' && 'Load recipients and send campaign emails.'}
@@ -771,24 +775,39 @@ ${blogContent}
                 <h2 className="text-2xl font-bold text-darkText mb-4">Create New Slot</h2>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
                     <input
-                      type="datetime-local"
+                      type="date"
                       required
-                      value={newSlot.start_time}
-                      onChange={(e) => setNewSlot({ ...newSlot, start_time: e.target.value })}
+                      value={newSlot.date}
+                      onChange={(e) => setNewSlot({ ...newSlot, date: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-golden focus:border-golden"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">End Time</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label>
                     <input
-                      type="datetime-local"
+                      type="time"
                       required
-                      value={newSlot.end_time}
-                      onChange={(e) => setNewSlot({ ...newSlot, end_time: e.target.value })}
+                      value={newSlot.startTime}
+                      onChange={(e) => setNewSlot({ ...newSlot, startTime: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-golden focus:border-golden"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Duration (minutes)</label>
+                    <select
+                      required
+                      value={newSlot.duration}
+                      onChange={(e) => setNewSlot({ ...newSlot, duration: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-golden focus:border-golden"
+                    >
+                      <option value="30">30 minutes</option>
+                      <option value="45">45 minutes</option>
+                      <option value="60">1 hour</option>
+                      <option value="90">1.5 hours</option>
+                      <option value="120">2 hours</option>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
@@ -926,31 +945,63 @@ ${blogContent}
           </div>
         )}
 
-        {/* Leads Tab */}
-        {activeTab === 'leads' && (
+        {/* Prospects Tab */}
+        {activeTab === 'prospects' && (
           <div>
-            <h2 className="text-2xl font-bold text-darkText mb-6">Discovery Flight Leads</h2>
+            <div className="mb-6 flex flex-col gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Source</label>
+                <select
+                  value={prospectSource}
+                  onChange={(e) => setProspectSource(e.target.value as 'all' | 'discovery_flight' | 'onboarding_funnel')}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-golden focus:border-golden"
+                >
+                  <option value="all">All Prospects</option>
+                  <option value="discovery_flight">Discovery Flight</option>
+                  <option value="onboarding_funnel">Onboarding Funnel</option>
+                </select>
+              </div>
+            </div>
+            
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interest</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {leads.length === 0 ? (
+                    {prospects.length === 0 ? (
                       <tr>
-                        <td colSpan={2} className="px-6 py-4 text-center text-gray-500">No leads yet</td>
+                        <td colSpan={6} className="px-6 py-4 text-center text-gray-500">No prospects yet</td>
                       </tr>
                     ) : (
-                      leads.map((lead) => (
-                        <tr key={lead.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{lead.email}</div></td>
-                          <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{new Date(lead.created_at).toLocaleString()}</div></td>
-                        </tr>
-                      ))
+                      prospects
+                        .filter(p => prospectSource === 'all' || p.source === prospectSource)
+                        .map((prospect) => (
+                          <tr key={prospect.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{prospect.email}</div></td>
+                            <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{prospect.full_name || '-'}</div></td>
+                            <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{prospect.phone || '-'}</div></td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                prospect.interest_level === 'hot' ? 'bg-red-100 text-red-800' :
+                                prospect.interest_level === 'warm' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-blue-100 text-blue-800'
+                              }`}>
+                                {prospect.interest_level || 'unknown'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{prospect.source?.replace('_', ' ') || '-'}</div></td>
+                            <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{new Date(prospect.created_at).toLocaleDateString()}</div></td>
+                          </tr>
+                        ))
                     )}
                   </tbody>
                 </table>
