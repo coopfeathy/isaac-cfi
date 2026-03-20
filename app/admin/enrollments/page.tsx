@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import AdminPageShell from "@/app/components/AdminPageShell"
 import { useAuth } from "@/app/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link"
@@ -154,20 +155,11 @@ export default function AdminStudentEnrollmentPage() {
   )
 
   return (
-    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 20px" }}>
-      <Link
-        href="/admin"
-        style={{
-          color: "#6B7280",
-          textDecoration: "none",
-          marginBottom: "20px",
-          display: "inline-block",
-        }}
-      >
-        ← Back to Admin
-      </Link>
-
-      <h1 style={{ marginBottom: "30px" }}>Assign Students to Courses</h1>
+    <AdminPageShell
+      title="Assign Students to Courses"
+      description="Search enrolled users, open a course roster, and manage course access from one place."
+      backLinks={[{ href: "/admin", label: "Back to Admin" }, { href: "/admin/courses", label: "Back to Courses" }]}
+    >
 
       <div style={{ marginBottom: "40px" }}>
         <label style={{ display: "block", marginBottom: "10px", fontWeight: "600" }}>
@@ -272,6 +264,6 @@ export default function AdminStudentEnrollmentPage() {
           )}
         </>
       )}
-    </div>
+    </AdminPageShell>
   )
 }

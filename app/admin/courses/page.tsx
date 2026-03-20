@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useAuth } from "@/app/contexts/AuthContext"
+import AdminPageShell from "@/app/components/AdminPageShell"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -81,52 +82,27 @@ export default function AdminCoursesPage() {
   }
 
   return (
-    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 20px" }}>
-      <Link
-        href="/admin"
-        style={{
-          color: "#6B7280",
-          textDecoration: "none",
-          marginBottom: "16px",
-          display: "inline-block",
-        }}
-      >
-        ← Back to Admin
-      </Link>
-
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-        <h1 style={{ marginBottom: 0 }}>Manage Courses</h1>
+    <AdminPageShell
+      title="Manage Courses"
+      description="Create, publish, and organize course content for the learning platform."
+      backLinks={[{ href: "/admin", label: "Back to Admin" }]}
+      actions={[
         <Link
+          key="create-course"
           href="/admin/courses/create"
-          style={{
-            backgroundColor: "#C59A2A",
-            color: "white",
-            padding: "12px 24px",
-            borderRadius: "8px",
-            textDecoration: "none",
-            fontWeight: "600",
-          }}
+          className="inline-flex items-center rounded-lg bg-golden px-4 py-3 font-semibold text-darkText transition-opacity hover:opacity-90"
         >
           Create New Course
-        </Link>
-      </div>
-      <div style={{ marginBottom: "40px" }}>
+        </Link>,
         <Link
+          key="assign-students"
           href="/admin/enrollments"
-          style={{
-            display: "inline-block",
-            backgroundColor: "#3B82F6",
-            color: "white",
-            padding: "10px 20px",
-            borderRadius: "8px",
-            textDecoration: "none",
-            fontWeight: "600",
-            fontSize: "14px",
-          }}
+          className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-colors hover:bg-blue-700"
         >
-          Assign Students to Courses
-        </Link>
-      </div>
+          Assign Students
+        </Link>,
+      ]}
+    >
 
       {loading ? (
         <p>Loading courses...</p>
@@ -232,6 +208,6 @@ export default function AdminCoursesPage() {
           ))}
         </div>
       )}
-    </div>
+    </AdminPageShell>
   )
 }

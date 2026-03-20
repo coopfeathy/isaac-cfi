@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import AdminPageShell from "@/app/components/AdminPageShell"
 import { useAuth } from "@/app/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link"
@@ -81,20 +82,12 @@ export default function CreateCoursePage() {
   }
 
   return (
-    <div style={{ maxWidth: "800px", margin: "0 auto", padding: "40px 20px" }}>
-      <Link
-        href="/admin"
-        style={{
-          color: "#6B7280",
-          textDecoration: "none",
-          marginBottom: "16px",
-          display: "inline-block",
-        }}
-      >
-        ← Back to Admin
-      </Link>
-
-      <h1 style={{ marginBottom: "30px" }}>Create New Course</h1>
+    <AdminPageShell
+      title="Create New Course"
+      description="Start a new course shell, then continue into the editor to add units, lessons, and videos."
+      backLinks={[{ href: "/admin", label: "Back to Admin" }, { href: "/admin/courses", label: "Back to Courses" }]}
+      maxWidthClassName="max-w-3xl"
+    >
 
       {error && (
         <div
@@ -189,6 +182,6 @@ export default function CreateCoursePage() {
           </Link>
         </div>
       </form>
-    </div>
+    </AdminPageShell>
   )
 }

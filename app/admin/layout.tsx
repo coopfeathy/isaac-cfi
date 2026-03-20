@@ -1,5 +1,7 @@
 import type { Metadata } from "next"
 
+import AdminTopNav from "@/app/components/AdminTopNav"
+
 export const metadata: Metadata = {
   title: "Admin - Merlin Flight Training",
 }
@@ -9,5 +11,10 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  return children
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <AdminTopNav />
+      {children}
+    </div>
+  )
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
+import AdminPageShell from "@/app/components/AdminPageShell"
 import { useAuth } from "@/app/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
 
@@ -346,15 +346,12 @@ export default function AdminProgressPage() {
   if (!isAdmin) return null
 
   return (
-    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "28px 16px 48px" }}>
-      <Link href="/admin" style={{ color: "#6B7280", textDecoration: "none", display: "inline-block", marginBottom: "16px" }}>
-        ← Back to Admin
-      </Link>
-
-      <h1 style={{ marginTop: 0, marginBottom: "8px" }}>Syllabus Progress & Lesson Debriefs</h1>
-      <p style={{ color: "#6B7280", marginBottom: "24px" }}>
-        Build your custom syllabus checklist, evaluate a lesson, and optionally email the student automatically.
-      </p>
+    <AdminPageShell
+      title="Syllabus Progress & Lesson Debriefs"
+      description="Build custom syllabus checklists, capture lesson evaluations, and optionally email students after each debrief."
+      backLinks={[{ href: "/admin", label: "Back to Admin" }, { href: "/admin/courses", label: "Back to Courses" }]}
+      maxWidthClassName="max-w-6xl"
+    >
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px", marginBottom: "20px" }}>
         <select
@@ -610,6 +607,6 @@ export default function AdminProgressPage() {
           {statusMessage}
         </div>
       )}
-    </div>
+    </AdminPageShell>
   )
 }

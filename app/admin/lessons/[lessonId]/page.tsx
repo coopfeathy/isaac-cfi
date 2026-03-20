@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import AdminPageShell from "@/app/components/AdminPageShell"
 import { useAuth } from "@/app/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link"
@@ -162,36 +163,14 @@ export default function ManageVideosPage() {
     )
 
   return (
-    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 20px" }}>
-      <Link
-        href="/admin"
-        style={{
-          color: "#6B7280",
-          textDecoration: "none",
-          marginBottom: "12px",
-          display: "inline-block",
-        }}
-      >
-        ← Back to Admin
-      </Link>
-      <br />
-      <Link
-        href="/admin/courses"
-        style={{
-          color: "#6B7280",
-          textDecoration: "none",
-          marginBottom: "20px",
-          display: "inline-block",
-        }}
-      >
-        ← Back to Courses
-      </Link>
-
+    <AdminPageShell
+      title={lesson?.title || "Manage Lesson Videos"}
+      description="Upload, review, and remove video content attached to this lesson."
+      backLinks={[{ href: "/admin", label: "Back to Admin" }, { href: "/admin/courses", label: "Back to Courses" }]}
+      maxWidthClassName="max-w-5xl"
+    >
       {lesson && (
         <>
-          <h1 style={{ marginBottom: "10px" }}>{lesson.title}</h1>
-          <p style={{ color: "#6B7280", marginBottom: "40px" }}>Manage videos for this lesson</p>
-
           {/* Video Upload Form */}
           <div
             style={{
@@ -330,6 +309,6 @@ export default function ManageVideosPage() {
           </div>
         </>
       )}
-    </div>
+    </AdminPageShell>
   )
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import AdminPageShell from "@/app/components/AdminPageShell"
 import { useAuth } from "@/app/contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
 import Link from "next/link"
@@ -211,38 +212,14 @@ export default function EditCoursePage() {
     )
 
   return (
-    <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 20px" }}>
-      <Link
-        href="/admin"
-        style={{
-          color: "#6B7280",
-          textDecoration: "none",
-          marginBottom: "12px",
-          display: "inline-block",
-        }}
-      >
-        ← Back to Admin
-      </Link>
-      <br />
-      <Link
-        href="/admin/courses"
-        style={{
-          color: "#6B7280",
-          textDecoration: "none",
-          marginBottom: "20px",
-          display: "inline-block",
-        }}
-      >
-        ← Back to Courses
-      </Link>
-
+    <AdminPageShell
+      title={course?.title || "Edit Course"}
+      description={course?.description || "Manage units, lessons, and video structure for this course."}
+      backLinks={[{ href: "/admin", label: "Back to Admin" }, { href: "/admin/courses", label: "Back to Courses" }]}
+      maxWidthClassName="max-w-5xl"
+    >
       {course && (
         <>
-          <h1 style={{ marginBottom: "10px" }}>{course.title}</h1>
-          {course.description && (
-            <p style={{ color: "#6B7280", marginBottom: "40px" }}>{course.description}</p>
-          )}
-
           <div style={{ marginBottom: "50px" }}>
             <h2 style={{ marginBottom: "20px" }}>Units & Lessons</h2>
 
@@ -534,6 +511,6 @@ export default function EditCoursePage() {
           </Link>
         </>
       )}
-    </div>
+    </AdminPageShell>
   )
 }
