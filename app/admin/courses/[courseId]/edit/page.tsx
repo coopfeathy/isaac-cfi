@@ -213,6 +213,18 @@ export default function EditCoursePage() {
   return (
     <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "40px 20px" }}>
       <Link
+        href="/admin"
+        style={{
+          color: "#6B7280",
+          textDecoration: "none",
+          marginBottom: "12px",
+          display: "inline-block",
+        }}
+      >
+        ← Back to Admin
+      </Link>
+      <br />
+      <Link
         href="/admin/courses"
         style={{
           color: "#6B7280",

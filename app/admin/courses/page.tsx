@@ -82,6 +82,18 @@ export default function AdminCoursesPage() {
 
   return (
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 20px" }}>
+      <Link
+        href="/admin"
+        style={{
+          color: "#6B7280",
+          textDecoration: "none",
+          marginBottom: "16px",
+          display: "inline-block",
+        }}
+      >
+        ← Back to Admin
+      </Link>
+
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
         <h1 style={{ marginBottom: 0 }}>Manage Courses</h1>
         <Link

@@ -156,7 +156,7 @@ export default function AdminStudentEnrollmentPage() {
   return (
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 20px" }}>
       <Link
-        href="/admin/courses"
+        href="/admin"
         style={{
           color: "#6B7280",
           textDecoration: "none",
@@ -164,7 +164,7 @@ export default function AdminStudentEnrollmentPage() {
           display: "inline-block",
         }}
       >
-        ← Back
+        ← Back to Admin
       </Link>
 
       <h1 style={{ marginBottom: "30px" }}>Assign Students to Courses</h1>

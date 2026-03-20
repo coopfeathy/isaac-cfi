@@ -82,6 +82,18 @@ export default function CreateCoursePage() {
 
   return (
     <div style={{ maxWidth: "800px", margin: "0 auto", padding: "40px 20px" }}>
+      <Link
+        href="/admin"
+        style={{
+          color: "#6B7280",
+          textDecoration: "none",
+          marginBottom: "16px",
+          display: "inline-block",
+        }}
+      >
+        ← Back to Admin
+      </Link>
+
       <h1 style={{ marginBottom: "30px" }}>Create New Course</h1>
 
       {error && (
