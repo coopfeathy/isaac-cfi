@@ -739,8 +739,8 @@ ${blogContent}
             {activeTab === 'email' && 'Email Campaigns'}
           </h2>
           <p className="text-gray-600">
-            {activeTab === 'slots' && `Create and manage availability. Current slots: ${slots.length}.`}
-            {activeTab === 'bookings' && `Review customer booking statuses. Current bookings: ${bookings.length}.`}
+            {activeTab === 'slots' && `Create and manage availability for the native schedule page. Current slots: ${slots.length}.`}
+            {activeTab === 'bookings' && `Review booking statuses and export Apple Calendar files. Current bookings: ${bookings.length}.`}
             {activeTab === 'leads' && `Track discovery flight signups and outreach. Current leads: ${leads.length}.`}
             {activeTab === 'blog' && 'Write, edit, and publish blog content.'}
             {activeTab === 'social' && `Manage linked social video posts. Current posts: ${socialPosts.length}.`}
@@ -751,13 +751,19 @@ ${blogContent}
         {/* Slots Tab */}
         {activeTab === 'slots' && (
           <div>
-            <div className="mb-6">
+            <div className="mb-6 flex flex-wrap items-center gap-3">
               <button
                 onClick={() => setShowAddSlot(!showAddSlot)}
                 className="px-6 py-3 bg-golden text-darkText font-bold rounded-lg hover:bg-opacity-90"
               >
                 {showAddSlot ? 'Cancel' : 'Add New Slot'}
               </button>
+              <Link href="/schedule" className="px-4 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-100">
+                Open Customer Schedule
+              </Link>
+              <Link href="/bookings" className="px-4 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-100">
+                Open Customer Bookings
+              </Link>
             </div>
 
             {showAddSlot && (
@@ -856,9 +862,17 @@ ${blogContent}
                   <p className="text-sm text-gray-600 mb-2">{new Date(slot.start_time).toLocaleString()}</p>
                   <p className="text-lg font-bold text-darkText mb-2">${(slot.price / 100).toFixed(2)}</p>
                   {slot.description && <p className="text-sm text-gray-600 mb-2">{slot.description}</p>}
-                  <button onClick={() => handleDeleteSlot(slot.id)} className="text-red-600 text-sm hover:text-red-800">
-                    Delete
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href={`/api/calendar/booking-ics?slot_id=${encodeURIComponent(slot.id)}`}
+                      className="text-sm text-gray-700 hover:text-black underline"
+                    >
+                      Download .ics
+                    </a>
+                    <button onClick={() => handleDeleteSlot(slot.id)} className="text-red-600 text-sm hover:text-red-800">
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -897,6 +911,16 @@ ${blogContent}
                 )}
                 {booking.notes && <div className="mt-2 p-2 bg-gray-50 rounded"><p className="text-sm text-gray-600">Notes: {booking.notes}</p></div>}
                 <div className="mt-2 text-xs text-gray-500">Booked: {new Date(booking.created_at).toLocaleString()}</div>
+                {(booking.slot_id || booking.slots?.id) && (
+                  <div className="mt-3">
+                    <a
+                      href={`/api/calendar/booking-ics?slot_id=${encodeURIComponent(booking.slot_id ? booking.slot_id : booking.slots?.id || '')}`}
+                      className="inline-block px-3 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-gray-800 transition-colors"
+                    >
+                      Add to Apple Calendar (.ics)
+                    </a>
+                  </div>
+                )}
               </div>
             ))}
           </div>

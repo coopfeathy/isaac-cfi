@@ -151,6 +151,17 @@ export default function BookingsPage() {
                 <div className="mt-4 text-sm text-gray-500">
                   Booked on {new Date(booking.created_at).toLocaleDateString()}
                 </div>
+
+                {(booking.slot_id || booking.slots?.id) && (
+                  <div className="mt-4">
+                    <a
+                      href={`/api/calendar/booking-ics?slot_id=${encodeURIComponent(booking.slot_id ? booking.slot_id : booking.slots?.id || '')}`}
+                      className="inline-block px-4 py-2 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 transition-colors"
+                    >
+                      Add to Apple Calendar (.ics)
+                    </a>
+                  </div>
+                )}
               </div>
             ))}
           </div>

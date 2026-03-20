@@ -2,7 +2,6 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { Slot } from '@/lib/supabase'
 import { loadStripe } from '@stripe/stripe-js'
@@ -13,10 +12,9 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 interface BookingModalProps {
   slot: Slot
   onClose: () => void
-  onSuccess: () => void
 }
 
-function PaymentForm({ slot, onSuccess }: { slot: Slot; onSuccess: () => void }) {
+function PaymentForm({ slot }: { slot: Slot }) {
   const stripe = useStripe()
   const elements = useElements()
   const [message, setMessage] = useState<string | null>(null)
@@ -57,8 +55,7 @@ function PaymentForm({ slot, onSuccess }: { slot: Slot; onSuccess: () => void })
   )
 }
 
-function BookingModal({ slot, onClose, onSuccess }: BookingModalProps) {
-  const { user } = useAuth()
+function BookingModal({ slot, onClose }: BookingModalProps) {
   const [clientSecret, setClientSecret] = useState('')
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState('')
@@ -183,7 +180,7 @@ function BookingModal({ slot, onClose, onSuccess }: BookingModalProps) {
             </div>
           ) : clientSecret ? (
             <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
-              <PaymentForm slot={slot} onSuccess={onSuccess} />
+              <PaymentForm slot={slot} />
             </Elements>
           ) : (
             <div className="text-red-600 text-center">
@@ -197,9 +194,7 @@ function BookingModal({ slot, onClose, onSuccess }: BookingModalProps) {
 }
 
 function SchedulePageContent() {
-  const { user, loading: authLoading } = useAuth()
-  const router = useRouter()
-  const searchParams = useSearchParams()
+  const { loading: authLoading } = useAuth()
   const [slots, setSlots] = useState<Slot[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'training' | 'tour'>('all')
@@ -256,12 +251,6 @@ function SchedulePageContent() {
     setSelectedSlot(null)
   }
 
-  const handleBookingSuccess = () => {
-    setSelectedSlot(null)
-    fetchSlots() // Refresh available slots
-    alert('Booking confirmed! Check your email for confirmation details.')
-  }
-
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -293,25 +282,85 @@ function SchedulePageContent() {
         </div>
       </section>
 
-      {/* Calendly Embed - Full remaining height */}
-      <div className="flex-1 min-h-[600px]">
-        <iframe
-          src="https://calendly.com/merlinflighttraining?hide_gdpr_banner=1&background_color=ffffff&text_color=1a1a1a&primary_color=c59a2a"
-          width="100%"
-          height="100%"
-          frameBorder="0"
-          title="Schedule a Flight"
-          className="w-full h-full"
-          style={{ minHeight: '600px' }}
-        />
-      </div>
+      <section className="flex-1 py-10 px-4 bg-gray-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 mb-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-darkText">Available Flight Slots</h2>
+                <p className="text-gray-600 mt-1">Select a slot, complete payment, and add your booking to Apple Calendar from the confirmation screen.</p>
+              </div>
+              <div className="inline-flex rounded-lg border border-gray-200 p-1 bg-gray-50">
+                <button
+                  onClick={() => setFilter('all')}
+                  className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${
+                    filter === 'all' ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setFilter('training')}
+                  className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${
+                    filter === 'training' ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  Training
+                </button>
+                <button
+                  onClick={() => setFilter('tour')}
+                  className={`px-3 py-2 text-sm font-semibold rounded-md transition-colors ${
+                    filter === 'tour' ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  Tour
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {filteredSlots.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-md p-10 text-center">
+              <h3 className="text-2xl font-bold text-darkText mb-2">No slots available right now</h3>
+              <p className="text-gray-600">Please check back soon for newly published availability.</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {filteredSlots.map((slot) => (
+                <article key={slot.id} className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
+                  <div className="flex justify-between items-start gap-3 mb-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide ${
+                      slot.type === 'tour' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                    }`}>
+                      {slot.type}
+                    </span>
+                    <span className="text-xl font-bold text-darkText">${(slot.price / 100).toFixed(2)}</span>
+                  </div>
+
+                  <h3 className="text-lg font-bold text-darkText mb-1">
+                    {slot.description || (slot.type === 'tour' ? 'NYC Flight Tour' : 'Flight Training Lesson')}
+                  </h3>
+                  <p className="text-gray-700 font-medium">{formatDate(slot.start_time)}</p>
+                  <p className="text-gray-600 mb-5">{formatTime(slot.start_time)} - {formatTime(slot.end_time)}</p>
+
+                  <button
+                    onClick={() => handleBook(slot)}
+                    className="w-full px-4 py-3 bg-golden text-darkText font-bold rounded-lg hover:bg-opacity-90 transition-colors"
+                  >
+                    Book This Slot
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Booking Modal */}
       {selectedSlot && (
         <BookingModal
           slot={selectedSlot}
           onClose={handleCloseModal}
-          onSuccess={handleBookingSuccess}
         />
       )}
     </div>

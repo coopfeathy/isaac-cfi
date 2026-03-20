@@ -1,3 +1,19 @@
+/**
+ * DEPRECATED: Google Calendar integration has been removed from the product.
+ * Replaced by Apple Calendar .ics export flow for vendor-agnostic calendar support.
+ * See /app/api/calendar/booking-ics/route.ts for the new implementation.
+ * 
+ * Left here for reference/legacy only - not called in the booking flow anymore.
+ */
+
+/**
+ * DEPRECATED: Google Calendar integration has been removed from the product.
+ * Replaced by Apple Calendar .ics export flow for vendor-agnostic calendar support.
+ * See /app/api/calendar/booking-ics/route.ts for the new implementation.
+ * 
+ * Left here for legacy reference only - not called in the booking flow anymore.
+ */
+
 import { google } from 'googleapis'
 
 export async function createCalendarEvent(eventDetails: {
@@ -64,7 +80,8 @@ This booking was automatically created via the website.
       sendUpdates: 'all', // Send email invitations to attendees
     })
 
-    console.log('Calendar event created:', response.data.id)
+    // DEPRECATED - see top of file
+    console.log('Calendar event created (legacy Google Calendar):', response.data.id)
     return { success: true, eventId: response.data.id }
   } catch (error) {
     console.error('Error creating calendar event:', error)

@@ -4,7 +4,9 @@
 import type { Handler } from "@netlify/functions"
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
-import { createCalendarEvent } from '../../lib/google-calendar'
+// Google Calendar integration removed in favor of Apple-compatible .ics export
+// See /app/api/calendar/booking-ics/route.ts for the new implementation
+// import { createCalendarEvent } from '../../lib/google-calendar'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2022-11-15'
@@ -82,19 +84,9 @@ const handler: Handler = async (event) => {
         console.error('Error updating slot:', slotError)
       }
 
-      // Create Google Calendar event
-      if (booking.slots && booking.profiles) {
-        await createCalendarEvent({
-          slotStartTime: booking.slots.start_time,
-          slotEndTime: booking.slots.end_time,
-          customerName: booking.profiles.full_name || 'Unknown',
-          customerEmail: booking.profiles.email || '',
-          customerPhone: booking.profiles.phone || '',
-          slotType: booking.slots.type,
-          slotDescription: booking.slots.description,
-          notes: booking.notes,
-        })
-      }
+      // Calendar integration: Customers now export bookings as .ics files
+      // from the booking success page (/booking/success) or bookings list (/bookings)
+      // This approach is calendar-agnostic and works with Apple Calendar, Outlook, Google Calendar, etc.
 
       console.log('Successfully processed payment for payment intent:', paymentIntent.id)
     }

@@ -1,8 +1,14 @@
-'use client'
-
 import Link from 'next/link'
 
-export default function BookingSuccess() {
+type BookingSuccessPageProps = {
+  searchParams?: Promise<{ slot_id?: string | string[] }>
+}
+
+export default async function BookingSuccess({ searchParams }: BookingSuccessPageProps) {
+  const params = await searchParams
+  const rawSlotId = params?.slot_id
+  const slotId = Array.isArray(rawSlotId) ? rawSlotId[0] : rawSlotId
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="max-w-md w-full text-center">
@@ -22,6 +28,14 @@ export default function BookingSuccess() {
           </p>
 
           <div className="space-y-4">
+            {slotId && (
+              <a
+                href={`/api/calendar/booking-ics?slot_id=${encodeURIComponent(slotId)}`}
+                className="block w-full px-6 py-3 bg-black text-white font-bold rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                Add to Apple Calendar
+              </a>
+            )}
             <Link
               href="/bookings"
               className="block w-full px-6 py-3 bg-golden text-darkText font-bold rounded-lg hover:bg-opacity-90 transition-colors"
