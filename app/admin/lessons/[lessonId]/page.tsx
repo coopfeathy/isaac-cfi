@@ -166,7 +166,6 @@ export default function ManageVideosPage() {
     <AdminPageShell
       title={lesson?.title || "Manage Lesson Videos"}
       description="Upload, review, and remove video content attached to this lesson."
-      backLinks={[{ href: "/admin", label: "Back to Admin" }, { href: "/admin/courses", label: "Back to Courses" }]}
       maxWidthClassName="max-w-5xl"
     >
       {lesson && (

@@ -215,7 +215,6 @@ export default function EditCoursePage() {
     <AdminPageShell
       title={course?.title || "Edit Course"}
       description={course?.description || "Manage units, lessons, and video structure for this course."}
-      backLinks={[{ href: "/admin", label: "Back to Admin" }, { href: "/admin/courses", label: "Back to Courses" }]}
       maxWidthClassName="max-w-5xl"
     >
       {course && (

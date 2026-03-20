@@ -85,7 +85,6 @@ export default function CreateCoursePage() {
     <AdminPageShell
       title="Create New Course"
       description="Start a new course shell, then continue into the editor to add units, lessons, and videos."
-      backLinks={[{ href: "/admin", label: "Back to Admin" }, { href: "/admin/courses", label: "Back to Courses" }]}
       maxWidthClassName="max-w-3xl"
     >
 

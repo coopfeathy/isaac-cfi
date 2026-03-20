@@ -85,7 +85,6 @@ export default function AdminCoursesPage() {
     <AdminPageShell
       title="Manage Courses"
       description="Create, publish, and organize course content for the learning platform."
-      backLinks={[{ href: "/admin", label: "Back to Admin" }]}
       actions={[
         <Link
           key="create-course"

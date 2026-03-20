@@ -349,7 +349,6 @@ export default function AdminProgressPage() {
     <AdminPageShell
       title="Syllabus Progress & Lesson Debriefs"
       description="Build custom syllabus checklists, capture lesson evaluations, and optionally email students after each debrief."
-      backLinks={[{ href: "/admin", label: "Back to Admin" }, { href: "/admin/courses", label: "Back to Courses" }]}
       maxWidthClassName="max-w-6xl"
     >
 

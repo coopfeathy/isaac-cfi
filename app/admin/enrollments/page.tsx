@@ -158,7 +158,6 @@ export default function AdminStudentEnrollmentPage() {
     <AdminPageShell
       title="Assign Students to Courses"
       description="Search enrolled users, open a course roster, and manage course access from one place."
-      backLinks={[{ href: "/admin", label: "Back to Admin" }, { href: "/admin/courses", label: "Back to Courses" }]}
     >
 
       <div style={{ marginBottom: "40px" }}>

@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const navItems = [
-  { href: '/admin', label: 'Overview', match: ['/admin'] },
   { href: '/admin/courses', label: 'Courses', match: ['/admin/courses', '/admin/lessons'] },
   { href: '/admin/enrollments', label: 'Enrollments', match: ['/admin/enrollments'] },
   { href: '/admin/progress', label: 'Debriefs', match: ['/admin/progress'] },
@@ -19,16 +18,34 @@ const navItems = [
 export default function AdminTopNav() {
   const pathname = usePathname()
 
+  if (pathname === '/admin') {
+    return null
+  }
+
+  const currentSection = navItems.find((item) =>
+    item.match.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+  )?.label || 'Workspace'
+
   return (
     <div className="border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 py-4">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <Link href="/admin" className="text-lg font-semibold text-slate-900 hover:text-golden transition-colors">
               Merlin Admin
             </Link>
-            <p className="text-sm text-slate-600">Courses, bookings, prospects, and content management in one workspace.</p>
+            <p className="text-sm text-slate-600">{currentSection} workspace</p>
           </div>
+          <div>
+            <Link
+              href="/admin"
+              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+            >
+              ← Back to Admin
+            </Link>
+          </div>
+        </div>
+        <div className="mt-3">
           <nav className="flex flex-wrap gap-2">
             {navItems.map((item) => {
               const isActive = item.match.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
