@@ -30,7 +30,7 @@ export default function AdminTopNav() {
   )?.label || 'Workspace'
 
   return (
-    <div className="border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="mx-auto max-w-7xl px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

@@ -35,6 +35,7 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [prospects, setProspects] = useState<any[]>([])
   const [prospectSource, setProspectSource] = useState<'all' | 'discovery_flight'>('all')
+  const [prospectView, setProspectView] = useState<'list' | 'cards'>('cards')
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<AdminTab>(forcedTab || 'slots')
   
@@ -623,6 +624,8 @@ ${blogContent}
     return null
   }
 
+  const filteredProspects = prospects.filter((p) => prospectSource === 'all' || p.source === prospectSource)
+
   const shouldShowWorkspace = Boolean(forcedTab || isAdminTab(searchParams.get('tab')))
 
   // Landing Page View
@@ -938,7 +941,7 @@ ${blogContent}
         {/* Prospects Tab */}
         {activeTab === 'prospects' && (
           <div>
-            <div className="mb-6 flex flex-col gap-4">
+            <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Source</label>
                 <select
@@ -950,52 +953,101 @@ ${blogContent}
                   <option value="discovery_flight">Discovery Flight</option>
                 </select>
               </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interest</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {prospects.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-4 text-center text-gray-500">No prospects yet</td>
-                      </tr>
-                    ) : (
-                      prospects
-                        .filter(p => prospectSource === 'all' || p.source === prospectSource)
-                        .map((prospect) => (
-                          <tr key={prospect.id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{prospect.email}</div></td>
-                            <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{prospect.full_name || '-'}</div></td>
-                            <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{prospect.phone || '-'}</div></td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 py-1 text-xs rounded-full ${
-                                prospect.interest_level === 'hot' ? 'bg-red-100 text-red-800' :
-                                prospect.interest_level === 'warm' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-blue-100 text-blue-800'
-                              }`}>
-                                {prospect.interest_level || 'unknown'}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{prospect.source?.replace('_', ' ') || '-'}</div></td>
-                            <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{new Date(prospect.created_at).toLocaleDateString()}</div></td>
-                          </tr>
-                        ))
-                    )}
-                  </tbody>
-                </table>
+              <div>
+                <p className="block text-sm font-medium text-gray-700 mb-2">View</p>
+                <div className="inline-flex rounded-lg border border-gray-300 bg-white p-1">
+                  <button
+                    type="button"
+                    onClick={() => setProspectView('cards')}
+                    className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
+                      prospectView === 'cards'
+                        ? 'bg-golden text-darkText'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Cards
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setProspectView('list')}
+                    className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors ${
+                      prospectView === 'list'
+                        ? 'bg-golden text-darkText'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    List
+                  </button>
+                </div>
               </div>
             </div>
+
+            {filteredProspects.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-500">No prospects yet</div>
+            ) : prospectView === 'cards' ? (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {filteredProspects.map((prospect) => (
+                  <div key={prospect.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <h3 className="text-lg font-bold text-darkText leading-tight">{prospect.full_name || 'No name'}</h3>
+                        <p className="text-sm text-gray-600 mt-1">{prospect.email || 'No email'}</p>
+                      </div>
+                      <span className={`px-2 py-1 text-xs rounded-full whitespace-nowrap ${
+                        prospect.interest_level === 'hot' ? 'bg-red-100 text-red-800' :
+                        prospect.interest_level === 'warm' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-blue-100 text-blue-800'
+                      }`}>
+                        {prospect.interest_level || 'unknown'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 text-sm text-gray-700">
+                      <p><span className="font-semibold text-gray-900">Phone:</span> {prospect.phone || '-'}</p>
+                      <p><span className="font-semibold text-gray-900">Source:</span> {prospect.source?.replace('_', ' ') || '-'}</p>
+                      <p><span className="font-semibold text-gray-900">Submitted:</span> {new Date(prospect.created_at).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interest</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredProspects.map((prospect) => (
+                        <tr key={prospect.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{prospect.email}</div></td>
+                          <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{prospect.full_name || '-'}</div></td>
+                          <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{prospect.phone || '-'}</div></td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              prospect.interest_level === 'hot' ? 'bg-red-100 text-red-800' :
+                              prospect.interest_level === 'warm' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {prospect.interest_level || 'unknown'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{prospect.source?.replace('_', ' ') || '-'}</div></td>
+                          <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{new Date(prospect.created_at).toLocaleDateString()}</div></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
