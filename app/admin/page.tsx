@@ -671,6 +671,9 @@ ${blogContent}
                 <Link href="/admin/prospects" className="px-4 py-2 bg-purple-500 text-white font-bold rounded hover:bg-purple-600 text-center">
                   Prospects
                 </Link>
+                <Link href="/admin/onboarding" className="px-4 py-2 bg-slate-700 text-white font-bold rounded hover:bg-slate-800 text-center">
+                  Onboarding Queue
+                </Link>
               </div>
             </div>
 
@@ -716,6 +719,7 @@ ${blogContent}
               <li><strong>Learn Platform:</strong> Create courses, add units/lessons, upload videos, and assign students</li>
               <li><strong>Debriefs:</strong> Update syllabus progress, rate lesson performance, and email students automatically</li>
               <li><strong>Students:</strong> View all registered users and their training progress</li>
+              <li><strong>Onboarding:</strong> Review student intake docs, signatures, and approvals</li>
               <li><strong>Prospects:</strong> Manage leads and potential students from discovery flights</li>
               <li><strong>Bookings:</strong> Manage flight slots, bookings, and schedules</li>
               <li><strong>Content:</strong> Create and manage blog posts, social media posts, and email campaigns</li>

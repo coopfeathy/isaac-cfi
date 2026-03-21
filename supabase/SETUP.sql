@@ -867,6 +867,189 @@ CREATE POLICY "Allow public select from prospect_information"
 CREATE INDEX IF NOT EXISTS idx_prospect_information_email ON prospect_information(email);
 
 -- ============================================================
+-- 25. STUDENT ONBOARDING WORKFLOW
+-- ============================================================
+CREATE TABLE IF NOT EXISTS onboarding_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT,
+  legal_first_name TEXT,
+  legal_last_name TEXT,
+  phone TEXT,
+  address_line1 TEXT,
+  address_line2 TEXT,
+  city TEXT,
+  state TEXT,
+  zip TEXT,
+  emergency_name TEXT,
+  emergency_phone TEXT,
+  certificate_goal TEXT,
+  status TEXT NOT NULL DEFAULT 'account_created' CHECK (status IN ('account_created', 'profile_completed', 'id_uploaded', 'docs_signed', 'approved')),
+  id_document_uploaded_at TIMESTAMPTZ,
+  docs_signed_at TIMESTAMPTZ,
+  approved_at TIMESTAMPTZ,
+  admin_notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS onboarding_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  doc_type TEXT NOT NULL CHECK (doc_type IN ('government_id_front', 'government_id_back', 'waiver', 'training_agreement', 'policy_acknowledgement', 'other')),
+  file_bucket TEXT NOT NULL DEFAULT 'onboarding-private',
+  file_path TEXT NOT NULL,
+  upload_status TEXT NOT NULL DEFAULT 'uploaded' CHECK (upload_status IN ('uploaded', 'signed', 'rejected')),
+  provider_envelope_id TEXT,
+  provider_status TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  reviewed_by UUID REFERENCES auth.users(id),
+  reviewed_at TIMESTAMPTZ,
+  uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS onboarding_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL,
+  actor_user_id UUID REFERENCES auth.users(id),
+  actor_role TEXT NOT NULL CHECK (actor_role IN ('student', 'admin', 'system')),
+  details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS onboarding_reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  review_status TEXT NOT NULL CHECK (review_status IN ('approved', 'rejected', 'needs_changes')),
+  review_notes TEXT,
+  reviewed_by UUID REFERENCES auth.users(id),
+  reviewed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE onboarding_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE onboarding_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE onboarding_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE onboarding_reviews ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own onboarding profile" ON onboarding_profiles;
+DROP POLICY IF EXISTS "Users can insert own onboarding profile" ON onboarding_profiles;
+DROP POLICY IF EXISTS "Users can update own onboarding profile" ON onboarding_profiles;
+DROP POLICY IF EXISTS "Admins can manage onboarding profiles" ON onboarding_profiles;
+
+CREATE POLICY "Users can view own onboarding profile"
+  ON onboarding_profiles FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY "Users can insert own onboarding profile"
+  ON onboarding_profiles FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can update own onboarding profile"
+  ON onboarding_profiles FOR UPDATE
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Admins can manage onboarding profiles"
+  ON onboarding_profiles FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+DROP POLICY IF EXISTS "Users can view own onboarding documents" ON onboarding_documents;
+DROP POLICY IF EXISTS "Users can insert own onboarding documents" ON onboarding_documents;
+DROP POLICY IF EXISTS "Admins can manage onboarding documents" ON onboarding_documents;
+
+CREATE POLICY "Users can view own onboarding documents"
+  ON onboarding_documents FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY "Users can insert own onboarding documents"
+  ON onboarding_documents FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Admins can manage onboarding documents"
+  ON onboarding_documents FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+DROP POLICY IF EXISTS "Users can view own onboarding events" ON onboarding_events;
+DROP POLICY IF EXISTS "Users can insert own onboarding events" ON onboarding_events;
+DROP POLICY IF EXISTS "Admins can manage onboarding events" ON onboarding_events;
+
+CREATE POLICY "Users can view own onboarding events"
+  ON onboarding_events FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY "Users can insert own onboarding events"
+  ON onboarding_events FOR INSERT
+  WITH CHECK (user_id = auth.uid() AND actor_user_id = auth.uid() AND actor_role = 'student');
+
+CREATE POLICY "Admins can manage onboarding events"
+  ON onboarding_events FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+DROP POLICY IF EXISTS "Users can view own onboarding reviews" ON onboarding_reviews;
+DROP POLICY IF EXISTS "Admins can manage onboarding reviews" ON onboarding_reviews;
+
+CREATE POLICY "Users can view own onboarding reviews"
+  ON onboarding_reviews FOR SELECT
+  USING (user_id = auth.uid());
+
+CREATE POLICY "Admins can manage onboarding reviews"
+  ON onboarding_reviews FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('onboarding-private', 'onboarding-private', false)
+ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public;
+
+DROP POLICY IF EXISTS "Users can read own onboarding files" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload own onboarding files" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete own onboarding files" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can manage onboarding files" ON storage.objects;
+
+CREATE POLICY "Users can read own onboarding files"
+  ON storage.objects FOR SELECT
+  USING (
+    bucket_id = 'onboarding-private'
+    AND split_part(name, '/', 1) = auth.uid()::text
+  );
+
+CREATE POLICY "Users can upload own onboarding files"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'onboarding-private'
+    AND split_part(name, '/', 1) = auth.uid()::text
+  );
+
+CREATE POLICY "Users can delete own onboarding files"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'onboarding-private'
+    AND split_part(name, '/', 1) = auth.uid()::text
+  );
+
+CREATE POLICY "Admins can manage onboarding files"
+  ON storage.objects FOR ALL
+  USING (
+    bucket_id = 'onboarding-private'
+    AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+  )
+  WITH CHECK (
+    bucket_id = 'onboarding-private'
+    AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+  );
+
+CREATE INDEX IF NOT EXISTS idx_onboarding_profiles_user_id ON onboarding_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_onboarding_profiles_status ON onboarding_profiles(status);
+CREATE INDEX IF NOT EXISTS idx_onboarding_documents_user_id ON onboarding_documents(user_id);
+CREATE INDEX IF NOT EXISTS idx_onboarding_documents_type ON onboarding_documents(doc_type);
+CREATE INDEX IF NOT EXISTS idx_onboarding_events_user_id ON onboarding_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_onboarding_reviews_user_id ON onboarding_reviews(user_id);
+
+-- ============================================================
 -- INDEXES FOR PERFORMANCE
 -- ============================================================
 CREATE INDEX IF NOT EXISTS idx_courses_created_by ON courses(created_by);

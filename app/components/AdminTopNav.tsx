@@ -12,6 +12,7 @@ const navItems = [
   { href: '/admin/slots', label: 'Slots', match: ['/admin/slots'] },
   { href: '/admin/bookings', label: 'Bookings', match: ['/admin/bookings'] },
   { href: '/admin/prospects', label: 'Prospects', match: ['/admin/prospects', '/admin/leads'] },
+  { href: '/admin/onboarding', label: 'Onboarding', match: ['/admin/onboarding'] },
   { href: '/admin/blog', label: 'Blog', match: ['/admin/blog'] },
   { href: '/admin/social', label: 'Social', match: ['/admin/social'] },
   { href: '/admin/email', label: 'Email', match: ['/admin/email'] },

@@ -98,7 +98,7 @@ export default function LearnPage() {
         </div>
       )}
 
-      <div style={{ marginBottom: "24px" }}>
+      <div style={{ marginBottom: "24px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
         <Link
           href="/private-pilot-timeline"
           style={{
@@ -112,6 +112,20 @@ export default function LearnPage() {
           }}
         >
           View Private Pilot Timeline
+        </Link>
+        <Link
+          href="/onboarding"
+          style={{
+            display: "inline-block",
+            border: "1px solid #111827",
+            color: "#111827",
+            padding: "10px 16px",
+            borderRadius: "8px",
+            textDecoration: "none",
+            fontWeight: "600",
+          }}
+        >
+          Open Onboarding Tracker
         </Link>
       </div>
 
