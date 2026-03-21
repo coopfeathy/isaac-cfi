@@ -23,6 +23,14 @@ const Footer = () => {
             <p className="text-gray-400 font-light leading-relaxed text-sm sm:text-base">
               Professional flight training and unforgettable aerial tours over New York City.
             </p>
+            <a
+              href="https://maps.google.com/?q=208+NY-109+Farmingdale+NY+11735"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-block text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base"
+            >
+              208 NY-109, Farmingdale, NY 11735
+            </a>
           </div>
           
           <div>

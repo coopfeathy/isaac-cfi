@@ -75,10 +75,10 @@ export default function RootLayout({
     image: "https://merlinflight.com/images/merlin-logo.png",
     address: {
       "@type": "PostalAddress",
-      streetAddress: "Flying W Airport, N14",
-      addressLocality: "Lumberton",
-      addressRegion: "NJ",
-      postalCode: "08048",
+      streetAddress: "208 NY-109",
+      addressLocality: "Farmingdale",
+      addressRegion: "NY",
+      postalCode: "11735",
       addressCountry: "US",
     },
     areaServed: [

@@ -111,7 +111,7 @@ export default function SupportPage() {
               </div>
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Location</h3>
               <p className="text-gray-900 font-medium">Republic Airport</p>
-              <p className="text-gray-700 text-sm">208 NY-109 Suite 201-8</p>
+              <p className="text-gray-700 text-sm">208 NY-109</p>
               <p className="text-gray-700 text-sm">Farmingdale, NY 11735</p>
             </div>
 

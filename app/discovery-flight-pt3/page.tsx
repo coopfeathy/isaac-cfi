@@ -23,7 +23,7 @@ function DiscoveryFlightPt3Content() {
       id: 'long-island',
       name: 'Long Island, NY',
       airport: 'FRG - Republic Airport',
-      address: 'Farmingdale, New York',
+      address: '208 NY-109, Farmingdale, NY 11735',
     },
     {
       id: 'warwick',

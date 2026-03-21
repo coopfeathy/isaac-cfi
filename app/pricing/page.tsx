@@ -101,7 +101,7 @@ export default function PricingPage() {
                     <div className="mb-4 md:mb-0">
                       <h3 className="text-2xl sm:text-3xl font-bold text-black mb-2">N2152Z Piper Warrior</h3>
                       <p className="text-golden font-semibold text-lg sm:text-xl mb-1">FRG - Republic Airport</p>
-                      <p className="text-gray-600 font-medium">Farmingdale, New York</p>
+                        <p className="text-gray-600 font-medium">208 NY-109, Farmingdale, NY 11735</p>
                     </div>
                     <div className="text-left md:text-right">
                       <p className="text-sm text-gray-500 mb-1">Starting Rate</p>

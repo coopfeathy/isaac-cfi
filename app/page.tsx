@@ -139,7 +139,7 @@ export default function Home() {
                 <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">Long Island, NY</h3>
                 <p className="text-golden font-semibold mb-2">N2152Z Piper Warrior</p>
                 <p className="text-white text-sm mb-1">FRG - Republic Airport</p>
-                <p className="text-gray-400 text-xs mb-4">Farmingdale, New York</p>
+                <p className="text-gray-400 text-xs mb-4">208 NY-109, Farmingdale, NY 11735</p>
                 <div className="bg-black text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-golden group-hover:text-black transition-all duration-300">
                   View on Map
                 </div>
@@ -452,7 +452,7 @@ export default function Home() {
                   <h4 className="text-xl font-bold text-white mb-2">Long Island, NY</h4>
                   <p className="text-golden font-semibold mb-3">N2152Z Piper Warrior</p>
                   <p className="text-gray-200 font-medium mb-1 text-sm">FRG - Republic Airport</p>
-                  <p className="text-gray-300 text-xs mb-4">Farmingdale, New York</p>
+                  <p className="text-gray-300 text-xs mb-4">208 NY-109, Farmingdale, NY 11735</p>
                   <div className="flex gap-2">
                     <a
                       href="https://maps.google.com/?q=Republic+Airport+Farmingdale+NY"
