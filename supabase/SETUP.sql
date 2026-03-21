@@ -125,6 +125,151 @@ CREATE POLICY "Admins can update any booking"
   USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
 
 -- ============================================================
+-- 3A. SUPPORT TICKETS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS support_tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  category TEXT NOT NULL CHECK (category IN ('scheduling', 'billing', 'training', 'medical', 'aircraft', 'other')),
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can create support tickets" ON support_tickets;
+DROP POLICY IF EXISTS "Admins can read support tickets" ON support_tickets;
+DROP POLICY IF EXISTS "Admins can update support tickets" ON support_tickets;
+
+CREATE POLICY "Anyone can create support tickets"
+  ON support_tickets FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Admins can read support tickets"
+  ON support_tickets FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+CREATE POLICY "Admins can update support tickets"
+  ON support_tickets FOR UPDATE
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+-- ============================================================
+-- 3B. STRIPE WEBHOOK EVENT LOGS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS stripe_webhook_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id TEXT NOT NULL UNIQUE,
+  event_type TEXT NOT NULL,
+  booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
+  slot_id UUID REFERENCES slots(id) ON DELETE SET NULL,
+  status TEXT NOT NULL DEFAULT 'processing' CHECK (status IN ('processing', 'processed', 'failed')),
+  error_message TEXT,
+  payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  processed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE stripe_webhook_events ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can view webhook event logs" ON stripe_webhook_events;
+DROP POLICY IF EXISTS "Service role manages webhook event logs" ON stripe_webhook_events;
+
+CREATE POLICY "Admins can view webhook event logs"
+  ON stripe_webhook_events FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+CREATE POLICY "Service role manages webhook event logs"
+  ON stripe_webhook_events FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+-- ============================================================
+-- 3C. BOOKING INTEGRITY MONITOR
+-- ============================================================
+CREATE TABLE IF NOT EXISTS booking_integrity_runs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_source TEXT NOT NULL DEFAULT 'scheduled',
+  stale_pending_count INTEGER NOT NULL DEFAULT 0,
+  canceled_pending_count INTEGER NOT NULL DEFAULT 0,
+  released_slot_count INTEGER NOT NULL DEFAULT 0,
+  paid_unbooked_count INTEGER NOT NULL DEFAULT 0,
+  booked_without_paid_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  finished_at TIMESTAMPTZ,
+  error_message TEXT
+);
+
+CREATE TABLE IF NOT EXISTS booking_integrity_alerts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_id UUID REFERENCES booking_integrity_runs(id) ON DELETE SET NULL,
+  alert_type TEXT NOT NULL CHECK (alert_type IN ('paid_booking_unbooked_slot', 'booked_slot_without_paid_booking', 'pending_booking_stale')),
+  booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
+  slot_id UUID REFERENCES slots(id) ON DELETE SET NULL,
+  details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  detected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  resolved_at TIMESTAMPTZ
+);
+
+ALTER TABLE booking_integrity_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE booking_integrity_alerts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can view booking integrity runs" ON booking_integrity_runs;
+DROP POLICY IF EXISTS "Service role manages booking integrity runs" ON booking_integrity_runs;
+DROP POLICY IF EXISTS "Admins can view booking integrity alerts" ON booking_integrity_alerts;
+DROP POLICY IF EXISTS "Service role manages booking integrity alerts" ON booking_integrity_alerts;
+
+CREATE POLICY "Admins can view booking integrity runs"
+  ON booking_integrity_runs FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+CREATE POLICY "Service role manages booking integrity runs"
+  ON booking_integrity_runs FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+CREATE POLICY "Admins can view booking integrity alerts"
+  ON booking_integrity_alerts FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+CREATE POLICY "Service role manages booking integrity alerts"
+  ON booking_integrity_alerts FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+-- ============================================================
+-- 3D. OPERATIONAL ALERT STATE (email dedupe + cooldown)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS operational_alert_state (
+  alert_kind TEXT PRIMARY KEY,
+  is_active BOOLEAN NOT NULL DEFAULT false,
+  first_detected_at TIMESTAMPTZ,
+  last_detected_at TIMESTAMPTZ,
+  last_sent_at TIMESTAMPTZ,
+  resolved_at TIMESTAMPTZ,
+  details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE operational_alert_state ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can view operational alert state" ON operational_alert_state;
+DROP POLICY IF EXISTS "Service role manages operational alert state" ON operational_alert_state;
+
+CREATE POLICY "Admins can view operational alert state"
+  ON operational_alert_state FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+CREATE POLICY "Service role manages operational alert state"
+  ON operational_alert_state FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+-- ============================================================
 -- 4. DISCOVERY FLIGHT SIGNUPS (public lead capture)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS discovery_flight_signups (
@@ -146,6 +291,14 @@ CREATE POLICY "Anyone can insert signups"
 
 CREATE INDEX IF NOT EXISTS idx_discovery_signups_email ON discovery_flight_signups(email);
 CREATE INDEX IF NOT EXISTS idx_discovery_signups_created_at ON discovery_flight_signups(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_created_at ON support_tickets(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_stripe_webhook_events_status ON stripe_webhook_events(status);
+CREATE INDEX IF NOT EXISTS idx_stripe_webhook_events_processed_at ON stripe_webhook_events(processed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_booking_integrity_runs_created_at ON booking_integrity_runs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_booking_integrity_alerts_detected_at ON booking_integrity_alerts(detected_at DESC);
+CREATE INDEX IF NOT EXISTS idx_booking_integrity_alerts_unresolved ON booking_integrity_alerts(alert_type, booking_id, slot_id) WHERE resolved_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_operational_alert_state_active ON operational_alert_state(is_active, updated_at DESC);
 
 -- ============================================================
 -- 5. POSTS (blog)

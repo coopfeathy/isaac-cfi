@@ -60,9 +60,31 @@ export default function StudentsPage() {
 
   useEffect(() => {
     if (user && isAdmin) {
-      fetchStudents()
+      syncAndFetchStudents()
     }
   }, [user, isAdmin])
+
+  const syncAndFetchStudents = async () => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (session?.access_token) {
+        await fetch('/api/admin/students/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        })
+      }
+    } catch (error) {
+      console.error('Error syncing students from enrollments:', error)
+    }
+
+    await fetchStudents()
+  }
 
   const fetchStudents = async () => {
     setLoading(true)

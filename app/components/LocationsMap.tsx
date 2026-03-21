@@ -13,25 +13,11 @@ const geoUrl = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json'
 
 const airports = [
   {
-    id: 'n888ms',
-    name: 'N14 - Flying W Airport',
-    location: 'Lumberton, NJ',
-    aircraft: 'N888MS Sport Cruiser',
-    coordinates: [-74.8075, 39.9342] as [number, number],
-  },
-  {
     id: 'n2152z',
     name: 'FRG - Republic Airport',
     location: 'Farmingdale, NY',
     aircraft: 'N2152Z Piper Warrior',
     coordinates: [-73.4134, 40.7288] as [number, number],
-  },
-  {
-    id: 'n1624q',
-    name: 'N72 - Warwick Municipal',
-    location: 'Warwick, NY',
-    aircraft: 'N1624Q Cessna 150',
-    coordinates: [-74.2890, 41.2870] as [number, number],
   },
 ]
 

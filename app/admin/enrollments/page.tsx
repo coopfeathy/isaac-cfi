@@ -11,6 +11,7 @@ interface StudentEnrollment {
   id: string
   email: string
   full_name: string | null
+  phone?: string | null
   is_enrolled: boolean
 }
 
@@ -27,6 +28,14 @@ export default function AdminStudentEnrollmentPage() {
   const [students, setStudents] = useState<StudentEnrollment[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(false)
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [editingStudent, setEditingStudent] = useState<StudentEnrollment | null>(null)
+  const [editForm, setEditForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+  })
 
   useEffect(() => {
     if (authLoading) {
@@ -87,6 +96,13 @@ export default function AdminStudentEnrollmentPage() {
       const usersJson = await usersResponse.json()
       const users: Array<{ id: string; email: string; full_name: string | null }> = usersJson.users || []
 
+      const { data: profileRows } = await supabase
+        .from('profiles')
+        .select('id, phone')
+        .in('id', users.map((u) => u.id))
+
+      const phoneById = new Map((profileRows || []).map((row) => [row.id, row.phone]))
+
       // Get enrollments for this course
       const { data: enrollments } = await supabase
         .from("enrollments")
@@ -99,6 +115,7 @@ export default function AdminStudentEnrollmentPage() {
         id: user.id,
         email: user.email,
         full_name: user.full_name,
+        phone: phoneById.get(user.id) || null,
         is_enrolled: enrolledIds.has(user.id),
       }))
 
@@ -107,6 +124,68 @@ export default function AdminStudentEnrollmentPage() {
       console.error("Error loading students:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const openEditStudent = (student: StudentEnrollment) => {
+    const parts = (student.full_name || '').trim().split(/\s+/).filter(Boolean)
+    const firstName = parts[0] || ''
+    const lastName = parts.slice(1).join(' ')
+
+    setEditingStudent(student)
+    setEditForm({
+      firstName,
+      lastName,
+      email: student.email,
+      phone: student.phone || '',
+    })
+  }
+
+  const closeEditStudent = () => {
+    setEditingStudent(null)
+    setEditForm({ firstName: '', lastName: '', email: '', phone: '' })
+  }
+
+  const saveStudentProfile = async () => {
+    if (!editingStudent) return
+    if (!editForm.email.trim()) {
+      alert('Email is required')
+      return
+    }
+
+    setSavingProfile(true)
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) throw new Error('Missing session token')
+
+      const response = await fetch('/api/admin/users/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          userId: editingStudent.id,
+          email: editForm.email.trim(),
+          firstName: editForm.firstName.trim(),
+          lastName: editForm.lastName.trim(),
+          phone: editForm.phone.trim(),
+        }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || 'Failed to update user')
+
+      await handleCourseSelect(selectedCourse || '')
+      closeEditStudent()
+    } catch (error) {
+      console.error('Error updating enrolled user profile:', error)
+      alert(error instanceof Error ? error.message : 'Failed to update user')
+    } finally {
+      setSavingProfile(false)
     }
   }
 
@@ -242,26 +321,111 @@ export default function AdminStudentEnrollmentPage() {
                       {student.email}
                     </p>
                   </div>
-                  <button
-                    onClick={() => handleToggleEnrollment(student.id, student.is_enrolled)}
-                    style={{
-                      backgroundColor: student.is_enrolled ? "#EF4444" : "#10B981",
-                      color: "white",
-                      padding: "8px 16px",
-                      borderRadius: "6px",
-                      border: "none",
-                      cursor: "pointer",
-                      fontWeight: "600",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {student.is_enrolled ? "Remove" : "Enroll"}
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                      onClick={() => openEditStudent(student)}
+                      style={{
+                        backgroundColor: '#1D4ED8',
+                        color: 'white',
+                        padding: '8px 14px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleToggleEnrollment(student.id, student.is_enrolled)}
+                      style={{
+                        backgroundColor: student.is_enrolled ? "#EF4444" : "#10B981",
+                        color: "white",
+                        padding: "8px 16px",
+                        borderRadius: "6px",
+                        border: "none",
+                        cursor: "pointer",
+                        fontWeight: "600",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {student.is_enrolled ? "Remove" : "Enroll"}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </>
+      )}
+
+      {editingStudent && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+            padding: '16px',
+          }}
+        >
+          <div style={{ background: 'white', borderRadius: '10px', width: '100%', maxWidth: '540px', padding: '22px' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '14px', fontSize: '20px', fontWeight: 700 }}>Edit Enrolled Student</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: '6px' }}>First Name</label>
+                <input
+                  value={editForm.firstName}
+                  onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #D1D5DB' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: '6px' }}>Last Name</label>
+                <input
+                  value={editForm.lastName}
+                  onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #D1D5DB' }}
+                />
+              </div>
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '6px' }}>Email</label>
+              <input
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #D1D5DB' }}
+              />
+            </div>
+            <div style={{ marginBottom: '18px' }}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: '6px' }}>Phone</label>
+              <input
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #D1D5DB' }}
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                onClick={closeEditStudent}
+                style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #D1D5DB', background: 'white', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveStudentProfile}
+                disabled={savingProfile}
+                style={{ padding: '10px 14px', borderRadius: '8px', border: 'none', background: '#C59A2A', color: '#111827', fontWeight: 700, cursor: 'pointer', opacity: savingProfile ? 0.7 : 1 }}
+              >
+                {savingProfile ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AdminPageShell>
   )

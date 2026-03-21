@@ -1,15 +1,64 @@
 'use client'
 
-import React from "react"
+import React, { useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import ImageCarousel from "@/app/components/ImageCarousel"
 import LocationsMap from "@/app/components/LocationsMap"
 import TypingEffect from "@/app/components/TypingEffect"
 
+type LiveGoogleReview = {
+  authorName: string
+  authorUrl: string | null
+  rating: number
+  relativeTime: string
+  text: string
+}
+
 export default function Home() {
-  const router = useRouter()
-  
+  const [reviews, setReviews] = useState<LiveGoogleReview[]>([])
+  const [reviewSummary, setReviewSummary] = useState<{ rating: number; userRatingCount: number } | null>(null)
+  const [reviewsLoading, setReviewsLoading] = useState(true)
+  const [reviewsError, setReviewsError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchReviews = async () => {
+      try {
+        setReviewsLoading(true)
+        const response = await fetch('/api/google-reviews')
+        const result = await response.json().catch(() => ({}))
+
+        if (!response.ok) {
+          throw new Error(result?.error || 'Unable to load live Google reviews')
+        }
+
+        if (!cancelled) {
+          setReviews(Array.isArray(result.reviews) ? result.reviews : [])
+          setReviewSummary({
+            rating: Number(result.rating || 0),
+            userRatingCount: Number(result.userRatingCount || 0),
+          })
+          setReviewsError(null)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setReviewsError(error instanceof Error ? error.message : 'Unable to load reviews right now')
+        }
+      } finally {
+        if (!cancelled) {
+          setReviewsLoading(false)
+        }
+      }
+    }
+
+    fetchReviews()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-white">
       <section className="relative min-h-[85vh] sm:min-h-[90vh] flex items-center justify-center bg-black overflow-hidden">
@@ -77,42 +126,7 @@ export default function Home() {
           </div>
 
           {/* Location Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            {/* Lumberton, NJ */}
-            <a 
-              href="https://maps.apple.com/?q=Flying+W+Airport+N14+Lumberton+NJ"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative rounded-2xl overflow-hidden border-2 border-golden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
-            >
-              <div className="relative h-40 sm:h-48">
-                <img 
-                  src="/images/flying-w-airport.png" 
-                  alt="Flying W Airport" 
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/40" />
-                {/* Location Pin Icon */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-12 h-12 rounded-full border-2 border-golden bg-black/30 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-golden" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-900 p-5 text-center">
-                <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">Lumberton, NJ</h3>
-                <p className="text-golden font-semibold mb-2">N888MS Sport Cruiser</p>
-                <p className="text-white text-sm mb-1">N14 - Flying W Airport</p>
-                <p className="text-gray-400 text-xs mb-4">68 Stacy Haines Rd, Lumberton, NJ</p>
-                <div className="bg-black text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-golden group-hover:text-black transition-all duration-300">
-                  View on Map
-                </div>
-              </div>
-            </a>
-
-            {/* Long Island, NY */}
+          <div className="max-w-md mx-auto">
             <a 
               href="https://maps.apple.com/?q=FRG+Republic+Airport+Farmingdale+NY"
               target="_blank"
@@ -145,40 +159,6 @@ export default function Home() {
                 </div>
               </div>
             </a>
-
-            {/* Warwick, NY */}
-            <a 
-              href="https://maps.apple.com/?q=N72+Warwick+Municipal+Airport+Warwick+NY"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative rounded-2xl overflow-hidden border-2 border-golden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
-            >
-              <div className="relative h-40 sm:h-48">
-                <img 
-                  src="/images/warwick-airport.png" 
-                  alt="Warwick Municipal Airport" 
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/40" />
-                {/* Location Pin Icon */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-12 h-12 rounded-full border-2 border-golden bg-black/30 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-golden" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-900 p-5 text-center">
-                <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">Warwick, NY</h3>
-                <p className="text-golden font-semibold mb-2">N1624Q Cessna 150</p>
-                <p className="text-white text-sm mb-1">N72 - Warwick Municipal</p>
-                <p className="text-gray-400 text-xs mb-4">Warwick, New York</p>
-                <div className="bg-black text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-golden group-hover:text-black transition-all duration-300">
-                  View on Map
-                </div>
-              </div>
-            </a>
           </div>
         </div>
       </section>
@@ -200,44 +180,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            {/* N888MS Sport Cruiser */}
-            <div className="group bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-2xl overflow-hidden">
-              <div className="h-48 sm:h-56">
-                <ImageCarousel 
-                  images={[
-                    '/images/n888ms-1.JPG',
-                    '/images/n888ms-2.JPG',
-                    '/images/n888ms-3.JPG',
-                  ]}
-                  objectPositions={[
-                    'center center',
-                    'center center',
-                    'center bottom',
-                  ]}
-                  alt="N888MS Sport Cruiser"
-                />
-              </div>
-              <div className="p-6 sm:p-8">
-                <h3 className="text-xl sm:text-2xl font-bold text-black mb-2 group-hover:text-golden transition-colors duration-300">
-                  N888MS Sport Cruiser
-                </h3>
-                <p className="text-golden font-semibold mb-1">Lumberton, NJ</p>
-                <p className="text-gray-600 text-sm mb-3 font-light">Great for building time and logging XC Hours.</p>
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-gray-500 text-sm">From</span>
-                  <span className="text-2xl font-bold text-golden">$152.50<span className="text-sm text-gray-500">/hr</span></span>
-                </div>
-                <Link
-                  href="/aircraft#n888ms"
-                  className="block w-full text-center px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
-                >
-                  View Details
-                </Link>
-              </div>
-            </div>
-
-            {/* N2152Z Piper Warrior */}
+          <div className="max-w-xl mx-auto">
             <div className="group bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-2xl overflow-hidden">
               <div className="h-48 sm:h-56">
                 <ImageCarousel 
@@ -270,42 +213,70 @@ export default function Home() {
                 </Link>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
 
-            {/* N1624Q Cessna 150 */}
-            <div className="group bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-2xl overflow-hidden">
-              <div className="h-48 sm:h-56">
-                <ImageCarousel 
-                  images={[
-                    '/images/n1624q-1.JPG',
-                    '/images/n1624q-2.JPG',
-                    '/images/n1624q-3.JPG',
-                  ]}
-                  objectPositions={[
-                    'center center',
-                    'center center',
-                    'center center',
-                  ]}
-                  alt="N1624Q Cessna 150"
-                />
-              </div>
-              <div className="p-6 sm:p-8">
-                <h3 className="text-xl sm:text-2xl font-bold text-black mb-2 group-hover:text-golden transition-colors duration-300">
-                  N1624Q Cessna 150
-                </h3>
-                <p className="text-golden font-semibold mb-1">Warwick, NY</p>
-                <p className="text-gray-600 text-sm mb-3 font-light">6 Pack, Excellent for the casual flyer.</p>
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-gray-500 text-sm">From</span>
-                  <span className="text-2xl font-bold text-golden">$150<span className="text-sm text-gray-500">/hr</span></span>
-                </div>
-                <Link
-                  href="/aircraft#n1624q"
-                  className="block w-full text-center px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
-                >
-                  View Details
-                </Link>
-              </div>
+      {/* Google Reviews */}
+      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-gray-50 to-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12">
+            <div className="inline-block mb-4">
+              <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
             </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-black mb-4 tracking-tight">Google Reviews</h2>
+            <p className="text-gray-600 text-base sm:text-lg max-w-2xl mx-auto font-light">
+              Verified public feedback from our Google Business Profile.
+            </p>
+            {reviewSummary && (
+              <p className="text-sm text-gray-500 mt-2">
+                {reviewSummary.rating.toFixed(1)} average from {reviewSummary.userRatingCount} Google ratings
+              </p>
+            )}
+          </div>
+
+          {reviewsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map((index) => (
+                <div key={index} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm animate-pulse">
+                  <div className="h-4 w-24 bg-gray-200 rounded mb-4" />
+                  <div className="h-3 w-full bg-gray-200 rounded mb-2" />
+                  <div className="h-3 w-5/6 bg-gray-200 rounded mb-2" />
+                  <div className="h-3 w-3/4 bg-gray-200 rounded" />
+                </div>
+              ))}
+            </div>
+          ) : reviewsError ? (
+            <div className="bg-white rounded-2xl border border-red-200 p-6 text-center">
+              <p className="text-sm text-red-600">{reviewsError}</p>
+              <p className="text-xs text-gray-500 mt-2">Live reviews are temporarily unavailable. Use the Google link below.</p>
+            </div>
+          ) : reviews.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {reviews.slice(0, 3).map((review, index) => (
+                <div key={`${review.authorName}-${index}`} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-shadow">
+                  <div className="text-golden text-lg mb-2">{'★'.repeat(Math.max(1, Math.min(5, Math.round(review.rating || 0))))}</div>
+                  <p className="text-gray-700 text-sm leading-relaxed mb-4 line-clamp-5">"{review.text || 'Great instruction and professional service.'}"</p>
+                  <p className="text-sm font-semibold text-black">{review.authorName}</p>
+                  {review.relativeTime && <p className="text-xs text-gray-500 mt-1">{review.relativeTime}</p>}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 text-center">
+              <p className="text-sm text-gray-500">No live review content is available yet. Use the Google link below.</p>
+            </div>
+          )}
+
+          <div className="text-center mt-10">
+            <a
+              href="https://www.google.com/search?q=Merlin+Flight+Training+reviews"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-8 py-3 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-colors"
+            >
+              Read Reviews on Google
+            </a>
           </div>
         </div>
       </section>
@@ -384,52 +355,11 @@ export default function Home() {
               Our Locations
             </h3>
             <p className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto font-light mb-8 leading-relaxed">
-              We operate from three convenient locations across New Jersey and New York
+              We operate from our primary location in New York
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              {/* Location 1: Lumberton, NJ */}
+            <div className="grid grid-cols-1 gap-6 max-w-xl mx-auto">
               <div 
-                onClick={() => router.push('/aircraft#n888ms')}
-                className="block relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80 cursor-pointer"
-              >
-                {/* Aerial Background Image */}
-                <div 
-                  className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-300"
-                  style={{
-                    backgroundImage: 'url("/images/flying-w-airport.png")'
-                  }}
-                />
-                {/* Dark Overlay */}
-                <div className="absolute inset-0 bg-black/50 group-hover:bg-black/40 transition-colors duration-300" />
-                {/* Content */}
-                <div className="relative z-10 flex flex-col justify-end h-full">
-                  <div className="w-12 h-12 bg-golden/20 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                    <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <h4 className="text-xl font-bold text-white mb-2">Lumberton, NJ</h4>
-                  <p className="text-golden font-semibold mb-3">N888MS Sport Cruiser</p>
-                  <p className="text-gray-200 font-medium mb-1 text-sm">N14 - Flying W Airport</p>
-                  <p className="text-gray-300 text-xs mb-4">68 Stacy Haines Rd, Lumberton, NJ</p>
-                  <div className="flex gap-2">
-                    <a
-                      href="https://maps.google.com/?q=Flying+W+Airport+Lumberton+NJ"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex-1 text-center px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
-                    >
-                      View on Map
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              {/* Location 2: Long Island, NY */}
-              <div 
-                onClick={() => router.push('/aircraft#n2152z')}
+                onClick={() => window.location.assign('/aircraft#n2152z')}
                 className="block relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80 cursor-pointer"
               >
                 {/* Aerial Background Image */}
@@ -456,46 +386,6 @@ export default function Home() {
                   <div className="flex gap-2">
                     <a
                       href="https://maps.google.com/?q=Republic+Airport+Farmingdale+NY"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex-1 text-center px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
-                    >
-                      View on Map
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              {/* Location 3: Warwick, NY */}
-              <div 
-                onClick={() => router.push('/aircraft#n1624q')}
-                className="block relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80 cursor-pointer"
-              >
-                {/* Aerial Background Image */}
-                <div 
-                  className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-300"
-                  style={{
-                    backgroundImage: 'url("/images/warwick-airport.png")'
-                  }}
-                />
-                {/* Dark Overlay */}
-                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors duration-300" />
-                {/* Content */}
-                <div className="relative z-10 flex flex-col justify-end h-full">
-                  <div className="w-12 h-12 bg-golden/20 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                    <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <h4 className="text-xl font-bold text-white mb-2">Warwick, NY</h4>
-                  <p className="text-golden font-semibold mb-3">N1624Q Cessna 150</p>
-                  <p className="text-gray-200 font-medium mb-1 text-sm">N72 - Warwick Municipal</p>
-                  <p className="text-gray-300 text-xs mb-4">Warwick, New York</p>
-                  <div className="flex gap-2">
-                    <a
-                      href="https://maps.google.com/?q=Warwick+Municipal+Airport+NY"
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}

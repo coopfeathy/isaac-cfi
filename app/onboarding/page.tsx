@@ -263,12 +263,28 @@ export default function OnboardingPage() {
     setStatusMessage("")
 
     try {
-      const sanitized = file.name.replace(/\s+/g, "-").toLowerCase()
-      const filePath = `${user.id}/${docType}-${Date.now()}-${sanitized}`
+      const allowedMimeTypes = ["image/jpeg", "image/png", "application/pdf"]
+      const maxBytes = 10 * 1024 * 1024
+
+      if (!allowedMimeTypes.includes(file.type)) {
+        throw new Error("Unsupported file type. Upload JPG, PNG, or PDF.")
+      }
+
+      if (file.size > maxBytes) {
+        throw new Error("File too large. Maximum size is 10MB.")
+      }
+
+      const extension = file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() : "bin"
+      const randomId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}`
+      const filePath = `${user.id}/${docType}-${Date.now()}-${randomId}.${extension || "bin"}`
 
       const { error: uploadError } = await supabase.storage
         .from("onboarding-private")
-        .upload(filePath, file, { upsert: false, cacheControl: "3600" })
+        .upload(filePath, file, {
+          upsert: false,
+          cacheControl: "0",
+          contentType: file.type,
+        })
 
       if (uploadError) throw uploadError
 
@@ -327,7 +343,8 @@ export default function OnboardingPage() {
       setStatusMessage("Document uploaded successfully.")
     } catch (error) {
       console.error("Error uploading onboarding document:", error)
-      setStatusMessage("Failed to upload document. Confirm the private bucket onboarding-private exists.")
+      const message = error instanceof Error ? error.message : "Failed to upload document. Confirm the private bucket onboarding-private exists."
+      setStatusMessage(message)
     } finally {
       setUploadingDocType(null)
     }

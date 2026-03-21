@@ -204,13 +204,13 @@ export default function RedBirdSimulator() {
                 href="/schedule" 
                 className="inline-block bg-golden hover:bg-golden/90 text-black font-bold py-3 px-6 rounded-lg transition-colors text-center w-full sm:w-auto"
               >
-                Book a Simulator Session
+                Book a Flight Session
               </Link>
               <Link
                 href="/simulator/aatd-credit-details"
                 className="inline-block border border-golden text-golden hover:bg-golden hover:text-black font-semibold py-3 px-6 rounded-lg transition-colors text-center w-full sm:w-auto"
               >
-                FAA Credit Details
+                Aircraft Documents
               </Link>
             </div>
           </div>

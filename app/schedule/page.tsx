@@ -11,6 +11,8 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 
 interface BookingModalProps {
   slot: Slot
+  userId: string
+  userEmail?: string
   onClose: () => void
 }
 
@@ -55,7 +57,7 @@ function PaymentForm({ slot }: { slot: Slot }) {
   )
 }
 
-function BookingModal({ slot, onClose }: BookingModalProps) {
+function BookingModal({ slot, userId, userEmail, onClose }: BookingModalProps) {
   const [clientSecret, setClientSecret] = useState('')
   const [loading, setLoading] = useState(true)
   const [name, setName] = useState('')
@@ -63,6 +65,11 @@ function BookingModal({ slot, onClose }: BookingModalProps) {
   const [notes, setNotes] = useState('')
 
   useEffect(() => {
+    if (!userId) {
+      setLoading(false)
+      return
+    }
+
     // Create PaymentIntent as soon as the modal loads
     fetch('/api/create-payment-intent', {
       method: 'POST',
@@ -70,6 +77,8 @@ function BookingModal({ slot, onClose }: BookingModalProps) {
       body: JSON.stringify({
         amount: slot.price,
         slotId: slot.id,
+        userId,
+        email: userEmail,
       }),
     })
       .then((res) => res.json())
@@ -81,7 +90,7 @@ function BookingModal({ slot, onClose }: BookingModalProps) {
         console.error('Error creating payment intent:', error)
         setLoading(false)
       })
-  }, [slot])
+  }, [slot, userId, userEmail])
 
   const appearance = {
     theme: 'stripe' as const,
@@ -194,7 +203,7 @@ function BookingModal({ slot, onClose }: BookingModalProps) {
 }
 
 function SchedulePageContent() {
-  const { loading: authLoading } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [slots, setSlots] = useState<Slot[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'training' | 'tour'>('all')
@@ -357,9 +366,11 @@ function SchedulePageContent() {
       </section>
 
       {/* Booking Modal */}
-      {selectedSlot && (
+      {selectedSlot && user && (
         <BookingModal
           slot={selectedSlot}
+          userId={user.id}
+          userEmail={user.email}
           onClose={handleCloseModal}
         />
       )}

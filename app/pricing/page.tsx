@@ -58,43 +58,7 @@ export default function PricingPage() {
               </p>
             </div>
 
-            <div className="space-y-8 sm:space-y-10 md:space-y-12">
-              {/* N888MS Sport Cruiser */}
-              <div className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden">
-                <div className="p-8 sm:p-10 md:p-12">
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-6 pb-6 border-b border-gray-200">
-                    <div className="mb-4 md:mb-0">
-                      <h3 className="text-2xl sm:text-3xl font-bold text-black mb-2">N888MS Sport Cruiser</h3>
-                      <p className="text-golden font-semibold text-lg sm:text-xl mb-1">N14 - Flying W Airport</p>
-                      <p className="text-gray-600 font-medium">Lumberton, New Jersey</p>
-                    </div>
-                    <div className="text-left md:text-right">
-                      <p className="text-sm text-gray-500 mb-1">Starting Rate</p>
-                      <p className="text-3xl sm:text-4xl font-bold text-golden">$147.50<span className="text-base text-gray-500">/hr</span></p>
-                    </div>
-                  </div>
-
-                  <p className="text-gray-700 leading-relaxed mb-6 font-light text-sm sm:text-base">
-                    Perfect for cross-country experience and advanced maneuvers. Equipped with glass cockpit avionics for a modern training experience with cruise speeds exceeding 100 knots.
-                  </p>
-
-                  <div className="bg-gray-50 p-6 sm:p-8 rounded-2xl">
-                    <h4 className="font-semibold text-black mb-4 text-lg">Pricing</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200">
-                        <span className="text-gray-700 font-medium">1 Hour</span>
-                        <span className="font-bold text-black text-lg">$152.50</span>
-                      </div>
-                      <div className="flex justify-between items-center p-4 bg-golden/10 rounded-lg border border-golden/20">
-                        <span className="text-gray-700 font-medium">10 Hour Block</span>
-                        <span className="font-bold text-golden text-lg">$147.50/hr</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* N2152Z Piper Warrior */}
+            <div className="max-w-4xl mx-auto">
               <div className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden">
                 <div className="p-8 sm:p-10 md:p-12">
                   <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-6 pb-6 border-b border-gray-200">
@@ -123,41 +87,6 @@ export default function PricingPage() {
                       <div className="flex justify-between items-center p-4 bg-golden/10 rounded-lg border border-golden/20">
                         <span className="text-gray-700 font-medium">10 Hour Block</span>
                         <span className="font-bold text-golden text-lg">$185/hr</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* N1624Q Cessna 150 */}
-              <div className="bg-gradient-to-br from-gray-50 to-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden">
-                <div className="p-8 sm:p-10 md:p-12">
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-6 pb-6 border-b border-gray-200">
-                    <div className="mb-4 md:mb-0">
-                      <h3 className="text-2xl sm:text-3xl font-bold text-black mb-2">N1624Q Cessna 150</h3>
-                      <p className="text-golden font-semibold text-lg sm:text-xl mb-1">N72 - Warwick Municipal Airport</p>
-                      <p className="text-gray-600 font-medium">Warwick, New York</p>
-                    </div>
-                    <div className="text-left md:text-right">
-                      <p className="text-sm text-gray-500 mb-1">Starting Rate</p>
-                      <p className="text-3xl sm:text-4xl font-bold text-golden">$150<span className="text-base text-gray-500">/hr</span></p>
-                    </div>
-                  </div>
-
-                  <p className="text-gray-700 leading-relaxed mb-6 font-light text-sm sm:text-base">
-                    Classic training aircraft with 6-pack steam gauge instruments. Perfect for Private Pilot and Commercial Pilot maneuvers at the most competitive rate.
-                  </p>
-
-                  <div className="bg-gray-50 p-6 sm:p-8 rounded-2xl">
-                    <h4 className="font-semibold text-black mb-4 text-lg">Pricing</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200">
-                        <span className="text-gray-700 font-medium">1 Hour</span>
-                        <span className="font-bold text-black text-lg">$155</span>
-                      </div>
-                      <div className="flex justify-between items-center p-4 bg-golden/10 rounded-lg border border-golden/20">
-                        <span className="text-gray-700 font-medium">10 Hour Block</span>
-                        <span className="font-bold text-golden text-lg">$150/hr</span>
                       </div>
                     </div>
                   </div>
@@ -441,9 +370,9 @@ export default function PricingPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                   </svg>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-black mb-4">Credit & Debit Cards</h3>
+                <h3 className="text-xl sm:text-2xl font-bold text-black mb-4">Stripe Checkout + Apple Pay</h3>
                 <p className="text-gray-600 leading-relaxed font-light text-sm sm:text-base">
-                  We accept all major credit and debit cards through secure payment processing. Easy and convenient for booking your flights.
+                  Payments are processed through Stripe with support for major cards and Apple Pay on compatible devices and browsers.
                 </p>
               </div>
 
@@ -453,9 +382,9 @@ export default function PricingPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-black mb-4">Flight Hour Blocks</h3>
+                <h3 className="text-xl sm:text-2xl font-bold text-black mb-4">Billing Confidence</h3>
                 <p className="text-gray-600 leading-relaxed font-light text-sm sm:text-base">
-                  Purchase 10-hour blocks at a discounted rate. Save money while you train and ensure your aircraft is available.
+                  Every payment includes Stripe receipts and secure tokenized processing. Ask us about block-hour billing and training packages.
                 </p>
               </div>
             </div>

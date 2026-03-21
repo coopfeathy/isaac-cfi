@@ -23,6 +23,26 @@ interface SocialMediaPost {
 
 type AdminTab = 'slots' | 'bookings' | 'prospects' | 'blog' | 'social' | 'email'
 
+type AdminHealthSnapshot = {
+  unreviewedOnboardingDocs: number
+  failedWebhookEvents: number
+  openSupportTickets: number
+  unresolvedIntegrityAlerts: number
+  prospectConversionRate: number
+  totalProspects: number
+  convertedProspects: number
+  latestIntegrityRun: {
+    created_at: string
+    finished_at: string | null
+    error_message: string | null
+    stale_pending_count: number
+    canceled_pending_count: number
+    released_slot_count: number
+    paid_unbooked_count: number
+    booked_without_paid_count: number
+  } | null
+}
+
 const isAdminTab = (value: string | null): value is AdminTab => {
   return value === 'slots' || value === 'bookings' || value === 'prospects' || value === 'blog' || value === 'social' || value === 'email'
 }
@@ -37,11 +57,14 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
   const [prospectSource, setProspectSource] = useState<'all' | 'discovery_flight'>('all')
   const [prospectView, setProspectView] = useState<'list' | 'cards'>('cards')
   const [expandedProspectId, setExpandedProspectId] = useState<string | null>(null)
+  const [healthSnapshot, setHealthSnapshot] = useState<AdminHealthSnapshot | null>(null)
+  const [healthLoading, setHealthLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<AdminTab>(forcedTab || 'slots')
   
   // New slot form
   const [showAddSlot, setShowAddSlot] = useState(false)
+  const [editingSlotId, setEditingSlotId] = useState<string | null>(null)
   const [newSlot, setNewSlot] = useState({
     date: '',
     startTime: '',
@@ -114,7 +137,36 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
     fetchBlogPosts()
     fetchProspects()
     fetchSocialPosts()
+    fetchAdminHealth()
   }, [user, isAdmin, searchParams, forcedTab])
+
+  const fetchAdminHealth = async () => {
+    try {
+      setHealthLoading(true)
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) return
+
+      const response = await fetch('/api/admin/health', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      const result = await response.json().catch(() => null)
+      if (!response.ok || !result) {
+        throw new Error(result?.error || 'Failed to load health panel')
+      }
+
+      setHealthSnapshot(result)
+    } catch (error) {
+      console.error('Error loading admin health snapshot:', error)
+    } finally {
+      setHealthLoading(false)
+    }
+  }
 
   const fetchData = async () => {
     setLoading(true)
@@ -312,18 +364,23 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
       const slotType = newSlot.customType.trim() || newSlot.type
       const startDateTime = new Date(`${newSlot.date}T${newSlot.startTime}`)
       const endDateTime = new Date(startDateTime.getTime() + parseInt(newSlot.duration) * 60 * 1000)
-      
-      const { error } = await supabase.from('slots').insert([{
+
+      const payload = {
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
         type: slotType,
         price: parseInt(newSlot.price),
-        description: newSlot.description || null
-      }])
+        description: newSlot.description || null,
+      }
+
+      const { error } = editingSlotId
+        ? await supabase.from('slots').update(payload).eq('id', editingSlotId)
+        : await supabase.from('slots').insert([payload])
 
       if (error) throw error
       
       setShowAddSlot(false)
+      setEditingSlotId(null)
       setNewSlot({
         date: '',
         startTime: '',
@@ -335,8 +392,8 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
       })
       fetchData()
     } catch (error) {
-      console.error('Error creating slot:', error)
-      alert('Failed to create slot')
+      console.error('Error saving slot:', error)
+      alert(`Failed to ${editingSlotId ? 'update' : 'create'} slot`)
     }
   }
 
@@ -350,6 +407,56 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
     } catch (error) {
       console.error('Error deleting slot:', error)
       alert('Failed to delete slot')
+    }
+  }
+
+  const handleEditSlot = (slot: Slot) => {
+    const start = new Date(slot.start_time)
+    const end = new Date(slot.end_time)
+    const durationMinutes = Math.max(30, Math.round((end.getTime() - start.getTime()) / 60000))
+
+    setEditingSlotId(slot.id)
+    setShowAddSlot(true)
+    setNewSlot({
+      date: start.toISOString().split('T')[0],
+      startTime: start.toISOString().slice(11, 16),
+      duration: String(durationMinutes),
+      type: slot.type === 'training' || slot.type === 'tour' ? slot.type : 'custom',
+      customType: slot.type === 'training' || slot.type === 'tour' ? '' : slot.type,
+      price: String(slot.price),
+      description: slot.description || '',
+    })
+  }
+
+  const handleConvertProspectToStudent = async (prospectId: string) => {
+    if (!confirm('Convert this prospect to a student?')) return
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) throw new Error('Missing admin session')
+
+      const response = await fetch('/api/admin/prospects/convert', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ prospectId }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to convert prospect')
+      }
+
+      await fetchProspects()
+      alert('Prospect converted to student.')
+    } catch (error) {
+      console.error('Error converting prospect:', error)
+      alert(error instanceof Error ? error.message : 'Failed to convert prospect')
     }
   }
 
@@ -641,6 +748,61 @@ ${blogContent}
           <h1 className="text-4xl font-bold text-darkText mb-2">Admin Dashboard</h1>
           <p className="text-gray-600 mb-12">Welcome back, {user?.email}</p>
 
+          <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-darkText">Operational Health</h2>
+              <button
+                type="button"
+                onClick={fetchAdminHealth}
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded hover:bg-blue-700 disabled:bg-blue-300"
+                disabled={healthLoading}
+              >
+                {healthLoading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
+
+            {healthSnapshot ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
+                  <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Unreviewed Onboarding Docs</p>
+                    <p className="text-2xl font-bold text-darkText">{healthSnapshot.unreviewedOnboardingDocs}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Failed Webhook Events</p>
+                    <p className="text-2xl font-bold text-red-600">{healthSnapshot.failedWebhookEvents}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Open Support Tickets</p>
+                    <p className="text-2xl font-bold text-darkText">{healthSnapshot.openSupportTickets}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Prospect Conversion Rate</p>
+                    <p className="text-2xl font-bold text-blue-700">{healthSnapshot.prospectConversionRate}%</p>
+                    <p className="text-xs text-gray-500 mt-1">{healthSnapshot.convertedProspects} converted / {healthSnapshot.totalProspects} total</p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-sm text-amber-900 font-semibold mb-1">Booking Integrity Monitor</p>
+                  <p className="text-sm text-amber-800">
+                    Unresolved alerts: <strong>{healthSnapshot.unresolvedIntegrityAlerts}</strong>
+                  </p>
+                  {healthSnapshot.latestIntegrityRun ? (
+                    <p className="text-xs text-amber-900 mt-2">
+                      Last run: {new Date(healthSnapshot.latestIntegrityRun.created_at).toLocaleString()} | stale pending: {healthSnapshot.latestIntegrityRun.stale_pending_count}, canceled: {healthSnapshot.latestIntegrityRun.canceled_pending_count}, released slots: {healthSnapshot.latestIntegrityRun.released_slot_count}, paid/unbooked: {healthSnapshot.latestIntegrityRun.paid_unbooked_count}, booked/no paid: {healthSnapshot.latestIntegrityRun.booked_without_paid_count}
+                      {healthSnapshot.latestIntegrityRun.error_message ? ` | error: ${healthSnapshot.latestIntegrityRun.error_message}` : ''}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-amber-900 mt-2">No booking integrity run has been recorded yet.</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-gray-500">Health metrics will appear here after the first refresh.</p>
+            )}
+          </div>
+
           <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
             
             {/* Learn Platform Management */}
@@ -648,13 +810,13 @@ ${blogContent}
               <h2 className="text-2xl font-bold text-golden mb-2">📚 Learn Platform</h2>
               <p className="text-gray-600 mb-6">Manage courses, lessons, videos, and student enrollments</p>
               <div className="flex flex-col gap-2">
-                <Link href="/admin/courses" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-opacity-90 text-center">
+                <Link href="/admin/courses" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">
                   Manage Courses
                 </Link>
-                <Link href="/admin/enrollments" className="px-4 py-2 bg-amber-500 text-white font-bold rounded hover:bg-amber-600 text-center">
+                <Link href="/admin/enrollments" className="px-4 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 text-center">
                   Assign Students
                 </Link>
-                <Link href="/admin/progress" className="px-4 py-2 bg-purple-600 text-white font-bold rounded hover:bg-purple-700 text-center">
+                <Link href="/admin/progress" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
                   Lesson Debriefs
                 </Link>
               </div>
@@ -668,10 +830,10 @@ ${blogContent}
                 <Link href="/admin/students" className="px-4 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 text-center">
                   Students
                 </Link>
-                <Link href="/admin/prospects" className="px-4 py-2 bg-purple-500 text-white font-bold rounded hover:bg-purple-600 text-center">
+                <Link href="/admin/prospects" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">
                   Prospects
                 </Link>
-                <Link href="/admin/onboarding" className="px-4 py-2 bg-slate-700 text-white font-bold rounded hover:bg-slate-800 text-center">
+                <Link href="/admin/onboarding" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
                   Onboarding Queue
                 </Link>
               </div>
@@ -682,13 +844,13 @@ ${blogContent}
               <h2 className="text-2xl font-bold text-green-600 mb-2">📅 Bookings & Schedule</h2>
               <p className="text-gray-600 mb-6">Manage flight bookings, slots, and scheduling</p>
               <div className="flex flex-col gap-2">
-                <Link href="/admin/slots" className="px-4 py-2 bg-green-600 text-white font-bold rounded hover:bg-green-700 text-center">
+                <Link href="/admin/slots" className="px-4 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 text-center">
                   Manage Slots
                 </Link>
-                <Link href="/admin/bookings" className="px-4 py-2 bg-cyan-500 text-white font-bold rounded hover:bg-cyan-600 text-center">
+                <Link href="/admin/bookings" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">
                   View Bookings
                 </Link>
-                <Link href="/admin/prospects" className="px-4 py-2 bg-indigo-600 text-white font-bold rounded hover:bg-indigo-700 text-center">
+                <Link href="/admin/prospects" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
                   Manage Prospects
                 </Link>
               </div>
@@ -699,13 +861,13 @@ ${blogContent}
               <h2 className="text-2xl font-bold text-orange-600 mb-2">📝 Content Management</h2>
               <p className="text-gray-600 mb-6">Manage blog posts, social media, and email campaigns</p>
               <div className="flex flex-col gap-2">
-                <Link href="/admin/blog" className="px-4 py-2 bg-blue-500 text-white font-bold rounded hover:bg-blue-600 text-center">
+                <Link href="/admin/blog" className="px-4 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 text-center">
                   Create Blog Post
                 </Link>
-                <Link href="/admin/social" className="px-4 py-2 bg-pink-600 text-white font-bold rounded hover:bg-pink-700 text-center">
+                <Link href="/admin/social" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">
                   Manage Social Posts
                 </Link>
-                <Link href="/admin/email" className="px-4 py-2 bg-orange-600 text-white font-bold rounded hover:bg-orange-700 text-center">
+                <Link href="/admin/email" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
                   Email Campaigns
                 </Link>
               </div>
@@ -774,7 +936,7 @@ ${blogContent}
 
             {showAddSlot && (
               <form onSubmit={handleCreateSlot} className="bg-white rounded-lg shadow-md p-6 mb-8">
-                <h2 className="text-2xl font-bold text-darkText mb-4">Create New Slot</h2>
+                <h2 className="text-2xl font-bold text-darkText mb-4">{editingSlotId ? 'Edit Slot' : 'Create New Slot'}</h2>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
@@ -858,9 +1020,24 @@ ${blogContent}
                     />
                   </div>
                 </div>
-                <button type="submit" className="mt-4 px-6 py-2 bg-golden text-darkText font-bold rounded-lg hover:bg-opacity-90">
-                  Create Slot
-                </button>
+                <div className="mt-4 flex items-center gap-3">
+                  <button type="submit" className="px-6 py-2 bg-golden text-darkText font-bold rounded-lg hover:bg-opacity-90">
+                    {editingSlotId ? 'Update Slot' : 'Create Slot'}
+                  </button>
+                  {editingSlotId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingSlotId(null)
+                        setShowAddSlot(false)
+                        setNewSlot({ date: '', startTime: '', duration: '60', type: 'training', customType: '', price: '', description: '' })
+                      }}
+                      className="px-6 py-2 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-100"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
               </form>
             )}
 
@@ -890,6 +1067,9 @@ ${blogContent}
                     >
                       Download .ics
                     </a>
+                    <button onClick={() => handleEditSlot(slot)} className="text-blue-600 text-sm hover:text-blue-800">
+                      Edit
+                    </button>
                     <button onClick={() => handleDeleteSlot(slot.id)} className="text-red-600 text-sm hover:text-red-800">
                       Delete
                     </button>
@@ -1024,6 +1204,14 @@ ${blogContent}
                     >
                       {expandedProspectId === prospect.id ? 'Hide details' : 'View details'}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => handleConvertProspectToStudent(prospect.id)}
+                      disabled={prospect.status === 'converted'}
+                      className="mt-4 ml-2 inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-600"
+                    >
+                      {prospect.status === 'converted' ? 'Converted' : 'Convert to Student'}
+                    </button>
 
                     {expandedProspectId === prospect.id && (
                       <div className="mt-4 rounded-lg bg-gray-50 border border-gray-200 p-4">
@@ -1080,13 +1268,23 @@ ${blogContent}
                             <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{prospect.source?.replace('_', ' ') || '-'}</div></td>
                             <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{new Date(prospect.created_at).toLocaleDateString()}</div></td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <button
-                                type="button"
-                                onClick={() => setExpandedProspectId(expandedProspectId === prospect.id ? null : prospect.id)}
-                                className="inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
-                              >
-                                {expandedProspectId === prospect.id ? 'Hide details' : 'View details'}
-                              </button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedProspectId(expandedProspectId === prospect.id ? null : prospect.id)}
+                                  className="inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                                >
+                                  {expandedProspectId === prospect.id ? 'Hide details' : 'View details'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleConvertProspectToStudent(prospect.id)}
+                                  disabled={prospect.status === 'converted'}
+                                  className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-600"
+                                >
+                                  {prospect.status === 'converted' ? 'Converted' : 'Convert to Student'}
+                                </button>
+                              </div>
                             </td>
                           </tr>
                           {expandedProspectId === prospect.id && (
