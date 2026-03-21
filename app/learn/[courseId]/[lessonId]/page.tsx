@@ -10,6 +10,7 @@ interface Lesson {
   id: string
   title: string
   videos: Video[]
+  lesson_documents: LessonDocument[]
   unit_id: string
 }
 
@@ -23,6 +24,14 @@ interface Video {
 interface Unit {
   id: string
   title: string
+}
+
+interface LessonDocument {
+  id: string
+  title: string
+  file_bucket: string
+  file_path: string
+  mime_type: string | null
 }
 
 const VIDEO_STORAGE_BUCKETS = ["lesson-videos", "videos"] as const
@@ -76,6 +85,13 @@ export default function LessonPage() {
               title,
               storage_path,
               duration_seconds
+            ),
+            lesson_documents (
+              id,
+              title,
+              file_bucket,
+              file_path,
+              mime_type
             )
           `
           )
@@ -151,6 +167,11 @@ export default function LessonPage() {
       const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath)
       return data.publicUrl
     })
+  }
+
+  const getDocumentUrl = (fileBucket: string, filePath: string) => {
+    const { data } = supabase.storage.from(fileBucket).getPublicUrl(filePath)
+    return data.publicUrl
   }
 
   if (loading)
@@ -285,6 +306,36 @@ export default function LessonPage() {
                   >
                     {video.title}
                   </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {lesson.lesson_documents.length > 0 && (
+            <div style={{ marginTop: "30px" }}>
+              <h3>Course Documents</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {lesson.lesson_documents.map((document) => (
+                  <a
+                    key={document.id}
+                    href={getDocumentUrl(document.file_bucket, document.file_path)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "block",
+                      backgroundColor: "#F9FAFB",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: "8px",
+                      padding: "12px 14px",
+                      textDecoration: "none",
+                      color: "#111827",
+                    }}
+                  >
+                    <strong>{document.title}</strong>
+                    <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#6B7280" }}>
+                      {document.mime_type || "Document"}
+                    </p>
+                  </a>
                 ))}
               </div>
             </div>

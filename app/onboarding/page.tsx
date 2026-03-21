@@ -70,6 +70,7 @@ export default function OnboardingPage() {
   const [profile, setProfile] = useState<OnboardingProfile | null>(null)
   const [documents, setDocuments] = useState<OnboardingDocument[]>([])
   const [statusMessage, setStatusMessage] = useState<string>("")
+  const [launchingESign, setLaunchingESign] = useState(false)
 
   const [formData, setFormData] = useState({
     legal_first_name: "",
@@ -369,6 +370,48 @@ export default function OnboardingPage() {
     }
   }
 
+  const startEmbeddedSigning = async () => {
+    if (!user) return
+
+    setLaunchingESign(true)
+    setStatusMessage("")
+
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError || !sessionData.session?.access_token) {
+        throw new Error("Please sign in again to continue")
+      }
+
+      const response = await fetch("/api/onboarding/esign/create-embedded", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          accessToken: sessionData.session.access_token,
+        }),
+      })
+
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to start signing")
+      }
+
+      if (result.signUrl) {
+        window.open(result.signUrl, "_blank", "noopener,noreferrer")
+      }
+
+      setStatusMessage("Signing session created. Complete signing in the opened window, then return here.")
+      await loadOnboardingData()
+    } catch (error) {
+      console.error("Error starting embedded signing:", error)
+      const message = error instanceof Error ? error.message : "Failed to launch signing"
+      setStatusMessage(`Could not start signing: ${message}`)
+    } finally {
+      setLaunchingESign(false)
+    }
+  }
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -583,17 +626,27 @@ export default function OnboardingPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-darkText">3. Document Signing (Scaffold)</h2>
           <p className="mt-1 text-sm text-slate-600">
-            E-sign provider integration comes next. For now, this marks docs as signed so admin can review.
+            Launch DocuSeal signing for waiver/training agreement/policy docs. Webhook callbacks auto-update your status.
           </p>
 
-          <button
-            type="button"
-            onClick={markDocumentsSigned}
-            disabled={saving}
-            className="mt-4 rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-          >
-            {saving ? "Updating..." : "Mark Documents Signed"}
-          </button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={startEmbeddedSigning}
+              disabled={launchingESign}
+              className="rounded-lg bg-black px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {launchingESign ? "Launching..." : "Start Embedded Signing"}
+            </button>
+            <button
+              type="button"
+              onClick={markDocumentsSigned}
+              disabled={saving}
+              className="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            >
+              {saving ? "Updating..." : "Manual Fallback: Mark Signed"}
+            </button>
+          </div>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

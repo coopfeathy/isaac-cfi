@@ -14,6 +14,34 @@ interface Course {
   enrollment?: { id: string }
 }
 
+const timelineExpectations = [
+  {
+    phase: "Phase 1",
+    title: "Discovery + Enrollment",
+    focus: "Discovery flight, training goals, onboarding setup",
+  },
+  {
+    phase: "Phase 2",
+    title: "Foundations + Pre-Solo",
+    focus: "Aircraft control, pattern work, emergency procedures, solo prep",
+  },
+  {
+    phase: "Phase 3",
+    title: "Cross-Country + Solo Building",
+    focus: "Navigation, weather decisions, long cross-country requirements",
+  },
+  {
+    phase: "Phase 4",
+    title: "Knowledge Test + Checkride Prep",
+    focus: "FAA written exam, ACS standards, mock oral and practical",
+  },
+  {
+    phase: "Phase 5",
+    title: "Practical Test + Certificate",
+    focus: "Final checkride and private pilot certificate issuance",
+  },
+]
+
 export default function LearnPage() {
   const { user, isAdmin } = useAuth()
   const [courses, setCourses] = useState<Course[]>([])
@@ -98,53 +126,91 @@ export default function LearnPage() {
         </div>
       )}
 
-      <div style={{ marginBottom: "24px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
-        <Link
-          href="/private-pilot-timeline"
-          style={{
-            display: "inline-block",
-            border: "1px solid #C59A2A",
-            color: "#C59A2A",
-            padding: "10px 16px",
-            borderRadius: "8px",
-            textDecoration: "none",
-            fontWeight: "600",
-          }}
-        >
-          View Private Pilot Timeline
-        </Link>
-        <Link
-          href="/onboarding"
-          style={{
-            display: "inline-block",
-            border: "1px solid #111827",
-            color: "#111827",
-            padding: "10px 16px",
-            borderRadius: "8px",
-            textDecoration: "none",
-            fontWeight: "600",
-          }}
-        >
-          Open Onboarding Tracker
-        </Link>
-      </div>
+      {user && (
+        <div style={{ marginBottom: "24px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <Link
+            href="/private-pilot-timeline"
+            style={{
+              display: "inline-block",
+              border: "1px solid #C59A2A",
+              color: "#C59A2A",
+              padding: "10px 16px",
+              borderRadius: "8px",
+              textDecoration: "none",
+              fontWeight: "600",
+            }}
+          >
+            View Private Pilot Timeline
+          </Link>
+          <Link
+            href="/onboarding"
+            style={{
+              display: "inline-block",
+              border: "1px solid #111827",
+              color: "#111827",
+              padding: "10px 16px",
+              borderRadius: "8px",
+              textDecoration: "none",
+              fontWeight: "600",
+            }}
+          >
+            Open Onboarding Tracker
+          </Link>
+        </div>
+      )}
 
       {!user ? (
-        <div
-          style={{
-            backgroundColor: "#FEF3C7",
-            border: "1px solid #FCD34D",
-            borderRadius: "8px",
-            padding: "20px",
-            color: "#92400E",
-          }}
-        >
-          <p>
-            Sign in to access your courses.{" "}
-            <Link href="/login" style={{ color: "#1E40AF", textDecoration: "underline" }}>
-              Sign in here
-            </Link>
-          </p>
+        <div style={{ display: "grid", gap: "16px" }}>
+          <div
+            style={{
+              backgroundColor: "#FEF3C7",
+              border: "1px solid #FCD34D",
+              borderRadius: "8px",
+              padding: "20px",
+              color: "#92400E",
+            }}
+          >
+            <p style={{ margin: 0 }}>
+              Sign in to see courses and progress. {" "}
+              <Link href="/login" style={{ color: "#1E40AF", textDecoration: "underline" }}>
+                Sign in here
+              </Link>
+              {" "}to track your training in real time.
+            </p>
+          </div>
+
+          <div
+            style={{
+              backgroundColor: "white",
+              border: "1px solid #E5E7EB",
+              borderRadius: "8px",
+              padding: "20px",
+            }}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: "8px" }}>What to Expect in Private Pilot Training</h3>
+            <p style={{ marginTop: 0, marginBottom: "16px", color: "#6B7280" }}>
+              Here is the full timeline so you can preview the journey before signing in.
+            </p>
+            <div style={{ display: "grid", gap: "12px" }}>
+              {timelineExpectations.map((item) => (
+                <div
+                  key={item.phase}
+                  style={{
+                    border: "1px solid #E5E7EB",
+                    borderRadius: "8px",
+                    padding: "12px 14px",
+                    backgroundColor: "#F9FAFB",
+                  }}
+                >
+                  <p style={{ margin: 0, fontSize: "12px", fontWeight: 700, color: "#C59A2A", textTransform: "uppercase" }}>
+                    {item.phase}
+                  </p>
+                  <p style={{ margin: "3px 0 0 0", fontWeight: 700, color: "#111827" }}>{item.title}</p>
+                  <p style={{ margin: "6px 0 0 0", fontSize: "14px", color: "#4B5563" }}>{item.focus}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       ) : loading ? (
         <p>Loading courses...</p>

@@ -20,7 +20,16 @@ interface Lesson {
   unit_id: string
 }
 
+interface LessonDocument {
+  id: string
+  title: string
+  file_bucket: string
+  file_path: string
+  mime_type: string | null
+}
+
 const VIDEO_STORAGE_BUCKETS = ["lesson-videos", "videos"] as const
+const DOCUMENT_STORAGE_BUCKETS = ["lesson-documents"] as const
 
 export default function ManageVideosPage() {
   const params = useParams()
@@ -32,6 +41,12 @@ export default function ManageVideosPage() {
   const [uploading, setUploading] = useState(false)
   const [newVideoTitle, setNewVideoTitle] = useState("")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isVideoDragActive, setIsVideoDragActive] = useState(false)
+  const [documents, setDocuments] = useState<LessonDocument[]>([])
+  const [newDocumentTitle, setNewDocumentTitle] = useState("")
+  const [selectedDocumentFile, setSelectedDocumentFile] = useState<File | null>(null)
+  const [isDocumentDragActive, setIsDocumentDragActive] = useState(false)
+  const [uploadingDocument, setUploadingDocument] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const getVideoDuration = async (file: File): Promise<number | null> => {
@@ -82,6 +97,15 @@ export default function ManageVideosPage() {
 
         if (videosError) throw videosError
         setVideos(videosData || [])
+
+        const { data: docsData, error: docsError } = await supabase
+          .from("lesson_documents")
+          .select("id, title, file_bucket, file_path, mime_type")
+          .eq("lesson_id", lessonId)
+          .order("created_at", { ascending: false })
+
+        if (docsError) throw docsError
+        setDocuments(docsData || [])
       } catch (error) {
         console.error("Error loading lesson:", error)
       } finally {
@@ -158,6 +182,30 @@ export default function ManageVideosPage() {
     }
   }
 
+  const handleDocumentDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsDocumentDragActive(false)
+    const file = e.dataTransfer.files?.[0] || null
+    if (file) {
+      setSelectedDocumentFile(file)
+      if (!newDocumentTitle.trim()) {
+        setNewDocumentTitle(file.name.replace(/\.[^.]+$/, ""))
+      }
+    }
+  }
+
+  const handleVideoDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setIsVideoDragActive(false)
+    const file = e.dataTransfer.files?.[0] || null
+    if (file) {
+      setSelectedFile(file)
+      if (!newVideoTitle.trim()) {
+        setNewVideoTitle(file.name.replace(/\.[^.]+$/, ""))
+      }
+    }
+  }
+
   const handleDeleteVideo = async (videoId: string, storagePath: string) => {
     if (!confirm("Delete this video?")) return
 
@@ -192,6 +240,88 @@ export default function ManageVideosPage() {
       console.error("Error deleting video:", error)
       const message = error instanceof Error ? error.message : "Failed to delete video"
       alert(`Failed to delete video: ${message}`)
+    }
+  }
+
+  const handleUploadDocument = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newDocumentTitle.trim() || !selectedDocumentFile) {
+      alert("Please fill in title and select a document")
+      return
+    }
+
+    setUploadingDocument(true)
+
+    try {
+      const timestamp = Date.now()
+      const fileName = `${timestamp}-${selectedDocumentFile.name.replace(/\s+/g, "-")}`
+      const storagePath = `courses/lesson-${lessonId}/documents/${fileName}`
+
+      let uploadSucceeded = false
+      let uploadErrorMessage = ""
+
+      for (const bucket of DOCUMENT_STORAGE_BUCKETS) {
+        const { error: uploadError } = await supabase.storage
+          .from(bucket)
+          .upload(storagePath, selectedDocumentFile, { upsert: false, cacheControl: "3600" })
+
+        if (!uploadError) {
+          uploadSucceeded = true
+          break
+        }
+
+        uploadErrorMessage = uploadError.message
+      }
+
+      if (!uploadSucceeded) {
+        throw new Error(uploadErrorMessage || "Document upload failed")
+      }
+
+      const { data, error: insertError } = await supabase
+        .from("lesson_documents")
+        .insert([
+          {
+            lesson_id: lessonId,
+            title: newDocumentTitle.trim(),
+            file_bucket: "lesson-documents",
+            file_path: storagePath,
+            mime_type: selectedDocumentFile.type || null,
+          },
+        ])
+        .select("id, title, file_bucket, file_path, mime_type")
+
+      if (insertError) throw insertError
+
+      if (data?.[0]) {
+        setDocuments([data[0], ...documents])
+      }
+
+      setSelectedDocumentFile(null)
+      setNewDocumentTitle("")
+    } catch (error) {
+      console.error("Error uploading document:", error)
+      const message = error instanceof Error ? error.message : "Failed to upload document"
+      alert(`Failed to upload document: ${message}`)
+    } finally {
+      setUploadingDocument(false)
+    }
+  }
+
+  const handleDeleteDocument = async (documentId: string, bucket: string, filePath: string) => {
+    if (!confirm("Delete this course document?")) return
+
+    try {
+      const { error: deleteStorageError } = await supabase.storage.from(bucket).remove([filePath])
+      if (deleteStorageError) throw deleteStorageError
+
+      const { error: deleteDbError } = await supabase.from("lesson_documents").delete().eq("id", documentId)
+      if (deleteDbError) throw deleteDbError
+
+      setDocuments(documents.filter((doc) => doc.id !== documentId))
+    } catch (error) {
+      console.error("Error deleting document:", error)
+      const message = error instanceof Error ? error.message : "Failed to delete document"
+      alert(`Failed to delete document: ${message}`)
     }
   }
 
@@ -247,19 +377,38 @@ export default function ManageVideosPage() {
                 <label style={{ display: "block", marginBottom: "8px", fontWeight: "600" }}>
                   Video File (MP4) *
                 </label>
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  required
+                <div
                   style={{
                     width: "100%",
-                    padding: "12px",
+                    padding: "14px",
                     borderRadius: "8px",
-                    border: "1px solid #D1D5DB",
+                    border: isVideoDragActive ? "2px dashed #C59A2A" : "1px dashed #D1D5DB",
                     fontSize: "16px",
+                    backgroundColor: isVideoDragActive ? "#FEF3C7" : "#FFFFFF",
                   }}
-                />
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setIsVideoDragActive(true)
+                  }}
+                  onDragLeave={() => setIsVideoDragActive(false)}
+                  onDrop={handleVideoDrop}
+                >
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    required
+                    style={{ width: "100%" }}
+                  />
+                  <p style={{ fontSize: "12px", marginTop: "8px", marginBottom: 0, color: "#4B5563" }}>
+                    Drag and drop a video here, or click to choose a file.
+                  </p>
+                  {selectedFile && (
+                    <p style={{ fontSize: "12px", marginTop: "8px", marginBottom: 0, color: "#111827", fontWeight: 600 }}>
+                      Selected: {selectedFile.name}
+                    </p>
+                  )}
+                </div>
                 <p style={{ fontSize: "12px", color: "#6B7280", marginTop: "5px" }}>
                   Large video files may take a few minutes to upload. Please be patient.
                 </p>
@@ -281,6 +430,96 @@ export default function ManageVideosPage() {
                 }}
               >
                 {uploading ? "Uploading..." : "Upload Video"}
+              </button>
+            </form>
+          </div>
+
+          <div
+            style={{
+              backgroundColor: "#F9FAFB",
+              border: "1px solid #E5E7EB",
+              borderRadius: "8px",
+              padding: "30px",
+              marginBottom: "40px",
+            }}
+          >
+            <h2 style={{ marginTop: 0 }}>Upload Course Document</h2>
+            <form onSubmit={handleUploadDocument} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600" }}>
+                  Document Title *
+                </label>
+                <input
+                  type="text"
+                  value={newDocumentTitle}
+                  onChange={(e) => setNewDocumentTitle(e.target.value)}
+                  placeholder="e.g., Preflight Checklist PDF"
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "12px",
+                    borderRadius: "8px",
+                    border: "1px solid #D1D5DB",
+                    fontSize: "16px",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600" }}>
+                  Document File *
+                </label>
+                <div
+                  style={{
+                    width: "100%",
+                    padding: "14px",
+                    borderRadius: "8px",
+                    border: isDocumentDragActive ? "2px dashed #C59A2A" : "1px dashed #D1D5DB",
+                    fontSize: "16px",
+                    backgroundColor: isDocumentDragActive ? "#FEF3C7" : "#FFFFFF",
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setIsDocumentDragActive(true)
+                  }}
+                  onDragLeave={() => setIsDocumentDragActive(false)}
+                  onDrop={handleDocumentDrop}
+                >
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.csv,image/*"
+                    onChange={(e) => setSelectedDocumentFile(e.target.files?.[0] || null)}
+                    required
+                    style={{ width: "100%" }}
+                  />
+                  <p style={{ fontSize: "12px", marginTop: "8px", marginBottom: 0, color: "#4B5563" }}>
+                    Drag and drop a course document here, or click to choose a file.
+                  </p>
+                  {selectedDocumentFile && (
+                    <p style={{ fontSize: "12px", marginTop: "8px", marginBottom: 0, color: "#111827", fontWeight: 600 }}>
+                      Selected: {selectedDocumentFile.name}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={uploadingDocument}
+                style={{
+                  backgroundColor: "#374151",
+                  color: "white",
+                  padding: "12px 24px",
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: uploadingDocument ? "not-allowed" : "pointer",
+                  fontWeight: "600",
+                  opacity: uploadingDocument ? 0.6 : 1,
+                  width: "fit-content",
+                }}
+              >
+                {uploadingDocument ? "Uploading..." : "Upload Document"}
               </button>
             </form>
           </div>
@@ -329,6 +568,63 @@ export default function ManageVideosPage() {
                     </div>
                     <button
                       onClick={() => handleDeleteVideo(video.id, video.storage_path)}
+                      style={{
+                        backgroundColor: "#EF4444",
+                        color: "white",
+                        padding: "8px 16px",
+                        borderRadius: "6px",
+                        border: "none",
+                        cursor: "pointer",
+                        fontWeight: "600",
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginTop: "40px" }}>
+            <h2>Course Documents ({documents.length})</h2>
+            {documents.length === 0 ? (
+              <div
+                style={{
+                  backgroundColor: "#F3F4F6",
+                  border: "1px solid #D1D5DB",
+                  borderRadius: "8px",
+                  padding: "30px 20px",
+                  textAlign: "center",
+                  color: "#6B7280",
+                }}
+              >
+                <p>No course documents uploaded yet.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {documents.map((document) => (
+                  <div
+                    key={document.id}
+                    style={{
+                      backgroundColor: "white",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: "8px",
+                      padding: "16px 20px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
+                  >
+                    <div>
+                      <h3 style={{ margin: 0 }}>{document.title}</h3>
+                      <p style={{ fontSize: "12px", color: "#6B7280", margin: "4px 0 0 0" }}>
+                        {document.mime_type || "Document"} - {document.file_path}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteDocument(document.id, document.file_bucket, document.file_path)}
                       style={{
                         backgroundColor: "#EF4444",
                         color: "white",

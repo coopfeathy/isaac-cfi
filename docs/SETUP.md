@@ -47,6 +47,21 @@ GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\
 # App
 NEXT_PUBLIC_SITE_URL=https://your-site.netlify.app
 ADMIN_EMAIL=your-admin-email@gmail.com
+
+# E-sign (DocuSeal default)
+ESIGN_PROVIDER=docuseal
+DOCUSEAL_FORM_URL=https://your-docuseal-host/d/your-template-slug
+ESIGN_WEBHOOK_SECRET=choose-a-long-random-secret
+# Set your DocuSeal webhook URL to:
+# https://your-site.netlify.app/api/onboarding/esign-webhook?secret=choose-a-long-random-secret
+
+# Optional Dropbox Sign fallback (only if using ESIGN_PROVIDER=dropbox_sign)
+DROPBOX_SIGN_API_KEY=...
+DROPBOX_SIGN_CLIENT_ID=...
+DROPBOX_SIGN_TEMPLATE_ID=...
+DROPBOX_SIGN_SIGNER_ROLE=Student
+DROPBOX_SIGN_TEST_MODE=1
+DROPBOX_SIGN_REDIRECT_URL=https://your-site.netlify.app/onboarding
 ```
 
 > **Never commit `.env.local` to GitHub.** It's already in `.gitignore`.
@@ -82,6 +97,8 @@ This creates all tables, RLS policies, and indexes in one shot. It's safe to re-
 1. Supabase → **Storage** → **New Bucket**
 2. Create a bucket named `blog-images` (public)
 3. Create a bucket named `lesson-videos` (if using video hosting)
+4. Ensure `onboarding-private` exists (private)
+5. Ensure `lesson-documents` exists (public for student-accessible lesson docs)
 
 ---
 
@@ -396,6 +413,13 @@ Then sign out and back in.
 1. Verify `RESEND_API_KEY` is set correctly in Netlify
 2. Check the Resend dashboard for failed delivery logs
 3. If using a custom domain, confirm it's verified in Resend
+
+### Onboarding E-sign Status Not Updating
+
+1. Confirm `ESIGN_PROVIDER=docuseal` and `ESIGN_WEBHOOK_SECRET` are set in Netlify
+2. In DocuSeal, point webhook URL to `https://your-site.netlify.app/api/onboarding/esign-webhook?secret=YOUR_SECRET`
+3. Run one test signing and verify a new `esign_webhook_received` row appears in `onboarding_events`
+4. If events exist but status is unchanged, check `onboarding_documents.provider_status` for the same user
 
 ### Database Errors on Re-deploy
 

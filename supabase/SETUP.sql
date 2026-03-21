@@ -612,7 +612,56 @@ CREATE POLICY "Admins can delete videos"
   USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
 
 -- ============================================================
--- 18. ENROLLMENTS
+-- 18. LESSON DOCUMENTS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS lesson_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_id UUID NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  file_bucket TEXT NOT NULL DEFAULT 'lesson-documents',
+  file_path TEXT NOT NULL,
+  mime_type TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE lesson_documents ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Lesson documents are viewable if lesson's course is viewable" ON lesson_documents;
+DROP POLICY IF EXISTS "Admins can manage lesson documents" ON lesson_documents;
+DROP POLICY IF EXISTS "Admins can update lesson documents" ON lesson_documents;
+DROP POLICY IF EXISTS "Admins can delete lesson documents" ON lesson_documents;
+
+CREATE POLICY "Lesson documents are viewable if lesson's course is viewable"
+  ON lesson_documents FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM lessons
+      JOIN units ON units.id = lessons.unit_id
+      JOIN courses ON courses.id = units.course_id
+      WHERE lessons.id = lesson_documents.lesson_id
+      AND (
+        courses.is_published = true
+        OR EXISTS (SELECT 1 FROM enrollments WHERE enrollments.course_id = courses.id AND enrollments.student_id = auth.uid())
+        OR EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+      )
+    )
+  );
+
+CREATE POLICY "Admins can manage lesson documents"
+  ON lesson_documents FOR INSERT
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+CREATE POLICY "Admins can update lesson documents"
+  ON lesson_documents FOR UPDATE
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+CREATE POLICY "Admins can delete lesson documents"
+  ON lesson_documents FOR DELETE
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+-- ============================================================
+-- 19. ENROLLMENTS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS enrollments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -647,7 +696,7 @@ CREATE POLICY "Admins can delete enrollments"
   USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
 
 -- ============================================================
--- 19. PROGRESS (lesson video watch progress)
+-- 20. PROGRESS (lesson video watch progress)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS progress (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -686,7 +735,7 @@ CREATE POLICY "Students can insert their own progress"
   ON progress FOR INSERT WITH CHECK (auth.uid() = student_id);
 
 -- ============================================================
--- 20. SYLLABUS ITEMS
+-- 21. SYLLABUS ITEMS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS syllabus_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -715,7 +764,7 @@ CREATE POLICY "Enrolled students view syllabus items"
   USING (EXISTS (SELECT 1 FROM enrollments WHERE enrollments.course_id = syllabus_items.course_id AND enrollments.student_id = auth.uid()));
 
 -- ============================================================
--- 21. STUDENT SYLLABUS PROGRESS
+-- 22. STUDENT SYLLABUS PROGRESS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS student_syllabus_progress (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -745,7 +794,7 @@ CREATE POLICY "Students view own syllabus progress"
   ON student_syllabus_progress FOR SELECT USING (student_id = auth.uid());
 
 -- ============================================================
--- 22. LESSON EVALUATIONS (instructor debrief per lesson)
+-- 23. LESSON EVALUATIONS (instructor debrief per lesson)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS lesson_evaluations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -778,7 +827,7 @@ CREATE POLICY "Students view own lesson evaluations"
   ON lesson_evaluations FOR SELECT USING (student_id = auth.uid());
 
 -- ============================================================
--- 23. SOCIAL MEDIA POSTS
+-- 24. SOCIAL MEDIA POSTS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS social_media_posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -822,7 +871,7 @@ CREATE POLICY "Public can read social media posts"
 CREATE INDEX IF NOT EXISTS social_media_posts_date_idx ON social_media_posts(date DESC);
 
 -- ============================================================
--- 24. PROSPECT INFORMATION (discovery flight onboarding funnel)
+-- 25. PROSPECT INFORMATION (discovery flight onboarding funnel)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS prospect_information (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -867,7 +916,7 @@ CREATE POLICY "Allow public select from prospect_information"
 CREATE INDEX IF NOT EXISTS idx_prospect_information_email ON prospect_information(email);
 
 -- ============================================================
--- 25. STUDENT ONBOARDING WORKFLOW
+-- 26. STUDENT ONBOARDING WORKFLOW
 -- ============================================================
 CREATE TABLE IF NOT EXISTS onboarding_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1001,9 +1050,78 @@ CREATE POLICY "Admins can manage onboarding reviews"
   USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true))
   WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
 
+  INSERT INTO storage.buckets (id, name, public)
+  VALUES ('lesson-videos', 'lesson-videos', true)
+  ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public;
+
+  INSERT INTO storage.buckets (id, name, public)
+  VALUES ('videos', 'videos', true)
+  ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public;
+
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('onboarding-private', 'onboarding-private', false)
 ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public;
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('lesson-documents', 'lesson-documents', true)
+ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public;
+
+  DROP POLICY IF EXISTS "Admins can upload lesson videos" ON storage.objects;
+  DROP POLICY IF EXISTS "Admins can update lesson videos files" ON storage.objects;
+  DROP POLICY IF EXISTS "Admins can delete lesson videos files" ON storage.objects;
+  DROP POLICY IF EXISTS "Admins can upload legacy videos" ON storage.objects;
+  DROP POLICY IF EXISTS "Admins can update legacy videos files" ON storage.objects;
+  DROP POLICY IF EXISTS "Admins can delete legacy videos files" ON storage.objects;
+
+  CREATE POLICY "Admins can upload lesson videos"
+    ON storage.objects FOR INSERT
+    WITH CHECK (
+      bucket_id = 'lesson-videos'
+      AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+    );
+
+  CREATE POLICY "Admins can update lesson videos files"
+    ON storage.objects FOR UPDATE
+    USING (
+      bucket_id = 'lesson-videos'
+      AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+    )
+    WITH CHECK (
+      bucket_id = 'lesson-videos'
+      AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+    );
+
+  CREATE POLICY "Admins can delete lesson videos files"
+    ON storage.objects FOR DELETE
+    USING (
+      bucket_id = 'lesson-videos'
+      AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+    );
+
+  CREATE POLICY "Admins can upload legacy videos"
+    ON storage.objects FOR INSERT
+    WITH CHECK (
+      bucket_id = 'videos'
+      AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+    );
+
+  CREATE POLICY "Admins can update legacy videos files"
+    ON storage.objects FOR UPDATE
+    USING (
+      bucket_id = 'videos'
+      AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+    )
+    WITH CHECK (
+      bucket_id = 'videos'
+      AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+    );
+
+  CREATE POLICY "Admins can delete legacy videos files"
+    ON storage.objects FOR DELETE
+    USING (
+      bucket_id = 'videos'
+      AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+    );
 
 DROP POLICY IF EXISTS "Users can read own onboarding files" ON storage.objects;
 DROP POLICY IF EXISTS "Users can upload own onboarding files" ON storage.objects;
@@ -1042,8 +1160,38 @@ CREATE POLICY "Admins can manage onboarding files"
     AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
   );
 
+DROP POLICY IF EXISTS "Admins can upload lesson documents" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can update lesson documents files" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can delete lesson documents files" ON storage.objects;
+
+CREATE POLICY "Admins can upload lesson documents"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'lesson-documents'
+    AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+  );
+
+CREATE POLICY "Admins can update lesson documents files"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'lesson-documents'
+    AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+  )
+  WITH CHECK (
+    bucket_id = 'lesson-documents'
+    AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+  );
+
+CREATE POLICY "Admins can delete lesson documents files"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'lesson-documents'
+    AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+  );
+
 CREATE INDEX IF NOT EXISTS idx_onboarding_profiles_user_id ON onboarding_profiles(user_id);
 CREATE INDEX IF NOT EXISTS idx_onboarding_profiles_status ON onboarding_profiles(status);
+CREATE INDEX IF NOT EXISTS idx_lesson_documents_lesson_id ON lesson_documents(lesson_id);
 CREATE INDEX IF NOT EXISTS idx_onboarding_documents_user_id ON onboarding_documents(user_id);
 CREATE INDEX IF NOT EXISTS idx_onboarding_documents_type ON onboarding_documents(doc_type);
 CREATE INDEX IF NOT EXISTS idx_onboarding_events_user_id ON onboarding_events(user_id);
@@ -1057,6 +1205,7 @@ CREATE INDEX IF NOT EXISTS idx_courses_is_published ON courses(is_published);
 CREATE INDEX IF NOT EXISTS idx_units_course_id ON units(course_id);
 CREATE INDEX IF NOT EXISTS idx_lessons_unit_id ON lessons(unit_id);
 CREATE INDEX IF NOT EXISTS idx_videos_lesson_id ON videos(lesson_id);
+CREATE INDEX IF NOT EXISTS idx_lesson_documents_lesson_id_perf ON lesson_documents(lesson_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_course_id ON enrollments(course_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_student_id ON enrollments(student_id);
 CREATE INDEX IF NOT EXISTS idx_progress_lesson_id ON progress(lesson_id);
