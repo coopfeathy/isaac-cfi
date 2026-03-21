@@ -98,6 +98,23 @@ export default function LearnPage() {
         </div>
       )}
 
+      <div style={{ marginBottom: "24px" }}>
+        <Link
+          href="/private-pilot-timeline"
+          style={{
+            display: "inline-block",
+            border: "1px solid #C59A2A",
+            color: "#C59A2A",
+            padding: "10px 16px",
+            borderRadius: "8px",
+            textDecoration: "none",
+            fontWeight: "600",
+          }}
+        >
+          View Private Pilot Timeline
+        </Link>
+      </div>
+
       {!user ? (
         <div
           style={{

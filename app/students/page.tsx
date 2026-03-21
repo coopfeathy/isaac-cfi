@@ -14,6 +14,20 @@ export default function StudentsPage() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [activeTab, setActiveTab] = useState<'list' | 'details'>('list')
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const trainingStageOptions = [
+    'Pre-solo',
+    'First solo complete',
+    'Solo practice',
+    'Cross-country phase',
+    'Night requirements',
+    'Checkride prep',
+    'Instrument training',
+    'Commercial maneuvers',
+    'Flight review',
+    'Post-certification proficiency',
+  ]
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -69,13 +83,47 @@ export default function StudentsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSubmitError(null)
+
+    const toNullable = (value: string) => {
+      const trimmed = value.trim()
+      return trimmed.length > 0 ? trimmed : null
+    }
+
+    const toDateOrNull = (value: string) => {
+      const trimmed = value.trim()
+      return trimmed.length > 0 ? trimmed : null
+    }
+
+    const payload = {
+      full_name: formData.full_name.trim(),
+      email: toNullable(formData.email),
+      phone: toNullable(formData.phone),
+      certificate_type: toNullable(formData.certificate_type),
+      certificate_number: toNullable(formData.certificate_number),
+      medical_class: formData.medical_class || null,
+      medical_expiration: toDateOrNull(formData.medical_expiration),
+      flight_review_date: toDateOrNull(formData.flight_review_date),
+      flight_review_due: toDateOrNull(formData.flight_review_due),
+      ipc_date: toDateOrNull(formData.ipc_date),
+      ipc_due: toDateOrNull(formData.ipc_due),
+      rental_checkout_date: toDateOrNull(formData.rental_checkout_date),
+      rental_currency_due: toDateOrNull(formData.rental_currency_due),
+      total_hours: Number.isFinite(formData.total_hours) ? formData.total_hours : 0,
+      pic_hours: Number.isFinite(formData.pic_hours) ? formData.pic_hours : 0,
+      dual_hours: Number.isFinite(formData.dual_hours) ? formData.dual_hours : 0,
+      instrument_hours: Number.isFinite(formData.instrument_hours) ? formData.instrument_hours : 0,
+      training_stage: toNullable(formData.training_stage),
+      notes: toNullable(formData.notes),
+      status: formData.status,
+    }
     
     try {
       if (selectedStudent) {
         // Update existing student
         const { error } = await supabase
           .from('students')
-          .update(formData)
+          .update(payload)
           .eq('id', selectedStudent.id)
 
         if (error) throw error
@@ -83,7 +131,7 @@ export default function StudentsPage() {
         // Create new student
         const { error } = await supabase
           .from('students')
-          .insert([formData])
+          .insert([payload])
 
         if (error) throw error
       }
@@ -95,7 +143,9 @@ export default function StudentsPage() {
       setActiveTab('list')
     } catch (error) {
       console.error('Error saving student:', error)
-      alert('Failed to save student record')
+      const message = error instanceof Error ? error.message : 'Failed to save student record'
+      setSubmitError(message)
+      alert(`Failed to save student record: ${message}`)
     }
   }
 
@@ -225,6 +275,12 @@ export default function StudentsPage() {
               {selectedStudent ? 'Edit Student Record' : 'Add New Student'}
             </h2>
 
+            {submitError && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {submitError}
+              </div>
+            )}
+
             {/* Tabs */}
             <div className="flex gap-4 mb-6 border-b">
               <button
@@ -293,13 +349,18 @@ export default function StudentsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Training Stage
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={formData.training_stage}
                       onChange={(e) => setFormData({ ...formData, training_stage: e.target.value })}
-                      placeholder="e.g., Pre-solo, Cross-country, Checkride prep"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-golden focus:border-golden"
-                    />
+                    >
+                      <option value="">Select training stage...</option>
+                      {trainingStageOptions.map((stage) => (
+                        <option key={stage} value={stage}>
+                          {stage}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>

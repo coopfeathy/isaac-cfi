@@ -25,6 +25,8 @@ interface Unit {
   title: string
 }
 
+const VIDEO_STORAGE_BUCKETS = ["lesson-videos", "videos"] as const
+
 export default function LessonPage() {
   const params = useParams()
   const courseId = params.courseId as string
@@ -144,6 +146,13 @@ export default function LessonPage() {
     updateProgress(100)
   }
 
+  const getVideoSources = (storagePath: string) => {
+    return VIDEO_STORAGE_BUCKETS.map((bucket) => {
+      const { data } = supabase.storage.from(bucket).getPublicUrl(storagePath)
+      return data.publicUrl
+    })
+  }
+
   if (loading)
     return (
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 20px" }}>
@@ -214,10 +223,9 @@ export default function LessonPage() {
                   onTimeUpdate={handleTimeUpdate}
                   onEnded={handleVideoEnd}
                 >
-                  <source
-                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/videos/${currentVideo.storage_path}`}
-                    type="video/mp4"
-                  />
+                  {getVideoSources(currentVideo.storage_path).map((src) => (
+                    <source key={src} src={src} type="video/mp4" />
+                  ))}
                   Your browser does not support the video tag.
                 </video>
               </div>

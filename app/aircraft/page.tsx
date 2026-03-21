@@ -3,6 +3,7 @@
 import Link from "next/link"
 import ImageCarousel from "@/app/components/ImageCarousel"
 import ContactModal from "@/app/components/ContactModal"
+import RedBirdSimulator from "@/app/components/RedBirdSimulator"
 import { useState } from "react"
 
 export default function AircraftPage() {
@@ -284,6 +285,8 @@ export default function AircraftPage() {
           </div>
         </div>
       </section>
+
+      <RedBirdSimulator />
 
       {/* CTA Section */}
       <section className="py-20 sm:py-24 md:py-32 bg-black text-white relative overflow-hidden">

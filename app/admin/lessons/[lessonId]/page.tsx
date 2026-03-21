@@ -20,6 +20,8 @@ interface Lesson {
   unit_id: string
 }
 
+const VIDEO_STORAGE_BUCKETS = ["lesson-videos", "videos"] as const
+
 export default function ManageVideosPage() {
   const params = useParams()
   const lessonId = params.lessonId as string
@@ -31,6 +33,25 @@ export default function ManageVideosPage() {
   const [newVideoTitle, setNewVideoTitle] = useState("")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const getVideoDuration = async (file: File): Promise<number | null> => {
+    try {
+      const objectUrl = URL.createObjectURL(file)
+      const duration = await new Promise<number>((resolve, reject) => {
+        const element = document.createElement("video")
+        element.preload = "metadata"
+        element.onloadedmetadata = () => {
+          resolve(element.duration)
+        }
+        element.onerror = () => reject(new Error("Failed to read video metadata"))
+        element.src = objectUrl
+      })
+      URL.revokeObjectURL(objectUrl)
+      return Number.isFinite(duration) ? Math.round(duration) : null
+    } catch {
+      return null
+    }
+  }
 
   useEffect(() => {
     if (authLoading) {
@@ -81,28 +102,32 @@ export default function ManageVideosPage() {
     setUploading(true)
 
     try {
-      // Generate unique path
+      // Generate a unique storage path for this lesson
       const timestamp = Date.now()
       const fileName = `${timestamp}-${selectedFile.name.replace(/\s+/g, "-")}`
       const storagePath = `courses/lesson-${lessonId}/${fileName}`
 
-      // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from("videos")
-        .upload(storagePath, selectedFile)
+      // Upload to configured bucket with fallback for older environments.
+      let uploadSucceeded = false
+      let uploadErrorMessage = ""
+      for (const bucket of VIDEO_STORAGE_BUCKETS) {
+        const { error: uploadError } = await supabase.storage
+          .from(bucket)
+          .upload(storagePath, selectedFile, { upsert: false, cacheControl: "3600" })
 
-      if (uploadError) throw uploadError
+        if (!uploadError) {
+          uploadSucceeded = true
+          break
+        }
 
-      // Calculate duration (you might want to do this server-side with ffmpeg)
-      const video = new Blob([selectedFile])
-      const url = URL.createObjectURL(video)
-      const videoElement = document.createElement("video")
-      videoElement.src = url
-
-      let duration: number | null = null
-      videoElement.onloadedmetadata = () => {
-        duration = Math.round(videoElement.duration)
+        uploadErrorMessage = uploadError.message
       }
+
+      if (!uploadSucceeded) {
+        throw new Error(uploadErrorMessage || "Video upload failed for all configured buckets")
+      }
+
+      const duration = await getVideoDuration(selectedFile)
 
       // Store video metadata in database
       const { data, error: insertError } = await supabase
@@ -126,7 +151,8 @@ export default function ManageVideosPage() {
       }
     } catch (error) {
       console.error("Error uploading video:", error)
-      alert("Failed to upload video")
+      const message = error instanceof Error ? error.message : "Failed to upload video"
+      alert(`Failed to upload video: ${message}`)
     } finally {
       setUploading(false)
     }
@@ -136,12 +162,25 @@ export default function ManageVideosPage() {
     if (!confirm("Delete this video?")) return
 
     try {
-      // Delete from storage
-      const { error: deleteError } = await supabase.storage
-        .from("videos")
-        .remove([storagePath])
+      // Delete from storage (try all supported buckets).
+      let storageDeleted = false
+      let lastStorageError: string | null = null
+      for (const bucket of VIDEO_STORAGE_BUCKETS) {
+        const { error: deleteError } = await supabase.storage
+          .from(bucket)
+          .remove([storagePath])
 
-      if (deleteError) throw deleteError
+        if (!deleteError) {
+          storageDeleted = true
+          break
+        }
+
+        lastStorageError = deleteError.message
+      }
+
+      if (!storageDeleted && lastStorageError) {
+        throw new Error(lastStorageError)
+      }
 
       // Delete from database
       const { error: dbError } = await supabase.from("videos").delete().eq("id", videoId)
@@ -151,7 +190,8 @@ export default function ManageVideosPage() {
       setVideos(videos.filter((v) => v.id !== videoId))
     } catch (error) {
       console.error("Error deleting video:", error)
-      alert("Failed to delete video")
+      const message = error instanceof Error ? error.message : "Failed to delete video"
+      alert(`Failed to delete video: ${message}`)
     }
   }
 
@@ -209,7 +249,7 @@ export default function ManageVideosPage() {
                 </label>
                 <input
                   type="file"
-                  accept="video/mp4"
+                  accept="video/*"
                   onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                   required
                   style={{
