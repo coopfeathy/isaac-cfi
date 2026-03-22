@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import ContactModal from "@/app/components/ContactModal"
 import RedBirdSimulator from "@/app/components/RedBirdSimulator"
 import { useState } from "react"
 
@@ -14,8 +13,6 @@ interface AircraftImage {
 export default function AircraftPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isImageLoading, setIsImageLoading] = useState(true)
-  const [isContactOpen, setIsContactOpen] = useState(false)
-  const [selectedAircraft, setSelectedAircraft] = useState<string | undefined>()
 
   const images: AircraftImage[] = [
     {
@@ -221,15 +218,12 @@ export default function AircraftPage() {
                 >
                   Book a Flight Session
                 </Link>
-                <button
-                  onClick={() => {
-                    setSelectedAircraft("N2152Z Piper Warrior Documents")
-                    setIsContactOpen(true)
-                  }}
+                <Link
+                  href="/aircraft/documents"
                   className="inline-block border border-golden text-golden hover:bg-golden hover:text-black font-semibold py-3 px-6 rounded-lg transition-colors text-center w-full sm:w-auto"
                 >
                   Aircraft Documents
-                </button>
+                </Link>
               </div>
             </div>
           </div>
@@ -265,24 +259,10 @@ export default function AircraftPage() {
             >
               Book a Flight Session
             </Link>
-            <button
-              onClick={() => {
-                setSelectedAircraft("Aircraft Documents")
-                setIsContactOpen(true)
-              }}
-              className="inline-block px-10 py-4 border border-golden text-golden hover:bg-golden hover:text-black font-semibold rounded-lg transition-colors duration-300"
-            >
-              Aircraft Documents
-            </button>
           </div>
         </div>
       </section>
       </div>
-      <ContactModal 
-        isOpen={isContactOpen} 
-        onClose={() => setIsContactOpen(false)}
-        aircraftName={selectedAircraft}
-      />
     </>
   )
 }

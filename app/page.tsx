@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
-import ImageCarousel from "@/app/components/ImageCarousel"
 import LocationsMap from "@/app/components/LocationsMap"
 import TypingEffect from "@/app/components/TypingEffect"
 
@@ -100,123 +99,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Locations Section */}
-      <section className="py-16 sm:py-20 md:py-24 bg-white relative">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-golden to-transparent" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center mb-12 sm:mb-16">
-            {/* Left Side - Text */}
-            <div className="text-center lg:text-left">
-              <div className="inline-block mb-4">
-                <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
-              </div>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-4 sm:mb-5 tracking-tight">
-                Our <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Locations</span>
-              </h2>
-              <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-xl mx-auto lg:mx-0 font-light leading-relaxed">
-                Serving pilots across New Jersey and New York with convenient airport locations
-              </p>
-            </div>
-
-            {/* Right Side - Map */}
-            <div className="h-[350px] sm:h-[400px] lg:h-[450px] rounded-2xl overflow-hidden border border-gray-200 shadow-lg">
-              <LocationsMap />
-            </div>
-          </div>
-
-          {/* Location Cards */}
-          <div className="max-w-md mx-auto">
-            <a 
-              href="https://maps.apple.com/?q=FRG+Republic+Airport+Farmingdale+NY"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative rounded-2xl overflow-hidden border-2 border-golden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
-            >
-              <div className="relative h-40 sm:h-48">
-                <img 
-                  src="/images/republic-airport.png" 
-                  alt="Republic Airport" 
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/40" />
-                {/* Location Pin Icon */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-12 h-12 rounded-full border-2 border-golden bg-black/30 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-golden" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-gray-900 p-5 text-center">
-                <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">Long Island, NY</h3>
-                <p className="text-golden font-semibold mb-2">N2152Z Piper Warrior</p>
-                <p className="text-white text-sm mb-1">FRG - Republic Airport</p>
-                <p className="text-gray-400 text-xs mb-4">208 NY-109, Farmingdale, NY 11735</p>
-                <div className="bg-black text-white py-2 px-4 rounded-lg text-sm font-medium group-hover:bg-golden group-hover:text-black transition-all duration-300">
-                  View on Map
-                </div>
-              </div>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Aircraft Fleet Section */}
-      <section className="py-16 sm:py-20 md:py-24 bg-white relative">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-golden to-transparent" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12 sm:mb-16">
-            <div className="inline-block mb-4">
-              <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
-            </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-5 tracking-tight px-4">
-              Our <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Aircraft</span>
-            </h2>
-            <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto font-light px-4 leading-relaxed">
-              Choose from our fleet of well-maintained, modern aircraft for your training or rental needs
-            </p>
-          </div>
-
-          <div className="max-w-xl mx-auto">
-            <div className="group bg-white/5 rounded-2xl border border-white/15 hover:border-golden transition-all duration-300 hover:shadow-2xl overflow-hidden">
-              <div className="h-48 sm:h-56">
-                <ImageCarousel 
-                  images={[
-                    '/images/n2152z-1.JPG',
-                    '/images/n2152z-2.JPG',
-                  ]}
-                  objectPositions={[
-                    'center center',
-                    'center center',
-                  ]}
-                  alt="N2152Z Piper Warrior"
-                />
-              </div>
-              <div className="p-6 sm:p-8">
-                <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 group-hover:text-golden transition-colors duration-300">
-                  N2152Z Piper Warrior
-                </h3>
-                <p className="text-golden font-semibold mb-1">Long Island, NY</p>
-                <p className="text-gray-300 text-sm mb-3 font-light">IFR Certified, Perfect for the professional pilot.</p>
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-gray-400 text-sm">From</span>
-                  <span className="text-2xl font-bold text-golden">$185<span className="text-sm text-gray-400">/hr</span></span>
-                </div>
-                <Link
-                  href="/aircraft#n2152z"
-                  className="block w-full text-center px-6 py-3 bg-golden text-black font-bold rounded-lg hover:bg-golden/90 transition-colors duration-300"
-                >
-                  View Details
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Google Reviews */}
       <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-gray-50 to-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -276,6 +158,49 @@ export default function Home() {
               className="inline-block px-8 py-3 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-colors"
             >
               Read Reviews on Google
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Visit Republic Airport */}
+      <section className="py-16 sm:py-20 md:py-24 bg-white relative">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-golden to-transparent" />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-10 sm:mb-12">
+            <div className="inline-block mb-4">
+              <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
+            </div>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-black mb-4 tracking-tight">
+              Visit Republic Airport
+            </h2>
+            <p className="text-gray-600 text-base sm:text-lg max-w-2xl mx-auto font-light">
+              Find us at FRG in Farmingdale, NY.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-stretch">
+            <div className="h-[350px] sm:h-[420px] rounded-2xl overflow-hidden border border-gray-200 shadow-lg">
+              <LocationsMap />
+            </div>
+
+            <a
+              href="https://maps.google.com/?q=Republic+Airport+Farmingdale+NY"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative rounded-2xl overflow-hidden border border-gray-200 shadow-lg hover:shadow-2xl transition-all duration-300"
+            >
+              <div className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-300" style={{ backgroundImage: 'url("/images/republic-airport.png")' }} />
+              <div className="absolute inset-0 bg-black/45" />
+              <div className="relative z-10 h-full min-h-[350px] sm:min-h-[420px] flex flex-col justify-end p-6 sm:p-8">
+                <h3 className="text-2xl sm:text-3xl font-bold text-white mb-2">Long Island, NY</h3>
+                <p className="text-golden font-semibold mb-2">FRG - Republic Airport</p>
+                <p className="text-gray-200 text-sm mb-4">208 NY-109, Farmingdale, NY 11735</p>
+                <span className="inline-block w-fit px-5 py-2 bg-black text-white font-semibold rounded-lg group-hover:bg-golden group-hover:text-black transition-colors">
+                  Open in Google Maps
+                </span>
+              </div>
             </a>
           </div>
         </div>
@@ -346,58 +271,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Location Info */}
-          <div className="mt-12 sm:mt-16 text-center">
-            <div className="inline-block mb-4">
-              <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
-            </div>
-            <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black mb-4 sm:mb-6 tracking-tight">
-              Our Locations
-            </h3>
-            <p className="text-base sm:text-lg text-gray-600 max-w-3xl mx-auto font-light mb-8 leading-relaxed">
-              We operate from our primary location in New York
-            </p>
-            <div className="grid grid-cols-1 gap-6 max-w-xl mx-auto">
-              <div 
-                onClick={() => window.location.assign('/aircraft#n2152z')}
-                className="block relative p-6 sm:p-8 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-lg overflow-hidden group h-80 cursor-pointer"
-              >
-                {/* Aerial Background Image */}
-                <div 
-                  className="absolute inset-0 bg-cover bg-center group-hover:scale-110 transition-transform duration-300"
-                  style={{
-                    backgroundImage: 'url("/images/republic-airport.png")'
-                  }}
-                />
-                {/* Dark Overlay */}
-                <div className="absolute inset-0 bg-black/50 group-hover:bg-black/40 transition-colors duration-300" />
-                {/* Content */}
-                <div className="relative z-10 flex flex-col justify-end h-full">
-                  <div className="w-12 h-12 bg-golden/20 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                    <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <h4 className="text-xl font-bold text-white mb-2">Long Island, NY</h4>
-                  <p className="text-golden font-semibold mb-3">N2152Z Piper Warrior</p>
-                  <p className="text-gray-200 font-medium mb-1 text-sm">FRG - Republic Airport</p>
-                  <p className="text-gray-300 text-xs mb-4">208 NY-109, Farmingdale, NY 11735</p>
-                  <div className="flex gap-2">
-                    <a
-                      href="https://maps.google.com/?q=Republic+Airport+Farmingdale+NY"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="flex-1 text-center px-4 py-2 bg-black text-white text-sm font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
-                    >
-                      View on Map
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
