@@ -543,7 +543,7 @@ export default function Home() {
                 </li>
               </ul>
               <Link
-                href="/schedule"
+                href="/training-options"
                 className="inline-block w-full sm:w-auto text-center px-8 sm:px-10 py-3 sm:py-4 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
                 View Training Options
