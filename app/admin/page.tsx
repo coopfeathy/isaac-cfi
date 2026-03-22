@@ -1598,7 +1598,7 @@ ${blogContent}
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <p className="text-sm text-yellow-800">
                   <strong>Note:</strong> Make sure you have configured your Resend API key in the environment variables.
-                  Emails will be sent from: <code className="bg-yellow-100 px-1 rounded">noreply@isaac-cfi.netlify.app</code>
+                  Emails will be sent from: <code className="bg-yellow-100 px-1 rounded">noreply@merlinflighttraining.com</code>
                 </p>
               </div>
             </div>

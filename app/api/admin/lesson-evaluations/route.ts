@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
         })
 
         const { error } = await resend.emails.send({
-          from: "Merlin Flight Training <noreply@isaac-cfi.netlify.app>",
+          from: "Merlin Flight Training <noreply@merlinflighttraining.com>",
           to: [studentEmail],
           subject: template.subject,
           html: template.html,
