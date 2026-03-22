@@ -21,7 +21,20 @@ interface SocialMediaPost {
   created_at: string
 }
 
-type AdminTab = 'slots' | 'bookings' | 'prospects' | 'blog' | 'social' | 'email'
+type AdminTab = 'slots' | 'bookings' | 'prospects' | 'blog' | 'social' | 'email' | 'support'
+type SupportTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
+type SupportTicket = {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  category: string
+  subject: string
+  message: string
+  status: SupportTicketStatus
+  created_at: string
+  updated_at: string
+}
 
 type AdminHealthSnapshot = {
   unreviewedOnboardingDocs: number
@@ -62,7 +75,7 @@ type SlotRequest = {
 }
 
 const isAdminTab = (value: string | null): value is AdminTab => {
-  return value === 'slots' || value === 'bookings' || value === 'prospects' || value === 'blog' || value === 'social' || value === 'email'
+  return value === 'slots' || value === 'bookings' || value === 'prospects' || value === 'blog' || value === 'social' || value === 'email' || value === 'support'
 }
 
 function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
@@ -80,6 +93,8 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
   const [healthLoading, setHealthLoading] = useState(false)
   const [slotRequests, setSlotRequests] = useState<SlotRequest[]>([])
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null)
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([])
+  const [updatingSupportTicketId, setUpdatingSupportTicketId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<AdminTab>(forcedTab || 'slots')
   
@@ -160,7 +175,44 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
     fetchSocialPosts()
     fetchAdminHealth()
     fetchSlotRequests()
+    fetchSupportTickets()
   }, [user, isAdmin, searchParams, forcedTab])
+
+  const fetchSupportTickets = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('support_tickets')
+        .select('id, name, email, phone, category, subject, message, status, created_at, updated_at')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setSupportTickets((data || []) as SupportTicket[])
+    } catch (error) {
+      console.error('Error fetching support tickets:', error)
+    }
+  }
+
+  const handleUpdateSupportTicketStatus = async (ticketId: string, status: SupportTicketStatus) => {
+    try {
+      setUpdatingSupportTicketId(ticketId)
+      const { error } = await supabase
+        .from('support_tickets')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', ticketId)
+
+      if (error) throw error
+
+      setSupportTickets((prev) =>
+        prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, status } : ticket))
+      )
+      fetchAdminHealth()
+    } catch (error) {
+      console.error('Error updating support ticket:', error)
+      alert('Failed to update support ticket status')
+    } finally {
+      setUpdatingSupportTicketId(null)
+    }
+  }
 
   const fetchSlotRequests = async () => {
     try {
@@ -854,6 +906,13 @@ ${blogContent}
     return new Date(value).toLocaleString()
   }
 
+  const supportStatusClasses: Record<SupportTicketStatus, string> = {
+    open: 'bg-red-100 text-red-800',
+    in_progress: 'bg-yellow-100 text-yellow-800',
+    resolved: 'bg-green-100 text-green-800',
+    closed: 'bg-gray-100 text-gray-800',
+  }
+
   const shouldShowWorkspace = Boolean(forcedTab || isAdminTab(searchParams.get('tab')))
 
   // Landing Page View
@@ -966,6 +1025,9 @@ ${blogContent}
                 <Link href="/admin/bookings" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">
                   View Bookings
                 </Link>
+                <Link href="/admin/support" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
+                  Support Tickets
+                </Link>
                 <Link href="/admin/prospects" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
                   Manage Prospects
                 </Link>
@@ -1000,6 +1062,7 @@ ${blogContent}
               <li><strong>Onboarding:</strong> Review student intake docs, signatures, and approvals</li>
               <li><strong>Prospects:</strong> Manage leads and potential students from discovery flights</li>
               <li><strong>Bookings:</strong> Manage flight slots, bookings, and schedules</li>
+              <li><strong>Support:</strong> Review inbound support tickets and update their status</li>
               <li><strong>Content:</strong> Create and manage blog posts, social media posts, and email campaigns</li>
             </ul>
           </div>
@@ -1021,6 +1084,7 @@ ${blogContent}
             {activeTab === 'blog' && 'Create Blog Post'}
             {activeTab === 'social' && 'Social Media'}
             {activeTab === 'email' && 'Email Campaigns'}
+            {activeTab === 'support' && 'Support Tickets'}
           </h2>
           <p className="text-gray-600">
             {activeTab === 'slots' && `Create and manage availability for the native schedule page. Current slots: ${slots.length}.`}
@@ -1029,6 +1093,7 @@ ${blogContent}
             {activeTab === 'blog' && 'Write, edit, and publish blog content.'}
             {activeTab === 'social' && `Manage linked social video posts. Current posts: ${socialPosts.length}.`}
             {activeTab === 'email' && 'Load recipients and send campaign emails.'}
+            {activeTab === 'support' && `Review and resolve inbound support requests. Open tickets: ${supportTickets.filter((ticket) => ticket.status === 'open').length}.`}
           </p>
         </div>
 
@@ -1788,6 +1853,56 @@ ${blogContent}
                 </p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Support Tickets Tab */}
+        {activeTab === 'support' && (
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Support Tickets</h2>
+            <p className="text-gray-600 mb-6">Track and resolve support issues submitted from the contact form.</p>
+
+            {supportTickets.length === 0 ? (
+              <p className="text-gray-600">No support tickets found.</p>
+            ) : (
+              <div className="space-y-4">
+                {supportTickets.map((ticket) => (
+                  <div key={ticket.id} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-3">
+                      <div>
+                        <p className="font-semibold text-darkText">{ticket.subject}</p>
+                        <p className="text-sm text-gray-600">{ticket.name} • {ticket.email}{ticket.phone ? ` • ${ticket.phone}` : ''}</p>
+                        <p className="text-xs text-gray-500 mt-1">Category: {ticket.category} • Created: {formatDateTime(ticket.created_at)}</p>
+                      </div>
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${supportStatusClasses[ticket.status]}`}>
+                        {ticket.status === 'in_progress' ? 'In Progress' : ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1)}
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap mb-4">{ticket.message}</p>
+
+                    <div className="flex flex-col md:flex-row md:items-center gap-3">
+                      <label className="text-sm text-gray-700 font-medium" htmlFor={`support-status-${ticket.id}`}>
+                        Update status
+                      </label>
+                      <select
+                        id={`support-status-${ticket.id}`}
+                        value={ticket.status}
+                        onChange={(e) => handleUpdateSupportTicketStatus(ticket.id, e.target.value as SupportTicketStatus)}
+                        disabled={updatingSupportTicketId === ticket.id}
+                        className="w-full md:w-56 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent disabled:bg-gray-100"
+                      >
+                        <option value="open">Open</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                      {updatingSupportTicketId === ticket.id && <span className="text-sm text-blue-700">Saving...</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
