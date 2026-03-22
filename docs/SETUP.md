@@ -56,6 +56,15 @@ ALERT_MIN_AGE_MINUTES=15
 ALERT_EMAIL_COOLDOWN_MINUTES=60
 WEBHOOK_FAILURE_LOOKBACK_MINUTES=1440
 
+# Discovery Slot Automation
+APPLE_CALENDAR_ICS_URL=
+DISCOVERY_SLOT_MIN_DAYS_OUT=14
+DISCOVERY_SLOT_GENERATION_DAYS_AHEAD=45
+DISCOVERY_SLOT_DURATION_MINUTES=90
+DISCOVERY_SLOT_PRICE_CENTS=29900
+DISCOVERY_SLOT_TEMPLATE_TIMES=09:00,12:00,15:00
+DISCOVERY_SLOT_ACTIVE_WEEKDAYS=1,2,3,4,5,6
+
 # E-sign (DocuSeal default)
 ESIGN_PROVIDER=docuseal
 DOCUSEAL_FORM_URL=https://your-docuseal-host/d/your-template-slug
@@ -200,6 +209,14 @@ Alert email settings:
 - `ALERT_MIN_AGE_MINUTES` (default 15)
 - `ALERT_EMAIL_COOLDOWN_MINUTES` (default 60)
 - `WEBHOOK_FAILURE_LOOKBACK_MINUTES` (default 1440)
+
+Discovery slot automation runs separately via `netlify/functions/auto-discovery-slots.ts` (every 6 hours):
+
+- Creates future Discovery Flight slots only for dates at least `DISCOVERY_SLOT_MIN_DAYS_OUT` days away
+- Generates out to `DISCOVERY_SLOT_GENERATION_DAYS_AHEAD`
+- Uses `DISCOVERY_SLOT_TEMPLATE_TIMES` and `DISCOVERY_SLOT_ACTIVE_WEEKDAYS`
+- Optionally reads `APPLE_CALENDAR_ICS_URL` and removes conflicting unbooked Discovery Flight slots
+- Uses `DISCOVERY_SLOT_DURATION_MINUTES` and `DISCOVERY_SLOT_PRICE_CENTS` for generated slots
 
 ---
 

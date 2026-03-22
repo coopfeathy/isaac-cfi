@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import type React from "react"
 
 export const metadata: Metadata = {
-  title: "Book Your Flight | Flight Lessons & Tours | Merlin Flight Training",
+  title: "Book Your Flight | Flight Lessons & Discovery Flights | Merlin Flight Training",
   description: "Book flight training, discovery flights & aircraft rentals online with flexible scheduling.",
   openGraph: {
     title: "Book Your Flight | Merlin Flight Training",

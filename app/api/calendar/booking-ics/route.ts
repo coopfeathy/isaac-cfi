@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     const summary = slot.description?.trim()
       ? slot.description.trim()
       : slot.type === 'tour'
-        ? 'NYC Flight Tour'
+        ? 'Discovery Flight'
         : 'Flight Training Lesson'
 
     const priceText = Number.isFinite(slot.price) ? ` Price: $${(slot.price / 100).toFixed(2)}.` : ''

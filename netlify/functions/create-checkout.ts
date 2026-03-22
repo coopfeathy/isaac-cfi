@@ -58,7 +58,7 @@ const handler: Handler = async (event) => {
         price_data: {
           currency: 'usd',
           product_data: {
-            name: slot.type === 'tour' ? 'NYC Flight Tour' : 'Flight Training Lesson',
+            name: slot.type === 'tour' ? 'Discovery Flight' : 'Flight Training Lesson',
             description: `${slot.description || ''} - ${new Date(slot.start_time).toLocaleString()} to ${new Date(slot.end_time).toLocaleString()}`
           },
           unit_amount: slot.price

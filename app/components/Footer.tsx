@@ -21,7 +21,7 @@ const Footer = () => {
               <h3 className="text-lg sm:text-xl font-bold">Merlin Flight Training</h3>
             </div>
             <p className="text-gray-400 font-light leading-relaxed text-sm sm:text-base">
-              Professional flight training and unforgettable aerial tours over New York City.
+              Professional flight training and hands-on discovery flights over New York City.
             </p>
             <a
               href="https://maps.google.com/?q=208+NY-109+Farmingdale+NY+11735"
