@@ -232,41 +232,60 @@ export default function PricingPage() {
             {/* Training Programs */}
             <div className="mt-12 sm:mt-16">
               <h3 className="text-2xl sm:text-3xl font-bold text-black mb-8 text-center">Training Program Costs</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 sm:gap-8">
                 <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-                  <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Discovery Flight</h4>
-                  <p className="text-gray-600 text-sm leading-relaxed mb-4">
-                    Introduction to flying experience
-                  </p>
-                  <div className="mb-4">
-                    <p className="text-3xl font-bold text-golden">$200–$300</p>
-                    <p className="text-gray-500 text-sm mt-1">30-45 minute flight</p>
+                  <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Private Pilot</h4>
+                  <div className="space-y-2 text-sm text-gray-700">
+                    <p className="flex justify-between"><span>Flight hours</span><span>{privateFlightHours} hrs</span></p>
+                    <p className="flex justify-between"><span>Instruction hours</span><span>{privateInstructionHours} hrs</span></p>
+                    <p className="flex justify-between"><span>Instruction ({privateInstructionHours} x ${instructionRate})</span><span>${(privateInstructionHours * instructionRate).toLocaleString()}</span></p>
+                    <p className="flex justify-between"><span>Aircraft card ({privateFlightHours} x ${aircraftCardRate})</span><span>${(privateFlightHours * aircraftCardRate).toLocaleString()}</span></p>
+                    <p className="flex justify-between"><span>Aircraft cash ({privateFlightHours} x ${aircraftCashRate})</span><span>${(privateFlightHours * aircraftCashRate).toLocaleString()}</span></p>
+                    <p className="flex justify-between"><span>Equipment + checkride + written</span><span>${privateBundleTotal.toLocaleString()}</span></p>
+                    <p className="flex justify-between font-semibold border-t border-gray-200 pt-2"><span>Total (Card)</span><span className="text-golden">${privateCardTotal.toLocaleString()}</span></p>
+                    <p className="flex justify-between font-semibold"><span>Total (Cash)</span><span className="text-golden">${privateCashTotal.toLocaleString()}</span></p>
                   </div>
-                  <p className="text-gray-600 text-sm font-light">Perfect for first-time flyers</p>
                 </div>
 
                 <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-                  <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Private Pilot License</h4>
-                  <p className="text-gray-600 text-sm leading-relaxed mb-4">
-                    Estimated total program cost
-                  </p>
-                  <div className="mb-4">
-                    <p className="text-3xl font-bold text-golden">$8,000–$12,000</p>
-                    <p className="text-gray-500 text-sm mt-1">60-80 flight hours</p>
+                  <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Instrument</h4>
+                  <div className="space-y-2 text-sm text-gray-700">
+                    <p className="flex justify-between"><span>Flight hours</span><span>{instrumentFlightHours} hrs</span></p>
+                    <p className="flex justify-between"><span>Instruction hours</span><span>{instrumentInstructionHours} hrs</span></p>
+                    <p className="flex justify-between"><span>Instruction ({instrumentInstructionHours} x ${instructionRate})</span><span>${(instrumentInstructionHours * instructionRate).toLocaleString()}</span></p>
+                    <p className="flex justify-between"><span>Aircraft card ({instrumentFlightHours} x ${aircraftCardRate})</span><span>${(instrumentFlightHours * aircraftCardRate).toLocaleString()}</span></p>
+                    <p className="flex justify-between"><span>Aircraft cash ({instrumentFlightHours} x ${aircraftCashRate})</span><span>${(instrumentFlightHours * aircraftCashRate).toLocaleString()}</span></p>
+                    <p className="flex justify-between"><span>Checkride + written</span><span>${instrumentExamCosts.toLocaleString()}</span></p>
+                    <p className="flex justify-between font-semibold border-t border-gray-200 pt-2"><span>Total (Card)</span><span className="text-golden">${instrumentCardTotal.toLocaleString()}</span></p>
+                    <p className="flex justify-between font-semibold"><span>Total (Cash)</span><span className="text-golden">${instrumentCashTotal.toLocaleString()}</span></p>
                   </div>
-                  <p className="text-gray-600 text-sm font-light">Based on 60+ hour minimum</p>
                 </div>
 
                 <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-                  <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Instrument Rating</h4>
-                  <p className="text-gray-600 text-sm leading-relaxed mb-4">
-                    Advanced rating program
-                  </p>
-                  <div className="mb-4">
-                    <p className="text-3xl font-bold text-golden">$6,000–$9,000</p>
-                    <p className="text-gray-500 text-sm mt-1">40-50 flight hours</p>
+                  <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Commercial</h4>
+                  <div className="space-y-2 text-sm text-gray-700">
+                    <p className="flex justify-between"><span>Flight hours</span><span>{commercialFlightHours} hrs</span></p>
+                    <p className="flex justify-between"><span>Instruction hours</span><span>{commercialInstructionHours} hrs</span></p>
+                    <p className="flex justify-between"><span>Instruction ({commercialInstructionHours} x ${instructionRate})</span><span>${(commercialInstructionHours * instructionRate).toLocaleString()}</span></p>
+                    <p className="flex justify-between"><span>Aircraft card ({commercialFlightHours} x ${aircraftCardRate})</span><span>${(commercialFlightHours * aircraftCardRate).toLocaleString()}</span></p>
+                    <p className="flex justify-between"><span>Aircraft cash ({commercialFlightHours} x ${aircraftCashRate})</span><span>${(commercialFlightHours * aircraftCashRate).toLocaleString()}</span></p>
+                    <p className="flex justify-between"><span>Checkride + written</span><span>${commercialExamCosts.toLocaleString()}</span></p>
+                    <p className="flex justify-between font-semibold border-t border-gray-200 pt-2"><span>Total (Card)</span><span className="text-golden">${commercialCardTotal.toLocaleString()}</span></p>
+                    <p className="flex justify-between font-semibold"><span>Total (Cash)</span><span className="text-golden">${commercialCashTotal.toLocaleString()}</span></p>
                   </div>
-                  <p className="text-gray-600 text-sm font-light">Build on pilot skills</p>
+                </div>
+
+                <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
+                  <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Additional Training</h4>
+                  <div className="space-y-2 text-sm text-gray-700">
+                    <p className="flex justify-between"><span>Flight instruction</span><span>${instructionRate}/hr</span></p>
+                    <p className="flex justify-between"><span>Ground instruction</span><span>${instructionRate}/hr</span></p>
+                    <p className="flex justify-between"><span>Aircraft (card)</span><span>${aircraftCardRate}/hr</span></p>
+                    <p className="flex justify-between"><span>Aircraft (cash)</span><span>${aircraftCashRate}/hr</span></p>
+                    <p className="pt-2 border-t border-gray-200 text-gray-600">
+                      Refresher flights, checkride prep, endorsements, and proficiency work are billed strictly by the hour.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -377,62 +396,43 @@ export default function PricingPage() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-12 sm:mb-16">
               <div className="inline-block mb-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 sm:gap-8">
-                <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-                  <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Private Pilot</h4>
-                  <div className="space-y-2 text-sm text-gray-700">
-                    <p className="flex justify-between"><span>Flight hours</span><span>{privateFlightHours} hrs</span></p>
-                    <p className="flex justify-between"><span>Instruction hours</span><span>{privateInstructionHours} hrs</span></p>
-                    <p className="flex justify-between"><span>Instruction ({privateInstructionHours} x ${instructionRate})</span><span>${(privateInstructionHours * instructionRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Aircraft card ({privateFlightHours} x ${aircraftCardRate})</span><span>${(privateFlightHours * aircraftCardRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Aircraft cash ({privateFlightHours} x ${aircraftCashRate})</span><span>${(privateFlightHours * aircraftCashRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Equipment + checkride + written</span><span>${privateBundleTotal.toLocaleString()}</span></p>
-                    <p className="flex justify-between font-semibold border-t border-gray-200 pt-2"><span>Total (Card)</span><span className="text-golden">${privateCardTotal.toLocaleString()}</span></p>
-                    <p className="flex justify-between font-semibold"><span>Total (Cash)</span><span className="text-golden">${privateCashTotal.toLocaleString()}</span></p>
-                  </div>
-                </div>
-
-                <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-                  <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Instrument</h4>
-                  <div className="space-y-2 text-sm text-gray-700">
-                    <p className="flex justify-between"><span>Flight hours</span><span>{instrumentFlightHours} hrs</span></p>
-                    <p className="flex justify-between"><span>Instruction hours</span><span>{instrumentInstructionHours} hrs</span></p>
-                    <p className="flex justify-between"><span>Instruction ({instrumentInstructionHours} x ${instructionRate})</span><span>${(instrumentInstructionHours * instructionRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Aircraft card ({instrumentFlightHours} x ${aircraftCardRate})</span><span>${(instrumentFlightHours * aircraftCardRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Aircraft cash ({instrumentFlightHours} x ${aircraftCashRate})</span><span>${(instrumentFlightHours * aircraftCashRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Checkride + written</span><span>${instrumentExamCosts.toLocaleString()}</span></p>
-                    <p className="flex justify-between font-semibold border-t border-gray-200 pt-2"><span>Total (Card)</span><span className="text-golden">${instrumentCardTotal.toLocaleString()}</span></p>
-                    <p className="flex justify-between font-semibold"><span>Total (Cash)</span><span className="text-golden">${instrumentCashTotal.toLocaleString()}</span></p>
-                  </div>
-                </div>
-
-                <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-                  <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Commercial</h4>
-                  <div className="space-y-2 text-sm text-gray-700">
-                    <p className="flex justify-between"><span>Flight hours</span><span>{commercialFlightHours} hrs</span></p>
-                    <p className="flex justify-between"><span>Instruction hours</span><span>{commercialInstructionHours} hrs</span></p>
-                    <p className="flex justify-between"><span>Instruction ({commercialInstructionHours} x ${instructionRate})</span><span>${(commercialInstructionHours * instructionRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Aircraft card ({commercialFlightHours} x ${aircraftCardRate})</span><span>${(commercialFlightHours * aircraftCardRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Aircraft cash ({commercialFlightHours} x ${aircraftCashRate})</span><span>${(commercialFlightHours * aircraftCashRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Checkride + written</span><span>${commercialExamCosts.toLocaleString()}</span></p>
-                    <p className="flex justify-between font-semibold border-t border-gray-200 pt-2"><span>Total (Card)</span><span className="text-golden">${commercialCardTotal.toLocaleString()}</span></p>
-                    <p className="flex justify-between font-semibold"><span>Total (Cash)</span><span className="text-golden">${commercialCashTotal.toLocaleString()}</span></p>
-                  </div>
-                </div>
-
-                <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-                  <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Additional Training</h4>
-                  <div className="space-y-2 text-sm text-gray-700">
-                    <p className="flex justify-between"><span>Flight instruction</span><span>${instructionRate}/hr</span></p>
-                    <p className="flex justify-between"><span>Ground instruction</span><span>${instructionRate}/hr</span></p>
-                    <p className="flex justify-between"><span>Aircraft (card)</span><span>${aircraftCardRate}/hr</span></p>
-                    <p className="flex justify-between"><span>Aircraft (cash)</span><span>${aircraftCashRate}/hr</span></p>
-                    <p className="pt-2 border-t border-gray-200 text-gray-600">
-                      Refresher flights, checkride prep, endorsements, and proficiency work are billed strictly by the hour.
-                    </p>
-                  </div>
-                </div>
+                <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
               </div>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-6 tracking-tight">
+                Flexible Payment <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Options</span>
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10">
+              <div className="bg-gradient-to-br from-gray-50 to-white p-8 sm:p-10 rounded-2xl border border-gray-200">
+                <div className="w-12 h-12 bg-golden/10 rounded-xl flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-black mb-4">Credit Cards + Apple Pay</h3>
+                <p className="text-gray-600 leading-relaxed font-light text-sm sm:text-base">
+                  We accept major credit cards, debit cards, and Apple Pay. Payments are securely processed through Stripe on compatible devices and browsers.
+                </p>
+              </div>
+
+              <div className="bg-gradient-to-br from-gray-50 to-white p-8 sm:p-10 rounded-2xl border border-gray-200">
+                <div className="w-12 h-12 bg-golden/10 rounded-xl flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-black mb-4">Payment Plans Available</h3>
+                <p className="text-gray-600 leading-relaxed font-light text-sm sm:text-base">
+                  We can offer payment plans through providers such as Affirm (subject to eligibility), while keeping billing transparent: instruction is $65/hr and N2152Z aircraft is $195/hr by card or $185/hr by cash.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-gray-50 to-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6">
             <div className="text-center mb-12 sm:mb-16">
               <div className="inline-block mb-4">
@@ -466,7 +466,7 @@ export default function PricingPage() {
               </div>
 
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
-                <h3 className="text-lg sm:text-xl font-bold text-golden mb-3">How do block hours work?</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-golden mb-3">How does billing work now?</h3>
                 <p className="text-gray-700 leading-relaxed font-light text-sm sm:text-base">
                   We no longer use block-hour pricing. Training is billed hourly: $65/hr for instruction and $195/hr card or $185/hr cash for N2152Z aircraft time.
                 </p>
