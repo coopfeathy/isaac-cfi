@@ -45,8 +45,9 @@ export async function GET(request: NextRequest) {
     if (error) throw error
 
     return NextResponse.json({ requests: data || [] })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to load slot requests' }, { status: 500 })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to load slot requests'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
@@ -125,7 +126,8 @@ export async function PATCH(request: NextRequest) {
     if (updateError) throw updateError
 
     return NextResponse.json({ success: true, approvedSlotId })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to process slot request' }, { status: 500 })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to process slot request'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

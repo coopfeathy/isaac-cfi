@@ -284,11 +284,11 @@ const handler: Handler = async () => {
         toDate: toDateOnlyIso(endBoundary),
       }),
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: error?.message || 'Failed to auto-generate discovery slots',
+        error: error instanceof Error ? error.message : 'Failed to auto-generate discovery slots',
       }),
     }
   }
