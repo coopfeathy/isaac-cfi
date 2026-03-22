@@ -13,9 +13,14 @@ export const metadata: Metadata = {
   creator: "Merlin Flight Training",
   publisher: "Merlin Flight Training",
   icons: {
-    icon: "/icon.png",
-    apple: "/icon.png",
+    icon: [
+      { url: "/icon", type: "image/png", sizes: "32x32" },
+      { url: "/favicon.png", type: "image/png", sizes: "2048x2048" },
+    ],
+    apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+    shortcut: [{ url: "/favicon.png", type: "image/png" }],
   },
+  manifest: "/manifest.webmanifest",
   openGraph: {
     type: "website",
     locale: "en_US",
