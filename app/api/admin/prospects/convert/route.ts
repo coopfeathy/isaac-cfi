@@ -43,11 +43,17 @@ export async function POST(request: NextRequest) {
       : Promise.resolve({ data: null, error: null } as any)
 
     const existingStudent = await existingStudentQuery
+    const normalizedEmail = prospect.email?.trim().toLowerCase() || null
+    const authUsers = normalizedEmail ? await supabaseAdmin.auth.admin.listUsers() : null
+    const matchingAuthUser = normalizedEmail
+      ? authUsers?.data?.users?.find((candidate) => candidate.email?.trim().toLowerCase() === normalizedEmail) || null
+      : null
 
     if (existingStudent?.data?.id) {
       const { error: updateStudentError } = await supabaseAdmin
         .from('students')
         .update({
+          user_id: matchingAuthUser?.id,
           full_name: prospect.full_name,
           phone: prospect.phone,
           notes: prospect.notes,
@@ -62,6 +68,7 @@ export async function POST(request: NextRequest) {
     } else {
       const { error: insertStudentError } = await supabaseAdmin.from('students').insert([
         {
+          user_id: matchingAuthUser?.id || null,
           full_name: prospect.full_name || prospect.email || 'New Student',
           email: prospect.email,
           phone: prospect.phone,

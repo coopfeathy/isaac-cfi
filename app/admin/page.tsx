@@ -57,6 +57,7 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
   const [prospectSource, setProspectSource] = useState<'all' | 'discovery_flight'>('all')
   const [prospectView, setProspectView] = useState<'list' | 'cards'>('cards')
   const [expandedProspectId, setExpandedProspectId] = useState<string | null>(null)
+  const [deletingProspectId, setDeletingProspectId] = useState<string | null>(null)
   const [healthSnapshot, setHealthSnapshot] = useState<AdminHealthSnapshot | null>(null)
   const [healthLoading, setHealthLoading] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -457,6 +458,41 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
     } catch (error) {
       console.error('Error converting prospect:', error)
       alert(error instanceof Error ? error.message : 'Failed to convert prospect')
+    }
+  }
+
+  const handleDeleteProspect = async (prospectId: string) => {
+    if (!confirm('Delete this prospect permanently?')) return
+
+    try {
+      setDeletingProspectId(prospectId)
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) throw new Error('Missing admin session')
+
+      const response = await fetch(`/api/admin/prospects/${prospectId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete prospect')
+      }
+
+      if (expandedProspectId === prospectId) {
+        setExpandedProspectId(null)
+      }
+      await fetchProspects()
+    } catch (error) {
+      console.error('Error deleting prospect:', error)
+      alert(error instanceof Error ? error.message : 'Failed to delete prospect')
+    } finally {
+      setDeletingProspectId(null)
     }
   }
 
@@ -1212,6 +1248,14 @@ ${blogContent}
                     >
                       {prospect.status === 'converted' ? 'Converted' : 'Convert to Student'}
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteProspect(prospect.id)}
+                      disabled={deletingProspectId === prospect.id}
+                      className="mt-4 ml-2 inline-flex items-center rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:bg-rose-200 disabled:text-rose-700"
+                    >
+                      {deletingProspectId === prospect.id ? 'Deleting...' : 'Delete Prospect'}
+                    </button>
 
                     {expandedProspectId === prospect.id && (
                       <div className="mt-4 rounded-lg bg-gray-50 border border-gray-200 p-4">
@@ -1283,6 +1327,14 @@ ${blogContent}
                                   className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-600"
                                 >
                                   {prospect.status === 'converted' ? 'Converted' : 'Convert to Student'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteProspect(prospect.id)}
+                                  disabled={deletingProspectId === prospect.id}
+                                  className="inline-flex items-center rounded-lg bg-rose-600 px-3 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:bg-rose-200 disabled:text-rose-700"
+                                >
+                                  {deletingProspectId === prospect.id ? 'Deleting...' : 'Delete Prospect'}
                                 </button>
                               </div>
                             </td>

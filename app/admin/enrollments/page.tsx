@@ -8,10 +8,13 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 interface StudentEnrollment {
-  id: string
+  student_record_id: string
+  auth_user_id: string | null
   email: string
   full_name: string | null
   phone?: string | null
+  status?: string | null
+  has_linked_account: boolean
   is_enrolled: boolean
 }
 
@@ -82,42 +85,55 @@ export default function AdminStudentEnrollmentPage() {
         throw new Error("Missing session token")
       }
 
-      const usersResponse = await fetch("/api/admin/users", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
+      const [studentsResult, usersResponse, enrollmentsResult] = await Promise.all([
+        supabase
+          .from("students")
+          .select("id, user_id, email, full_name, phone, status")
+          .order("full_name", { ascending: true }),
+        fetch("/api/admin/users", {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }),
+        supabase
+          .from("enrollments")
+          .select("student_id")
+          .eq("course_id", courseId),
+      ])
+
+      if (studentsResult.error) {
+        throw studentsResult.error
+      }
 
       if (!usersResponse.ok) {
         const errorBody = await usersResponse.json().catch(() => ({}))
-        throw new Error(errorBody.error || "Failed to load users")
+        throw new Error(errorBody.error || "Failed to load linked users")
       }
 
       const usersJson = await usersResponse.json()
       const users: Array<{ id: string; email: string; full_name: string | null }> = usersJson.users || []
+      const authUserIdByEmail = new Map(
+        users
+          .filter((user) => user.email)
+          .map((user) => [user.email.trim().toLowerCase(), user.id])
+      )
 
-      const { data: profileRows } = await supabase
-        .from('profiles')
-        .select('id, phone')
-        .in('id', users.map((u) => u.id))
+      const enrolledIds = new Set((enrollmentsResult.data || []).map((enrollment: any) => enrollment.student_id))
 
-      const phoneById = new Map((profileRows || []).map((row) => [row.id, row.phone]))
+      const studentList = (studentsResult.data || []).map((student) => {
+        const resolvedAuthUserId = student.user_id || (student.email ? authUserIdByEmail.get(student.email.trim().toLowerCase()) || null : null)
 
-      // Get enrollments for this course
-      const { data: enrollments } = await supabase
-        .from("enrollments")
-        .select("student_id")
-        .eq("course_id", courseId)
-
-      const enrolledIds = new Set(enrollments?.map((e: any) => e.student_id))
-
-      const studentList = users.map((user) => ({
-        id: user.id,
-        email: user.email,
-        full_name: user.full_name,
-        phone: phoneById.get(user.id) || null,
-        is_enrolled: enrolledIds.has(user.id),
-      }))
+        return {
+          student_record_id: student.id,
+          auth_user_id: resolvedAuthUserId,
+          email: student.email || '',
+          full_name: student.full_name,
+          phone: student.phone || null,
+          status: student.status || null,
+          has_linked_account: Boolean(resolvedAuthUserId),
+          is_enrolled: resolvedAuthUserId ? enrolledIds.has(resolvedAuthUserId) : false,
+        }
+      })
 
       setStudents(studentList)
     } catch (error) {
@@ -161,6 +177,10 @@ export default function AdminStudentEnrollmentPage() {
 
       if (!session?.access_token) throw new Error('Missing session token')
 
+      if (!editingStudent.auth_user_id) {
+        throw new Error('This student record is not linked to a signed-in account yet')
+      }
+
       const response = await fetch('/api/admin/users/update', {
         method: 'POST',
         headers: {
@@ -168,7 +188,7 @@ export default function AdminStudentEnrollmentPage() {
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          userId: editingStudent.id,
+          userId: editingStudent.auth_user_id,
           email: editForm.email.trim(),
           firstName: editForm.firstName.trim(),
           lastName: editForm.lastName.trim(),
@@ -189,27 +209,25 @@ export default function AdminStudentEnrollmentPage() {
     }
   }
 
-  const handleToggleEnrollment = async (studentId: string, isEnrolled: boolean) => {
-    if (!selectedCourse) return
+  const handleToggleEnrollment = async (studentAuthUserId: string | null, isEnrolled: boolean) => {
+    if (!selectedCourse || !studentAuthUserId) return
 
     try {
       if (isEnrolled) {
-        // Unenroll
         const { error } = await supabase
           .from("enrollments")
           .delete()
           .eq("course_id", selectedCourse)
-          .eq("student_id", studentId)
+          .eq("student_id", studentAuthUserId)
 
         if (error) throw error
       } else {
-        // Enroll
         const { error } = await supabase
           .from("enrollments")
           .insert([
             {
               course_id: selectedCourse,
-              student_id: studentId,
+              student_id: studentAuthUserId,
             },
           ])
 
@@ -217,8 +235,8 @@ export default function AdminStudentEnrollmentPage() {
       }
 
       setStudents(
-        students.map((s) =>
-          s.id === studentId ? { ...s, is_enrolled: !isEnrolled } : s
+        students.map((student) =>
+          student.auth_user_id === studentAuthUserId ? { ...student, is_enrolled: !isEnrolled } : student
         )
       )
     } catch (error) {
@@ -228,15 +246,15 @@ export default function AdminStudentEnrollmentPage() {
   }
 
   const filteredStudents = students.filter(
-    (s) =>
-      s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    (student) =>
+      student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   return (
     <AdminPageShell
       title="Assign Students to Courses"
-      description="Search enrolled users, open a course roster, and manage course access from one place."
+      description="Choose from student records, not prospects. Enrollment requires a linked signed-in account so course access maps to the correct learner."
     >
 
       <div style={{ marginBottom: "40px" }}>
@@ -302,7 +320,7 @@ export default function AdminStudentEnrollmentPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               {filteredStudents.map((student) => (
                 <div
-                  key={student.id}
+                  key={student.student_record_id}
                   style={{
                     backgroundColor: "white",
                     border: "1px solid #E5E7EB",
@@ -311,6 +329,7 @@ export default function AdminStudentEnrollmentPage() {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
+                    gap: '12px',
                   }}
                 >
                   <div>
@@ -318,19 +337,30 @@ export default function AdminStudentEnrollmentPage() {
                       {student.full_name || "No name"}
                     </p>
                     <p style={{ fontSize: "14px", color: "#6B7280", margin: 0 }}>
-                      {student.email}
+                      {student.email || 'No email on file'}
                     </p>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+                      {student.status ? (
+                        <span style={{ fontSize: '12px', backgroundColor: '#F3F4F6', color: '#475569', padding: '4px 8px', borderRadius: '999px', fontWeight: 600 }}>
+                          {student.status}
+                        </span>
+                      ) : null}
+                      <span style={{ fontSize: '12px', backgroundColor: student.has_linked_account ? '#DCFCE7' : '#FEF3C7', color: student.has_linked_account ? '#166534' : '#92400E', padding: '4px 8px', borderRadius: '999px', fontWeight: 600 }}>
+                        {student.has_linked_account ? 'Linked account' : 'Needs account link'}
+                      </span>
+                    </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <button
                       onClick={() => openEditStudent(student)}
+                      disabled={!student.auth_user_id}
                       style={{
-                        backgroundColor: '#1D4ED8',
-                        color: 'white',
+                        backgroundColor: student.auth_user_id ? '#1D4ED8' : '#CBD5E1',
+                        color: student.auth_user_id ? 'white' : '#475569',
                         padding: '8px 14px',
                         borderRadius: '6px',
                         border: 'none',
-                        cursor: 'pointer',
+                        cursor: student.auth_user_id ? 'pointer' : 'not-allowed',
                         fontWeight: '600',
                         whiteSpace: 'nowrap',
                       }}
@@ -338,19 +368,20 @@ export default function AdminStudentEnrollmentPage() {
                       Edit
                     </button>
                     <button
-                      onClick={() => handleToggleEnrollment(student.id, student.is_enrolled)}
+                      onClick={() => handleToggleEnrollment(student.auth_user_id, student.is_enrolled)}
+                      disabled={!student.auth_user_id}
                       style={{
-                        backgroundColor: student.is_enrolled ? "#EF4444" : "#10B981",
-                        color: "white",
+                        backgroundColor: !student.auth_user_id ? '#CBD5E1' : student.is_enrolled ? "#EF4444" : "#10B981",
+                        color: !student.auth_user_id ? '#475569' : "white",
                         padding: "8px 16px",
                         borderRadius: "6px",
                         border: "none",
-                        cursor: "pointer",
+                        cursor: !student.auth_user_id ? 'not-allowed' : "pointer",
                         fontWeight: "600",
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {student.is_enrolled ? "Remove" : "Enroll"}
+                      {!student.auth_user_id ? "No Account" : student.is_enrolled ? "Remove" : "Enroll"}
                     </button>
                   </div>
                 </div>
