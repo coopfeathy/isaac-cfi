@@ -125,7 +125,45 @@ CREATE POLICY "Admins can update any booking"
   USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
 
 -- ============================================================
--- 3A. SUPPORT TICKETS
+-- 3A. SLOT REQUESTS (customer requested discovery flight times)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS slot_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  preferred_start_time TIMESTAMPTZ NOT NULL,
+  preferred_end_time TIMESTAMPTZ NOT NULL,
+  notes TEXT,
+  source TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'denied')),
+  decision_notes TEXT,
+  approved_slot_id UUID REFERENCES slots(id) ON DELETE SET NULL,
+  resolved_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  resolved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE slot_requests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone can create slot requests" ON slot_requests;
+DROP POLICY IF EXISTS "Admins can view slot requests" ON slot_requests;
+DROP POLICY IF EXISTS "Admins can update slot requests" ON slot_requests;
+
+CREATE POLICY "Anyone can create slot requests"
+  ON slot_requests FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Admins can view slot requests"
+  ON slot_requests FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+CREATE POLICY "Admins can update slot requests"
+  ON slot_requests FOR UPDATE
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+-- ============================================================
+-- 3B. SUPPORT TICKETS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS support_tickets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -158,7 +196,7 @@ CREATE POLICY "Admins can update support tickets"
   USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
 
 -- ============================================================
--- 3B. STRIPE WEBHOOK EVENT LOGS
+-- 3C. STRIPE WEBHOOK EVENT LOGS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS stripe_webhook_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -189,7 +227,7 @@ CREATE POLICY "Service role manages webhook event logs"
   WITH CHECK (auth.role() = 'service_role');
 
 -- ============================================================
--- 3C. BOOKING INTEGRITY MONITOR
+-- 3D. BOOKING INTEGRITY MONITOR
 -- ============================================================
 CREATE TABLE IF NOT EXISTS booking_integrity_runs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -242,7 +280,7 @@ CREATE POLICY "Service role manages booking integrity alerts"
   WITH CHECK (auth.role() = 'service_role');
 
 -- ============================================================
--- 3D. OPERATIONAL ALERT STATE (email dedupe + cooldown)
+-- 3E. OPERATIONAL ALERT STATE (email dedupe + cooldown)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS operational_alert_state (
   alert_kind TEXT PRIMARY KEY,
@@ -291,6 +329,7 @@ CREATE POLICY "Anyone can insert signups"
 
 CREATE INDEX IF NOT EXISTS idx_discovery_signups_email ON discovery_flight_signups(email);
 CREATE INDEX IF NOT EXISTS idx_discovery_signups_created_at ON discovery_flight_signups(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_slot_requests_status_created_at ON slot_requests(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status);
 CREATE INDEX IF NOT EXISTS idx_support_tickets_created_at ON support_tickets(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_stripe_webhook_events_status ON stripe_webhook_events(status);
