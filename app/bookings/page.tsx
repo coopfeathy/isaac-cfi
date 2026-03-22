@@ -121,7 +121,7 @@ export default function BookingsPage() {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-xl font-bold text-darkText mb-2">
-                      {booking.slots?.type === 'tour' ? 'NYC Flight Tour' : 'Flight Training Lesson'}
+                      {booking.slots?.type === 'tour' ? 'Discovery Flight' : 'Flight Training Lesson'}
                     </h3>
                     {booking.slots?.description && (
                       <p className="text-gray-600">{booking.slots.description}</p>

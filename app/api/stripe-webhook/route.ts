@@ -193,7 +193,7 @@ export async function POST(req: Request) {
       const recipientEmail = intent.receipt_email || null
 
       if (!alreadyPaid && recipientEmail && booking?.id && slotData) {
-        const slotLabel = slotData.description || (slotData.type === 'tour' ? 'NYC Flight Tour' : 'Flight Training Session')
+        const slotLabel = slotData.description || (slotData.type === 'tour' ? 'Discovery Flight' : 'Flight Training Session')
         await sendBookingEmail(recipientEmail, {
           bookingId: booking.id,
           slotLabel,
@@ -205,7 +205,7 @@ export async function POST(req: Request) {
         const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId)
         const fallbackEmail = authUser?.user?.email
         if (fallbackEmail) {
-          const slotLabel = slotData.description || (slotData.type === 'tour' ? 'NYC Flight Tour' : 'Flight Training Session')
+          const slotLabel = slotData.description || (slotData.type === 'tour' ? 'Discovery Flight' : 'Flight Training Session')
           await sendBookingEmail(fallbackEmail, {
             bookingId: booking.id,
             slotLabel,

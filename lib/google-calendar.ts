@@ -37,7 +37,7 @@ export async function createCalendarEvent(eventDetails: {
 
     const calendar = google.calendar({ version: 'v3', auth })
 
-    const eventType = eventDetails.slotType === 'tour' ? 'Flight Tour' : 'Flight Training'
+    const eventType = eventDetails.slotType === 'tour' ? 'Discovery Flight' : 'Flight Training'
     const description = `
 ${eventType} - ${eventDetails.slotDescription || ''}
 

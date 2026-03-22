@@ -680,28 +680,28 @@ export default function Home() {
               <div className="inline-block mb-4">
                 <div className="w-10 sm:w-12 h-1 bg-golden rounded-full" />
               </div>
-              <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-5">NYC Flight Tours</h3>
+              <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-5">Discovery Flight Experience</h3>
               <p className="text-gray-300 mb-6 sm:mb-8 leading-relaxed font-light text-sm sm:text-base">
-                Experience the thrill of flying over New York City's most iconic landmarks. Our scenic tours offer unparalleled views and unforgettable memories.
+                Take the controls with a certified instructor, learn the basics in real time, and see what training with Merlin feels like from day one.
               </p>
               <div className="space-y-3 sm:space-y-4">
                 <div className="flex items-center group">
                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-golden/10 flex items-center justify-center mr-3 group-hover:bg-golden transition-colors duration-300 flex-shrink-0">
                     <span className="text-golden text-base sm:text-lg group-hover:text-black transition-colors duration-300">✈</span>
                   </div>
-                  <span className="text-gray-200 font-light text-sm sm:text-base">45-minute scenic flights</span>
+                  <span className="text-gray-200 font-light text-sm sm:text-base">Hands-on intro flight with instructor coaching</span>
                 </div>
                 <div className="flex items-center group">
                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-golden/10 flex items-center justify-center mr-3 group-hover:bg-golden transition-colors duration-300 flex-shrink-0">
                     <span className="text-golden text-base sm:text-lg group-hover:text-black transition-colors duration-300">✈</span>
                   </div>
-                  <span className="text-gray-200 font-light text-sm sm:text-base">Professional pilot narration</span>
+                  <span className="text-gray-200 font-light text-sm sm:text-base">Perfect first step toward flight training</span>
                 </div>
                 <div className="flex items-center group">
                   <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-golden/10 flex items-center justify-center mr-3 group-hover:bg-golden transition-colors duration-300 flex-shrink-0">
                     <span className="text-golden text-base sm:text-lg group-hover:text-black transition-colors duration-300">✈</span>
                   </div>
-                  <span className="text-gray-200 font-light text-sm sm:text-base">Perfect for special occasions</span>
+                  <span className="text-gray-200 font-light text-sm sm:text-base">Debrief and clear next steps after your flight</span>
                 </div>
               </div>
             </div>
