@@ -115,15 +115,23 @@ export default function AircraftPage() {
                     </ul>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      setSelectedAircraft("N2152Z Piper Warrior")
-                      setIsContactOpen(true)
-                    }}
-                    className="block w-full text-center px-8 py-4 bg-golden text-black font-bold rounded-lg hover:bg-golden/90 transition-all duration-300"
-                  >
-                    Contact Instructors
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <Link
+                      href="/schedule"
+                      className="block w-full text-center px-8 py-4 bg-golden text-black font-bold rounded-lg hover:bg-golden/90 transition-all duration-300"
+                    >
+                      Book a Flight Session
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setSelectedAircraft("N2152Z Piper Warrior Documents")
+                        setIsContactOpen(true)
+                      }}
+                      className="block w-full text-center px-8 py-4 border border-golden text-golden hover:bg-golden hover:text-black font-semibold rounded-lg transition-colors duration-300"
+                    >
+                      Aircraft Documents
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -158,16 +166,16 @@ export default function AircraftPage() {
               href="/schedule"
               className="inline-block px-10 py-4 font-bold text-lg rounded-lg bg-golden text-darkText hover:bg-golden/90 transition-colors duration-300"
             >
-              Schedule Now
+              Book a Flight Session
             </Link>
             <button
               onClick={() => {
-                setSelectedAircraft("Aircraft Inquiry")
+                setSelectedAircraft("Aircraft Documents")
                 setIsContactOpen(true)
               }}
               className="inline-block px-10 py-4 border border-golden text-golden hover:bg-golden hover:text-black font-semibold rounded-lg transition-colors duration-300"
             >
-              Contact Us
+              Aircraft Documents
             </button>
           </div>
         </div>
