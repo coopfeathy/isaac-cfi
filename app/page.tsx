@@ -172,16 +172,16 @@ export default function Home() {
             <div className="inline-block mb-4">
               <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
             </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-4 sm:mb-5 tracking-tight px-4">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-5 tracking-tight px-4">
               Our <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Aircraft</span>
             </h2>
-            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto font-light px-4 leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto font-light px-4 leading-relaxed">
               Choose from our fleet of well-maintained, modern aircraft for your training or rental needs
             </p>
           </div>
 
           <div className="max-w-xl mx-auto">
-            <div className="group bg-gradient-to-br from-gray-50 to-white rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-2xl overflow-hidden">
+            <div className="group bg-white/5 rounded-2xl border border-white/15 hover:border-golden transition-all duration-300 hover:shadow-2xl overflow-hidden">
               <div className="h-48 sm:h-56">
                 <ImageCarousel 
                   images={[
@@ -196,18 +196,18 @@ export default function Home() {
                 />
               </div>
               <div className="p-6 sm:p-8">
-                <h3 className="text-xl sm:text-2xl font-bold text-black mb-2 group-hover:text-golden transition-colors duration-300">
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 group-hover:text-golden transition-colors duration-300">
                   N2152Z Piper Warrior
                 </h3>
                 <p className="text-golden font-semibold mb-1">Long Island, NY</p>
-                <p className="text-gray-600 text-sm mb-3 font-light">IFR Certified, Perfect for the professional pilot.</p>
+                <p className="text-gray-300 text-sm mb-3 font-light">IFR Certified, Perfect for the professional pilot.</p>
                 <div className="flex justify-between items-center mb-4">
-                  <span className="text-gray-500 text-sm">From</span>
-                  <span className="text-2xl font-bold text-golden">$185<span className="text-sm text-gray-500">/hr</span></span>
+                  <span className="text-gray-400 text-sm">From</span>
+                  <span className="text-2xl font-bold text-golden">$185<span className="text-sm text-gray-400">/hr</span></span>
                 </div>
                 <Link
                   href="/aircraft#n2152z"
-                  className="block w-full text-center px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300"
+                  className="block w-full text-center px-6 py-3 bg-golden text-black font-bold rounded-lg hover:bg-golden/90 transition-colors duration-300"
                 >
                   View Details
                 </Link>
