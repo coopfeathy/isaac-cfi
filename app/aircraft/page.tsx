@@ -1,14 +1,42 @@
 'use client'
 
 import Link from "next/link"
-import ImageCarousel from "@/app/components/ImageCarousel"
+import Image from "next/image"
 import ContactModal from "@/app/components/ContactModal"
 import RedBirdSimulator from "@/app/components/RedBirdSimulator"
 import { useState } from "react"
 
+interface AircraftImage {
+  src: string
+  alt: string
+}
+
 export default function AircraftPage() {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [isImageLoading, setIsImageLoading] = useState(true)
   const [isContactOpen, setIsContactOpen] = useState(false)
   const [selectedAircraft, setSelectedAircraft] = useState<string | undefined>()
+
+  const images: AircraftImage[] = [
+    {
+      src: '/images/n2152z-1.JPG',
+      alt: 'N2152Z Piper Warrior - Exterior',
+    },
+    {
+      src: '/images/n2152z-2.JPG',
+      alt: 'N2152Z Piper Warrior - Cockpit',
+    },
+  ]
+
+  const nextImage = () => {
+    setIsImageLoading(true)
+    setCurrentImageIndex((prev) => (prev + 1) % images.length)
+  }
+
+  const prevImage = () => {
+    setIsImageLoading(true)
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
+  }
   return (
     <>
       <div className="min-h-screen bg-white">
@@ -46,18 +74,69 @@ export default function AircraftPage() {
           <div className="max-w-5xl mx-auto">
             <div id="n2152z" className="bg-white/5 rounded-3xl shadow-2xl border border-white/15 overflow-hidden scroll-mt-32">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-                <div className="h-64 sm:h-80 lg:h-full flex items-center justify-center">
-                  <ImageCarousel 
-                    images={[
-                      '/images/n2152z-1.JPG',
-                      '/images/n2152z-2.JPG',
-                    ]}
-                    objectPositions={[
-                      'center center',
-                      'center center',
-                    ]}
-                    alt="N2152Z Piper Warrior"
-                  />
+                {/* Image Carousel */}
+                <div className="flex flex-col items-center p-4 sm:p-6 bg-white/5">
+                  <div className="relative w-full aspect-square rounded-lg overflow-hidden shadow-2xl mb-4">
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-br from-gray-700 via-gray-800 to-gray-900 transition-opacity duration-300 ${
+                        isImageLoading ? 'opacity-100' : 'opacity-0'
+                      }`}
+                    >
+                      <div className="absolute inset-0 animate-pulse bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="h-10 w-10 border-2 border-white/30 border-t-golden rounded-full animate-spin" />
+                      </div>
+                    </div>
+                    <Image
+                      src={images[currentImageIndex].src}
+                      alt={images[currentImageIndex].alt}
+                      fill
+                      className={`object-cover transition-opacity duration-500 ${
+                        isImageLoading ? 'opacity-0' : 'opacity-100'
+                      }`}
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 40vw"
+                      priority
+                      onLoad={() => setIsImageLoading(false)}
+                    />
+                  </div>
+
+                  {/* Carousel Controls */}
+                  <div className="flex items-center gap-4 w-full justify-center mb-4">
+                    <button
+                      onClick={prevImage}
+                      className="bg-golden hover:bg-golden/80 text-black px-4 py-2 rounded-lg transition-colors font-semibold"
+                    >
+                      ← Previous
+                    </button>
+                    <div className="text-sm text-gray-400">
+                      {currentImageIndex + 1} / {images.length}
+                    </div>
+                    <button
+                      onClick={nextImage}
+                      className="bg-golden hover:bg-golden/80 text-black px-4 py-2 rounded-lg transition-colors font-semibold"
+                    >
+                      Next →
+                    </button>
+                  </div>
+
+                  {/* Image Indicators */}
+                  <div className="flex gap-2 flex-wrap justify-center">
+                    {images.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => {
+                          setIsImageLoading(true)
+                          setCurrentImageIndex(index)
+                        }}
+                        className={`h-2 rounded-full transition-all ${
+                          index === currentImageIndex
+                            ? 'bg-golden w-8'
+                            : 'bg-gray-600 w-2 hover:bg-gray-500'
+                        }`}
+                        aria-label={`Go to image ${index + 1}`}
+                      />
+                    ))}
+                  </div>
                 </div>
                 <div className="p-8 sm:p-10 md:p-12">
                   <div className="flex items-start justify-between mb-6">
