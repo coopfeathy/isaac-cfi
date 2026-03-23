@@ -505,79 +505,48 @@ export default function Home() {
       {/* Services Section */}
       <section className="py-16 sm:py-20 md:py-24 bg-gray-50 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 sm:gap-12 md:gap-16 items-center">
-            <div className="order-2 md:order-1">
-              <div className="inline-block mb-4">
-                <div className="w-10 sm:w-12 h-1 bg-golden rounded-full" />
-              </div>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-black mb-4 sm:mb-6 tracking-tight">
-                Flight Training Programs
-              </h2>
-              <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8 leading-relaxed font-light">
-                Whether you're pursuing your private pilot license or looking for an introductory discovery flight, our comprehensive training programs are designed to help you achieve your aviation goals.
-              </p>
-              <ul className="space-y-4 sm:space-y-5 mb-8 sm:mb-10">
-                <li className="flex items-start group">
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-golden flex items-center justify-center mr-3 sm:mr-4 mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                    <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-black" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <span className="text-gray-700 font-light text-sm sm:text-base">Introductory Discovery Flights</span>
-                </li>
-                <li className="flex items-start group">
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-golden flex items-center justify-center mr-3 sm:mr-4 mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                    <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-black" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <span className="text-gray-700 font-light text-sm sm:text-base">Private Pilot License Training</span>
-                </li>
-                <li className="flex items-start group">
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-golden flex items-center justify-center mr-3 sm:mr-4 mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                    <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-black" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <span className="text-gray-700 font-light text-sm sm:text-base">Instrument Rating Courses</span>
-                </li>
-              </ul>
-              <Link
-                href="/training-options"
-                className="inline-block w-full sm:w-auto text-center px-8 sm:px-10 py-3 sm:py-4 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-              >
-                View Training Options
-              </Link>
+          <div className="max-w-2xl">
+            <div className="inline-block mb-4">
+              <div className="w-10 sm:w-12 h-1 bg-golden rounded-full" />
             </div>
-            <div className="order-1 md:order-2 bg-gradient-to-br from-black to-gray-900 p-8 sm:p-10 md:p-12 rounded-3xl shadow-2xl border border-golden/20">
-              <div className="inline-block mb-4">
-                <div className="w-10 sm:w-12 h-1 bg-golden rounded-full" />
-              </div>
-              <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-5">NYC Flight Tours</h3>
-              <p className="text-gray-300 mb-6 sm:mb-8 leading-relaxed font-light text-sm sm:text-base">
-                Experience the thrill of flying over New York City's most iconic landmarks. Our scenic tours offer unparalleled views and unforgettable memories.
-              </p>
-              <div className="space-y-3 sm:space-y-4">
-                <div className="flex items-center group">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-golden/10 flex items-center justify-center mr-3 group-hover:bg-golden transition-colors duration-300 flex-shrink-0">
-                    <span className="text-golden text-base sm:text-lg group-hover:text-black transition-colors duration-300">✈</span>
-                  </div>
-                  <span className="text-gray-200 font-light text-sm sm:text-base">45-minute scenic flights</span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-black mb-4 sm:mb-6 tracking-tight">
+              Flight Training Programs
+            </h2>
+            <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8 leading-relaxed font-light">
+              Whether you're pursuing your private pilot license or looking for an introductory discovery flight, our comprehensive training programs are designed to help you achieve your aviation goals.
+            </p>
+            <ul className="space-y-4 sm:space-y-5 mb-8 sm:mb-10">
+              <li className="flex items-start group">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-golden flex items-center justify-center mr-3 sm:mr-4 mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-black" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
                 </div>
-                <div className="flex items-center group">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-golden/10 flex items-center justify-center mr-3 group-hover:bg-golden transition-colors duration-300 flex-shrink-0">
-                    <span className="text-golden text-base sm:text-lg group-hover:text-black transition-colors duration-300">✈</span>
-                  </div>
-                  <span className="text-gray-200 font-light text-sm sm:text-base">Professional pilot narration</span>
+                <span className="text-gray-700 font-light text-sm sm:text-base">Introductory Discovery Flights</span>
+              </li>
+              <li className="flex items-start group">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-golden flex items-center justify-center mr-3 sm:mr-4 mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-black" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
                 </div>
-                <div className="flex items-center group">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-golden/10 flex items-center justify-center mr-3 group-hover:bg-golden transition-colors duration-300 flex-shrink-0">
-                    <span className="text-golden text-base sm:text-lg group-hover:text-black transition-colors duration-300">✈</span>
-                  </div>
-                  <span className="text-gray-200 font-light text-sm sm:text-base">Perfect for special occasions</span>
+                <span className="text-gray-700 font-light text-sm sm:text-base">Private Pilot License Training</span>
+              </li>
+              <li className="flex items-start group">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-golden flex items-center justify-center mr-3 sm:mr-4 mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                  <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-black" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
                 </div>
-              </div>
-            </div>
+                <span className="text-gray-700 font-light text-sm sm:text-base">Instrument Rating Courses</span>
+              </li>
+            </ul>
+            <Link
+              href="/training-options"
+              className="inline-block w-full sm:w-auto text-center px-8 sm:px-10 py-3 sm:py-4 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+            >
+              View Training Options
+            </Link>
           </div>
         </div>
       </section>

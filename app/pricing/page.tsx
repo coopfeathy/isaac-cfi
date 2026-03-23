@@ -64,6 +64,18 @@ export default function PricingPage() {
           </div>
         </section>
 
+        {/* Fuel Surcharge Notice */}
+        <div className="bg-amber-50 border-y border-amber-300 py-4 px-4 sm:px-6">
+          <div className="max-w-7xl mx-auto flex items-center justify-center gap-3">
+            <svg className="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <p className="text-amber-800 text-sm sm:text-base font-medium text-center">
+              <span className="font-bold">Temporary Fuel Surcharge:</span> We are currently charging a temporary $8.50/hr fuel surcharge due to rising oil prices.
+            </p>
+          </div>
+        </div>
+
         {/* Aircraft Pricing Section */}
         <section className="py-16 sm:py-20 md:py-24 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
@@ -90,7 +102,7 @@ export default function PricingPage() {
                     </div>
                     <div className="text-left md:text-right">
                       <p className="text-sm text-gray-500 mb-1">Hourly Rate</p>
-                      <p className="text-3xl sm:text-4xl font-bold text-golden">$195 / $185<span className="text-base text-gray-500"> per hr</span></p>
+                      <p className="text-3xl sm:text-4xl font-bold text-golden">$185.00<span className="text-base text-gray-500"> per hr</span></p>
                     </div>
                   </div>
 
@@ -100,16 +112,11 @@ export default function PricingPage() {
 
                   <div className="bg-gray-50 p-6 sm:p-8 rounded-2xl">
                     <h4 className="font-semibold text-black mb-4 text-lg">Pricing</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200">
-                        <span className="text-gray-700 font-medium">Card Rate</span>
-                        <span className="font-bold text-black text-lg">$195/hr</span>
-                      </div>
-                      <div className="flex justify-between items-center p-4 bg-golden/10 rounded-lg border border-golden/20">
-                        <span className="text-gray-700 font-medium">Cash Rate</span>
-                        <span className="font-bold text-golden text-lg">$185/hr</span>
-                      </div>
+                    <div className="flex justify-between items-center p-4 bg-golden/10 rounded-lg border border-golden/20 mb-3">
+                      <span className="text-gray-700 font-medium">Aircraft Rate</span>
+                      <span className="font-bold text-golden text-lg">$185.00/hr</span>
                     </div>
+                    <p className="text-sm text-gray-600 font-light">3.5% Fee Applies to Card Purchases</p>
                   </div>
                 </div>
               </div>
@@ -231,7 +238,7 @@ export default function PricingPage() {
 
             {/* Training Programs */}
             <div className="mt-12 sm:mt-16">
-              <h3 className="text-2xl sm:text-3xl font-bold text-black mb-8 text-center">Training Program Costs</h3>
+              <h3 className="text-2xl sm:text-3xl font-bold text-black mb-8 text-center">Estimated Training Program Costs</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 sm:gap-8">
                 <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
                   <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Private Pilot</h4>
@@ -424,7 +431,7 @@ export default function PricingPage() {
                 </div>
                 <h3 className="text-xl sm:text-2xl font-bold text-black mb-4">Payment Plans Available</h3>
                 <p className="text-gray-600 leading-relaxed font-light text-sm sm:text-base">
-                  We can offer payment plans through providers such as Affirm (subject to eligibility), while keeping billing transparent: instruction is $65/hr and N2152Z aircraft is $195/hr by card or $185/hr by cash.
+                  We can offer payment plans through providers such as Affirm (subject to eligibility), while keeping billing transparent: instruction is $65/hr and N2152Z aircraft is $185.00/hr. A 3.5% fee applies to card purchases.
                 </p>
               </div>
             </div>
@@ -468,14 +475,14 @@ export default function PricingPage() {
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
                 <h3 className="text-lg sm:text-xl font-bold text-golden mb-3">How does billing work now?</h3>
                 <p className="text-gray-700 leading-relaxed font-light text-sm sm:text-base">
-                  We no longer use block-hour pricing. Training is billed hourly: $65/hr for instruction and $195/hr card or $185/hr cash for N2152Z aircraft time.
+                  We no longer use block-hour pricing. Training is billed hourly: $65/hr for instruction and $185.00/hr for N2152Z aircraft time. A 3.5% fee applies to card purchases.
                 </p>
               </div>
 
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
                 <h3 className="text-lg sm:text-xl font-bold text-golden mb-3">What about fuel surcharges?</h3>
                 <p className="text-gray-700 leading-relaxed font-light text-sm sm:text-base">
-                  There are no fuel surcharges. Fuel costs are included in our hourly rates. Our transparent pricing means you know exactly what you'll pay.
+                  We are currently charging a temporary $8.50/hr fuel surcharge due to rising oil prices. This surcharge is applied on top of the standard aircraft hourly rate and will be removed once oil prices stabilize.
                 </p>
               </div>
             </div>
