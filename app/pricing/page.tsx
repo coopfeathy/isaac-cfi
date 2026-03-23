@@ -12,26 +12,28 @@ export default function PricingPage() {
   const [isContactOpen, setIsContactOpen] = useState(false)
   const [selectedAircraft, setSelectedAircraft] = useState<string | undefined>()
   const instructionRate = 65
-  const aircraftCardRate = 195
-  const aircraftCashRate = 185
+  const aircraftRate = 185
+  const cardFeeRate = 0.035
+  const aircraftCardRate = Number((aircraftRate * (1 + cardFeeRate)).toFixed(2))
+  const formatCurrency = (value: number) => value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   const privateFlightHours = 60
   const privateInstructionHours = 84
   const privateBundleTotal = 3013
   const privateCardTotal = (privateFlightHours * aircraftCardRate) + (privateInstructionHours * instructionRate) + privateBundleTotal
-  const privateCashTotal = (privateFlightHours * aircraftCashRate) + (privateInstructionHours * instructionRate) + privateBundleTotal
+  const privateCashTotal = (privateFlightHours * aircraftRate) + (privateInstructionHours * instructionRate) + privateBundleTotal
 
   const instrumentFlightHours = 50
   const instrumentInstructionHours = 70
   const instrumentExamCosts = 1175
   const instrumentCardTotal = (instrumentFlightHours * aircraftCardRate) + (instrumentInstructionHours * instructionRate) + instrumentExamCosts
-  const instrumentCashTotal = (instrumentFlightHours * aircraftCashRate) + (instrumentInstructionHours * instructionRate) + instrumentExamCosts
+  const instrumentCashTotal = (instrumentFlightHours * aircraftRate) + (instrumentInstructionHours * instructionRate) + instrumentExamCosts
 
   const commercialFlightHours = 120
   const commercialInstructionHours = 168
   const commercialExamCosts = 1175
   const commercialCardTotal = (commercialFlightHours * aircraftCardRate) + (commercialInstructionHours * instructionRate) + commercialExamCosts
-  const commercialCashTotal = (commercialFlightHours * aircraftCashRate) + (commercialInstructionHours * instructionRate) + commercialExamCosts
+  const commercialCashTotal = (commercialFlightHours * aircraftRate) + (commercialInstructionHours * instructionRate) + commercialExamCosts
 
   return (
     <>
@@ -90,7 +92,8 @@ export default function PricingPage() {
                     </div>
                     <div className="text-left md:text-right">
                       <p className="text-sm text-gray-500 mb-1">Hourly Rate</p>
-                      <p className="text-3xl sm:text-4xl font-bold text-golden">$195 / $185<span className="text-base text-gray-500"> per hr</span></p>
+                      <p className="text-3xl sm:text-4xl font-bold text-golden">${formatCurrency(aircraftRate)}<span className="text-base text-gray-500"> per hr</span></p>
+                      <p className="text-xs text-gray-500 mt-2">3.5% fee applies to card purchases.</p>
                     </div>
                   </div>
 
@@ -100,15 +103,12 @@ export default function PricingPage() {
 
                   <div className="bg-gray-50 p-6 sm:p-8 rounded-2xl">
                     <h4 className="font-semibold text-black mb-4 text-lg">Pricing</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200">
-                        <span className="text-gray-700 font-medium">Card Rate</span>
-                        <span className="font-bold text-black text-lg">$195/hr</span>
-                      </div>
+                    <div className="space-y-4">
                       <div className="flex justify-between items-center p-4 bg-golden/10 rounded-lg border border-golden/20">
-                        <span className="text-gray-700 font-medium">Cash Rate</span>
-                        <span className="font-bold text-golden text-lg">$185/hr</span>
+                        <span className="text-gray-700 font-medium">Aircraft Rate</span>
+                        <span className="font-bold text-golden text-lg">${formatCurrency(aircraftRate)}/hr</span>
                       </div>
+                      <p className="text-sm text-gray-600">3.5% fee applies to card purchases.</p>
                     </div>
                   </div>
                 </div>
@@ -239,8 +239,8 @@ export default function PricingPage() {
                     <p className="flex justify-between"><span>Flight hours</span><span>{privateFlightHours} hrs</span></p>
                     <p className="flex justify-between"><span>Instruction hours</span><span>{privateInstructionHours} hrs</span></p>
                     <p className="flex justify-between"><span>Instruction ({privateInstructionHours} x ${instructionRate})</span><span>${(privateInstructionHours * instructionRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Aircraft card ({privateFlightHours} x ${aircraftCardRate})</span><span>${(privateFlightHours * aircraftCardRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Aircraft cash ({privateFlightHours} x ${aircraftCashRate})</span><span>${(privateFlightHours * aircraftCashRate).toLocaleString()}</span></p>
+                    <p className="flex justify-between"><span>Aircraft + 3.5% card fee ({privateFlightHours} x ${formatCurrency(aircraftCardRate)})</span><span>${formatCurrency(privateFlightHours * aircraftCardRate)}</span></p>
+                    <p className="flex justify-between"><span>Aircraft cash ({privateFlightHours} x ${formatCurrency(aircraftRate)})</span><span>${formatCurrency(privateFlightHours * aircraftRate)}</span></p>
                     <p className="flex justify-between"><span>Equipment + checkride + written</span><span>${privateBundleTotal.toLocaleString()}</span></p>
                     <p className="flex justify-between font-semibold border-t border-gray-200 pt-2"><span>Total (Card)</span><span className="text-golden">${privateCardTotal.toLocaleString()}</span></p>
                     <p className="flex justify-between font-semibold"><span>Total (Cash)</span><span className="text-golden">${privateCashTotal.toLocaleString()}</span></p>
@@ -253,8 +253,8 @@ export default function PricingPage() {
                     <p className="flex justify-between"><span>Flight hours</span><span>{instrumentFlightHours} hrs</span></p>
                     <p className="flex justify-between"><span>Instruction hours</span><span>{instrumentInstructionHours} hrs</span></p>
                     <p className="flex justify-between"><span>Instruction ({instrumentInstructionHours} x ${instructionRate})</span><span>${(instrumentInstructionHours * instructionRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Aircraft card ({instrumentFlightHours} x ${aircraftCardRate})</span><span>${(instrumentFlightHours * aircraftCardRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Aircraft cash ({instrumentFlightHours} x ${aircraftCashRate})</span><span>${(instrumentFlightHours * aircraftCashRate).toLocaleString()}</span></p>
+                    <p className="flex justify-between"><span>Aircraft + 3.5% card fee ({instrumentFlightHours} x ${formatCurrency(aircraftCardRate)})</span><span>${formatCurrency(instrumentFlightHours * aircraftCardRate)}</span></p>
+                    <p className="flex justify-between"><span>Aircraft cash ({instrumentFlightHours} x ${formatCurrency(aircraftRate)})</span><span>${formatCurrency(instrumentFlightHours * aircraftRate)}</span></p>
                     <p className="flex justify-between"><span>Checkride + written</span><span>${instrumentExamCosts.toLocaleString()}</span></p>
                     <p className="flex justify-between font-semibold border-t border-gray-200 pt-2"><span>Total (Card)</span><span className="text-golden">${instrumentCardTotal.toLocaleString()}</span></p>
                     <p className="flex justify-between font-semibold"><span>Total (Cash)</span><span className="text-golden">${instrumentCashTotal.toLocaleString()}</span></p>
@@ -267,8 +267,8 @@ export default function PricingPage() {
                     <p className="flex justify-between"><span>Flight hours</span><span>{commercialFlightHours} hrs</span></p>
                     <p className="flex justify-between"><span>Instruction hours</span><span>{commercialInstructionHours} hrs</span></p>
                     <p className="flex justify-between"><span>Instruction ({commercialInstructionHours} x ${instructionRate})</span><span>${(commercialInstructionHours * instructionRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Aircraft card ({commercialFlightHours} x ${aircraftCardRate})</span><span>${(commercialFlightHours * aircraftCardRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Aircraft cash ({commercialFlightHours} x ${aircraftCashRate})</span><span>${(commercialFlightHours * aircraftCashRate).toLocaleString()}</span></p>
+                    <p className="flex justify-between"><span>Aircraft + 3.5% card fee ({commercialFlightHours} x ${formatCurrency(aircraftCardRate)})</span><span>${formatCurrency(commercialFlightHours * aircraftCardRate)}</span></p>
+                    <p className="flex justify-between"><span>Aircraft cash ({commercialFlightHours} x ${formatCurrency(aircraftRate)})</span><span>${formatCurrency(commercialFlightHours * aircraftRate)}</span></p>
                     <p className="flex justify-between"><span>Checkride + written</span><span>${commercialExamCosts.toLocaleString()}</span></p>
                     <p className="flex justify-between font-semibold border-t border-gray-200 pt-2"><span>Total (Card)</span><span className="text-golden">${commercialCardTotal.toLocaleString()}</span></p>
                     <p className="flex justify-between font-semibold"><span>Total (Cash)</span><span className="text-golden">${commercialCashTotal.toLocaleString()}</span></p>
@@ -280,8 +280,8 @@ export default function PricingPage() {
                   <div className="space-y-2 text-sm text-gray-700">
                     <p className="flex justify-between"><span>Flight instruction</span><span>${instructionRate}/hr</span></p>
                     <p className="flex justify-between"><span>Ground instruction</span><span>${instructionRate}/hr</span></p>
-                    <p className="flex justify-between"><span>Aircraft (card)</span><span>${aircraftCardRate}/hr</span></p>
-                    <p className="flex justify-between"><span>Aircraft (cash)</span><span>${aircraftCashRate}/hr</span></p>
+                    <p className="flex justify-between"><span>Aircraft + 3.5% card fee</span><span>${formatCurrency(aircraftCardRate)}/hr</span></p>
+                    <p className="flex justify-between"><span>Aircraft (cash)</span><span>${formatCurrency(aircraftRate)}/hr</span></p>
                     <p className="pt-2 border-t border-gray-200 text-gray-600">
                       Refresher flights, checkride prep, endorsements, and proficiency work are billed strictly by the hour.
                     </p>
@@ -424,7 +424,7 @@ export default function PricingPage() {
                 </div>
                 <h3 className="text-xl sm:text-2xl font-bold text-black mb-4">Payment Plans Available</h3>
                 <p className="text-gray-600 leading-relaxed font-light text-sm sm:text-base">
-                  We can offer payment plans through providers such as Affirm (subject to eligibility), while keeping billing transparent: instruction is $65/hr and N2152Z aircraft is $195/hr by card or $185/hr by cash.
+                  We can offer payment plans through providers such as Affirm (subject to eligibility), while keeping billing transparent: instruction is $65/hr, aircraft is $185.00/hr, and a 3.5% fee applies to card purchases.
                 </p>
               </div>
             </div>
@@ -468,14 +468,14 @@ export default function PricingPage() {
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
                 <h3 className="text-lg sm:text-xl font-bold text-golden mb-3">How does billing work now?</h3>
                 <p className="text-gray-700 leading-relaxed font-light text-sm sm:text-base">
-                  We no longer use block-hour pricing. Training is billed hourly: $65/hr for instruction and $195/hr card or $185/hr cash for N2152Z aircraft time.
+                  We no longer use block-hour pricing. Training is billed hourly: $65/hr for instruction and $185.00/hr for N2152Z aircraft time. A 3.5% fee applies to card purchases.
                 </p>
               </div>
 
               <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
                 <h3 className="text-lg sm:text-xl font-bold text-golden mb-3">What about fuel surcharges?</h3>
                 <p className="text-gray-700 leading-relaxed font-light text-sm sm:text-base">
-                  There are no fuel surcharges. Fuel costs are included in our hourly rates. Our transparent pricing means you know exactly what you'll pay.
+                  We are currently charging a temporary $8.50/hr fuel surcharge due to ongoing oil prices rising.
                 </p>
               </div>
             </div>

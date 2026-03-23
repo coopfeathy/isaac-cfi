@@ -116,7 +116,7 @@ function BookingModal({ slot, userId, userEmail, onClose }: BookingModalProps) {
           {/* Slot Details */}
           <div className="bg-gray-50 rounded-lg p-4 space-y-2">
             <h3 className="font-bold text-lg">
-              {slot.description || (slot.type === 'tour' ? 'NYC Flight Tour' : 'Flight Lesson')}
+              {slot.description || (slot.type === 'tour' ? 'Discovery Flight' : 'Flight Lesson')}
             </h3>
             <p className="text-gray-600">
               {new Date(slot.start_time).toLocaleDateString('en-US', {
