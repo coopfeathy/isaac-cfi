@@ -98,6 +98,26 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<AdminTab>(forcedTab || 'slots')
   
+  // Auto-generate discovery slots
+  const [generatingSlots, setGeneratingSlots] = useState(false)
+  const [generateSlotsResult, setGenerateSlotsResult] = useState<string | null>(null)
+
+  const handleGenerateDiscoverySlots = async () => {
+    setGeneratingSlots(true)
+    setGenerateSlotsResult(null)
+    try {
+      const res = await fetch('/api/admin/generate-discovery-slots', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to generate slots')
+      setGenerateSlotsResult(data.message)
+      fetchSlots()
+    } catch (err) {
+      setGenerateSlotsResult(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setGeneratingSlots(false)
+    }
+  }
+
   // New slot form
   const [showAddSlot, setShowAddSlot] = useState(false)
   const [editingSlotId, setEditingSlotId] = useState<string | null>(null)
@@ -1107,6 +1127,13 @@ ${blogContent}
               >
                 {showAddSlot ? 'Cancel' : 'Add New Slot'}
               </button>
+              <button
+                onClick={handleGenerateDiscoverySlots}
+                disabled={generatingSlots}
+                className="px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {generatingSlots ? 'Generating...' : '⚡ Generate Discovery Slots'}
+              </button>
               <Link href="/schedule" className="px-4 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-100">
                 Open Customer Schedule
               </Link>
@@ -1114,6 +1141,15 @@ ${blogContent}
                 Open Customer Bookings
               </Link>
             </div>
+            {generateSlotsResult && (
+              <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
+                generateSlotsResult.toLowerCase().includes('error') || generateSlotsResult.toLowerCase().includes('failed')
+                  ? 'bg-red-50 text-red-700 border border-red-200'
+                  : 'bg-green-50 text-green-700 border border-green-200'
+              }`}>
+                {generateSlotsResult}
+              </div>
+            )}
 
             {showAddSlot && (
               <form onSubmit={handleCreateSlot} className="bg-white rounded-lg shadow-md p-6 mb-8">
