@@ -16,7 +16,7 @@ interface BookingModalProps {
   onClose: () => void
 }
 
-function PaymentForm({ totalCents }: { totalCents: number }) {
+function PaymentForm({ totalCents, slotId }: { totalCents: number; slotId: string }) {
   const stripe = useStripe()
   const elements = useElements()
   const [message, setMessage] = useState<string | null>(null)
@@ -32,7 +32,7 @@ function PaymentForm({ totalCents }: { totalCents: number }) {
     const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/booking/success?slot_id=${slot.id}`,
+        return_url: `${window.location.origin}/booking/success?slot_id=${slotId}`,
       },
     })
 
@@ -205,7 +205,7 @@ function BookingModal({ slot, userId, userEmail, onClose }: BookingModalProps) {
             </div>
           ) : clientSecret ? (
             <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
-              <PaymentForm totalCents={totalCents} />
+              <PaymentForm totalCents={totalCents} slotId={slot.id} />
             </Elements>
           ) : (
             <div className="text-red-600 text-center">
