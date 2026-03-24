@@ -630,24 +630,24 @@ function SchedulePageContent() {
 
       {/* Discovery Request Modal */}
       {requestModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-darkText">Need a Different Discovery Flight Time?</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-4 sm:px-6 py-4 flex justify-between items-start gap-3">
+              <h2 className="text-lg sm:text-2xl font-bold text-darkText leading-tight">Need a Different Discovery Flight Time?</h2>
               <button
                 onClick={closeRequestModal}
-                className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+                className="flex-shrink-0 text-gray-500 hover:text-gray-700 text-2xl leading-none mt-0.5"
               >
                 ×
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <p className="text-gray-600 mb-5">
                 Share your preferred timing and our team can approve or suggest an alternative.
               </p>
 
-              <form onSubmit={handleSubmitRequest} className="grid md:grid-cols-2 gap-4">
+              <form onSubmit={handleSubmitRequest} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                   <input
@@ -710,7 +710,7 @@ function SchedulePageContent() {
                     <option value="120">120 minutes</option>
                   </select>
                 </div>
-                <div className="md:col-span-2">
+                <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
                   <textarea
                     rows={3}
@@ -720,7 +720,7 @@ function SchedulePageContent() {
                     placeholder="Tell us ideal times, occasion, or any constraints."
                   />
                 </div>
-                <div className="md:col-span-2 flex items-center justify-between gap-3">
+                <div className="sm:col-span-2 flex items-center justify-between gap-3">
                   <button
                     type="submit"
                     disabled={requestSubmitting}
