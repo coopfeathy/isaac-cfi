@@ -1164,6 +1164,9 @@ ${blogContent}
                 <Link href="/admin/students" className="px-4 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 text-center">
                   Students
                 </Link>
+                <Link href="/admin/billing" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
+                  Billing
+                </Link>
                 <Link href="/admin/prospects" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">
                   Prospects
                 </Link>

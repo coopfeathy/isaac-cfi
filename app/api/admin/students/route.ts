@@ -8,6 +8,9 @@ type StudentRow = {
   full_name: string
   email: string | null
   phone: string | null
+  stripe_customer_id: string | null
+  preferred_currency: string | null
+  training_item_ids: string[] | null
   certificate_type: string | null
   certificate_number: string | null
   medical_class: string | null
@@ -360,6 +363,9 @@ export async function GET(request: NextRequest) {
         fullName: student.full_name || profile?.full_name || authUser?.full_name || student.email || 'Student',
         email: student.email || authUser?.email || null,
         phone: student.phone || profile?.phone || null,
+        stripeCustomerId: student.stripe_customer_id,
+        preferredCurrency: (student.preferred_currency || 'usd').toLowerCase(),
+        trainingItemIds: student.training_item_ids || [],
         status: student.status,
         trainingStage: student.training_stage,
         certificateType: student.certificate_type,

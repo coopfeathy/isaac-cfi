@@ -9,6 +9,8 @@ const navItems = [
   { href: '/admin/enrollments', label: 'Enrollments', match: ['/admin/enrollments'] },
   { href: '/admin/progress', label: 'Debriefs', match: ['/admin/progress'] },
   { href: '/admin/students', label: 'Students', match: ['/admin/students'] },
+  { href: '/admin/billing', label: 'Billing', match: ['/admin/billing'] },
+  { href: '/admin/items', label: 'Training Items', match: ['/admin/items'] },
   { href: '/admin/slots', label: 'Slots', match: ['/admin/slots'] },
   { href: '/admin/bookings', label: 'Bookings', match: ['/admin/bookings'] },
   { href: '/admin/prospects', label: 'Prospects', match: ['/admin/prospects', '/admin/leads'] },

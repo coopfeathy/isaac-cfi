@@ -49,6 +49,9 @@ type StudentRecord = {
   fullName: string
   email: string | null
   phone: string | null
+  stripeCustomerId: string | null
+  preferredCurrency: string
+  trainingItemIds: string[]
   status: 'active' | 'inactive' | 'completed' | 'on_hold' | string
   trainingStage: string | null
   certificateType: string | null
@@ -82,6 +85,12 @@ type StudentRecord = {
     averagePerformanceRating: number | null
     lastActivityAt: string | null
   }
+}
+
+type BillingItemOption = {
+  id: string
+  name: string
+  rate_cents: number | null
 }
 
 const formatDate = (value: string | null) => {
@@ -149,6 +158,14 @@ export default function AdminStudentsPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [billingItems, setBillingItems] = useState<BillingItemOption[]>([])
+  const [settingsDraft, setSettingsDraft] = useState({
+    preferredCurrency: 'usd',
+    stripeCustomerId: '',
+    trainingItemIds: [] as string[],
+  })
+  const [savingSettings, setSavingSettings] = useState(false)
+  const [settingsMessage, setSettingsMessage] = useState('')
 
   useEffect(() => {
     if (authLoading) return
@@ -187,6 +204,15 @@ export default function AdminStudentsPage() {
 
       const nextStudents = (result.students || []) as StudentRecord[]
       setStudents(nextStudents)
+
+      const { data: itemsData } = await supabase
+        .from('items')
+        .select('id, name, rate_cents')
+        .eq('is_active', true)
+        .order('name', { ascending: true })
+
+      setBillingItems((itemsData || []) as BillingItemOption[])
+
       setSelectedStudentId((current) => {
         if (current && nextStudents.some((student) => student.id === current)) return current
         return nextStudents[0]?.id || ''
@@ -218,6 +244,71 @@ export default function AdminStudentsPage() {
     () => filteredStudents.find((student) => student.id === selectedStudentId) || students.find((student) => student.id === selectedStudentId) || null,
     [filteredStudents, selectedStudentId, students]
   )
+
+  useEffect(() => {
+    if (!selectedStudent) return
+
+    setSettingsDraft({
+      preferredCurrency: (selectedStudent.preferredCurrency || 'usd').toLowerCase(),
+      stripeCustomerId: selectedStudent.stripeCustomerId || '',
+      trainingItemIds: selectedStudent.trainingItemIds || [],
+    })
+    setSettingsMessage('')
+  }, [selectedStudent])
+
+  const handleSaveStudentSettings = async () => {
+    if (!selectedStudent) return
+
+    setSavingSettings(true)
+    setSettingsMessage('')
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error('Missing session. Please sign in again.')
+      }
+
+      const response = await fetch(`/api/admin/students/${selectedStudent.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          preferredCurrency: settingsDraft.preferredCurrency,
+          stripeCustomerId: settingsDraft.stripeCustomerId,
+          trainingItemIds: settingsDraft.trainingItemIds,
+        }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.error || 'Unable to save student billing settings')
+      }
+
+      setStudents((previous) =>
+        previous.map((student) =>
+          student.id === selectedStudent.id
+            ? {
+                ...student,
+                preferredCurrency: settingsDraft.preferredCurrency.toLowerCase(),
+                stripeCustomerId: settingsDraft.stripeCustomerId || null,
+                trainingItemIds: settingsDraft.trainingItemIds,
+              }
+            : student
+        )
+      )
+
+      setSettingsMessage('Billing settings saved')
+    } catch (error) {
+      setSettingsMessage(error instanceof Error ? error.message : 'Unable to save billing settings')
+    } finally {
+      setSavingSettings(false)
+    }
+  }
 
   const overview = useMemo(() => {
     const overdueCount = students.reduce((count, student) => {
@@ -552,6 +643,86 @@ export default function AdminStudentsPage() {
                           </div>
                         )
                       })}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h3 className="text-lg font-bold text-darkText">Billing Checkout Settings</h3>
+                    <p className="mt-1 text-sm text-slate-500">Set preferred currency and default training products for this student.</p>
+
+                    <div className="mt-4 space-y-4">
+                      <label className="grid gap-1 text-sm font-medium text-slate-700">
+                        Preferred Currency
+                        <input
+                          value={settingsDraft.preferredCurrency.toUpperCase()}
+                          onChange={(event) =>
+                            setSettingsDraft((previous) => ({
+                              ...previous,
+                              preferredCurrency: event.target.value.toLowerCase().slice(0, 3),
+                            }))
+                          }
+                          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        />
+                      </label>
+
+                      <label className="grid gap-1 text-sm font-medium text-slate-700">
+                        Stripe Customer ID
+                        <input
+                          value={settingsDraft.stripeCustomerId}
+                          onChange={(event) =>
+                            setSettingsDraft((previous) => ({
+                              ...previous,
+                              stripeCustomerId: event.target.value,
+                            }))
+                          }
+                          placeholder="cus_xxx"
+                          className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        />
+                      </label>
+
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">Default Training Items</p>
+                        <div className="mt-2 max-h-56 space-y-2 overflow-y-auto rounded-lg border border-slate-200 p-3">
+                          {billingItems.length === 0 ? (
+                            <p className="text-sm text-slate-500">No active training items available.</p>
+                          ) : (
+                            billingItems.map((item) => {
+                              const selected = settingsDraft.trainingItemIds.includes(item.id)
+                              return (
+                                <label key={item.id} className="flex items-start gap-2 text-sm text-slate-700">
+                                  <input
+                                    type="checkbox"
+                                    checked={selected}
+                                    onChange={(event) =>
+                                      setSettingsDraft((previous) => ({
+                                        ...previous,
+                                        trainingItemIds: event.target.checked
+                                          ? [...previous.trainingItemIds, item.id]
+                                          : previous.trainingItemIds.filter((id) => id !== item.id),
+                                      }))
+                                    }
+                                  />
+                                  <span>
+                                    {item.name}
+                                    {typeof item.rate_cents === 'number' ? ` ($${(item.rate_cents / 100).toFixed(2)})` : ''}
+                                  </span>
+                                </label>
+                              )
+                            })
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => void handleSaveStudentSettings()}
+                        disabled={savingSettings}
+                        className="rounded-lg bg-golden px-4 py-2 text-sm font-bold text-darkText disabled:opacity-60"
+                      >
+                        {savingSettings ? 'Saving...' : 'Save Billing Settings'}
+                      </button>
+
+                      {settingsMessage ? <p className="text-sm text-slate-600">{settingsMessage}</p> : null}
                     </div>
                   </div>
 

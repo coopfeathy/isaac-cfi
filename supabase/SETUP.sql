@@ -430,6 +430,9 @@ CREATE TABLE IF NOT EXISTS students (
   full_name TEXT NOT NULL,
   email TEXT,
   phone TEXT,
+  stripe_customer_id TEXT,
+  preferred_currency TEXT DEFAULT 'usd',
+  training_item_ids UUID[] DEFAULT ARRAY[]::UUID[],
   certificate_type TEXT,
   certificate_number TEXT,
   medical_class TEXT CHECK (medical_class IN ('first', 'second', 'third', 'basic_med')),
@@ -450,6 +453,10 @@ CREATE TABLE IF NOT EXISTS students (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE students ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS preferred_currency TEXT DEFAULT 'usd';
+ALTER TABLE students ADD COLUMN IF NOT EXISTS training_item_ids UUID[] DEFAULT ARRAY[]::UUID[];
 
 ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 
@@ -677,10 +684,15 @@ CREATE TABLE IF NOT EXISTS units (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
+  markdown_content TEXT,
+  image_url TEXT,
   order_index INTEGER NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE units ADD COLUMN IF NOT EXISTS markdown_content TEXT;
+ALTER TABLE units ADD COLUMN IF NOT EXISTS image_url TEXT;
 
 ALTER TABLE units ENABLE ROW LEVEL SECURITY;
 
@@ -716,10 +728,15 @@ CREATE TABLE IF NOT EXISTS lessons (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   unit_id UUID NOT NULL REFERENCES units(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
+  markdown_content TEXT,
+  image_url TEXT,
   order_index INTEGER NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS markdown_content TEXT;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS image_url TEXT;
 
 ALTER TABLE lessons ENABLE ROW LEVEL SECURITY;
 

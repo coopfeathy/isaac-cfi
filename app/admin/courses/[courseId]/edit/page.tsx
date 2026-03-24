@@ -10,6 +10,8 @@ import { useRouter, useParams } from "next/navigation"
 interface Unit {
   id: string
   title: string
+  markdown_content: string | null
+  image_url: string | null
   order_index: number
   lessons: Lesson[]
 }
@@ -17,6 +19,8 @@ interface Unit {
 interface Lesson {
   id: string
   title: string
+  markdown_content: string | null
+  image_url: string | null
   order_index: number
   videos: Video[]
 }
@@ -45,6 +49,9 @@ export default function EditCoursePage() {
   const [editingUnitTitle, setEditingUnitTitle] = useState("")
   const [newLessonUnit, setNewLessonUnit] = useState<string | null>(null)
   const [newLessonTitle, setNewLessonTitle] = useState("")
+  const [unitContentDrafts, setUnitContentDrafts] = useState<Record<string, { markdown: string; imageUrl: string }>>({})
+  const [lessonContentDrafts, setLessonContentDrafts] = useState<Record<string, { markdown: string; imageUrl: string }>>({})
+  const [savingContentId, setSavingContentId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -75,10 +82,14 @@ export default function EditCoursePage() {
             `
             id,
             title,
+            markdown_content,
+            image_url,
             order_index,
             lessons (
               id,
               title,
+              markdown_content,
+              image_url,
               order_index,
               videos (id, title, storage_path)
             )
@@ -88,7 +99,28 @@ export default function EditCoursePage() {
           .order("order_index", { ascending: true })
 
         if (unitsError) throw unitsError
-        setUnits(unitsData || [])
+        const nextUnits = (unitsData || []) as Unit[]
+        setUnits(nextUnits)
+
+        const nextUnitDrafts: Record<string, { markdown: string; imageUrl: string }> = {}
+        const nextLessonDrafts: Record<string, { markdown: string; imageUrl: string }> = {}
+
+        nextUnits.forEach((unit) => {
+          nextUnitDrafts[unit.id] = {
+            markdown: unit.markdown_content || "",
+            imageUrl: unit.image_url || "",
+          }
+
+          unit.lessons.forEach((lesson) => {
+            nextLessonDrafts[lesson.id] = {
+              markdown: lesson.markdown_content || "",
+              imageUrl: lesson.image_url || "",
+            }
+          })
+        })
+
+        setUnitContentDrafts(nextUnitDrafts)
+        setLessonContentDrafts(nextLessonDrafts)
       } catch (error) {
         console.error("Error loading course:", error)
       } finally {
@@ -109,14 +141,20 @@ export default function EditCoursePage() {
           {
             course_id: courseId,
             title: newUnitTitle,
+            markdown_content: null,
+            image_url: null,
             order_index: units.length,
           },
         ])
-        .select("id, title, order_index")
+        .select("id, title, markdown_content, image_url, order_index")
 
       if (error) throw error
       if (data) {
         setUnits([...units, { ...data[0], lessons: [] }])
+        setUnitContentDrafts((prev) => ({
+          ...prev,
+          [data[0].id]: { markdown: "", imageUrl: "" },
+        }))
         setNewUnitTitle("")
       }
     } catch (error) {
@@ -153,10 +191,12 @@ export default function EditCoursePage() {
           {
             unit_id: unitId,
             title: newLessonTitle,
+            markdown_content: null,
+            image_url: null,
             order_index: (units.find((u) => u.id === unitId)?.lessons.length || 0),
           },
         ])
-        .select("id, title, order_index")
+        .select("id, title, markdown_content, image_url, order_index")
 
       if (error) throw error
       if (data) {
@@ -167,6 +207,10 @@ export default function EditCoursePage() {
               : u
           )
         )
+        setLessonContentDrafts((prev) => ({
+          ...prev,
+          [data[0].id]: { markdown: "", imageUrl: "" },
+        }))
         setNewLessonTitle("")
         setNewLessonUnit(null)
       }
@@ -201,6 +245,67 @@ export default function EditCoursePage() {
       )
     } catch (error) {
       console.error("Error deleting lesson:", error)
+    }
+  }
+
+  const handleSaveUnitContent = async (unitId: string) => {
+    const draft = unitContentDrafts[unitId] || { markdown: "", imageUrl: "" }
+    setSavingContentId(unitId)
+
+    try {
+      const { error } = await supabase
+        .from("units")
+        .update({
+          markdown_content: draft.markdown.trim() || null,
+          image_url: draft.imageUrl.trim() || null,
+        })
+        .eq("id", unitId)
+
+      if (error) throw error
+
+      setUnits((prev) =>
+        prev.map((unit) =>
+          unit.id === unitId
+            ? { ...unit, markdown_content: draft.markdown.trim() || null, image_url: draft.imageUrl.trim() || null }
+            : unit
+        )
+      )
+    } catch (error) {
+      console.error("Error updating unit content:", error)
+    } finally {
+      setSavingContentId(null)
+    }
+  }
+
+  const handleSaveLessonContent = async (lessonId: string) => {
+    const draft = lessonContentDrafts[lessonId] || { markdown: "", imageUrl: "" }
+    setSavingContentId(lessonId)
+
+    try {
+      const { error } = await supabase
+        .from("lessons")
+        .update({
+          markdown_content: draft.markdown.trim() || null,
+          image_url: draft.imageUrl.trim() || null,
+        })
+        .eq("id", lessonId)
+
+      if (error) throw error
+
+      setUnits((prev) =>
+        prev.map((unit) => ({
+          ...unit,
+          lessons: unit.lessons.map((lesson) =>
+            lesson.id === lessonId
+              ? { ...lesson, markdown_content: draft.markdown.trim() || null, image_url: draft.imageUrl.trim() || null }
+              : lesson
+          ),
+        }))
+      )
+    } catch (error) {
+      console.error("Error updating lesson content:", error)
+    } finally {
+      setSavingContentId(null)
     }
   }
 
@@ -325,6 +430,47 @@ export default function EditCoursePage() {
 
                 {/* Lessons */}
                 <div style={{ marginLeft: "20px", marginBottom: "20px" }}>
+                  <div style={{ backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: "8px", padding: "12px", marginBottom: "12px" }}>
+                    <p style={{ margin: "0 0 8px 0", fontSize: "13px", color: "#4B5563", fontWeight: 600 }}>Unit content (Markdown + Image URL)</p>
+                    <input
+                      value={unitContentDrafts[unit.id]?.imageUrl || ""}
+                      onChange={(e) =>
+                        setUnitContentDrafts((prev) => ({
+                          ...prev,
+                          [unit.id]: {
+                            ...(prev[unit.id] || { markdown: "", imageUrl: "" }),
+                            imageUrl: e.target.value,
+                          },
+                        }))
+                      }
+                      placeholder="https://... (optional image URL)"
+                      style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #D1D5DB", marginBottom: "8px" }}
+                    />
+                    <textarea
+                      value={unitContentDrafts[unit.id]?.markdown || ""}
+                      onChange={(e) =>
+                        setUnitContentDrafts((prev) => ({
+                          ...prev,
+                          [unit.id]: {
+                            ...(prev[unit.id] || { markdown: "", imageUrl: "" }),
+                            markdown: e.target.value,
+                          },
+                        }))
+                      }
+                      rows={4}
+                      placeholder="Markdown notes for this unit"
+                      style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #D1D5DB", fontFamily: "monospace" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void handleSaveUnitContent(unit.id)}
+                      disabled={savingContentId === unit.id}
+                      style={{ marginTop: "8px", backgroundColor: "#111827", color: "white", border: "none", borderRadius: "6px", padding: "8px 12px", fontWeight: 600, cursor: "pointer" }}
+                    >
+                      {savingContentId === unit.id ? "Saving..." : "Save Unit Content"}
+                    </button>
+                  </div>
+
                   {unit.lessons.map((lesson) => (
                     <div
                       key={lesson.id}
@@ -350,6 +496,11 @@ export default function EditCoursePage() {
                           {lesson.videos.length > 0 && (
                             <p style={{ fontSize: "12px", color: "#6B7280", margin: 0 }}>
                               {lesson.videos.length} video{lesson.videos.length !== 1 ? "s" : ""}
+                            </p>
+                          )}
+                          {lesson.videos.length === 0 && (
+                            <p style={{ fontSize: "12px", color: "#6B7280", margin: 0 }}>
+                              No videos yet. You can still publish lesson text and imagery below.
                             </p>
                           )}
                         </div>
@@ -384,6 +535,46 @@ export default function EditCoursePage() {
                             Delete
                           </button>
                         </div>
+                      </div>
+
+                      <div style={{ marginTop: "10px", display: "grid", gap: "8px" }}>
+                        <input
+                          value={lessonContentDrafts[lesson.id]?.imageUrl || ""}
+                          onChange={(e) =>
+                            setLessonContentDrafts((prev) => ({
+                              ...prev,
+                              [lesson.id]: {
+                                ...(prev[lesson.id] || { markdown: "", imageUrl: "" }),
+                                imageUrl: e.target.value,
+                              },
+                            }))
+                          }
+                          placeholder="https://... (optional image URL)"
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #D1D5DB" }}
+                        />
+                        <textarea
+                          value={lessonContentDrafts[lesson.id]?.markdown || ""}
+                          onChange={(e) =>
+                            setLessonContentDrafts((prev) => ({
+                              ...prev,
+                              [lesson.id]: {
+                                ...(prev[lesson.id] || { markdown: "", imageUrl: "" }),
+                                markdown: e.target.value,
+                              },
+                            }))
+                          }
+                          rows={3}
+                          placeholder="Lesson markdown notes"
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #D1D5DB", fontFamily: "monospace" }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void handleSaveLessonContent(lesson.id)}
+                          disabled={savingContentId === lesson.id}
+                          style={{ width: "fit-content", backgroundColor: "#111827", color: "white", border: "none", borderRadius: "6px", padding: "8px 12px", fontWeight: 600, cursor: "pointer" }}
+                        >
+                          {savingContentId === lesson.id ? "Saving..." : "Save Lesson Content"}
+                        </button>
                       </div>
                     </div>
                   ))}

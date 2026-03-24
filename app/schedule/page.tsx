@@ -16,7 +16,7 @@ interface BookingModalProps {
   onClose: () => void
 }
 
-function PaymentForm({ slot }: { slot: Slot }) {
+function PaymentForm({ totalCents }: { totalCents: number }) {
   const stripe = useStripe()
   const elements = useElements()
   const [message, setMessage] = useState<string | null>(null)
@@ -51,7 +51,7 @@ function PaymentForm({ slot }: { slot: Slot }) {
         disabled={isLoading || !stripe || !elements}
         className="w-full bg-golden text-darkText font-bold py-3 px-6 rounded-lg hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isLoading ? 'Processing...' : `Pay $${(slot.price / 100).toFixed(2)}`}
+        {isLoading ? 'Processing...' : `Pay $${(totalCents / 100).toFixed(2)}`}
       </button>
     </form>
   )
@@ -63,6 +63,9 @@ function BookingModal({ slot, userId, userEmail, onClose }: BookingModalProps) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [notes, setNotes] = useState('')
+  const [subtotalCents, setSubtotalCents] = useState(slot.price)
+  const [processingFeeCents, setProcessingFeeCents] = useState(Math.round(slot.price * 0.035))
+  const [totalCents, setTotalCents] = useState(slot.price + Math.round(slot.price * 0.035))
 
   useEffect(() => {
     if (!userId) {
@@ -84,6 +87,9 @@ function BookingModal({ slot, userId, userEmail, onClose }: BookingModalProps) {
       .then((res) => res.json())
       .then((data) => {
         setClientSecret(data.clientSecret)
+        setSubtotalCents(Number(data.subtotalCents || slot.price))
+        setProcessingFeeCents(Number(data.processingFeeCents || Math.round(slot.price * 0.035)))
+        setTotalCents(Number(data.totalCents || slot.price + Math.round(slot.price * 0.035)))
         setLoading(false)
       })
       .catch((error) => {
@@ -138,8 +144,18 @@ function BookingModal({ slot, userId, userEmail, onClose }: BookingModalProps) {
               })}
             </p>
             <p className="text-2xl font-bold text-darkText">
-              ${(slot.price / 100).toFixed(2)}
+              ${(totalCents / 100).toFixed(2)}
             </p>
+            <div className="border-t border-gray-200 pt-2 text-sm text-gray-600">
+              <div className="flex items-center justify-between">
+                <span>Lesson subtotal</span>
+                <span>${(subtotalCents / 100).toFixed(2)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Card fee (3.5%)</span>
+                <span>${(processingFeeCents / 100).toFixed(2)}</span>
+              </div>
+            </div>
           </div>
 
           {/* Contact Information */}
@@ -189,7 +205,7 @@ function BookingModal({ slot, userId, userEmail, onClose }: BookingModalProps) {
             </div>
           ) : clientSecret ? (
             <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
-              <PaymentForm slot={slot} />
+              <PaymentForm totalCents={totalCents} />
             </Elements>
           ) : (
             <div className="text-red-600 text-center">

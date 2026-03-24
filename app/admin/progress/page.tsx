@@ -70,6 +70,11 @@ export default function AdminProgressPage() {
   const [newItemDescription, setNewItemDescription] = useState("")
   const [newItemStage, setNewItemStage] = useState("")
   const [newItemOrder, setNewItemOrder] = useState(0)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [editingItemTitle, setEditingItemTitle] = useState("")
+  const [editingItemDescription, setEditingItemDescription] = useState("")
+  const [editingItemStage, setEditingItemStage] = useState("")
+  const [focusedSyllabusItemId, setFocusedSyllabusItemId] = useState("")
 
   const [selectedLessonId, setSelectedLessonId] = useState("")
   const [performanceRating, setPerformanceRating] = useState(3)
@@ -81,8 +86,14 @@ export default function AdminProgressPage() {
 
   const [loading, setLoading] = useState(true)
   const [savingItem, setSavingItem] = useState(false)
+  const [savingItemUpdate, setSavingItemUpdate] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [statusMessage, setStatusMessage] = useState("")
+
+  const findNextOpenItemId = (drafts: Record<string, ItemDraft>) => {
+    const next = syllabusItems.find((item) => (drafts[item.id]?.status || "not_started") !== "proficient")
+    return next?.id || ""
+  }
 
   useEffect(() => {
     if (authLoading) return
@@ -135,6 +146,7 @@ export default function AdminProgressPage() {
       const items = (itemsResult.data as SyllabusItem[] | null) || []
       setSyllabusItems(items)
       setNewItemOrder(items.length + 1)
+      setFocusedSyllabusItemId((current) => (current && items.some((item) => item.id === current) ? current : items[0]?.id || ""))
 
       const lessonRows = (lessonsResult.data as any[] | null) || []
       setLessons(
@@ -218,10 +230,100 @@ export default function AdminProgressPage() {
       })
 
       setItemDrafts(nextDrafts)
+      setFocusedSyllabusItemId((current) => {
+        if (current && syllabusItems.some((item) => item.id === current)) return current
+        return findNextOpenItemId(nextDrafts) || syllabusItems[0]?.id || ""
+      })
     }
 
     fetchProgress()
   }, [selectedStudentId, syllabusItems])
+
+  const handleUpdateItem = async (itemId: string) => {
+    if (!editingItemTitle.trim()) return
+
+    setSavingItemUpdate(true)
+    setStatusMessage("")
+
+    const { error } = await supabase
+      .from("syllabus_items")
+      .update({
+        title: editingItemTitle.trim(),
+        description: editingItemDescription.trim() || null,
+        stage: editingItemStage.trim() || null,
+      })
+      .eq("id", itemId)
+
+    if (error) {
+      setStatusMessage(`Failed to update syllabus item: ${error.message}`)
+    } else {
+      setSyllabusItems((previous) =>
+        previous.map((item) =>
+          item.id === itemId
+            ? {
+                ...item,
+                title: editingItemTitle.trim(),
+                description: editingItemDescription.trim() || null,
+                stage: editingItemStage.trim() || null,
+              }
+            : item
+        )
+      )
+      setEditingItemId(null)
+      setStatusMessage("Syllabus item updated")
+    }
+
+    setSavingItemUpdate(false)
+  }
+
+  const handleDeleteItem = async (itemId: string) => {
+    if (!confirm("Delete this syllabus item?")) return
+
+    const { error } = await supabase.from("syllabus_items").delete().eq("id", itemId)
+    if (error) {
+      setStatusMessage(`Failed to delete syllabus item: ${error.message}`)
+      return
+    }
+
+    const nextItems = syllabusItems.filter((item) => item.id !== itemId)
+    setSyllabusItems(nextItems)
+    setItemDrafts((previous) => {
+      const nextDrafts = { ...previous }
+      delete nextDrafts[itemId]
+      return nextDrafts
+    })
+    setFocusedSyllabusItemId((current) => (current === itemId ? nextItems[0]?.id || "" : current))
+    setStatusMessage("Syllabus item deleted")
+  }
+
+  const handleMarkFocusedComplete = () => {
+    if (!focusedSyllabusItemId) return
+
+    setItemDrafts((previous) => {
+      const nextDrafts: Record<string, ItemDraft> = {
+        ...previous,
+        [focusedSyllabusItemId]: {
+          ...(previous[focusedSyllabusItemId] || {
+            status: "not_started",
+            score: "",
+            instructorNotes: "",
+          }),
+          status: "proficient",
+        },
+      }
+
+      const currentIndex = syllabusItems.findIndex((item) => item.id === focusedSyllabusItemId)
+      const nextItem = syllabusItems
+        .slice(currentIndex + 1)
+        .find((item) => (nextDrafts[item.id]?.status || "not_started") !== "proficient")
+
+      if (nextItem) {
+        setFocusedSyllabusItemId(nextItem.id)
+      }
+
+      return nextDrafts
+    })
+  }
 
   const selectedStudent = useMemo(
     () => students.find((student) => student.id === selectedStudentId) || null,
@@ -276,11 +378,22 @@ export default function AdminProgressPage() {
       return
     }
 
+    const nextDrafts: Record<string, ItemDraft> = { ...itemDrafts }
+    if (focusedSyllabusItemId) {
+      const focused = nextDrafts[focusedSyllabusItemId]
+      if (focused && focused.status !== "proficient") {
+        nextDrafts[focusedSyllabusItemId] = {
+          ...focused,
+          status: "proficient",
+        }
+      }
+    }
+
     const syllabusUpdates = syllabusItems.map((item) => ({
       syllabusItemId: item.id,
-      status: itemDrafts[item.id]?.status || "not_started",
-      score: itemDrafts[item.id]?.score === "" ? null : Number(itemDrafts[item.id]?.score),
-      instructorNotes: itemDrafts[item.id]?.instructorNotes || null,
+      status: nextDrafts[item.id]?.status || "not_started",
+      score: nextDrafts[item.id]?.score === "" ? null : Number(nextDrafts[item.id]?.score),
+      instructorNotes: nextDrafts[item.id]?.instructorNotes || null,
     }))
 
     setSubmitting(true)
@@ -331,6 +444,9 @@ export default function AdminProgressPage() {
     } else {
       setStatusMessage("Evaluation saved")
     }
+
+    setItemDrafts(nextDrafts)
+    setFocusedSyllabusItemId(findNextOpenItemId(nextDrafts))
 
     setSubmitting(false)
   }
@@ -436,10 +552,74 @@ export default function AdminProgressPage() {
             <div style={{ display: "grid", gap: "8px" }}>
               {syllabusItems.map((item) => (
                 <div key={item.id} style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "10px" }}>
-                  <p style={{ margin: 0, fontWeight: 600 }}>
-                    {item.order_index}. {item.title}
-                  </p>
-                  {item.stage && <p style={{ margin: "6px 0 0 0", fontSize: "13px", color: "#6B7280" }}>Stage: {item.stage}</p>}
+                  {editingItemId === item.id ? (
+                    <div style={{ display: "grid", gap: "8px" }}>
+                      <input
+                        value={editingItemTitle}
+                        onChange={(e) => setEditingItemTitle(e.target.value)}
+                        style={{ padding: "8px", borderRadius: "6px", border: "1px solid #D1D5DB" }}
+                      />
+                      <input
+                        value={editingItemStage}
+                        onChange={(e) => setEditingItemStage(e.target.value)}
+                        placeholder="Stage"
+                        style={{ padding: "8px", borderRadius: "6px", border: "1px solid #D1D5DB" }}
+                      />
+                      <textarea
+                        value={editingItemDescription}
+                        onChange={(e) => setEditingItemDescription(e.target.value)}
+                        rows={2}
+                        style={{ padding: "8px", borderRadius: "6px", border: "1px solid #D1D5DB" }}
+                      />
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button
+                          type="button"
+                          disabled={savingItemUpdate}
+                          onClick={() => void handleUpdateItem(item.id)}
+                          style={{ background: "#10B981", color: "white", border: "none", borderRadius: "6px", padding: "8px 10px", cursor: "pointer", fontWeight: 600 }}
+                        >
+                          {savingItemUpdate ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingItemId(null)}
+                          style={{ background: "#6B7280", color: "white", border: "none", borderRadius: "6px", padding: "8px 10px", cursor: "pointer", fontWeight: 600 }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
+                        <p style={{ margin: 0, fontWeight: 600 }}>
+                          {item.order_index}. {item.title}
+                        </p>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingItemId(item.id)
+                              setEditingItemTitle(item.title)
+                              setEditingItemDescription(item.description || "")
+                              setEditingItemStage(item.stage || "")
+                            }}
+                            style={{ background: "#3B82F6", color: "white", border: "none", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", fontSize: "12px", fontWeight: 600 }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleDeleteItem(item.id)}
+                            style={{ background: "#EF4444", color: "white", border: "none", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", fontSize: "12px", fontWeight: 600 }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                      {item.stage && <p style={{ margin: "6px 0 0 0", fontSize: "13px", color: "#6B7280" }}>Stage: {item.stage}</p>}
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -453,6 +633,31 @@ export default function AdminProgressPage() {
           </p>
 
           <form onSubmit={handleSubmitEvaluation} style={{ display: "grid", gap: "14px" }}>
+            <div style={{ display: "grid", gap: "8px", padding: "10px", borderRadius: "8px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
+              <label style={{ fontSize: "14px", fontWeight: 600 }}>Debriefed syllabus item</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "8px" }}>
+                <select
+                  value={focusedSyllabusItemId}
+                  onChange={(e) => setFocusedSyllabusItemId(e.target.value)}
+                  style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
+                >
+                  <option value="">Select syllabus item</option>
+                  {syllabusItems.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.title}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleMarkFocusedComplete}
+                  style={{ background: "#10B981", color: "white", border: "none", borderRadius: "8px", padding: "10px 14px", fontWeight: 600, cursor: "pointer" }}
+                >
+                  Mark Complete
+                </button>
+              </div>
+            </div>
+
             <select
               value={selectedLessonId}
               onChange={(e) => setSelectedLessonId(e.target.value)}
@@ -479,7 +684,15 @@ export default function AdminProgressPage() {
             </label>
 
             {syllabusItems.map((item) => (
-              <div key={item.id} style={{ border: "1px solid #E5E7EB", borderRadius: "10px", padding: "12px" }}>
+              <div
+                key={item.id}
+                style={{
+                  border: focusedSyllabusItemId === item.id ? "2px solid #C59A2A" : "1px solid #E5E7EB",
+                  background: focusedSyllabusItemId === item.id ? "#FFFBEB" : "#FFFFFF",
+                  borderRadius: "10px",
+                  padding: "12px",
+                }}
+              >
                 <p style={{ margin: "0 0 8px 0", fontWeight: 600 }}>{item.title}</p>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: "10px", marginBottom: "10px" }}>
                   <select

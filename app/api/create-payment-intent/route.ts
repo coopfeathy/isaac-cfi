@@ -80,9 +80,19 @@ export async function POST(req: Request) {
       )
     }
 
-    // Create a PaymentIntent with the order amount and currency
+    const baseAmount = Number(amount)
+    if (!Number.isFinite(baseAmount) || baseAmount <= 0) {
+      return new Response(JSON.stringify({ error: 'Invalid amount' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    const processingFee = Math.round(baseAmount * 0.035)
+    const totalAmount = baseAmount + processingFee
+
+    // Create a PaymentIntent with a 3.5% card processing fee included.
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount, // Amount in cents
+      amount: totalAmount,
       currency: 'usd',
       automatic_payment_methods: {
         enabled: true,
@@ -91,6 +101,8 @@ export async function POST(req: Request) {
         bookingId: insertedBooking.id,
         slotId,
         userId,
+        base_amount_cents: String(baseAmount),
+        processing_fee_cents: String(processingFee),
       },
       receipt_email: email || undefined,
     })
@@ -104,6 +116,9 @@ export async function POST(req: Request) {
       JSON.stringify({
         clientSecret: paymentIntent.client_secret,
         bookingId: insertedBooking.id,
+        subtotalCents: baseAmount,
+        processingFeeCents: processingFee,
+        totalCents: totalAmount,
       }),
       {
         status: 200,
