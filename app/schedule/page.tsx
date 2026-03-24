@@ -213,6 +213,7 @@ function SchedulePageContent() {
   })
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
+  const [requestModalOpen, setRequestModalOpen] = useState(false)
   const [requestStatus, setRequestStatus] = useState<string | null>(null)
   const [requestSubmitting, setRequestSubmitting] = useState(false)
   const [requestForm, setRequestForm] = useState({
@@ -364,6 +365,19 @@ function SchedulePageContent() {
     setSelectedSlot(null)
   }
 
+  const openRequestModal = () => {
+    setRequestStatus(null)
+    setRequestForm((prev) => ({
+      ...prev,
+      preferredDate: selectedDateKey || prev.preferredDate,
+    }))
+    setRequestModalOpen(true)
+  }
+
+  const closeRequestModal = () => {
+    setRequestModalOpen(false)
+  }
+
   const handleSubmitRequest = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -390,11 +404,12 @@ function SchedulePageContent() {
         fullName: '',
         email: user?.email || '',
         phone: '',
-        preferredDate: '',
+        preferredDate: selectedDateKey || '',
         preferredStartTime: '',
         durationMinutes: '90',
         notes: '',
       })
+      setRequestModalOpen(false)
     } catch (error) {
       setRequestStatus(error instanceof Error ? error.message : 'Unable to submit your request right now.')
     } finally {
@@ -474,93 +489,17 @@ function SchedulePageContent() {
             <div className="bg-white rounded-xl shadow-md p-6 mb-6 border border-gray-100">
               <h3 className="text-2xl font-bold text-darkText mb-2">Need a Different Discovery Flight Time?</h3>
               <p className="text-gray-600 mb-5">
-                There are no available slots on this day. Request your preferred time and our team can approve or suggest an alternative.
+                There are no available slots on this day. Submit a custom request and our team can approve or suggest an alternative.
               </p>
-
-              <form onSubmit={handleSubmitRequest} className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={requestForm.fullName}
-                    onChange={(e) => setRequestForm((prev) => ({ ...prev, fullName: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={requestForm.email}
-                    onChange={(e) => setRequestForm((prev) => ({ ...prev, email: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input
-                    type="tel"
-                    required
-                    value={requestForm.phone}
-                    onChange={(e) => setRequestForm((prev) => ({ ...prev, phone: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={requestForm.preferredDate}
-                    onChange={(e) => setRequestForm((prev) => ({ ...prev, preferredDate: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Start Time</label>
-                  <input
-                    type="time"
-                    required
-                    value={requestForm.preferredStartTime}
-                    onChange={(e) => setRequestForm((prev) => ({ ...prev, preferredStartTime: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
-                  <select
-                    value={requestForm.durationMinutes}
-                    onChange={(e) => setRequestForm((prev) => ({ ...prev, durationMinutes: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
-                  >
-                    <option value="60">60 minutes</option>
-                    <option value="90">90 minutes</option>
-                    <option value="120">120 minutes</option>
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
-                  <textarea
-                    rows={3}
-                    value={requestForm.notes}
-                    onChange={(e) => setRequestForm((prev) => ({ ...prev, notes: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
-                    placeholder="Tell us ideal times, occasion, or any constraints."
-                  />
-                </div>
-                <div className="md:col-span-2 flex items-center justify-between gap-3">
-                  <button
-                    type="submit"
-                    disabled={requestSubmitting}
-                    className="px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {requestSubmitting ? 'Submitting...' : 'Request a Discovery Flight Slot'}
-                  </button>
-                  {requestStatus && <p className="text-sm text-gray-700">{requestStatus}</p>}
-                </div>
-              </form>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <button
+                  onClick={openRequestModal}
+                  className="px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-gray-800"
+                >
+                  Request a Discovery Flight Slot
+                </button>
+                {requestStatus && <p className="text-sm text-gray-700">{requestStatus}</p>}
+              </div>
             </div>
           )}
 
@@ -688,6 +627,120 @@ function SchedulePageContent() {
 
         </div>
       </section>
+
+      {/* Discovery Request Modal */}
+      {requestModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-darkText">Need a Different Discovery Flight Time?</h2>
+              <button
+                onClick={closeRequestModal}
+                className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6">
+              <p className="text-gray-600 mb-5">
+                Share your preferred timing and our team can approve or suggest an alternative.
+              </p>
+
+              <form onSubmit={handleSubmitRequest} className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={requestForm.fullName}
+                    onChange={(e) => setRequestForm((prev) => ({ ...prev, fullName: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={requestForm.email}
+                    onChange={(e) => setRequestForm((prev) => ({ ...prev, email: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    required
+                    value={requestForm.phone}
+                    onChange={(e) => setRequestForm((prev) => ({ ...prev, phone: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={requestForm.preferredDate}
+                    onChange={(e) => setRequestForm((prev) => ({ ...prev, preferredDate: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Start Time</label>
+                  <input
+                    type="time"
+                    required
+                    value={requestForm.preferredStartTime}
+                    onChange={(e) => setRequestForm((prev) => ({ ...prev, preferredStartTime: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
+                  <select
+                    value={requestForm.durationMinutes}
+                    onChange={(e) => setRequestForm((prev) => ({ ...prev, durationMinutes: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  >
+                    <option value="60">60 minutes</option>
+                    <option value="90">90 minutes</option>
+                    <option value="120">120 minutes</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                  <textarea
+                    rows={3}
+                    value={requestForm.notes}
+                    onChange={(e) => setRequestForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                    placeholder="Tell us ideal times, occasion, or any constraints."
+                  />
+                </div>
+                <div className="md:col-span-2 flex items-center justify-between gap-3">
+                  <button
+                    type="submit"
+                    disabled={requestSubmitting}
+                    className="px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {requestSubmitting ? 'Submitting...' : 'Submit Request'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeRequestModal}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-100"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Booking Modal */}
       {selectedSlot && user && (
