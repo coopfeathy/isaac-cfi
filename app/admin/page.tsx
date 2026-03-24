@@ -21,7 +21,7 @@ interface SocialMediaPost {
   created_at: string
 }
 
-type AdminTab = 'slots' | 'bookings' | 'prospects' | 'blog' | 'social' | 'email' | 'support'
+type AdminTab = 'slots' | 'bookings' | 'prospects' | 'blog' | 'social' | 'email'
 type SupportTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
 type SupportTicket = {
   id: string
@@ -75,7 +75,7 @@ type SlotRequest = {
 }
 
 const isAdminTab = (value: string | null): value is AdminTab => {
-  return value === 'slots' || value === 'bookings' || value === 'prospects' || value === 'blog' || value === 'social' || value === 'email' || value === 'support'
+  return value === 'slots' || value === 'bookings' || value === 'prospects' || value === 'blog' || value === 'social' || value === 'email'
 }
 
 function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
@@ -1072,6 +1072,67 @@ ${blogContent}
     closed: 'bg-gray-100 text-gray-800',
   }
 
+  type InboxItem = {
+    id: string
+    kind: 'support_ticket' | 'slot_request' | 'prospect'
+    title: string
+    name: string
+    email: string
+    phone: string | null
+    message: string
+    createdAt: string
+    meta: string
+    supportStatus?: SupportTicketStatus
+    statusLabel: string
+  }
+
+  const incomingInquiries: InboxItem[] = [
+    ...supportTickets.map((ticket) => ({
+      id: `support-${ticket.id}`,
+      kind: 'support_ticket' as const,
+      title: ticket.subject,
+      name: ticket.name,
+      email: ticket.email,
+      phone: ticket.phone,
+      message: ticket.message,
+      createdAt: ticket.created_at,
+      meta: `Category: ${ticket.category}`,
+      supportStatus: ticket.status,
+      statusLabel:
+        ticket.status === 'in_progress'
+          ? 'In Progress'
+          : ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1),
+    })),
+    ...slotRequests.map((request) => ({
+      id: `slot-${request.id}`,
+      kind: 'slot_request' as const,
+      title: `Slot Request: ${request.full_name}`,
+      name: request.full_name,
+      email: request.email,
+      phone: request.phone,
+      message: request.notes || 'No notes provided.',
+      createdAt: request.created_at,
+      meta: `Requested window: ${formatDateTime(request.preferred_start_time)} to ${formatDateTime(request.preferred_end_time)}`,
+      statusLabel: request.status.charAt(0).toUpperCase() + request.status.slice(1),
+    })),
+    ...prospects
+      .filter((prospect) => prospect?.email || prospect?.notes)
+      .map((prospect) => ({
+        id: `prospect-${prospect.id}`,
+        kind: 'prospect' as const,
+        title: `Prospect Inquiry: ${prospect.full_name || prospect.email || 'Unknown'}`,
+        name: prospect.full_name || 'Unknown',
+        email: prospect.email || 'No email provided',
+        phone: prospect.phone || null,
+        message: prospect.notes || 'No notes captured yet.',
+        createdAt: prospect.created_at,
+        meta: `Source: ${prospect.source || 'unknown'}`,
+        statusLabel: prospect.status
+          ? String(prospect.status).charAt(0).toUpperCase() + String(prospect.status).slice(1)
+          : 'New',
+      })),
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
   const shouldShowWorkspace = Boolean(forcedTab || isAdminTab(searchParams.get('tab')))
 
   // Landing Page View
@@ -1187,8 +1248,8 @@ ${blogContent}
                 <Link href="/admin/bookings" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">
                   View Bookings
                 </Link>
-                <Link href="/admin/support" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
-                  Support Tickets
+                <Link href="/admin/email" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
+                  Inbox & Support
                 </Link>
                 <Link href="/admin/prospects" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
                   Manage Prospects
@@ -1224,7 +1285,7 @@ ${blogContent}
               <li><strong>Onboarding:</strong> Review student intake docs, signatures, and approvals</li>
               <li><strong>Prospects:</strong> Manage leads and potential students from discovery flights</li>
               <li><strong>Bookings:</strong> Manage flight slots, bookings, and schedules</li>
-              <li><strong>Support:</strong> Review inbound support tickets and update their status</li>
+              <li><strong>Inbox:</strong> Review inbound support tickets, leads, and booking requests in one place</li>
               <li><strong>Content:</strong> Create and manage blog posts, social media posts, and email campaigns</li>
             </ul>
           </div>
@@ -1245,8 +1306,7 @@ ${blogContent}
             {activeTab === 'prospects' && 'Manage Prospects'}
             {activeTab === 'blog' && 'Create Blog Post'}
             {activeTab === 'social' && 'Social Media'}
-            {activeTab === 'email' && 'Email Campaigns'}
-            {activeTab === 'support' && 'Support Tickets'}
+            {activeTab === 'email' && 'Email & Inquiries'}
           </h2>
           <p className="text-gray-600">
             {activeTab === 'slots' && `Create and manage availability for the native schedule page. Current slots: ${slots.length}.`}
@@ -1254,8 +1314,7 @@ ${blogContent}
             {activeTab === 'prospects' && `Manage all prospects and leads from discovery flights and funnels. Total: ${prospects.length}.`}
             {activeTab === 'blog' && 'Write, edit, and publish blog content.'}
             {activeTab === 'social' && `Manage linked social video posts. Current posts: ${socialPosts.length}.`}
-            {activeTab === 'email' && 'Load recipients and send campaign emails.'}
-            {activeTab === 'support' && `Review and resolve inbound support requests. Open tickets: ${supportTickets.filter((ticket) => ticket.status === 'open').length}.`}
+            {activeTab === 'email' && `Send campaigns and review inbound requests. Open support tickets: ${supportTickets.filter((ticket) => ticket.status === 'open').length}.`}
           </p>
         </div>
 
@@ -2160,59 +2219,80 @@ ${blogContent}
                   Emails will be sent from: <code className="bg-yellow-100 px-1 rounded">noreply@merlinflighttraining.com</code>
                 </p>
               </div>
+
+              <div className="border-t border-gray-200 pt-8">
+                <h3 className="text-xl font-bold text-darkText mb-2">Inbound Inbox</h3>
+                <p className="text-sm text-gray-600 mb-4">View support tickets, slot requests, and other lead inquiries in one place.</p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                  <div className="rounded border border-gray-200 bg-gray-50 px-4 py-3">
+                    <p className="text-xs uppercase tracking-wide text-gray-500">Support Tickets</p>
+                    <p className="text-lg font-bold text-darkText">{supportTickets.length}</p>
+                  </div>
+                  <div className="rounded border border-gray-200 bg-gray-50 px-4 py-3">
+                    <p className="text-xs uppercase tracking-wide text-gray-500">Slot Requests</p>
+                    <p className="text-lg font-bold text-darkText">{slotRequests.length}</p>
+                  </div>
+                  <div className="rounded border border-gray-200 bg-gray-50 px-4 py-3">
+                    <p className="text-xs uppercase tracking-wide text-gray-500">Prospect Inquiries</p>
+                    <p className="text-lg font-bold text-darkText">{prospects.filter((prospect) => prospect?.email || prospect?.notes).length}</p>
+                  </div>
+                </div>
+
+                {incomingInquiries.length === 0 ? (
+                  <p className="text-gray-600">No inbound inquiries found.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {incomingInquiries.map((item) => (
+                      <div key={item.id} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-3">
+                          <div>
+                            <p className="font-semibold text-darkText">{item.title}</p>
+                            <p className="text-sm text-gray-600">{item.name} • {item.email}{item.phone ? ` • ${item.phone}` : ''}</p>
+                            <p className="text-xs text-gray-500 mt-1">{item.meta} • Received: {formatDateTime(item.createdAt)}</p>
+                          </div>
+                          {item.supportStatus ? (
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${supportStatusClasses[item.supportStatus]}`}>
+                              {item.statusLabel}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                              {item.statusLabel}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-sm text-gray-800 whitespace-pre-wrap mb-4">{item.message}</p>
+
+                        {item.supportStatus && (
+                          <div className="flex flex-col md:flex-row md:items-center gap-3">
+                            <label className="text-sm text-gray-700 font-medium" htmlFor={`support-status-${item.id}`}>
+                              Update status
+                            </label>
+                            <select
+                              id={`support-status-${item.id}`}
+                              value={item.supportStatus}
+                              onChange={(e) => handleUpdateSupportTicketStatus(item.id.replace('support-', ''), e.target.value as SupportTicketStatus)}
+                              disabled={updatingSupportTicketId === item.id.replace('support-', '')}
+                              className="w-full md:w-56 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent disabled:bg-gray-100"
+                            >
+                              <option value="open">Open</option>
+                              <option value="in_progress">In Progress</option>
+                              <option value="resolved">Resolved</option>
+                              <option value="closed">Closed</option>
+                            </select>
+                            {updatingSupportTicketId === item.id.replace('support-', '') && <span className="text-sm text-blue-700">Saving...</span>}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
 
-        {/* Support Tickets Tab */}
-        {activeTab === 'support' && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Support Tickets</h2>
-            <p className="text-gray-600 mb-6">Track and resolve support issues submitted from the contact form.</p>
-
-            {supportTickets.length === 0 ? (
-              <p className="text-gray-600">No support tickets found.</p>
-            ) : (
-              <div className="space-y-4">
-                {supportTickets.map((ticket) => (
-                  <div key={ticket.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-3">
-                      <div>
-                        <p className="font-semibold text-darkText">{ticket.subject}</p>
-                        <p className="text-sm text-gray-600">{ticket.name} • {ticket.email}{ticket.phone ? ` • ${ticket.phone}` : ''}</p>
-                        <p className="text-xs text-gray-500 mt-1">Category: {ticket.category} • Created: {formatDateTime(ticket.created_at)}</p>
-                      </div>
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${supportStatusClasses[ticket.status]}`}>
-                        {ticket.status === 'in_progress' ? 'In Progress' : ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1)}
-                      </span>
-                    </div>
-
-                    <p className="text-sm text-gray-800 whitespace-pre-wrap mb-4">{ticket.message}</p>
-
-                    <div className="flex flex-col md:flex-row md:items-center gap-3">
-                      <label className="text-sm text-gray-700 font-medium" htmlFor={`support-status-${ticket.id}`}>
-                        Update status
-                      </label>
-                      <select
-                        id={`support-status-${ticket.id}`}
-                        value={ticket.status}
-                        onChange={(e) => handleUpdateSupportTicketStatus(ticket.id, e.target.value as SupportTicketStatus)}
-                        disabled={updatingSupportTicketId === ticket.id}
-                        className="w-full md:w-56 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent disabled:bg-gray-100"
-                      >
-                        <option value="open">Open</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="resolved">Resolved</option>
-                        <option value="closed">Closed</option>
-                      </select>
-                      {updatingSupportTicketId === ticket.id && <span className="text-sm text-blue-700">Saving...</span>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   )
