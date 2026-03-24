@@ -1133,6 +1133,8 @@ ${blogContent}
       })),
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
+  const pendingSlotRequestCount = slotRequests.filter((request) => request.status === 'pending').length
+
   const shouldShowWorkspace = Boolean(forcedTab || isAdminTab(searchParams.get('tab')))
 
   // Landing Page View
@@ -1158,7 +1160,7 @@ ${blogContent}
 
             {healthSnapshot ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mb-5">
                   <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
                     <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Unreviewed Onboarding Docs</p>
                     <p className="text-2xl font-bold text-darkText">{healthSnapshot.unreviewedOnboardingDocs}</p>
@@ -1170,6 +1172,10 @@ ${blogContent}
                   <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
                     <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Open Support Tickets</p>
                     <p className="text-2xl font-bold text-darkText">{healthSnapshot.openSupportTickets}</p>
+                  </div>
+                  <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Pending Slot Requests</p>
+                    <p className="text-2xl font-bold text-darkText">{pendingSlotRequestCount}</p>
                   </div>
                   <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
                     <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Prospect Conversion Rate</p>
@@ -1321,6 +1327,65 @@ ${blogContent}
         {/* Slots Tab */}
         {activeTab === 'slots' && (
           <div>
+            <div className="mb-8">
+              <h3 className="text-2xl font-bold text-darkText mb-3">Requested Discovery Flight Slots</h3>
+              <div className="mb-2">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                  Pending: {pendingSlotRequestCount}
+                </span>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">Approve to create a new available slot or deny if the request cannot be accommodated.</p>
+              {slotRequests.length === 0 ? (
+                <div className="bg-white rounded-lg shadow-md p-6 text-sm text-gray-500">No slot requests yet.</div>
+              ) : (
+                <div className="space-y-3">
+                  {slotRequests.map((request) => (
+                    <div key={request.id} className="bg-white rounded-lg shadow-md p-4 border border-gray-100">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-darkText">{request.full_name} • {request.email}</p>
+                          <p className="text-sm text-gray-600">{request.phone}</p>
+                          <p className="text-sm text-gray-700 mt-2">
+                            Requested: {new Date(request.preferred_start_time).toLocaleString()} - {new Date(request.preferred_end_time).toLocaleTimeString()}
+                          </p>
+                          {request.notes && <p className="text-sm text-gray-600 mt-1">Notes: {request.notes}</p>}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                            request.status === 'pending'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : request.status === 'approved'
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                          }`}>
+                            {request.status}
+                          </span>
+                          {request.status === 'pending' && (
+                            <>
+                              <button
+                                onClick={() => handleReviewSlotRequest(request.id, 'approve')}
+                                disabled={processingRequestId === request.id}
+                                className="px-3 py-2 text-sm font-semibold bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-60"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleReviewSlotRequest(request.id, 'deny')}
+                                disabled={processingRequestId === request.id}
+                                className="px-3 py-2 text-sm font-semibold bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-60"
+                              >
+                                Deny
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="mb-6 flex flex-wrap items-center gap-3">
               <button
                 onClick={() => setShowAddSlot(!showAddSlot)}
@@ -1626,59 +1691,6 @@ ${blogContent}
             </div>
             )}
 
-            <div className="mt-10">
-              <h3 className="text-2xl font-bold text-darkText mb-3">Requested Discovery Flight Slots</h3>
-              <p className="text-sm text-gray-600 mb-4">Approve to create a new available slot or deny if the request cannot be accommodated.</p>
-              {slotRequests.length === 0 ? (
-                <div className="bg-white rounded-lg shadow-md p-6 text-sm text-gray-500">No slot requests yet.</div>
-              ) : (
-                <div className="space-y-3">
-                  {slotRequests.map((request) => (
-                    <div key={request.id} className="bg-white rounded-lg shadow-md p-4 border border-gray-100">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-darkText">{request.full_name} • {request.email}</p>
-                          <p className="text-sm text-gray-600">{request.phone}</p>
-                          <p className="text-sm text-gray-700 mt-2">
-                            Requested: {new Date(request.preferred_start_time).toLocaleString()} - {new Date(request.preferred_end_time).toLocaleTimeString()}
-                          </p>
-                          {request.notes && <p className="text-sm text-gray-600 mt-1">Notes: {request.notes}</p>}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                            request.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : request.status === 'approved'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-red-100 text-red-800'
-                          }`}>
-                            {request.status}
-                          </span>
-                          {request.status === 'pending' && (
-                            <>
-                              <button
-                                onClick={() => handleReviewSlotRequest(request.id, 'approve')}
-                                disabled={processingRequestId === request.id}
-                                className="px-3 py-2 text-sm font-semibold bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-60"
-                              >
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => handleReviewSlotRequest(request.id, 'deny')}
-                                disabled={processingRequestId === request.id}
-                                className="px-3 py-2 text-sm font-semibold bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-60"
-                              >
-                                Deny
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
         )}
 

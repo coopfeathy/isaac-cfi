@@ -231,6 +231,7 @@ function SchedulePageContent() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [requestModalOpen, setRequestModalOpen] = useState(false)
   const [requestStatus, setRequestStatus] = useState<string | null>(null)
+  const [requestStatusTone, setRequestStatusTone] = useState<'success' | 'error' | null>(null)
   const [requestSubmitting, setRequestSubmitting] = useState(false)
   const [requestForm, setRequestForm] = useState({
     fullName: '',
@@ -383,6 +384,7 @@ function SchedulePageContent() {
 
   const openRequestModal = () => {
     setRequestStatus(null)
+    setRequestStatusTone(null)
     setRequestForm((prev) => ({
       ...prev,
       preferredDate: selectedDateKey || prev.preferredDate,
@@ -399,6 +401,7 @@ function SchedulePageContent() {
 
     setRequestSubmitting(true)
     setRequestStatus(null)
+    setRequestStatusTone(null)
 
     try {
       const response = await fetch('/api/slot-requests', {
@@ -415,7 +418,8 @@ function SchedulePageContent() {
         throw new Error(result.error || 'Unable to submit your request right now.')
       }
 
-      setRequestStatus('Request submitted. We will review it and follow up shortly.')
+      setRequestStatus('Success! Your discovery flight request was sent. We will review it and follow up shortly.')
+      setRequestStatusTone('success')
       setRequestForm({
         fullName: '',
         email: user?.email || '',
@@ -428,6 +432,7 @@ function SchedulePageContent() {
       setRequestModalOpen(false)
     } catch (error) {
       setRequestStatus(error instanceof Error ? error.message : 'Unable to submit your request right now.')
+      setRequestStatusTone('error')
     } finally {
       setRequestSubmitting(false)
     }
@@ -501,6 +506,26 @@ function SchedulePageContent() {
             </div>
           </div>
 
+          {requestStatus && (
+            <div className={`mb-6 rounded-xl border px-4 py-3 sm:px-5 sm:py-4 flex items-start justify-between gap-3 ${
+              requestStatusTone === 'success'
+                ? 'bg-green-50 border-green-200 text-green-800'
+                : 'bg-red-50 border-red-200 text-red-800'
+            }`}>
+              <p className="text-sm sm:text-base">{requestStatus}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setRequestStatus(null)
+                  setRequestStatusTone(null)
+                }}
+                className="text-xs font-semibold uppercase tracking-wide opacity-80 hover:opacity-100"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
           {selectedDateKey && selectedDaySlots.length === 0 && (
             <div className="bg-white rounded-xl shadow-md p-6 mb-6 border border-gray-100">
               <h3 className="text-2xl font-bold text-darkText mb-2">Need a Different Discovery Flight Time?</h3>
@@ -514,7 +539,6 @@ function SchedulePageContent() {
                 >
                   Request a Discovery Flight Slot
                 </button>
-                {requestStatus && <p className="text-sm text-gray-700">{requestStatus}</p>}
               </div>
             </div>
           )}
