@@ -106,7 +106,20 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
     setGeneratingSlots(true)
     setGenerateSlotsResult(null)
     try {
-      const res = await fetch('/api/admin/generate-discovery-slots', { method: 'POST' })
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error('Unauthorized')
+      }
+
+      const res = await fetch('/api/admin/generate-discovery-slots', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to generate slots')
       setGenerateSlotsResult(data.message)

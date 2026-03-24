@@ -1,7 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
-import { cookies } from 'next/headers'
-import { createServerClient } from '@supabase/ssr'
 
 function localToUtcMs(
   year: number,
@@ -39,25 +38,23 @@ function normalizeToMinute(isoString: string): string {
   return d.toISOString()
 }
 
-export async function POST() {
-  // Verify admin session
-  const cookieStore = await cookies()
-  const supabaseClient = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) { return cookieStore.get(name)?.value },
-      },
-    },
-  )
-
-  const { data: { user } } = await supabaseClient.auth.getUser()
-  if (!user) {
+export async function POST(request: NextRequest) {
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const supabase = getSupabaseAdmin()
+  const token = authHeader.replace('Bearer ', '')
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(token)
+
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const supabaseAdmin = getSupabaseAdmin()
   const { data: profile } = await supabase
     .from('profiles')
     .select('is_admin')
@@ -100,7 +97,7 @@ export async function POST() {
   const windowStart = new Date(now.getTime() + minDaysOut * 24 * 60 * 60 * 1000)
   const windowEnd = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000)
 
-  const { data: existingSlots, error: fetchError } = await supabase
+  const { data: existingSlots, error: fetchError } = await supabaseAdmin
     .from('slots')
     .select('start_time')
     .eq('type', 'tour')
@@ -160,7 +157,7 @@ export async function POST() {
     return NextResponse.json({ message: 'All slots already exist in window', created: 0 })
   }
 
-  const { data: inserted, error: insertError } = await supabase
+  const { data: inserted, error: insertError } = await supabaseAdmin
     .from('slots')
     .insert(slotsToCreate)
     .select('id, start_time')
