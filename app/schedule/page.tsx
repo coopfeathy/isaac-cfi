@@ -207,6 +207,11 @@ function SchedulePageContent() {
   const [slots, setSlots] = useState<Slot[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'training' | 'tour'>('all')
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  })
+  const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null)
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [requestStatus, setRequestStatus] = useState<string | null>(null)
   const [requestSubmitting, setRequestSubmitting] = useState(false)
@@ -255,6 +260,84 @@ function SchedulePageContent() {
   const filteredSlots = slots.filter(slot => 
     filter === 'all' || slot.type === filter
   )
+
+  const toDateKey = (dateString: string) => {
+    const date = new Date(dateString)
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  const slotsByDate = filteredSlots.reduce<Record<string, Slot[]>>((acc, slot) => {
+    const key = toDateKey(slot.start_time)
+    if (!acc[key]) acc[key] = []
+    acc[key].push(slot)
+    return acc
+  }, {})
+
+  const availableDateKeys = Object.keys(slotsByDate).sort()
+
+  useEffect(() => {
+    if (availableDateKeys.length === 0) {
+      setSelectedDateKey(null)
+      return
+    }
+
+    if (!selectedDateKey || !slotsByDate[selectedDateKey]) {
+      setSelectedDateKey(availableDateKeys[0])
+    }
+  }, [filter, selectedDateKey, availableDateKeys.length])
+
+  const selectedDaySlots = selectedDateKey ? (slotsByDate[selectedDateKey] || []) : []
+
+  const calendarLabel = calendarMonth.toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  })
+
+  const monthStart = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1)
+  const monthEnd = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0)
+  const startOffset = monthStart.getDay()
+  const daysInMonth = monthEnd.getDate()
+  const dateTypeMap = filteredSlots.reduce<Record<string, { hasTraining: boolean; hasDiscovery: boolean }>>((acc, slot) => {
+    const key = toDateKey(slot.start_time)
+    if (!acc[key]) {
+      acc[key] = { hasTraining: false, hasDiscovery: false }
+    }
+    if (slot.type === 'tour') acc[key].hasDiscovery = true
+    if (slot.type === 'training') acc[key].hasTraining = true
+    return acc
+  }, {})
+
+  const calendarDays: Array<{ dateKey: string | null; dayNumber: number | null; hasSlots: boolean; hasTraining: boolean; hasDiscovery: boolean }> = []
+
+  for (let index = 0; index < startOffset; index += 1) {
+    calendarDays.push({ dateKey: null, dayNumber: null, hasSlots: false, hasTraining: false, hasDiscovery: false })
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const date = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), day)
+    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const typeInfo = dateTypeMap[dateKey] || { hasTraining: false, hasDiscovery: false }
+    calendarDays.push({
+      dateKey,
+      dayNumber: day,
+      hasSlots: Boolean(slotsByDate[dateKey]?.length),
+      hasTraining: typeInfo.hasTraining,
+      hasDiscovery: typeInfo.hasDiscovery,
+    })
+  }
+
+  const formatSelectedDayHeading = (dateKey: string) => {
+    const date = new Date(`${dateKey}T12:00:00`)
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -392,32 +475,119 @@ function SchedulePageContent() {
               <p className="text-gray-600">Please check back soon for newly published availability.</p>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {filteredSlots.map((slot) => (
-                <article key={slot.id} className="bg-white rounded-xl shadow-md p-5 border border-gray-100">
-                  <div className="flex justify-between items-start gap-3 mb-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide ${
-                      slot.type === 'tour' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                    }`}>
-                      {slot.type === 'tour' ? 'discovery flight' : 'training'}
-                    </span>
-                    <span className="text-xl font-bold text-darkText">${(slot.price / 100).toFixed(2)}</span>
-                  </div>
-
-                  <h3 className="text-lg font-bold text-darkText mb-1">
-                    {slot.description || (slot.type === 'tour' ? 'Discovery Flight' : 'Flight Training Lesson')}
-                  </h3>
-                  <p className="text-gray-700 font-medium">{formatDate(slot.start_time)}</p>
-                  <p className="text-gray-600 mb-5">{formatTime(slot.start_time)} - {formatTime(slot.end_time)}</p>
-
+            <div className="grid lg:grid-cols-[380px_minmax(0,1fr)] gap-6 items-start">
+              <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border border-gray-100">
+                <div className="flex items-center justify-between mb-4">
                   <button
-                    onClick={() => handleBook(slot)}
-                    className="w-full px-4 py-3 bg-golden text-darkText font-bold rounded-lg hover:bg-opacity-90 transition-colors"
+                    onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
                   >
-                    Book This Slot
+                    Prev
                   </button>
-                </article>
-              ))}
+                  <h3 className="text-xl font-bold text-darkText">{calendarLabel}</h3>
+                  <button
+                    onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
+                  >
+                    Next
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label) => (
+                    <div key={label}>{label}</div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-7 gap-2">
+                  {calendarDays.map((day, index) => {
+                    if (!day.dateKey || !day.dayNumber) {
+                      return <div key={`blank-${index}`} className="aspect-square rounded-xl bg-transparent" />
+                    }
+
+                    const isSelected = selectedDateKey === day.dateKey
+                    return (
+                      <button
+                        key={day.dateKey}
+                        onClick={() => setSelectedDateKey(day.dateKey)}
+                        className={`relative aspect-square rounded-xl border text-sm font-semibold transition-colors ${
+                          day.hasSlots
+                            ? isSelected
+                              ? 'bg-golden text-darkText border-golden'
+                              : 'bg-golden/30 text-darkText border-golden/50 hover:bg-golden/50'
+                            : isSelected
+                              ? 'bg-gray-200 text-darkText border-gray-300'
+                              : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        {day.dayNumber}
+                        {(day.hasTraining || day.hasDiscovery) && (
+                          <span className="absolute bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-1">
+                            {day.hasTraining && <span className="w-1.5 h-1.5 rounded-full bg-green-700" />}
+                            {day.hasDiscovery && <span className="w-1.5 h-1.5 rounded-full bg-blue-700" />}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className="mt-4 space-y-2 text-sm text-gray-600">
+                  <p>Yellow days have available slots. White days have none.</p>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <span className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-green-700" /> Training available</span>
+                    <span className="inline-flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-blue-700" /> Discovery Flight available</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border border-gray-100">
+                <div className="mb-5">
+                  <h3 className="text-2xl font-bold text-darkText">
+                    {selectedDateKey ? formatSelectedDayHeading(selectedDateKey) : 'Select a day'}
+                  </h3>
+                  <p className="text-gray-600 mt-1">Choose a highlighted day to view and book the available time slots.</p>
+                </div>
+
+                {selectedDateKey && selectedDaySlots.length > 0 ? (
+                  <div className="space-y-4">
+                    {selectedDaySlots.map((slot) => (
+                      <article key={slot.id} className="rounded-xl border border-gray-100 bg-gray-50 p-5">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+                          <div>
+                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide mb-3 ${
+                              slot.type === 'tour' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                            }`}>
+                              {slot.type === 'tour' ? 'discovery flight' : 'training'}
+                            </span>
+                            <h4 className="text-lg font-bold text-darkText">
+                              {slot.description || (slot.type === 'tour' ? 'Discovery Flight' : 'Flight Training Lesson')}
+                            </h4>
+                            <p className="text-gray-600 mt-1">{formatTime(slot.start_time)} - {formatTime(slot.end_time)}</p>
+                          </div>
+                          <div className="text-left sm:text-right">
+                            <p className="text-sm text-gray-500">Price</p>
+                            <p className="text-2xl font-bold text-darkText">${(slot.price / 100).toFixed(2)}</p>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleBook(slot)}
+                          className="w-full sm:w-auto px-5 py-3 bg-golden text-darkText font-bold rounded-lg hover:bg-opacity-90 transition-colors"
+                        >
+                          Book This Slot
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-gray-600">
+                    {selectedDateKey
+                      ? 'No slots are available on this day.'
+                      : 'Pick a day on the calendar to see available slots.'}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

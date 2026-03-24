@@ -97,6 +97,12 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
   const [updatingSupportTicketId, setUpdatingSupportTicketId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<AdminTab>(forcedTab || 'slots')
+  const [slotTypeFilter, setSlotTypeFilter] = useState<'all' | 'training' | 'tour' | 'custom'>('all')
+  const [slotStatusFilter, setSlotStatusFilter] = useState<'all' | 'available' | 'booked'>('all')
+  const [slotDateFilter, setSlotDateFilter] = useState('')
+  const [slotMonthFilter, setSlotMonthFilter] = useState('')
+  const [slotStartDateFilter, setSlotStartDateFilter] = useState('')
+  const [slotEndDateFilter, setSlotEndDateFilter] = useState('')
   
   // Auto-generate discovery slots
   const [generatingSlots, setGeneratingSlots] = useState(false)
@@ -540,6 +546,126 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
     } catch (error) {
       console.error('Error deleting slot:', error)
       alert('Failed to delete slot')
+    }
+  }
+
+  const filteredAdminSlots = slots.filter((slot) => {
+    const slotDate = new Date(slot.start_time)
+    const slotDateKey = slotDate.toISOString().split('T')[0]
+    const slotMonthKey = slotDateKey.slice(0, 7)
+
+    const matchesType =
+      slotTypeFilter === 'all'
+        ? true
+        : slotTypeFilter === 'custom'
+          ? slot.type !== 'training' && slot.type !== 'tour'
+          : slot.type === slotTypeFilter
+
+    const matchesStatus =
+      slotStatusFilter === 'all'
+        ? true
+        : slotStatusFilter === 'available'
+          ? !slot.is_booked
+          : slot.is_booked
+
+    const matchesDate = slotDateFilter
+      ? slotDateKey === slotDateFilter
+      : true
+
+    const matchesMonth = slotMonthFilter
+      ? slotMonthKey === slotMonthFilter
+      : true
+
+    const matchesStartDate = slotStartDateFilter
+      ? slotDateKey >= slotStartDateFilter
+      : true
+
+    const matchesEndDate = slotEndDateFilter
+      ? slotDateKey <= slotEndDateFilter
+      : true
+
+    return matchesType && matchesStatus && matchesDate && matchesMonth && matchesStartDate && matchesEndDate
+  })
+
+  const handleApplyThisWeekFilter = () => {
+    const now = new Date()
+    const dayOfWeek = now.getDay()
+    const start = new Date(now)
+    start.setDate(now.getDate() - dayOfWeek)
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6)
+
+    const startKey = start.toISOString().split('T')[0]
+    const endKey = end.toISOString().split('T')[0]
+
+    setSlotDateFilter('')
+    setSlotMonthFilter('')
+    setSlotStartDateFilter(startKey)
+    setSlotEndDateFilter(endKey)
+  }
+
+  const handleApplyThisMonthFilter = () => {
+    const now = new Date()
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+
+    setSlotDateFilter('')
+    setSlotMonthFilter(monthKey)
+    setSlotStartDateFilter('')
+    setSlotEndDateFilter('')
+  }
+
+  const handleApplyOnlyFutureAvailableFilter = () => {
+    const todayKey = new Date().toISOString().split('T')[0]
+
+    setSlotStatusFilter('available')
+    setSlotDateFilter('')
+    setSlotMonthFilter('')
+    setSlotStartDateFilter(todayKey)
+    setSlotEndDateFilter('')
+  }
+
+  const handleBulkDeleteSlots = async (scope: 'all' | 'filtered' | 'available') => {
+    const targetSlots =
+      scope === 'all'
+        ? slots
+        : scope === 'filtered'
+          ? filteredAdminSlots
+          : filteredAdminSlots.filter((slot) => !slot.is_booked)
+
+    if (targetSlots.length === 0) {
+      alert(
+        scope === 'available'
+          ? 'No available slots to delete in the current filter.'
+          : `No ${scope === 'all' ? '' : 'filtered '}slots to delete.`,
+      )
+      return
+    }
+
+    const confirmMessage =
+      scope === 'all'
+        ? `Delete all ${targetSlots.length} slots? This cannot be undone.`
+        : scope === 'filtered'
+          ? `Delete ${targetSlots.length} filtered slots? This cannot be undone.`
+          : `Delete ${targetSlots.length} available slots from the current filter? This cannot be undone.`
+
+    if (!confirm(confirmMessage)) return
+
+    try {
+      const slotIds = targetSlots.map((slot) => slot.id)
+      const { error } = await supabase.from('slots').delete().in('id', slotIds)
+      if (error) throw error
+      const statusMessage =
+        scope === 'all'
+          ? 'All slots deleted successfully.'
+          : scope === 'filtered'
+            ? 'Filtered slots deleted successfully.'
+            : 'Available slots deleted successfully.'
+      setGenerateSlotsResult(statusMessage)
+      await fetchData()
+      await fetchSlotRequests()
+    } catch (error) {
+      console.error('Error deleting slots:', error)
+      alert(`Failed to delete ${scope} slots`)
     }
   }
 
@@ -1147,6 +1273,27 @@ ${blogContent}
               >
                 {generatingSlots ? 'Generating...' : '⚡ Generate Discovery Slots'}
               </button>
+              <button
+                onClick={() => handleBulkDeleteSlots('filtered')}
+                disabled={filteredAdminSlots.length === 0}
+                className="px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                Delete Filtered Slots
+              </button>
+              <button
+                onClick={() => handleBulkDeleteSlots('available')}
+                disabled={filteredAdminSlots.filter((slot) => !slot.is_booked).length === 0}
+                className="px-6 py-3 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 disabled:opacity-50"
+              >
+                Delete Available Slots
+              </button>
+              <button
+                onClick={() => handleBulkDeleteSlots('all')}
+                disabled={slots.length === 0}
+                className="px-6 py-3 bg-red-900 text-white font-bold rounded-lg hover:bg-red-950 disabled:opacity-50"
+              >
+                Delete All Slots
+              </button>
               <Link href="/schedule" className="px-4 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-100">
                 Open Customer Schedule
               </Link>
@@ -1163,6 +1310,111 @@ ${blogContent}
                 {generateSlotsResult}
               </div>
             )}
+
+            <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+              <div className="flex flex-wrap gap-2 mb-4">
+                <button
+                  onClick={handleApplyThisWeekFilter}
+                  className="px-3 py-2 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-100"
+                >
+                  This Week
+                </button>
+                <button
+                  onClick={handleApplyThisMonthFilter}
+                  className="px-3 py-2 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-100"
+                >
+                  This Month
+                </button>
+                <button
+                  onClick={handleApplyOnlyFutureAvailableFilter}
+                  className="px-3 py-2 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-100"
+                >
+                  Only Future Available
+                </button>
+              </div>
+
+              <div className="flex flex-col lg:flex-row gap-4 lg:items-end">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                  <select
+                    value={slotTypeFilter}
+                    onChange={(e) => setSlotTypeFilter(e.target.value as 'all' | 'training' | 'tour' | 'custom')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-golden focus:border-golden"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="training">Training</option>
+                    <option value="tour">Discovery Flight</option>
+                    <option value="custom">Custom Types</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <select
+                    value={slotStatusFilter}
+                    onChange={(e) => setSlotStatusFilter(e.target.value as 'all' | 'available' | 'booked')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-golden focus:border-golden"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="available">Available</option>
+                    <option value="booked">Booked</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
+                  <input
+                    type="month"
+                    value={slotMonthFilter}
+                    onChange={(e) => setSlotMonthFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-golden focus:border-golden"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                  <input
+                    type="date"
+                    value={slotStartDateFilter}
+                    onChange={(e) => setSlotStartDateFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-golden focus:border-golden"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                  <input
+                    type="date"
+                    value={slotEndDateFilter}
+                    onChange={(e) => setSlotEndDateFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-golden focus:border-golden"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                  <input
+                    type="date"
+                    value={slotDateFilter}
+                    onChange={(e) => setSlotDateFilter(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-golden focus:border-golden"
+                  />
+                </div>
+                <div>
+                  <button
+                    onClick={() => {
+                      setSlotTypeFilter('all')
+                      setSlotStatusFilter('all')
+                      setSlotMonthFilter('')
+                      setSlotStartDateFilter('')
+                      setSlotEndDateFilter('')
+                      setSlotDateFilter('')
+                    }}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-100"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              </div>
+              <p className="mt-3 text-sm text-gray-600">
+                Showing {filteredAdminSlots.length} of {slots.length} slots.
+              </p>
+            </div>
 
             {showAddSlot && (
               <form onSubmit={handleCreateSlot} className="bg-white rounded-lg shadow-md p-6 mb-8">
@@ -1272,14 +1524,17 @@ ${blogContent}
             )}
 
             {/* Slots List */}
+            {filteredAdminSlots.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-500">No slots match the current filters.</div>
+            ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {slots.map((slot) => (
+              {filteredAdminSlots.map((slot) => (
                 <div key={slot.id} className="bg-white rounded-lg shadow-md p-4">
                   <div className="flex justify-between items-start mb-2">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      slot.type === 'tour' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                      slot.type === 'tour' ? 'bg-blue-100 text-blue-800' : slot.type === 'training' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                     }`}>
-                      {slot.type === 'tour' ? 'Discovery Flight' : 'Training'}
+                      {slot.type === 'tour' ? 'Discovery Flight' : slot.type === 'training' ? 'Training' : slot.type}
                     </span>
                     <span className={`px-2 py-1 rounded text-xs font-semibold ${
                       slot.is_booked ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
@@ -1307,6 +1562,7 @@ ${blogContent}
                 </div>
               ))}
             </div>
+            )}
 
             <div className="mt-10">
               <h3 className="text-2xl font-bold text-darkText mb-3">Requested Discovery Flight Slots</h3>
