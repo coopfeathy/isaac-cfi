@@ -110,7 +110,7 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to generate slots')
       setGenerateSlotsResult(data.message)
-      fetchSlots()
+      await fetchData()
     } catch (err) {
       setGenerateSlotsResult(err instanceof Error ? err.message : 'Unknown error')
     } finally {
