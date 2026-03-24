@@ -663,91 +663,91 @@ function SchedulePageContent() {
                 Share your preferred timing and our team can approve or suggest an alternative.
               </p>
 
-              <form onSubmit={handleSubmitRequest} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+              <form onSubmit={handleSubmitRequest} className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-x-hidden">
+                <div className="min-w-0">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                   <input
                     type="text"
                     required
                     value={requestForm.fullName}
                     onChange={(e) => setRequestForm((prev) => ({ ...prev, fullName: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                    className="w-full min-w-0 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
                   />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                   <input
                     type="email"
                     required
                     value={requestForm.email}
                     onChange={(e) => setRequestForm((prev) => ({ ...prev, email: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                    className="w-full min-w-0 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
                   />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                   <input
                     type="tel"
                     required
                     value={requestForm.phone}
                     onChange={(e) => setRequestForm((prev) => ({ ...prev, phone: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                    className="w-full min-w-0 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
                   />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
                   <input
                     type="date"
                     required
                     value={requestForm.preferredDate}
                     onChange={(e) => setRequestForm((prev) => ({ ...prev, preferredDate: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                    className="w-full min-w-0 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
                   />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Start Time</label>
                   <input
                     type="time"
                     required
                     value={requestForm.preferredStartTime}
                     onChange={(e) => setRequestForm((prev) => ({ ...prev, preferredStartTime: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                    className="w-full min-w-0 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
                   />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
                   <select
                     value={requestForm.durationMinutes}
                     onChange={(e) => setRequestForm((prev) => ({ ...prev, durationMinutes: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                    className="w-full min-w-0 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
                   >
                     <option value="60">60 minutes</option>
                     <option value="90">90 minutes</option>
                     <option value="120">120 minutes</option>
                   </select>
                 </div>
-                <div className="sm:col-span-2">
+                <div className="md:col-span-2 min-w-0">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
                   <textarea
                     rows={3}
                     value={requestForm.notes}
                     onChange={(e) => setRequestForm((prev) => ({ ...prev, notes: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                    className="w-full min-w-0 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
                     placeholder="Tell us ideal times, occasion, or any constraints."
                   />
                 </div>
-                <div className="sm:col-span-2 flex items-center justify-between gap-3">
+                <div className="md:col-span-2 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
                   <button
                     type="submit"
                     disabled={requestSubmitting}
-                    className="px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {requestSubmitting ? 'Submitting...' : 'Submit Request'}
                   </button>
                   <button
                     type="button"
                     onClick={closeRequestModal}
-                    className="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-100"
+                    className="w-full sm:w-auto px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-100"
                   >
                     Cancel
                   </button>
