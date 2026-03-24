@@ -10,6 +10,10 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Scheduled functions (cron jobs)
+# booking-monitor       → every 5 minutes  (catches stale pending bookings)
+# generate-discovery-slots → daily at 07:00 UTC (auto-fills discovery flight slots)
+
 # Enable CDN and caching headers
 [[headers]]
   for = "/*"
