@@ -280,11 +280,12 @@ function SchedulePageContent() {
 
   useEffect(() => {
     if (availableDateKeys.length === 0) {
-      setSelectedDateKey(null)
       return
     }
 
-    if (!selectedDateKey || !slotsByDate[selectedDateKey]) {
+    // Only auto-pick an available date when nothing is selected yet.
+    // Keep the user's manual selection even if that day has no slots.
+    if (!selectedDateKey) {
       setSelectedDateKey(availableDateKeys[0])
     }
   }, [filter, selectedDateKey, availableDateKeys.length])
@@ -469,13 +470,7 @@ function SchedulePageContent() {
             </div>
           </div>
 
-          {filteredSlots.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-md p-10 text-center">
-              <h3 className="text-2xl font-bold text-darkText mb-2">No slots available right now</h3>
-              <p className="text-gray-600">Please check back soon for newly published availability.</p>
-            </div>
-          ) : (
-            <div className="grid lg:grid-cols-[380px_minmax(0,1fr)] gap-6 items-start">
+          <div className="grid lg:grid-cols-[380px_minmax(0,1fr)] gap-6 items-start">
               <div className="bg-white rounded-xl shadow-md p-5 sm:p-6 border border-gray-100">
                 <div className="flex items-center justify-between mb-4">
                   <button
@@ -588,6 +583,12 @@ function SchedulePageContent() {
                   </div>
                 )}
               </div>
+            </div>
+
+          {filteredSlots.length === 0 && (
+            <div className="bg-white rounded-xl shadow-md p-8 mt-6 text-center">
+              <h3 className="text-2xl font-bold text-darkText mb-2">No slots available right now</h3>
+              <p className="text-gray-600">Try another date, change filters, or request a custom time below.</p>
             </div>
           )}
 
