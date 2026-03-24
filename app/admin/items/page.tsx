@@ -47,6 +47,7 @@ export default function AdminItemsPage() {
   const [loading, setLoading] = useState(true)
   const [statusMessage, setStatusMessage] = useState("")
   const [creating, setCreating] = useState(false)
+  const [syncing, setSyncing] = useState(false)
   const [savingId, setSavingId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showInactive, setShowInactive] = useState(false)
@@ -85,6 +86,47 @@ export default function AdminItemsPage() {
       setStatusMessage(error instanceof Error ? error.message : "Unable to load items")
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleSyncFromStripe() {
+    setSyncing(true)
+    setStatusMessage("")
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error("Missing admin session")
+      }
+
+      const response = await fetch("/api/admin/billing/sync-products", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.error || "Unable to sync Stripe products")
+      }
+
+      await loadItems()
+
+      const skipPreview = Array.isArray(result.skippedProducts) && result.skippedProducts.length > 0
+        ? ` Skipped: ${result.skippedProducts.slice(0, 3).join(", ")}${result.skippedProducts.length > 3 ? "..." : ""}`
+        : ""
+
+      setStatusMessage(
+        `Stripe sync complete. Created ${result.created || 0}, updated ${result.updated || 0}, skipped ${result.skipped || 0}.${skipPreview}`
+      )
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to sync Stripe products")
+    } finally {
+      setSyncing(false)
     }
   }
 
@@ -257,13 +299,23 @@ export default function AdminItemsPage() {
       description="Manage billing products used by admin checkout and student defaults."
       maxWidthClassName="max-w-6xl"
       actions={
-        <button
-          type="button"
-          onClick={() => void loadItems()}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void handleSyncFromStripe()}
+            disabled={syncing}
+            className="rounded-lg bg-golden px-4 py-2 text-sm font-semibold text-darkText disabled:opacity-60"
+          >
+            {syncing ? "Syncing..." : "Sync from Stripe"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void loadItems()}
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+          >
+            Refresh
+          </button>
+        </div>
       }
     >
       {statusMessage ? (
