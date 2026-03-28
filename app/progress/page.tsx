@@ -59,6 +59,21 @@ const STATUS_COLORS: Record<string, string> = {
   practiced: "#C59A2A",
   proficient: "#10B981",
   needs_work: "#EF4444",
+
+const getGradeLabel = (rating: number): { arrows: string; label: string; color: string } => {
+  switch (rating) {
+    case 4:
+      return { arrows: "⬆️⬆️", label: "Above Average", color: "#10B981" }
+    case 3:
+      return { arrows: "⬆️", label: "Slightly Above Average", color: "#3B82F6" }
+    case 2:
+      return { arrows: "⬇️", label: "Slightly Below Average", color: "#F59E0B" }
+    case 1:
+      return { arrows: "⬇️⬇️", label: "Below Average", color: "#EF4444" }
+    default:
+      return { arrows: "—", label: "Not Rated", color: "#6B7280" }
+  }
+}
 }
 
 export default function ProgressPage() {
@@ -282,7 +297,7 @@ export default function ProgressPage() {
             {evaluations.map((entry) => (
               <article key={entry.id} style={{ border: "1px solid #F3F4F6", borderRadius: "10px", padding: "12px" }}>
                 <p style={{ marginTop: 0, marginBottom: "8px", fontSize: "13px", color: "#6B7280" }}>
-                  {new Date(entry.created_at).toLocaleString()} • Rating {entry.performance_rating}/5
+                  {new Date(entry.created_at).toLocaleString()} • {getGradeLabel(entry.performance_rating).arrows} {getGradeLabel(entry.performance_rating).label}
                   {entry.lesson_id && lessonLookup[entry.lesson_id] ? ` • ${lessonLookup[entry.lesson_id]}` : ""}
                 </p>
                 {entry.strengths && <p style={{ margin: "0 0 6px 0" }}><strong>Strengths:</strong> {entry.strengths}</p>}

@@ -671,17 +671,34 @@ export default function AdminProgressPage() {
               ))}
             </select>
 
-            <label style={{ display: "grid", gap: "6px", fontSize: "14px" }}>
-              Overall performance rating (1-5)
-              <input
-                type="number"
-                min={1}
-                max={5}
-                value={performanceRating}
-                onChange={(e) => setPerformanceRating(Number(e.target.value))}
-                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", width: "120px" }}
-              />
-            </label>
+            <div style={{ display: "grid", gap: "10px", fontSize: "14px" }}>
+              <label style={{ fontWeight: 600 }}>Event Performance Grade</label>
+              <div style={{ display: "grid", gap: "10px" }}>
+                {[
+                  { value: 4, label: "Above Average", arrows: "⬆️⬆️", description: "Consistently meeting or exceeding standards" },
+                  { value: 3, label: "Slightly Above Average", arrows: "⬆️", description: "Meeting most expectations" },
+                  { value: 2, label: "Slightly Below Average", arrows: "⬇️", description: "Uncertain if they will meet standards" },
+                  { value: 1, label: "Below Average", arrows: "⬇️⬇️", description: "Unlikely to meet standards" },
+                ].map((grade) => (
+                  <label key={grade.value} style={{ display: "flex", alignItems: "flex-start", gap: "10px", cursor: "pointer", padding: "10px", borderRadius: "8px", border: performanceRating === grade.value ? "2px solid #C59A2A" : "1px solid #E5E7EB", background: performanceRating === grade.value ? "#FFFBEB" : "#F9FAFB" }}>
+                    <input
+                      type="radio"
+                      name="performance-grade"
+                      value={grade.value}
+                      checked={performanceRating === grade.value}
+                      onChange={(e) => setPerformanceRating(Number(e.target.value))}
+                      style={{ marginTop: "4px" }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, marginBottom: "2px" }}>
+                        {grade.arrows} {grade.label}
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#6B7280" }}>{grade.description}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
 
             {syllabusItems.map((item) => (
               <div

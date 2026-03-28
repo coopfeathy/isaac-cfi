@@ -120,6 +120,21 @@ const ratingTone = (rating: number) => {
   if (rating >= 4.5) return 'text-emerald-600'
   if (rating >= 3) return 'text-amber-600'
   return 'text-rose-600'
+
+const getGradeInfo = (rating: number): { arrows: string; label: string; color: string } => {
+  switch (Math.round(rating)) {
+    case 4:
+      return { arrows: "⬆️⬆️", label: "Above Average", color: "#10B981" }
+    case 3:
+      return { arrows: "⬆️", label: "Slightly Above Average", color: "#3B82F6" }
+    case 2:
+      return { arrows: "⬇️", label: "Slightly Below Average", color: "#F59E0B" }
+    case 1:
+      return { arrows: "⬇️⬇️", label: "Below Average", color: "#EF4444" }
+    default:
+      return { arrows: "—", label: "Not Rated", color: "#6B7280" }
+  }
+}
 }
 
 const progressBarTone = (value: number) => {
@@ -776,7 +791,9 @@ export default function AdminStudentsPage() {
                             <p className="mt-1 text-sm text-slate-500">{formatDateTime(evaluation.createdAt)}</p>
                           </div>
                           <div className="text-right">
-                            <p className={`text-lg font-bold ${ratingTone(evaluation.performanceRating)}`}>{evaluation.performanceRating}/5</p>
+                            <p style={{ fontSize: "14px", fontWeight: 700, color: getGradeInfo(evaluation.performanceRating).color, marginBottom: "4px" }}>
+                              {getGradeInfo(evaluation.performanceRating).arrows} {getGradeInfo(evaluation.performanceRating).label}
+                            </p>
                             <p className="text-xs text-slate-500">{evaluation.emailSentAt ? 'Emailed to student' : 'Saved only'}</p>
                           </div>
                         </div>

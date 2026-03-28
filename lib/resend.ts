@@ -6,6 +6,22 @@ if (!process.env.RESEND_API_KEY) {
 
 export const resend = new Resend(process.env.RESEND_API_KEY)
 
+// Helper function to map performance ratings to grade labels
+const getPerformanceGrade = (rating: number): { arrows: string; label: string } => {
+  switch (Math.round(rating)) {
+    case 4:
+      return { arrows: "⬆️⬆️", label: "Above Average" }
+    case 3:
+      return { arrows: "⬆️", label: "Slightly Above Average" }
+    case 2:
+      return { arrows: "⬇️", label: "Slightly Below Average" }
+    case 1:
+      return { arrows: "⬇️⬇️", label: "Below Average" }
+    default:
+      return { arrows: "—", label: "Not Rated" }
+  }
+}
+
 // Email templates
 export const emailTemplates = {
   // Welcome email for new students
@@ -82,7 +98,7 @@ export const emailTemplates = {
         <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 20px 0;">
           <p style="margin: 0 0 8px 0;"><strong>Course:</strong> ${payload.courseTitle}</p>
           ${payload.lessonTitle ? `<p style="margin: 0 0 8px 0;"><strong>Lesson:</strong> ${payload.lessonTitle}</p>` : ""}
-          <p style="margin: 0;"><strong>Performance Rating:</strong> ${payload.performanceRating}/5</p>
+          <p style="margin: 0;"><strong>Performance Grade:</strong> ${getPerformanceGrade(payload.performanceRating).arrows} ${getPerformanceGrade(payload.performanceRating).label}</p>
         </div>
 
         ${payload.strengths ? `<h3 style="margin-bottom: 6px;">What Went Well</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.strengths}</p>` : ""}
