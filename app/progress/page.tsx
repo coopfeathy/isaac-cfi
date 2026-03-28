@@ -59,6 +59,7 @@ const STATUS_COLORS: Record<string, string> = {
   practiced: "#C59A2A",
   proficient: "#10B981",
   needs_work: "#EF4444",
+}
 
 const getGradeLabel = (rating: number): { arrows: string; label: string; color: string } => {
   switch (rating) {
@@ -73,7 +74,6 @@ const getGradeLabel = (rating: number): { arrows: string; label: string; color: 
     default:
       return { arrows: "—", label: "Not Rated", color: "#6B7280" }
   }
-}
 }
 
 export default function ProgressPage() {

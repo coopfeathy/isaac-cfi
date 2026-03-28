@@ -120,6 +120,7 @@ const ratingTone = (rating: number) => {
   if (rating >= 4.5) return 'text-emerald-600'
   if (rating >= 3) return 'text-amber-600'
   return 'text-rose-600'
+}
 
 const getGradeInfo = (rating: number): { arrows: string; label: string; color: string } => {
   switch (Math.round(rating)) {
@@ -134,7 +135,6 @@ const getGradeInfo = (rating: number): { arrows: string; label: string; color: s
     default:
       return { arrows: "—", label: "Not Rated", color: "#6B7280" }
   }
-}
 }
 
 const progressBarTone = (value: number) => {
