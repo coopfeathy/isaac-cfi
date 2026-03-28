@@ -1378,6 +1378,7 @@ ${blogContent}
             {activeTab === 'email' && `Send campaigns and review inbound requests. Open support tickets: ${supportTickets.filter((ticket) => ticket.status === 'open').length}.`}
             {activeTab === 'settings' && `Customize platform settings and course names. Active courses: ${courses.length}.`}
           </p>
+        </div>
 
         {/* Slots Tab */}
         {activeTab === 'slots' && (
