@@ -65,15 +65,6 @@ export default function AdminProgressPage() {
 
   const [syllabusItems, setSyllabusItems] = useState<SyllabusItem[]>([])
   const [itemDrafts, setItemDrafts] = useState<Record<string, ItemDraft>>({})
-
-  const [newItemTitle, setNewItemTitle] = useState("")
-  const [newItemDescription, setNewItemDescription] = useState("")
-  const [newItemStage, setNewItemStage] = useState("")
-  const [newItemOrder, setNewItemOrder] = useState(0)
-  const [editingItemId, setEditingItemId] = useState<string | null>(null)
-  const [editingItemTitle, setEditingItemTitle] = useState("")
-  const [editingItemDescription, setEditingItemDescription] = useState("")
-  const [editingItemStage, setEditingItemStage] = useState("")
   const [focusedSyllabusItemId, setFocusedSyllabusItemId] = useState("")
 
   const [selectedLessonId, setSelectedLessonId] = useState("")
@@ -85,8 +76,6 @@ export default function AdminProgressPage() {
   const [sendEmail, setSendEmail] = useState(true)
 
   const [loading, setLoading] = useState(true)
-  const [savingItem, setSavingItem] = useState(false)
-  const [savingItemUpdate, setSavingItemUpdate] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [statusMessage, setStatusMessage] = useState("")
 
@@ -145,7 +134,6 @@ export default function AdminProgressPage() {
 
       const items = (itemsResult.data as SyllabusItem[] | null) || []
       setSyllabusItems(items)
-      setNewItemOrder(items.length + 1)
       setFocusedSyllabusItemId((current) => (current && items.some((item) => item.id === current) ? current : items[0]?.id || ""))
 
       const lessonRows = (lessonsResult.data as any[] | null) || []
@@ -165,32 +153,22 @@ export default function AdminProgressPage() {
         return
       }
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+      // Fetch students from students table instead of auth users for better name reliability
+      const { data: studentsData, error: studentsError } = await supabase
+        .from("students")
+        .select("id, email, full_name")
+        .in("id", studentIds)
+        .order("full_name", { ascending: true })
 
-      if (!session?.access_token) {
-        setStatusMessage("Unable to load students. Please refresh and sign in again.")
-        return
-      }
-
-      const usersResponse = await fetch("/api/admin/users", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
-
-      if (!usersResponse.ok) {
+      if (studentsError) {
         setStatusMessage("Unable to load enrolled students")
         return
       }
 
-      const usersJson = await usersResponse.json()
-      const users: StudentOption[] = (usersJson.users || []).filter((u: StudentOption) => studentIds.includes(u.id))
-
-      setStudents(users)
-      if (!users.find((u) => u.id === selectedStudentId)) {
-        setSelectedStudentId(users[0]?.id || "")
+      const students_list: StudentOption[] = studentsData || []
+      setStudents(students_list)
+      if (!students_list.find((u) => u.id === selectedStudentId)) {
+        setSelectedStudentId(students_list[0]?.id || "")
       }
     }
 
@@ -239,63 +217,6 @@ export default function AdminProgressPage() {
     fetchProgress()
   }, [selectedStudentId, syllabusItems])
 
-  const handleUpdateItem = async (itemId: string) => {
-    if (!editingItemTitle.trim()) return
-
-    setSavingItemUpdate(true)
-    setStatusMessage("")
-
-    const { error } = await supabase
-      .from("syllabus_items")
-      .update({
-        title: editingItemTitle.trim(),
-        description: editingItemDescription.trim() || null,
-        stage: editingItemStage.trim() || null,
-      })
-      .eq("id", itemId)
-
-    if (error) {
-      setStatusMessage(`Failed to update syllabus item: ${error.message}`)
-    } else {
-      setSyllabusItems((previous) =>
-        previous.map((item) =>
-          item.id === itemId
-            ? {
-                ...item,
-                title: editingItemTitle.trim(),
-                description: editingItemDescription.trim() || null,
-                stage: editingItemStage.trim() || null,
-              }
-            : item
-        )
-      )
-      setEditingItemId(null)
-      setStatusMessage("Syllabus item updated")
-    }
-
-    setSavingItemUpdate(false)
-  }
-
-  const handleDeleteItem = async (itemId: string) => {
-    if (!confirm("Delete this syllabus item?")) return
-
-    const { error } = await supabase.from("syllabus_items").delete().eq("id", itemId)
-    if (error) {
-      setStatusMessage(`Failed to delete syllabus item: ${error.message}`)
-      return
-    }
-
-    const nextItems = syllabusItems.filter((item) => item.id !== itemId)
-    setSyllabusItems(nextItems)
-    setItemDrafts((previous) => {
-      const nextDrafts = { ...previous }
-      delete nextDrafts[itemId]
-      return nextDrafts
-    })
-    setFocusedSyllabusItemId((current) => (current === itemId ? nextItems[0]?.id || "" : current))
-    setStatusMessage("Syllabus item deleted")
-  }
-
   const handleMarkFocusedComplete = () => {
     if (!focusedSyllabusItemId) return
 
@@ -329,47 +250,6 @@ export default function AdminProgressPage() {
     () => students.find((student) => student.id === selectedStudentId) || null,
     [students, selectedStudentId]
   )
-
-  const handleCreateItem = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedCourse || !newItemTitle.trim()) return
-
-    setSavingItem(true)
-    setStatusMessage("")
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    const { error } = await supabase.from("syllabus_items").insert([
-      {
-        course_id: selectedCourse,
-        title: newItemTitle.trim(),
-        description: newItemDescription.trim() || null,
-        stage: newItemStage.trim() || null,
-        order_index: newItemOrder,
-        created_by: user?.id,
-      },
-    ])
-
-    if (error) {
-      setStatusMessage(`Failed to create syllabus item: ${error.message}`)
-    } else {
-      setStatusMessage("Syllabus item created")
-      setNewItemTitle("")
-      setNewItemDescription("")
-      setNewItemStage("")
-      setNewItemOrder((prev) => prev + 1)
-      const { data } = await supabase
-        .from("syllabus_items")
-        .select("id, title, description, stage, order_index")
-        .eq("course_id", selectedCourse)
-        .order("order_index", { ascending: true })
-      setSyllabusItems((data as SyllabusItem[] | null) || [])
-    }
-
-    setSavingItem(false)
-  }
 
   const handleSubmitEvaluation = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -463,8 +343,8 @@ export default function AdminProgressPage() {
 
   return (
     <AdminPageShell
-      title="Syllabus Progress & Lesson Debriefs"
-      description="Build custom syllabus checklists, capture lesson evaluations, and optionally email students after each debrief."
+      title="Lesson Evaluations & Student Debriefs"
+      description="Capture lesson evaluations, track syllabus progress, and send students feedback on their training flights."
       maxWidthClassName="max-w-6xl"
     >
 
@@ -498,136 +378,7 @@ export default function AdminProgressPage() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
         <section style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "20px" }}>
-          <h2 style={{ marginTop: 0 }}>1) Syllabus Builder</h2>
-          <form onSubmit={handleCreateItem} style={{ display: "grid", gap: "10px", marginBottom: "20px" }}>
-            <input
-              value={newItemTitle}
-              onChange={(e) => setNewItemTitle(e.target.value)}
-              placeholder="Item title (e.g. Slow Flight)"
-              required
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
-            />
-            <input
-              value={newItemStage}
-              onChange={(e) => setNewItemStage(e.target.value)}
-              placeholder="Stage (e.g. Pre-solo)"
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
-            />
-            <textarea
-              value={newItemDescription}
-              onChange={(e) => setNewItemDescription(e.target.value)}
-              placeholder="Description (optional)"
-              rows={2}
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
-            />
-            <input
-              value={newItemOrder}
-              onChange={(e) => setNewItemOrder(Number(e.target.value))}
-              type="number"
-              min={0}
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", width: "140px" }}
-            />
-            <button
-              type="submit"
-              disabled={savingItem || !selectedCourse}
-              style={{
-                background: "#C59A2A",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                padding: "10px 16px",
-                fontWeight: 600,
-                cursor: "pointer",
-                width: "fit-content",
-                opacity: savingItem || !selectedCourse ? 0.7 : 1,
-              }}
-            >
-              {savingItem ? "Saving..." : "Add Syllabus Item"}
-            </button>
-          </form>
-
-          {syllabusItems.length === 0 ? (
-            <p style={{ color: "#6B7280" }}>No syllabus items for this course yet.</p>
-          ) : (
-            <div style={{ display: "grid", gap: "8px" }}>
-              {syllabusItems.map((item) => (
-                <div key={item.id} style={{ border: "1px solid #E5E7EB", borderRadius: "8px", padding: "10px" }}>
-                  {editingItemId === item.id ? (
-                    <div style={{ display: "grid", gap: "8px" }}>
-                      <input
-                        value={editingItemTitle}
-                        onChange={(e) => setEditingItemTitle(e.target.value)}
-                        style={{ padding: "8px", borderRadius: "6px", border: "1px solid #D1D5DB" }}
-                      />
-                      <input
-                        value={editingItemStage}
-                        onChange={(e) => setEditingItemStage(e.target.value)}
-                        placeholder="Stage"
-                        style={{ padding: "8px", borderRadius: "6px", border: "1px solid #D1D5DB" }}
-                      />
-                      <textarea
-                        value={editingItemDescription}
-                        onChange={(e) => setEditingItemDescription(e.target.value)}
-                        rows={2}
-                        style={{ padding: "8px", borderRadius: "6px", border: "1px solid #D1D5DB" }}
-                      />
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        <button
-                          type="button"
-                          disabled={savingItemUpdate}
-                          onClick={() => void handleUpdateItem(item.id)}
-                          style={{ background: "#10B981", color: "white", border: "none", borderRadius: "6px", padding: "8px 10px", cursor: "pointer", fontWeight: 600 }}
-                        >
-                          {savingItemUpdate ? "Saving..." : "Save"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingItemId(null)}
-                          style={{ background: "#6B7280", color: "white", border: "none", borderRadius: "6px", padding: "8px 10px", cursor: "pointer", fontWeight: 600 }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
-                        <p style={{ margin: 0, fontWeight: 600 }}>
-                          {item.order_index}. {item.title}
-                        </p>
-                        <div style={{ display: "flex", gap: "8px" }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingItemId(item.id)
-                              setEditingItemTitle(item.title)
-                              setEditingItemDescription(item.description || "")
-                              setEditingItemStage(item.stage || "")
-                            }}
-                            style={{ background: "#3B82F6", color: "white", border: "none", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", fontSize: "12px", fontWeight: 600 }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleDeleteItem(item.id)}
-                            style={{ background: "#EF4444", color: "white", border: "none", borderRadius: "6px", padding: "6px 10px", cursor: "pointer", fontSize: "12px", fontWeight: 600 }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                      {item.stage && <p style={{ margin: "6px 0 0 0", fontSize: "13px", color: "#6B7280" }}>Stage: {item.stage}</p>}
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "20px" }}>
-          <h2 style={{ marginTop: 0 }}>2) Lesson Evaluation</h2>
+          <h2 style={{ marginTop: 0 }}>Lesson Evaluation</h2>
           <p style={{ marginTop: 0, color: "#6B7280", fontSize: "14px" }}>
             Student: {selectedStudent ? selectedStudent.full_name || selectedStudent.email : "Select a student"}
           </p>
