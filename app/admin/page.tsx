@@ -1377,7 +1377,7 @@ ${blogContent}
             {activeTab === 'social' && `Manage linked social video posts. Current posts: ${socialPosts.length}.`}
             {activeTab === 'email' && `Send campaigns and review inbound requests. Open support tickets: ${supportTickets.filter((ticket) => ticket.status === 'open').length}.`}
             {activeTab === 'settings' && `Customize platform settings and course names. Active courses: ${courses.length}.`}
-        </div>
+          </p>
 
         {/* Slots Tab */}
         {activeTab === 'slots' && (
