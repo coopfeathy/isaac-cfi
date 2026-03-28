@@ -89,6 +89,20 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
   const [prospectView, setProspectView] = useState<'list' | 'cards'>('cards')
   const [expandedProspectId, setExpandedProspectId] = useState<string | null>(null)
   const [deletingProspectId, setDeletingProspectId] = useState<string | null>(null)
+  const [creatingProspect, setCreatingProspect] = useState(false)
+  const [creatingAndConvertingProspect, setCreatingAndConvertingProspect] = useState(false)
+  const [prospectFormMessage, setProspectFormMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [prospectForm, setProspectForm] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    interestLevel: 'warm' as 'hot' | 'warm' | 'cold',
+    status: 'active' as 'active' | 'inactive' | 'lost',
+    source: 'admin_dashboard',
+    nextFollowUp: '',
+    followUpFrequency: '7',
+    notes: '',
+  })
   const [healthSnapshot, setHealthSnapshot] = useState<AdminHealthSnapshot | null>(null)
   const [healthLoading, setHealthLoading] = useState(false)
   const [slotRequests, setSlotRequests] = useState<SlotRequest[]>([])
@@ -365,6 +379,138 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
       }
     } catch (error) {
       console.error('Error fetching prospects:', error)
+    }
+  }
+
+  const convertProspectWithoutPrompt = async (prospectId: string) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session?.access_token) throw new Error('Missing admin session')
+
+    const response = await fetch('/api/admin/prospects/convert', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ prospectId }),
+    })
+
+    const result = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to convert prospect')
+    }
+  }
+
+  const createProspectRecord = async () => {
+    if (!prospectForm.fullName.trim()) {
+      throw new Error('Full name is required.')
+    }
+
+    const nextEmail = prospectForm.email.trim().toLowerCase()
+    if (nextEmail) {
+      const duplicate = prospects.find(
+        (prospect) => String(prospect.email || '').trim().toLowerCase() === nextEmail
+      )
+
+      if (duplicate) {
+        const shouldContinue = confirm(
+          `A prospect with this email already exists (${nextEmail}). Create another anyway?`
+        )
+        if (!shouldContinue) {
+          throw new Error('Creation canceled to avoid duplicate email.')
+        }
+      }
+    }
+
+    const followUpFrequency = Number.parseInt(prospectForm.followUpFrequency, 10)
+
+    const { data, error } = await supabase
+      .from('prospects')
+      .insert([
+        {
+          full_name: prospectForm.fullName.trim(),
+          email: nextEmail || null,
+          phone: prospectForm.phone.trim() || null,
+          interest_level: prospectForm.interestLevel,
+          status: prospectForm.status,
+          source: prospectForm.source.trim() || 'admin_dashboard',
+          next_follow_up: prospectForm.nextFollowUp || null,
+          follow_up_frequency: Number.isFinite(followUpFrequency) && followUpFrequency > 0 ? followUpFrequency : 7,
+          notes: prospectForm.notes.trim() || null,
+          created_by: user?.id || null,
+        },
+      ])
+      .select('id')
+      .single()
+
+    if (error) throw error
+
+    return data?.id as string
+  }
+
+  const handleCreateProspect = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    setCreatingProspect(true)
+    setProspectFormMessage(null)
+
+    try {
+      const createdProspectId = await createProspectRecord()
+
+      setProspectForm({
+        fullName: '',
+        email: '',
+        phone: '',
+        interestLevel: 'warm',
+        status: 'active',
+        source: 'admin_dashboard',
+        nextFollowUp: '',
+        followUpFrequency: '7',
+        notes: '',
+      })
+      setProspectFormMessage({ type: 'success', text: 'Prospect created successfully.' })
+      setProspectSource('all')
+      setExpandedProspectId(createdProspectId)
+      await fetchProspects()
+    } catch (error) {
+      console.error('Error creating prospect:', error)
+      setProspectFormMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to create prospect.' })
+    } finally {
+      setCreatingProspect(false)
+    }
+  }
+
+  const handleCreateAndConvertProspect = async () => {
+    setCreatingAndConvertingProspect(true)
+    setProspectFormMessage(null)
+
+    try {
+      const createdProspectId = await createProspectRecord()
+      await convertProspectWithoutPrompt(createdProspectId)
+
+      setProspectForm({
+        fullName: '',
+        email: '',
+        phone: '',
+        interestLevel: 'warm',
+        status: 'active',
+        source: 'admin_dashboard',
+        nextFollowUp: '',
+        followUpFrequency: '7',
+        notes: '',
+      })
+      setProspectFormMessage({ type: 'success', text: 'Prospect created and converted to student.' })
+      setProspectSource('all')
+      setExpandedProspectId(createdProspectId)
+      await fetchProspects()
+    } catch (error) {
+      console.error('Error creating/converting prospect:', error)
+      setProspectFormMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to create and convert prospect.' })
+    } finally {
+      setCreatingAndConvertingProspect(false)
     }
   }
 
@@ -1816,6 +1962,132 @@ ${blogContent}
         {/* Prospects Tab */}
         {activeTab === 'prospects' && (
           <div>
+            <div className="mb-6 bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-xl font-bold text-darkText mb-4">Create Prospect</h3>
+
+              {prospectFormMessage && (
+                <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${
+                  prospectFormMessage.type === 'success'
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {prospectFormMessage.text}
+                </div>
+              )}
+
+              <form onSubmit={handleCreateProspect} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                  <input
+                    type="text"
+                    value={prospectForm.fullName}
+                    onChange={(e) => setProspectForm((prev) => ({ ...prev, fullName: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={prospectForm.email}
+                    onChange={(e) => setProspectForm((prev) => ({ ...prev, email: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                  <input
+                    type="text"
+                    value={prospectForm.phone}
+                    onChange={(e) => setProspectForm((prev) => ({ ...prev, phone: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Source</label>
+                  <input
+                    type="text"
+                    value={prospectForm.source}
+                    onChange={(e) => setProspectForm((prev) => ({ ...prev, source: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                    placeholder="admin_dashboard"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Interest Level</label>
+                  <select
+                    value={prospectForm.interestLevel}
+                    onChange={(e) => setProspectForm((prev) => ({ ...prev, interestLevel: e.target.value as 'hot' | 'warm' | 'cold' }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  >
+                    <option value="hot">Hot</option>
+                    <option value="warm">Warm</option>
+                    <option value="cold">Cold</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <select
+                    value={prospectForm.status}
+                    onChange={(e) => setProspectForm((prev) => ({ ...prev, status: e.target.value as 'active' | 'inactive' | 'lost' }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="lost">Lost</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Next Follow-up</label>
+                  <input
+                    type="date"
+                    value={prospectForm.nextFollowUp}
+                    onChange={(e) => setProspectForm((prev) => ({ ...prev, nextFollowUp: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Follow-up Frequency (days)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={prospectForm.followUpFrequency}
+                    onChange={(e) => setProspectForm((prev) => ({ ...prev, followUpFrequency: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                  <textarea
+                    rows={4}
+                    value={prospectForm.notes}
+                    onChange={(e) => setProspectForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-golden focus:border-transparent"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="submit"
+                      disabled={creatingProspect || creatingAndConvertingProspect}
+                      className="px-6 py-2 bg-golden text-darkText font-bold rounded-lg hover:bg-opacity-90 disabled:opacity-60"
+                    >
+                      {creatingProspect ? 'Creating...' : 'Create Prospect'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleCreateAndConvertProspect()}
+                      disabled={creatingProspect || creatingAndConvertingProspect}
+                      className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-60"
+                    >
+                      {creatingAndConvertingProspect ? 'Creating + Converting...' : 'Create + Convert to Student'}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
             <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Source</label>
