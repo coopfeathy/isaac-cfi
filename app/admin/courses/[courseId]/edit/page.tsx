@@ -43,6 +43,11 @@ export default function EditCoursePage() {
   const { isAdmin, loading: authLoading } = useAuth()
   const router = useRouter()
   const [course, setCourse] = useState<Course | null>(null)
+  const [editingTitle, setEditingTitle] = useState("")
+  const [editingDescription, setEditingDescription] = useState("")
+  const [editingCourseSettings, setEditingCourseSettings] = useState(false)
+  const [savingCourseSettings, setSavingCourseSettings] = useState(false)
+  const [settingsMessage, setSettingsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [units, setUnits] = useState<Unit[]>([])
   const [newUnitTitle, setNewUnitTitle] = useState("")
   const [editingUnitId, setEditingUnitId] = useState<string | null>(null)
@@ -75,6 +80,8 @@ export default function EditCoursePage() {
 
         if (courseError) throw courseError
         setCourse(courseData)
+        setEditingTitle(courseData.title)
+        setEditingDescription(courseData.description || "")
 
         const { data: unitsData, error: unitsError } = await supabase
           .from("units")
@@ -130,6 +137,32 @@ export default function EditCoursePage() {
 
     fetchCourse()
   }, [authLoading, courseId, isAdmin, router])
+
+  const handleSaveCourseSettings = async () => {
+    if (!editingTitle.trim()) {
+      setSettingsMessage({ type: 'error', text: 'Course name cannot be empty' })
+      return
+    }
+
+    setSavingCourseSettings(true)
+    try {
+      const { error } = await supabase
+        .from("courses")
+        .update({ title: editingTitle, description: editingDescription })
+        .eq("id", courseId)
+
+      if (error) throw error
+      setCourse({ ...course!, title: editingTitle, description: editingDescription })
+      setEditingCourseSettings(false)
+      setSettingsMessage({ type: 'success', text: 'Course settings updated successfully' })
+      setTimeout(() => setSettingsMessage(null), 3000)
+    } catch (error) {
+      console.error("Error updating course settings:", error)
+      setSettingsMessage({ type: 'error', text: 'Failed to update course settings' })
+    } finally {
+      setSavingCourseSettings(false)
+    }
+  }
 
   const handleAddUnit = async () => {
     if (!newUnitTitle.trim()) return
@@ -324,6 +357,114 @@ export default function EditCoursePage() {
     >
       {course && (
         <>
+          {/* Course Settings */}
+          <div style={{ backgroundColor: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: "8px", padding: "20px", marginBottom: "30px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+              <h2 style={{ marginBottom: 0 }}>Course Settings</h2>
+              <button
+                onClick={() => {
+                  if (editingCourseSettings) {
+                    setEditingTitle(course.title)
+                    setEditingDescription(course.description || "")
+                    setEditingCourseSettings(false)
+                  } else {
+                    setEditingCourseSettings(true)
+                  }
+                }}
+                style={{
+                  backgroundColor: editingCourseSettings ? "#6B7280" : "#3B82F6",
+                  color: "white",
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  border: "none",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                }}
+              >
+                {editingCourseSettings ? "Cancel" : "Edit"}
+              </button>
+            </div>
+
+            {settingsMessage && (
+              <div style={{
+                marginBottom: "15px",
+                padding: "12px",
+                borderRadius: "6px",
+                backgroundColor: settingsMessage.type === 'success' ? "#D1FAE5" : "#FEE2E2",
+                color: settingsMessage.type === 'success' ? "#065F46" : "#991B1B",
+              }}>
+                {settingsMessage.text}
+              </div>
+            )}
+
+            {editingCourseSettings ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+                <div>
+                  <label style={{ display: "block", marginBottom: "6px", fontWeight: "600", color: "#374151" }}>Course Name</label>
+                  <input
+                    type="text"
+                    value={editingTitle}
+                    onChange={(e) => setEditingTitle(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: "6px",
+                      border: "1px solid #D1D5DB",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", marginBottom: "6px", fontWeight: "600", color: "#374151" }}>Description</label>
+                  <textarea
+                    value={editingDescription}
+                    onChange={(e) => setEditingDescription(e.target.value)}
+                    rows={3}
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: "6px",
+                      border: "1px solid #D1D5DB",
+                      boxSizing: "border-box",
+                      fontFamily: "inherit",
+                    }}
+                  />
+                </div>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    onClick={handleSaveCourseSettings}
+                    disabled={savingCourseSettings}
+                    style={{
+                      backgroundColor: "#10B981",
+                      color: "white",
+                      padding: "10px 20px",
+                      borderRadius: "6px",
+                      border: "none",
+                      cursor: savingCourseSettings ? "not-allowed" : "pointer",
+                      fontWeight: "600",
+                      opacity: savingCourseSettings ? 0.6 : 1,
+                    }}
+                  >
+                    {savingCourseSettings ? "Saving..." : "Save Settings"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: "10px" }}>
+                <div>
+                  <p style={{ margin: "0 0 5px 0", fontSize: "12px", color: "#6B7280", fontWeight: "600", textTransform: "uppercase" }}>Name</p>
+                  <p style={{ margin: 0, fontSize: "16px", fontWeight: "600" }}>{course.title}</p>
+                </div>
+                {course.description && (
+                  <div>
+                    <p style={{ margin: "0 0 5px 0", fontSize: "12px", color: "#6B7280", fontWeight: "600", textTransform: "uppercase" }}>Description</p>
+                    <p style={{ margin: 0, fontSize: "14px", color: "#4B5563" }}>{course.description}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <div style={{ marginBottom: "50px" }}>
             <h2 style={{ marginBottom: "20px" }}>Units & Lessons</h2>
 
