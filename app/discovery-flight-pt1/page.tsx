@@ -4,6 +4,25 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
+const monthOptions = [
+  { value: '01', label: 'January' },
+  { value: '02', label: 'February' },
+  { value: '03', label: 'March' },
+  { value: '04', label: 'April' },
+  { value: '05', label: 'May' },
+  { value: '06', label: 'June' },
+  { value: '07', label: 'July' },
+  { value: '08', label: 'August' },
+  { value: '09', label: 'September' },
+  { value: '10', label: 'October' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'December' },
+]
+
+const dayOptions = Array.from({ length: 31 }, (_, index) => String(index + 1).padStart(2, '0'))
+const currentYear = new Date().getFullYear()
+const yearOptions = Array.from({ length: 100 }, (_, index) => String(currentYear - index))
+
 function DiscoveryFlightPt1Content() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -11,6 +30,9 @@ function DiscoveryFlightPt1Content() {
   
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [birthMonth, setBirthMonth] = useState('')
+  const [birthDay, setBirthDay] = useState('')
+  const [birthYear, setBirthYear] = useState('')
   const [formData, setFormData] = useState({
     isForSomeoneElse: false,
     citizenship: '',
@@ -35,6 +57,13 @@ function DiscoveryFlightPt1Content() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const composedDateOfBirth = birthYear && birthMonth && birthDay ? `${birthYear}-${birthMonth}-${birthDay}` : ''
+
+    if (!composedDateOfBirth) {
+      setError('Please select a complete date of birth.')
+      return
+    }
+
     setIsSubmitting(true)
     setError('')
 
@@ -44,7 +73,7 @@ function DiscoveryFlightPt1Content() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ...formData, email }),
+        body: JSON.stringify({ ...formData, dateOfBirth: composedDateOfBirth, email }),
       })
 
       if (!response.ok) {
@@ -189,16 +218,51 @@ function DiscoveryFlightPt1Content() {
                 <label htmlFor="dateOfBirth" className="block text-white font-semibold mb-3">
                   Date of Birth
                 </label>
-                <input
-                  type="date"
-                  id="dateOfBirth"
-                  name="dateOfBirth"
-                  value={formData.dateOfBirth}
-                  onChange={handleChange}
-                  required
-                  placeholder="MM/DD/YYYY"
-                  className="w-full px-4 py-3 rounded-lg bg-white/10 border border-golden/30 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-golden focus:border-transparent transition-all duration-300"
-                />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <select
+                    aria-label="Birth month"
+                    value={birthMonth}
+                    onChange={(e) => setBirthMonth(e.target.value)}
+                    required
+                    className="w-full min-h-[52px] px-4 py-3 rounded-lg bg-white/10 border border-golden/30 text-white text-base focus:outline-none focus:ring-2 focus:ring-golden focus:border-transparent transition-all duration-300"
+                  >
+                    <option value="">Month</option>
+                    {monthOptions.map((month) => (
+                      <option key={month.value} value={month.value}>
+                        {month.label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label="Birth day"
+                    value={birthDay}
+                    onChange={(e) => setBirthDay(e.target.value)}
+                    required
+                    className="w-full min-h-[52px] px-4 py-3 rounded-lg bg-white/10 border border-golden/30 text-white text-base focus:outline-none focus:ring-2 focus:ring-golden focus:border-transparent transition-all duration-300"
+                  >
+                    <option value="">Day</option>
+                    {dayOptions.map((day) => (
+                      <option key={day} value={day}>
+                        {day}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label="Birth year"
+                    value={birthYear}
+                    onChange={(e) => setBirthYear(e.target.value)}
+                    required
+                    className="w-full min-h-[52px] px-4 py-3 rounded-lg bg-white/10 border border-golden/30 text-white text-base focus:outline-none focus:ring-2 focus:ring-golden focus:border-transparent transition-all duration-300"
+                  >
+                    <option value="">Year</option>
+                    {yearOptions.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="mt-2 text-sm text-gray-400">Separate month, day, and year selectors work better on mobile than the native date picker.</p>
               </div>
 
               {/* Training Objective */}
@@ -217,6 +281,7 @@ function DiscoveryFlightPt1Content() {
                   <option value="">Select an objective</option>
                   <option value="career-pilot">Career Pilot</option>
                   <option value="private-pilot">Private Pilot Training</option>
+                  <option value="sport-pilot">Sport Pilot</option>
                   <option value="instrument-pilot">Instrument Pilot</option>
                   <option value="commercial-pilot">Commercial Pilot</option>
                   <option value="trying-something-new">Trying something new</option>

@@ -78,13 +78,13 @@ function DiscoveryFlightPt3Content() {
         </div>
 
         {/* Form Container */}
-        <div className="bg-white/5 backdrop-blur-md border border-golden/20 rounded-2xl p-8 sm:p-12 shadow-2xl">
+        <div className="bg-white/5 backdrop-blur-md border border-golden/20 rounded-2xl p-5 sm:p-8 lg:p-12 shadow-2xl">
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2 tracking-tight">
             <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">
               Discovery Flight
             </span>
           </h1>
-          <p className="text-gray-400 text-lg mb-8">Select Flight Training Location</p>
+          <p className="text-gray-400 text-base sm:text-lg mb-8">Select Flight Training Location</p>
 
           <form onSubmit={handleSubmit} className="space-y-8">
             <div>
@@ -110,7 +110,7 @@ function DiscoveryFlightPt3Content() {
                     />
                     <label
                       htmlFor={location.id}
-                      className={`block p-6 rounded-lg border-2 cursor-pointer transition-all duration-300 ${
+                      className={`block p-4 sm:p-6 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all duration-300 ${
                         selectedLocation === location.id
                           ? 'border-golden bg-golden/10'
                           : 'border-golden/30 bg-white/5 hover:border-golden/50'
@@ -118,7 +118,7 @@ function DiscoveryFlightPt3Content() {
                     >
                       <div className="flex items-start gap-4">
                         <div
-                          className={`flex-shrink-0 w-6 h-6 border-2 rounded-full mt-1 transition-all duration-300 ${
+                          className={`flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 border-2 rounded-full mt-1 transition-all duration-300 ${
                             selectedLocation === location.id
                               ? 'border-golden bg-golden'
                               : 'border-golden/50'
@@ -131,13 +131,13 @@ function DiscoveryFlightPt3Content() {
                           )}
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-white font-semibold text-lg mb-1">
+                          <h3 className="text-white font-semibold text-base sm:text-lg mb-1">
                             {location.name}
                           </h3>
-                          <p className="text-golden font-semibold mb-2">
+                          <p className="text-golden font-semibold text-sm sm:text-base mb-2">
                             {location.airport}
                           </p>
-                          <p className="text-gray-400 text-sm">
+                          <p className="text-gray-400 text-sm leading-relaxed">
                             {location.address}
                           </p>
                         </div>
@@ -149,18 +149,18 @@ function DiscoveryFlightPt3Content() {
             </div>
 
             {/* Submit Button */}
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="flex-1 px-6 py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-all duration-300"
+                className="w-full sm:flex-1 min-h-[52px] px-6 py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-all duration-300"
               >
                 Go Back
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || !selectedLocation}
-                className="flex-1 px-6 py-3 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105"
+                className="w-full sm:flex-1 min-h-[52px] px-6 py-3 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 sm:transform sm:hover:scale-105"
               >
                 {isSubmitting ? 'Submitting...' : 'Continue to Next Step'}
               </button>
