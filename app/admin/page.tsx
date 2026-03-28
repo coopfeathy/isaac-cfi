@@ -224,6 +224,18 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
     fetchCourses()
   }, [user, isAdmin, searchParams, forcedTab])
 
+  useEffect(() => {
+    if (activeTab !== 'slots') return
+
+    const requestId = searchParams.get('requestId')
+    if (!requestId || slotRequests.length === 0) return
+
+    const el = document.getElementById(`slot-request-${requestId}`)
+    if (!el) return
+
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [activeTab, slotRequests, searchParams])
+
   const fetchSupportTickets = async () => {
     try {
       const { data, error } = await supabase
@@ -1396,7 +1408,11 @@ ${blogContent}
               ) : (
                 <div className="space-y-3">
                   {slotRequests.map((request) => (
-                    <div key={request.id} className="bg-white rounded-lg shadow-md p-4 border border-gray-100">
+                    <div
+                      key={request.id}
+                      id={`slot-request-${request.id}`}
+                      className={`bg-white rounded-lg shadow-md p-4 border ${searchParams.get('requestId') === request.id ? 'border-blue-400 ring-2 ring-blue-100' : 'border-gray-100'}`}
+                    >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <p className="font-semibold text-darkText">{request.full_name} • {request.email}</p>

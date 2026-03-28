@@ -7,8 +7,13 @@ function combineDateAndTime(date: string, time: string): Date | null {
   return Number.isNaN(combined.getTime()) ? null : combined
 }
 
+function formatForMailto(value: string): string {
+  return encodeURIComponent(value)
+}
+
 async function sendSlotRequestAlertEmail(payload: {
   recipient: string
+  requestId?: string | null
   fullName: string
   email: string
   phone: string
@@ -18,6 +23,15 @@ async function sendSlotRequestAlertEmail(payload: {
 }) {
   const resendApiKey = process.env.RESEND_API_KEY
   if (!resendApiKey) return false
+
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://merlinflighttraining.com').replace(/\/$/, '')
+  const confirmSlotUrl = payload.requestId
+    ? `${siteUrl}/admin?tab=slots&requestId=${encodeURIComponent(payload.requestId)}`
+    : `${siteUrl}/admin?tab=slots`
+  const contactCustomerUrl = `mailto:${encodeURIComponent(payload.email)}?subject=${formatForMailto('Discovery Flight Slot Request Follow-Up')}`
+  const suggestAlternativeUrl = `mailto:${encodeURIComponent(payload.email)}?subject=${formatForMailto('Alternative Discovery Flight Times')}&body=${formatForMailto(
+    `Hi ${payload.fullName},\n\nThanks for your slot request. Your requested window was ${new Date(payload.requestedStartIso).toLocaleString()} to ${new Date(payload.requestedEndIso).toLocaleString()}.\n\nHere are a few alternative times we can offer:\n-\n-\n-\n\nPlease reply with your preferred option and we will confirm it.\n\nBest,\nMerlin Flight Training`
+  )}`
 
   const subject = 'New Discovery Flight Slot Request'
   const html = `
@@ -32,6 +46,19 @@ async function sendSlotRequestAlertEmail(payload: {
         <p style="margin: 4px 0;"><strong>Requested End:</strong> ${new Date(payload.requestedEndIso).toLocaleString()}</p>
         <p style="margin: 4px 0;"><strong>Notes:</strong> ${payload.notes || 'None'}</p>
       </div>
+
+      <div style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="${confirmSlotUrl}" style="background: #16A34A; color: #FFFFFF; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">Confirm Slot</a>
+        <a href="${contactCustomerUrl}" style="background: #2563EB; color: #FFFFFF; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">Contact Customer</a>
+        <a href="${suggestAlternativeUrl}" style="background: #C59A2A; color: #1F2937; text-decoration: none; padding: 10px 14px; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">Suggest Alternative</a>
+      </div>
+
+      <p style="margin-top: 12px; font-size: 12px; color: #6B7280;">
+        If buttons are not visible in your email client, use these links:<br />
+        Confirm Slot: <a href="${confirmSlotUrl}">${confirmSlotUrl}</a><br />
+        Contact Customer: <a href="${contactCustomerUrl}">Email ${payload.email}</a><br />
+        Suggest Alternative: <a href="${suggestAlternativeUrl}">Open suggested reply</a>
+      </p>
     </div>
   `
 
@@ -80,7 +107,7 @@ export async function POST(request: NextRequest) {
     const requestedEnd = new Date(requestedStart.getTime() + durationMinutes * 60 * 1000)
 
     const supabaseAdmin = getSupabaseAdmin()
-    const { error } = await supabaseAdmin
+    const { data: insertedRequest, error } = await supabaseAdmin
       .from('slot_requests')
       .insert([
         {
@@ -95,6 +122,8 @@ export async function POST(request: NextRequest) {
           source: 'schedule_page',
         },
       ])
+      .select('id')
+      .single()
 
     if (error) throw error
 
@@ -102,6 +131,7 @@ export async function POST(request: NextRequest) {
     if (alertRecipient) {
       await sendSlotRequestAlertEmail({
         recipient: alertRecipient,
+        requestId: insertedRequest?.id || null,
         fullName,
         email,
         phone,
