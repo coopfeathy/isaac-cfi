@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { Slot, Booking } from '@/lib/supabase'
 import Link from 'next/link'
+import Image from 'next/image'
 
 type SocialPlatform = 'instagram' | 'tiktok' | 'youtube' | 'facebook'
 type SocialPostType = 'video' | 'image' | 'carousel'
@@ -1420,73 +1421,85 @@ ${blogContent}
             
             {/* Learn Platform Management */}
             <div className="bg-white border-2 border-golden rounded-lg p-6 hover:shadow-lg transition">
-              <h2 className="text-2xl font-bold text-golden mb-2">📚 Learn Platform</h2>
+              <div className="flex items-center gap-3 mb-2">
+                <Image src="/images/icon-learn.png" alt="Learn" width={60} height={60} />
+                <h2 className="text-2xl font-bold text-darkText">Learn Platform</h2>
+              </div>
               <p className="text-gray-600 mb-6">Manage courses, lessons, videos, and student enrollments</p>
               <div className="flex flex-col gap-2">
                 <Link href="/admin/courses" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">
                   Manage Courses
                 </Link>
-                <Link href="/admin/enrollments" className="px-4 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 text-center">
+                <Link href="/admin/enrollments" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">
                   Assign Students
                 </Link>
-                <Link href="/admin/progress" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
+                <Link href="/admin/progress" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">
                   Lesson Debriefs
                 </Link>
               </div>
             </div>
 
             {/* Student & Prospect Management */}
-            <div className="bg-white border-2 border-blue-500 rounded-lg p-6 hover:shadow-lg transition">
-              <h2 className="text-2xl font-bold text-blue-600 mb-2">👥 Students & Prospects</h2>
+            <div className="bg-white border-2 border-golden rounded-lg p-6 hover:shadow-lg transition">
+              <div className="flex items-center gap-3 mb-2">
+                <Image src="/images/icon-students.png" alt="Students" width={60} height={60} />
+                <h2 className="text-2xl font-bold text-darkText">Students & Prospects</h2>
+              </div>
               <p className="text-gray-600 mb-6">View and manage students, prospects, and leads</p>
               <div className="flex flex-col gap-2">
-                <Link href="/admin/students" className="px-4 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 text-center">
+                <Link href="/admin/students" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">
                   Students
                 </Link>
-                <Link href="/admin/billing" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
+                <Link href="/admin/billing" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">
                   Billing
                 </Link>
-                <Link href="/admin/prospects" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">
+                <Link href="/admin/prospects" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">
                   Prospects
                 </Link>
-                <Link href="/admin/onboarding" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
+                <Link href="/admin/onboarding" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">
                   Onboarding Queue
                 </Link>
               </div>
             </div>
 
             {/* Bookings & Scheduling */}
-            <div className="bg-white border-2 border-green-600 rounded-lg p-6 hover:shadow-lg transition">
-              <h2 className="text-2xl font-bold text-green-600 mb-2">📅 Bookings & Schedule</h2>
+            <div className="bg-white border-2 border-golden rounded-lg p-6 hover:shadow-lg transition">
+              <div className="flex items-center gap-3 mb-2">
+                <Image src="/images/icon-bookings.png" alt="Bookings" width={60} height={60} />
+                <h2 className="text-2xl font-bold text-darkText">Bookings & Schedule</h2>
+              </div>
               <p className="text-gray-600 mb-6">Manage flight bookings, slots, and scheduling</p>
               <div className="flex flex-col gap-2">
-                <Link href="/admin/slots" className="px-4 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 text-center">
+                <Link href="/admin/slots" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">
                   Manage Slots
                 </Link>
-                <Link href="/admin/bookings" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">
+                <Link href="/admin/bookings" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">
                   View Bookings
                 </Link>
-                <Link href="/admin/email" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
+                <Link href="/admin/email" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">
                   Inbox & Support
                 </Link>
-                <Link href="/admin/prospects" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
+                <Link href="/admin/prospects" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">
                   Manage Prospects
                 </Link>
               </div>
             </div>
 
             {/* Content Management */}
-            <div className="bg-white border-2 border-orange-500 rounded-lg p-6 hover:shadow-lg transition">
-              <h2 className="text-2xl font-bold text-orange-600 mb-2">📝 Content Management</h2>
+            <div className="bg-white border-2 border-golden rounded-lg p-6 hover:shadow-lg transition">
+              <div className="flex items-center gap-3 mb-2">
+                <Image src="/images/icon-content.png" alt="Content" width={60} height={60} />
+                <h2 className="text-2xl font-bold text-darkText">Content Management</h2>
+              </div>
               <p className="text-gray-600 mb-6">Manage blog posts, social media, and email campaigns</p>
               <div className="flex flex-col gap-2">
-                <Link href="/admin/blog" className="px-4 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 text-center">
+                <Link href="/admin/blog" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">
                   Create Blog Post
                 </Link>
-                <Link href="/admin/social" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">
+                <Link href="/admin/social" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">
                   Manage Social Posts
                 </Link>
-                <Link href="/admin/email" className="px-4 py-2 bg-white text-blue-700 border border-blue-200 font-bold rounded hover:bg-blue-50 text-center">
+                <Link href="/admin/email" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">
                   Email Campaigns
                 </Link>
               </div>
