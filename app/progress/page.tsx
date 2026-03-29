@@ -40,6 +40,12 @@ type LessonEvaluation = {
   lesson_id: string | null
 }
 
+type InstructionalQualityRating = {
+  lesson_evaluation_id: string
+  rating: number
+  feedback: string | null
+}
+
 type Lesson = {
   id: string
   title: string
@@ -93,8 +99,11 @@ export default function ProgressPage() {
   const [items, setItems] = useState<SyllabusItem[]>([])
   const [progress, setProgress] = useState<SyllabusProgress[]>([])
   const [evaluations, setEvaluations] = useState<LessonEvaluation[]>([])
+  const [instructionalRatings, setInstructionalRatings] = useState<Record<string, InstructionalQualityRating>>({})
   const [lessons, setLessons] = useState<Lesson[]>([])
   const [loading, setLoading] = useState(true)
+  const [savingRatingByEvaluation, setSavingRatingByEvaluation] = useState<Record<string, boolean>>({})
+  const [ratingMessageByEvaluation, setRatingMessageByEvaluation] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const fetchData = async () => {
@@ -129,7 +138,7 @@ export default function ProgressPage() {
         return
       }
 
-      const [itemsResult, progressResult, evaluationsResult, lessonsResult] = await Promise.all([
+      const [itemsResult, progressResult, evaluationsResult, lessonsResult, ratingsResult] = await Promise.all([
         supabase
           .from("syllabus_items")
           .select("id, course_id, title, stage, order_index")
@@ -151,6 +160,10 @@ export default function ProgressPage() {
           .from("lessons")
           .select("id, title")
           .order("title", { ascending: true }),
+        supabase
+          .from("lesson_instructional_quality_ratings")
+          .select("lesson_evaluation_id, rating, feedback")
+          .eq("student_id", user.id),
       ])
 
       setCourses(enrolledCourses)
@@ -158,6 +171,12 @@ export default function ProgressPage() {
       setProgress((progressResult.data as SyllabusProgress[] | null) || [])
       setEvaluations((evaluationsResult.data as LessonEvaluation[] | null) || [])
       setLessons((lessonsResult.data as Lesson[] | null) || [])
+      const ratingRows = (ratingsResult.data as InstructionalQualityRating[] | null) || []
+      const ratingLookup: Record<string, InstructionalQualityRating> = {}
+      ratingRows.forEach((row) => {
+        ratingLookup[row.lesson_evaluation_id] = row
+      })
+      setInstructionalRatings(ratingLookup)
       setLoading(false)
     }
 
@@ -179,6 +198,52 @@ export default function ProgressPage() {
     })
     return map
   }, [lessons])
+
+  const handleSaveInstructionalRating = async (evaluationId: string, rating: number, feedback: string | null) => {
+    if (!user) return
+
+    setSavingRatingByEvaluation((previous) => ({ ...previous, [evaluationId]: true }))
+    setRatingMessageByEvaluation((previous) => ({ ...previous, [evaluationId]: "" }))
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error("Missing session. Please sign in again.")
+      }
+
+      const response = await fetch("/api/student/instructional-quality", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ evaluationId, rating, feedback }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.error || "Unable to save instructional quality rating")
+      }
+
+      setInstructionalRatings((previous) => ({
+        ...previous,
+        [evaluationId]: {
+          lesson_evaluation_id: evaluationId,
+          rating,
+          feedback,
+        },
+      }))
+      setRatingMessageByEvaluation((previous) => ({ ...previous, [evaluationId]: "Instructional quality rating saved." }))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to save instructional quality rating"
+      setRatingMessageByEvaluation((previous) => ({ ...previous, [evaluationId]: message }))
+    } finally {
+      setSavingRatingByEvaluation((previous) => ({ ...previous, [evaluationId]: false }))
+    }
+  }
 
   if (authLoading || loading) {
     return (
@@ -305,6 +370,7 @@ export default function ProgressPage() {
         ) : (
           <div style={{ display: "grid", gap: "12px" }}>
             {evaluations.map((entry) => {
+              const currentRating = instructionalRatings[entry.id]
               const negativeObservations =
                 extractLabeledSection(entry.improvements, "Negative Observations") ||
                 extractLabeledSection(entry.improvements, "Unsatisfactory") ||
@@ -332,6 +398,98 @@ export default function ProgressPage() {
                   {skillsNeedingWork && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Knowledge and Skills Needing Work:</strong> {skillsNeedingWork}</p>}
                   {entry.homework && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Recommended Study and Practice:</strong> {entry.homework}</p>}
                   {otherFeedback && <p style={{ margin: 0, whiteSpace: "pre-wrap" }}><strong>Additional Feedback:</strong> {otherFeedback}</p>}
+
+                  <div
+                    style={{
+                      marginTop: "12px",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: "10px",
+                      padding: "12px",
+                      background: "#F9FAFB",
+                      display: "grid",
+                      gap: "8px",
+                    }}
+                  >
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: "14px" }}>Instructional Quality Rating</p>
+                    <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
+                      Rate this training event on briefing clarity, safety-focused decisions, engagement, actionable debriefing,
+                      integrity with your training investment, and professionalism.
+                    </p>
+                    <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                      {[1, 2, 3, 4, 5].map((star) => {
+                        const isActive = star <= (currentRating?.rating || 0)
+                        return (
+                          <button
+                            key={`${entry.id}-star-${star}`}
+                            type="button"
+                            onClick={() =>
+                              void handleSaveInstructionalRating(entry.id, star, currentRating?.feedback || null)
+                            }
+                            disabled={Boolean(savingRatingByEvaluation[entry.id])}
+                            style={{
+                              border: "none",
+                              background: "transparent",
+                              cursor: "pointer",
+                              fontSize: "22px",
+                              lineHeight: 1,
+                              color: isActive ? "#D97706" : "#CBD5E1",
+                              padding: 0,
+                            }}
+                            aria-label={`Rate ${star} stars`}
+                            title={`Rate ${star} stars`}
+                          >
+                            ★
+                          </button>
+                        )
+                      })}
+                      <span style={{ fontSize: "12px", color: "#6B7280" }}>
+                        {currentRating?.rating ? `${currentRating.rating}/5` : "Not rated yet"}
+                      </span>
+                    </div>
+                    <textarea
+                      rows={2}
+                      placeholder="Optional feedback about instructional quality"
+                      value={currentRating?.feedback || ""}
+                      onChange={(e) => {
+                        const nextFeedback = e.target.value
+                        setInstructionalRatings((previous) => ({
+                          ...previous,
+                          [entry.id]: {
+                            lesson_evaluation_id: entry.id,
+                            rating: previous[entry.id]?.rating || 0,
+                            feedback: nextFeedback,
+                          },
+                        }))
+                      }}
+                      style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", width: "100%", background: "#fff" }}
+                    />
+                    <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          currentRating?.rating
+                            ? void handleSaveInstructionalRating(entry.id, currentRating.rating, currentRating.feedback || null)
+                            : undefined
+                        }
+                        disabled={Boolean(savingRatingByEvaluation[entry.id]) || !currentRating?.rating}
+                        style={{
+                          background: "#0F172A",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "8px",
+                          padding: "8px 12px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          opacity: Boolean(savingRatingByEvaluation[entry.id]) || !currentRating?.rating ? 0.65 : 1,
+                        }}
+                      >
+                        {savingRatingByEvaluation[entry.id] ? "Saving..." : "Save Feedback"}
+                      </button>
+                      {ratingMessageByEvaluation[entry.id] && (
+                        <span style={{ fontSize: "12px", color: "#4B5563" }}>{ratingMessageByEvaluation[entry.id]}</span>
+                      )}
+                    </div>
+                  </div>
                 </article>
               )
             })}

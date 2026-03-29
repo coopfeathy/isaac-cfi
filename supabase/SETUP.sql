@@ -1180,6 +1180,37 @@ CREATE POLICY "Admins manage homework email queue"
   WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
 
 -- ============================================================
+-- 26. LESSON INSTRUCTIONAL QUALITY RATINGS (student feedback)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS lesson_instructional_quality_ratings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_evaluation_id UUID NOT NULL UNIQUE REFERENCES lesson_evaluations(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  instructor_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  lesson_id UUID REFERENCES lessons(id) ON DELETE SET NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  feedback TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(lesson_evaluation_id, student_id)
+);
+
+ALTER TABLE lesson_instructional_quality_ratings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Students manage own instructional ratings" ON lesson_instructional_quality_ratings;
+DROP POLICY IF EXISTS "Admins read instructional ratings" ON lesson_instructional_quality_ratings;
+
+CREATE POLICY "Students manage own instructional ratings"
+  ON lesson_instructional_quality_ratings FOR ALL
+  USING (student_id = auth.uid())
+  WITH CHECK (student_id = auth.uid());
+
+CREATE POLICY "Admins read instructional ratings"
+  ON lesson_instructional_quality_ratings FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+-- ============================================================
 -- 24. SOCIAL MEDIA POSTS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS social_media_posts (
@@ -1572,6 +1603,8 @@ CREATE INDEX IF NOT EXISTS idx_lesson_eval_private_notes_eval_id ON lesson_evalu
 CREATE INDEX IF NOT EXISTS idx_lesson_eval_private_notes_instructor_id ON lesson_evaluation_private_notes(instructor_id);
 CREATE INDEX IF NOT EXISTS idx_homework_email_queue_status_send_after ON homework_email_queue(status, send_after_at);
 CREATE INDEX IF NOT EXISTS idx_homework_email_queue_student_id ON homework_email_queue(student_id);
+CREATE INDEX IF NOT EXISTS idx_lesson_instructional_quality_student_id ON lesson_instructional_quality_ratings(student_id);
+CREATE INDEX IF NOT EXISTS idx_lesson_instructional_quality_instructor_id ON lesson_instructional_quality_ratings(instructor_id);
 CREATE INDEX IF NOT EXISTS idx_class_appointments_group_id ON class_appointments(group_id);
 CREATE INDEX IF NOT EXISTS idx_class_appointments_start_time ON class_appointments(start_time);
 CREATE INDEX IF NOT EXISTS idx_class_appointments_instructor_id ON class_appointments(instructor_id);

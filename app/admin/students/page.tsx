@@ -34,6 +34,12 @@ type StudentEvaluation = {
     sent_at: string | null
     last_error: string | null
   } | null
+  instructionalQualityRating: {
+    rating: number
+    feedback: string | null
+    created_at: string
+    updated_at: string
+  } | null
   id: string
   courseId: string
   courseTitle: string
@@ -839,6 +845,18 @@ export default function AdminStudentsPage() {
                             </p>
                             <p className="text-xs text-slate-500">{evaluation.emailSentAt ? 'Emailed to student' : 'Saved only'}</p>
                           </div>
+                        </div>
+
+                        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Instructional Quality Rating</p>
+                          <p className="mt-2 text-sm text-slate-700">
+                            {evaluation.instructionalQualityRating
+                              ? `${'★'.repeat(Math.max(0, Math.min(5, evaluation.instructionalQualityRating.rating)))}${'☆'.repeat(Math.max(0, 5 - Math.min(5, evaluation.instructionalQualityRating.rating)))} (${evaluation.instructionalQualityRating.rating}/5)`
+                              : 'Not rated by student yet'}
+                          </p>
+                          {evaluation.instructionalQualityRating?.feedback ? (
+                            <p className="mt-2 text-sm text-slate-700 whitespace-pre-wrap">{evaluation.instructionalQualityRating.feedback}</p>
+                          ) : null}
                         </div>
 
                         <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
