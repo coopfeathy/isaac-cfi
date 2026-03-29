@@ -75,6 +75,25 @@ type SlotRequest = {
   created_at: string
 }
 
+type ClassAppointment = {
+  id: string
+  group_id: string
+  title: string
+  description: string | null
+  start_time: string
+  end_time: string
+  location: string | null
+  meeting_link: string | null
+  instructor_id: string | null
+  max_seats: number | null
+  is_canceled: boolean
+  cancel_reason: string | null
+  created_at: string
+  groups?: { name: string } | null
+  profiles?: { full_name: string | null } | null
+  class_appointment_attendees?: Array<{ user_id: string; status: 'invited' | 'confirmed' | 'declined' | 'attended' | 'no_show' }>
+}
+
 const isAdminTab = (value: string | null): value is AdminTab => {
   return value === 'slots' || value === 'bookings' || value === 'prospects' || value === 'blog' || value === 'social' || value === 'email' || value === 'settings'
 }
@@ -109,6 +128,25 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
   const [slotRequests, setSlotRequests] = useState<SlotRequest[]>([])
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null)
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([])
+  const [classAppointments, setClassAppointments] = useState<ClassAppointment[]>([])
+  const [classGroups, setClassGroups] = useState<Array<{ id: string; name: string }>>([])
+  const [classInstructors, setClassInstructors] = useState<Array<{ id: string; full_name: string | null }>>([])
+  const [showClassForm, setShowClassForm] = useState(false)
+  const [editingClassId, setEditingClassId] = useState<string | null>(null)
+  const [classSaving, setClassSaving] = useState(false)
+  const [classMessage, setClassMessage] = useState<string | null>(null)
+  const [classForm, setClassForm] = useState({
+    groupId: '',
+    title: '',
+    description: '',
+    date: '',
+    startTime: '',
+    endTime: '',
+    location: '',
+    meetingLink: '',
+    instructorId: '',
+    maxSeats: '',
+  })
   const [updatingSupportTicketId, setUpdatingSupportTicketId] = useState<string | null>(null)
   const [courses, setCourses] = useState<any[]>([])
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null)
@@ -343,9 +381,15 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [slotsData, bookingsData] = await Promise.all([
+      const [slotsData, bookingsData, classAppointmentsData, classGroupsData, classInstructorsData] = await Promise.all([
         supabase.from('slots').select('*').order('start_time', { ascending: true }),
-        supabase.from('bookings').select('*, slots(*)').order('created_at', { ascending: false })
+        supabase.from('bookings').select('*, slots(*)').order('created_at', { ascending: false }),
+        supabase
+          .from('class_appointments')
+          .select('id, group_id, title, description, start_time, end_time, location, meeting_link, instructor_id, max_seats, is_canceled, cancel_reason, created_at, groups(name), profiles:instructor_id(full_name), class_appointment_attendees(user_id, status)')
+          .order('start_time', { ascending: true }),
+        supabase.from('groups').select('id, name').order('name', { ascending: true }),
+        supabase.from('profiles').select('id, full_name').eq('is_instructor', true).order('full_name', { ascending: true }),
       ])
 
       console.log('Slots data:', slotsData)
@@ -359,10 +403,189 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
         console.log('Setting bookings:', bookingsData.data.length, 'bookings')
         setBookings(bookingsData.data as any)
       }
+
+      if (!classAppointmentsData.error) {
+        const normalizedClassAppointments = ((classAppointmentsData.data || []) as any[]).map((row) => ({
+          ...row,
+          groups: Array.isArray(row.groups) ? row.groups[0] || null : row.groups,
+          profiles: Array.isArray(row.profiles) ? row.profiles[0] || null : row.profiles,
+          class_appointment_attendees: Array.isArray(row.class_appointment_attendees)
+            ? row.class_appointment_attendees
+            : [],
+        }))
+        setClassAppointments(normalizedClassAppointments as ClassAppointment[])
+      } else if ((classAppointmentsData.error as any)?.code === '42P01') {
+        setClassAppointments([])
+      } else {
+        console.error('Error loading class appointments:', classAppointmentsData.error)
+      }
+
+      if (!classGroupsData.error) {
+        setClassGroups((classGroupsData.data || []) as Array<{ id: string; name: string }>)
+      }
+
+      if (!classInstructorsData.error) {
+        setClassInstructors((classInstructorsData.data || []) as Array<{ id: string; full_name: string | null }>)
+      }
     } catch (error) {
       console.error('Error fetching admin data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const toDateInput = (iso: string) => new Date(iso).toISOString().slice(0, 10)
+  const toTimeInput = (iso: string) => new Date(iso).toISOString().slice(11, 16)
+
+  const resetClassForm = () => {
+    setEditingClassId(null)
+    setShowClassForm(false)
+    setClassForm({
+      groupId: '',
+      title: '',
+      description: '',
+      date: '',
+      startTime: '',
+      endTime: '',
+      location: '',
+      meetingLink: '',
+      instructorId: '',
+      maxSeats: '',
+    })
+  }
+
+  const handleEditClassAppointment = (appointment: ClassAppointment) => {
+    setEditingClassId(appointment.id)
+    setShowClassForm(true)
+    setClassMessage(null)
+    setClassForm({
+      groupId: appointment.group_id,
+      title: appointment.title,
+      description: appointment.description || '',
+      date: toDateInput(appointment.start_time),
+      startTime: toTimeInput(appointment.start_time),
+      endTime: toTimeInput(appointment.end_time),
+      location: appointment.location || '',
+      meetingLink: appointment.meeting_link || '',
+      instructorId: appointment.instructor_id || '',
+      maxSeats: appointment.max_seats ? String(appointment.max_seats) : '',
+    })
+  }
+
+  const handleSaveClassAppointment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setClassMessage(null)
+
+    if (!classForm.groupId || !classForm.title || !classForm.date || !classForm.startTime || !classForm.endTime) {
+      setClassMessage('Group, title, date, start time, and end time are required.')
+      return
+    }
+
+    const startTimeIso = new Date(`${classForm.date}T${classForm.startTime}:00`).toISOString()
+    const endTimeIso = new Date(`${classForm.date}T${classForm.endTime}:00`).toISOString()
+
+    if (new Date(endTimeIso).getTime() <= new Date(startTimeIso).getTime()) {
+      setClassMessage('End time must be after start time.')
+      return
+    }
+
+    setClassSaving(true)
+    try {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser()
+
+      const payload = {
+        group_id: classForm.groupId,
+        title: classForm.title,
+        description: classForm.description || null,
+        start_time: startTimeIso,
+        end_time: endTimeIso,
+        location: classForm.location || null,
+        meeting_link: classForm.meetingLink || null,
+        instructor_id: classForm.instructorId || null,
+        max_seats: classForm.maxSeats ? Number(classForm.maxSeats) : null,
+        created_by: authUser?.id || null,
+        updated_at: new Date().toISOString(),
+      }
+
+      if (editingClassId) {
+        const { error } = await supabase
+          .from('class_appointments')
+          .update(payload)
+          .eq('id', editingClassId)
+
+        if (error) throw error
+        setClassMessage('Class appointment updated.')
+      } else {
+        const { data: created, error } = await supabase
+          .from('class_appointments')
+          .insert([payload])
+          .select('id, group_id')
+          .single()
+
+        if (error) throw error
+
+        const { data: members, error: membersError } = await supabase
+          .from('group_members')
+          .select('user_id')
+          .eq('group_id', created.group_id)
+
+        if (membersError) throw membersError
+
+        if ((members || []).length > 0) {
+          const attendeeRows = (members || []).map((member: { user_id: string }) => ({
+            class_appointment_id: created.id,
+            user_id: member.user_id,
+            status: 'invited',
+          }))
+
+          const { error: attendeeError } = await supabase
+            .from('class_appointment_attendees')
+            .upsert(attendeeRows, { onConflict: 'class_appointment_id,user_id' })
+
+          if (attendeeError) {
+            console.error('Error adding class attendees:', attendeeError)
+          }
+        }
+
+        setClassMessage('Class appointment created and group members invited.')
+      }
+
+      await fetchData()
+      resetClassForm()
+    } catch (error: any) {
+      setClassMessage(error?.message || 'Failed to save class appointment.')
+    } finally {
+      setClassSaving(false)
+    }
+  }
+
+  const handleCancelClassAppointment = async (id: string) => {
+    const cancelReason = prompt('Optional cancellation reason:') || ''
+    try {
+      const { error } = await supabase
+        .from('class_appointments')
+        .update({ is_canceled: true, cancel_reason: cancelReason || null, updated_at: new Date().toISOString() })
+        .eq('id', id)
+
+      if (error) throw error
+      await fetchData()
+    } catch (error) {
+      console.error('Error canceling class appointment:', error)
+      alert('Failed to cancel class appointment')
+    }
+  }
+
+  const handleDeleteClassAppointment = async (id: string) => {
+    if (!confirm('Delete this class appointment?')) return
+    try {
+      const { error } = await supabase.from('class_appointments').delete().eq('id', id)
+      if (error) throw error
+      await fetchData()
+    } catch (error) {
+      console.error('Error deleting class appointment:', error)
+      alert('Failed to delete class appointment')
     }
   }
 
@@ -1541,8 +1764,8 @@ ${blogContent}
             {activeTab === 'settings' && 'Platform Settings'}
           </h2>
           <p className="text-gray-600">
-            {activeTab === 'slots' && `Create and manage availability for the native schedule page. Current slots: ${slots.length}.`}
-            {activeTab === 'bookings' && `Review booking statuses and export Apple Calendar files. Current bookings: ${bookings.length}.`}
+            {activeTab === 'slots' && `Create and manage availability plus group class appointments. Current slots: ${slots.length}.`}
+            {activeTab === 'bookings' && `Review booking statuses and class attendance. Current bookings: ${bookings.length}.`}
             {activeTab === 'prospects' && `Manage all prospects and leads from discovery flights and funnels. Total: ${prospects.length}.`}
             {activeTab === 'blog' && 'Write, edit, and publish blog content.'}
             {activeTab === 'social' && `Manage linked social video posts. Current posts: ${socialPosts.length}.`}
@@ -1554,6 +1777,203 @@ ${blogContent}
         {/* Slots Tab */}
         {activeTab === 'slots' && (
           <div>
+            <div className="mb-8 bg-white rounded-lg shadow-md p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="text-2xl font-bold text-darkText">Group Class Appointments</h3>
+                  <p className="text-sm text-gray-600">Create and manage class appointments for groups.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (showClassForm) {
+                      resetClassForm()
+                    } else {
+                      setShowClassForm(true)
+                      setClassMessage(null)
+                    }
+                  }}
+                  className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300"
+                >
+                  {showClassForm ? 'Close Form' : 'Add Class Appointment'}
+                </button>
+              </div>
+
+              {showClassForm && (
+                <form onSubmit={handleSaveClassAppointment} className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Group *</label>
+                      <select
+                        required
+                        value={classForm.groupId}
+                        onChange={(e) => setClassForm((prev) => ({ ...prev, groupId: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      >
+                        <option value="">Select group</option>
+                        {classGroups.map((group) => (
+                          <option key={group.id} value={group.id}>{group.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Instructor</label>
+                      <select
+                        value={classForm.instructorId}
+                        onChange={(e) => setClassForm((prev) => ({ ...prev, instructorId: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      >
+                        <option value="">Unassigned</option>
+                        {classInstructors.map((instructor) => (
+                          <option key={instructor.id} value={instructor.id}>{instructor.full_name || 'Unnamed Instructor'}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
+                      <input
+                        required
+                        value={classForm.title}
+                        onChange={(e) => setClassForm((prev) => ({ ...prev, title: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Date *</label>
+                      <input
+                        type="date"
+                        required
+                        value={classForm.date}
+                        onChange={(e) => setClassForm((prev) => ({ ...prev, date: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Start *</label>
+                        <input
+                          type="time"
+                          required
+                          value={classForm.startTime}
+                          onChange={(e) => setClassForm((prev) => ({ ...prev, startTime: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">End *</label>
+                        <input
+                          type="time"
+                          required
+                          value={classForm.endTime}
+                          onChange={(e) => setClassForm((prev) => ({ ...prev, endTime: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                      <input
+                        value={classForm.location}
+                        onChange={(e) => setClassForm((prev) => ({ ...prev, location: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Meeting Link</label>
+                      <input
+                        value={classForm.meetingLink}
+                        onChange={(e) => setClassForm((prev) => ({ ...prev, meetingLink: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Max Seats</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={classForm.maxSeats}
+                        onChange={(e) => setClassForm((prev) => ({ ...prev, maxSeats: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                      <textarea
+                        rows={3}
+                        value={classForm.description}
+                        onChange={(e) => setClassForm((prev) => ({ ...prev, description: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex gap-3">
+                    <button
+                      type="submit"
+                      disabled={classSaving}
+                      className="px-5 py-2 bg-blue-600 text-white font-bold rounded hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {classSaving ? 'Saving...' : editingClassId ? 'Update Class Appointment' : 'Create Class Appointment'}
+                    </button>
+                    {editingClassId && (
+                      <button
+                        type="button"
+                        onClick={resetClassForm}
+                        className="px-5 py-2 border border-gray-300 text-gray-700 font-semibold rounded hover:bg-gray-100"
+                      >
+                        Cancel Edit
+                      </button>
+                    )}
+                  </div>
+
+                  {classMessage && (
+                    <p className={`mt-3 text-sm ${classMessage.toLowerCase().includes('failed') ? 'text-red-600' : 'text-gray-700'}`}>
+                      {classMessage}
+                    </p>
+                  )}
+                </form>
+              )}
+
+              {classAppointments.length === 0 ? (
+                <p className="text-sm text-gray-500">No class appointments created yet.</p>
+              ) : (
+                <div className="grid md:grid-cols-2 gap-3">
+                  {classAppointments.map((appointment) => {
+                    const attendees = appointment.class_appointment_attendees || []
+                    const confirmed = attendees.filter((entry) => entry.status === 'confirmed' || entry.status === 'attended').length
+                    const invited = attendees.filter((entry) => entry.status === 'invited').length
+                    return (
+                      <div key={appointment.id} className={`rounded-lg border p-4 ${appointment.is_canceled ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-white'}`}>
+                        <div className="flex justify-between items-start gap-3">
+                          <div>
+                            <p className="font-semibold text-darkText">{appointment.title}</p>
+                            <p className="text-sm text-gray-600">{appointment.groups?.name || 'Unknown Group'}</p>
+                            <p className="text-sm text-gray-600 mt-1">{new Date(appointment.start_time).toLocaleString()} - {new Date(appointment.end_time).toLocaleTimeString()}</p>
+                          </div>
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${appointment.is_canceled ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                            {appointment.is_canceled ? 'Canceled' : 'Scheduled'}
+                          </span>
+                        </div>
+                        <div className="mt-2 text-xs text-gray-600">
+                          <p>Instructor: {appointment.profiles?.full_name || 'Unassigned'}</p>
+                          <p>Attendance: {confirmed} confirmed, {invited} invited</p>
+                          {appointment.max_seats ? <p>Seats: {confirmed}/{appointment.max_seats}</p> : null}
+                          {appointment.cancel_reason ? <p className="text-red-700">Reason: {appointment.cancel_reason}</p> : null}
+                        </div>
+                        <div className="mt-3 flex items-center gap-3">
+                          <button onClick={() => handleEditClassAppointment(appointment)} className="text-blue-600 text-sm hover:text-blue-800">Edit</button>
+                          {!appointment.is_canceled && (
+                            <button onClick={() => handleCancelClassAppointment(appointment.id)} className="text-amber-700 text-sm hover:text-amber-900">Cancel</button>
+                          )}
+                          <button onClick={() => handleDeleteClassAppointment(appointment.id)} className="text-red-600 text-sm hover:text-red-800">Delete</button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
             <div className="mb-8">
               <h3 className="text-2xl font-bold text-darkText mb-3">Requested Discovery Flight Slots</h3>
               <div className="mb-2">
@@ -1928,6 +2348,40 @@ ${blogContent}
         {/* Bookings Tab */}
         {activeTab === 'bookings' && (
           <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-xl font-bold text-darkText mb-2">Class Appointment Attendance</h3>
+              <p className="text-sm text-gray-600 mb-4">Live attendance and invitation status for group class appointments.</p>
+              {classAppointments.length === 0 ? (
+                <p className="text-sm text-gray-500">No class appointment records yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {classAppointments.slice(0, 8).map((appointment) => {
+                    const attendees = appointment.class_appointment_attendees || []
+                    const invited = attendees.filter((entry) => entry.status === 'invited').length
+                    const confirmed = attendees.filter((entry) => entry.status === 'confirmed' || entry.status === 'attended').length
+                    const declined = attendees.filter((entry) => entry.status === 'declined').length
+                    return (
+                      <div key={`booking-view-${appointment.id}`} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex flex-wrap justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-darkText">{appointment.title}</p>
+                            <p className="text-sm text-gray-600">{appointment.groups?.name || 'Unknown Group'} • {new Date(appointment.start_time).toLocaleString()}</p>
+                          </div>
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${appointment.is_canceled ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                            {appointment.is_canceled ? 'Canceled' : 'Active'}
+                          </span>
+                        </div>
+                        <div className="mt-2 text-sm text-gray-700">
+                          <p>Confirmed: {confirmed} | Invited: {invited} | Declined: {declined}</p>
+                          {appointment.max_seats ? <p>Capacity: {confirmed}/{appointment.max_seats}</p> : null}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
             {bookings.map((booking: any) => (
               <div key={booking.id} className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex justify-between items-start mb-4">
