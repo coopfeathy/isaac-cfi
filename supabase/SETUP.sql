@@ -526,6 +526,98 @@ CREATE TABLE IF NOT EXISTS group_members (
 ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE group_members ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Read Groups" ON groups;
+DROP POLICY IF EXISTS "Admin Write Groups" ON groups;
+DROP POLICY IF EXISTS "Users View Own Group Membership" ON group_members;
+DROP POLICY IF EXISTS "Admins Manage Group Members" ON group_members;
+
+CREATE POLICY "Read Groups"
+  ON groups FOR SELECT USING (true);
+
+CREATE POLICY "Admin Write Groups"
+  ON groups FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true));
+
+CREATE POLICY "Users View Own Group Membership"
+  ON group_members FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Admins Manage Group Members"
+  ON group_members FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true));
+
+-- ============================================================
+-- 9A. CLASS APPOINTMENTS (group classes)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS class_appointments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  start_time TIMESTAMPTZ NOT NULL,
+  end_time TIMESTAMPTZ NOT NULL,
+  location TEXT,
+  meeting_link TEXT,
+  instructor_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  max_seats INTEGER CHECK (max_seats IS NULL OR max_seats > 0),
+  is_canceled BOOLEAN NOT NULL DEFAULT false,
+  cancel_reason TEXT,
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT class_appointment_time_check CHECK (end_time > start_time)
+);
+
+CREATE TABLE IF NOT EXISTS class_appointment_attendees (
+  class_appointment_id UUID NOT NULL REFERENCES class_appointments(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'invited' CHECK (status IN ('invited', 'confirmed', 'declined', 'attended', 'no_show')),
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (class_appointment_id, user_id)
+);
+
+ALTER TABLE class_appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE class_appointment_attendees ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins manage class appointments" ON class_appointments;
+DROP POLICY IF EXISTS "Group members view class appointments" ON class_appointments;
+DROP POLICY IF EXISTS "Admins manage class appointment attendees" ON class_appointment_attendees;
+DROP POLICY IF EXISTS "Users view own class attendance" ON class_appointment_attendees;
+DROP POLICY IF EXISTS "Users update own class attendance" ON class_appointment_attendees;
+
+CREATE POLICY "Admins manage class appointments"
+  ON class_appointments FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true));
+
+CREATE POLICY "Group members view class appointments"
+  ON class_appointments FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM group_members
+      WHERE group_members.group_id = class_appointments.group_id
+      AND group_members.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Admins manage class appointment attendees"
+  ON class_appointment_attendees FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true));
+
+CREATE POLICY "Users view own class attendance"
+  ON class_appointment_attendees FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users update own class attendance"
+  ON class_appointment_attendees FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
 -- ============================================================
 -- 10. INSTRUCTOR DETAILS
 -- ============================================================
@@ -1036,6 +1128,114 @@ CREATE POLICY "Students view own lesson evaluations"
   ON lesson_evaluations FOR SELECT USING (student_id = auth.uid());
 
 -- ============================================================
+-- 24. LESSON EVALUATION PRIVATE NOTES (instructor-only)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS lesson_evaluation_private_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_evaluation_id UUID NOT NULL REFERENCES lesson_evaluations(id) ON DELETE CASCADE,
+  instructor_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  notes TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE lesson_evaluation_private_notes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins manage lesson evaluation private notes" ON lesson_evaluation_private_notes;
+
+CREATE POLICY "Admins manage lesson evaluation private notes"
+  ON lesson_evaluation_private_notes FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+-- ============================================================
+-- 25. HOMEWORK EMAIL QUEUE (auto-send, hold, manual send)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS homework_email_queue (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_evaluation_id UUID NOT NULL UNIQUE REFERENCES lesson_evaluations(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  lesson_id UUID REFERENCES lessons(id) ON DELETE SET NULL,
+  payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'held', 'sent', 'failed')),
+  send_after_at TIMESTAMPTZ,
+  held_at TIMESTAMPTZ,
+  sent_at TIMESTAMPTZ,
+  sent_by UUID REFERENCES auth.users(id),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  last_error TEXT,
+  created_by UUID NOT NULL REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE homework_email_queue ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins manage homework email queue" ON homework_email_queue;
+
+CREATE POLICY "Admins manage homework email queue"
+  ON homework_email_queue FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+-- ============================================================
+-- 26. LESSON INSTRUCTIONAL QUALITY RATINGS (student feedback)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS lesson_instructional_quality_ratings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_evaluation_id UUID NOT NULL UNIQUE REFERENCES lesson_evaluations(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  instructor_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  lesson_id UUID REFERENCES lessons(id) ON DELETE SET NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  feedback TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(lesson_evaluation_id, student_id)
+);
+
+ALTER TABLE lesson_instructional_quality_ratings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Students manage own instructional ratings" ON lesson_instructional_quality_ratings;
+DROP POLICY IF EXISTS "Admins read instructional ratings" ON lesson_instructional_quality_ratings;
+
+CREATE POLICY "Students manage own instructional ratings"
+  ON lesson_instructional_quality_ratings FOR ALL
+  USING (student_id = auth.uid())
+  WITH CHECK (student_id = auth.uid());
+
+CREATE POLICY "Admins read instructional ratings"
+  ON lesson_instructional_quality_ratings FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+-- ============================================================
+-- 27. STUDENT LESSON SCHEDULING GOALS (weekly targets)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS student_lesson_scheduling_goals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  weekly_goal INTEGER NOT NULL DEFAULT 2 CHECK (weekly_goal >= 1 AND weekly_goal <= 14),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE student_lesson_scheduling_goals ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Students manage own scheduling goals" ON student_lesson_scheduling_goals;
+DROP POLICY IF EXISTS "Admins read scheduling goals" ON student_lesson_scheduling_goals;
+
+CREATE POLICY "Students manage own scheduling goals"
+  ON student_lesson_scheduling_goals FOR ALL
+  USING (student_id = auth.uid())
+  WITH CHECK (student_id = auth.uid());
+
+CREATE POLICY "Admins read scheduling goals"
+  ON student_lesson_scheduling_goals FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+-- ============================================================
 -- 24. SOCIAL MEDIA POSTS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS social_media_posts (
@@ -1424,6 +1624,17 @@ CREATE INDEX IF NOT EXISTS idx_student_syllabus_progress_student_id ON student_s
 CREATE INDEX IF NOT EXISTS idx_student_syllabus_progress_item_id ON student_syllabus_progress(syllabus_item_id);
 CREATE INDEX IF NOT EXISTS idx_lesson_evaluations_student_id ON lesson_evaluations(student_id);
 CREATE INDEX IF NOT EXISTS idx_lesson_evaluations_course_id ON lesson_evaluations(course_id);
+CREATE INDEX IF NOT EXISTS idx_lesson_eval_private_notes_eval_id ON lesson_evaluation_private_notes(lesson_evaluation_id);
+CREATE INDEX IF NOT EXISTS idx_lesson_eval_private_notes_instructor_id ON lesson_evaluation_private_notes(instructor_id);
+CREATE INDEX IF NOT EXISTS idx_homework_email_queue_status_send_after ON homework_email_queue(status, send_after_at);
+CREATE INDEX IF NOT EXISTS idx_homework_email_queue_student_id ON homework_email_queue(student_id);
+CREATE INDEX IF NOT EXISTS idx_lesson_instructional_quality_student_id ON lesson_instructional_quality_ratings(student_id);
+CREATE INDEX IF NOT EXISTS idx_lesson_instructional_quality_instructor_id ON lesson_instructional_quality_ratings(instructor_id);
+CREATE INDEX IF NOT EXISTS idx_student_lesson_scheduling_goals_student_id ON student_lesson_scheduling_goals(student_id);
+CREATE INDEX IF NOT EXISTS idx_class_appointments_group_id ON class_appointments(group_id);
+CREATE INDEX IF NOT EXISTS idx_class_appointments_start_time ON class_appointments(start_time);
+CREATE INDEX IF NOT EXISTS idx_class_appointments_instructor_id ON class_appointments(instructor_id);
+CREATE INDEX IF NOT EXISTS idx_class_appointment_attendees_user_id ON class_appointment_attendees(user_id);
 
 -- ============================================================
 -- DONE

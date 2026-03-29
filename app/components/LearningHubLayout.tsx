@@ -3,7 +3,7 @@
 import Link from "next/link"
 import type React from "react"
 
-type HubTab = "learn" | "progress" | "bookings" | "blog"
+type HubTab = "learn" | "progress" | "scheduling" | "bookings" | "blog"
 
 type HubStat = {
   label: string
@@ -26,6 +26,7 @@ type LearningHubLayoutProps = {
 const TABS: Array<{ key: HubTab; href: string; label: string }> = [
   { key: "learn", href: "/learn", label: "Courses" },
   { key: "progress", href: "/progress", label: "Progress" },
+  { key: "scheduling", href: "/lesson-scheduling", label: "Scheduling" },
   { key: "bookings", href: "/bookings", label: "Bookings" },
   { key: "blog", href: "/blog", label: "Blog" },
 ]

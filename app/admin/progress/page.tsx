@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react"
 import { useRouter } from "next/navigation"
 import AdminPageShell from "@/app/components/AdminPageShell"
 import { useAuth } from "@/app/contexts/AuthContext"
@@ -18,7 +18,7 @@ type Lesson = {
 
 type StudentOption = {
   id: string
-  email: string
+  email: string | null
   full_name: string | null
 }
 
@@ -53,6 +53,19 @@ const STATUS_OPTIONS: SyllabusStatus[] = [
   "needs_work",
 ]
 
+const normalizeCourseTitle = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/course|training/g, "")
+    .replace(/[^a-z0-9]/g, "")
+
+const getLineBounds = (text: string, cursor: number) => {
+  const lineStart = text.lastIndexOf("\n", Math.max(0, cursor - 1)) + 1
+  const nextNewline = text.indexOf("\n", cursor)
+  const lineEnd = nextNewline === -1 ? text.length : nextNewline
+  return { lineStart, lineEnd }
+}
+
 export default function AdminProgressPage() {
   const { isAdmin, loading: authLoading } = useAuth()
   const router = useRouter()
@@ -69,19 +82,115 @@ export default function AdminProgressPage() {
 
   const [selectedLessonId, setSelectedLessonId] = useState("")
   const [performanceRating, setPerformanceRating] = useState(3)
-  const [strengths, setStrengths] = useState("")
-  const [improvements, setImprovements] = useState("")
-  const [homework, setHomework] = useState("")
-  const [nextLessonFocus, setNextLessonFocus] = useState("")
+  const [briefingFocusAreas, setBriefingFocusAreas] = useState("")
+  const [briefingScenarios, setBriefingScenarios] = useState("")
+  const [briefingPlannedRoute, setBriefingPlannedRoute] = useState("")
+  const [briefingAdditionalInfo, setBriefingAdditionalInfo] = useState("")
+  const [debriefPositiveObservations, setDebriefPositiveObservations] = useState("")
+  const [debriefNegativeObservations, setDebriefNegativeObservations] = useState("")
+  const [debriefReferenceMaterials, setDebriefReferenceMaterials] = useState("")
+  const [debriefSkillsNeedingWork, setDebriefSkillsNeedingWork] = useState("")
+  const [debriefRecommendedStudyPractice, setDebriefRecommendedStudyPractice] = useState("")
+  const [debriefOtherFeedback, setDebriefOtherFeedback] = useState("")
+  const [instructorPrivateNotes, setInstructorPrivateNotes] = useState("")
   const [sendEmail, setSendEmail] = useState(true)
 
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [statusMessage, setStatusMessage] = useState("")
+  const [markCompletePulse, setMarkCompletePulse] = useState(false)
+  const [justCompletedItemId, setJustCompletedItemId] = useState("")
+  const [linkedSourceCourseIds, setLinkedSourceCourseIds] = useState<string[]>([])
+  const [migratingEnrollments, setMigratingEnrollments] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   const findNextOpenItemId = (drafts: Record<string, ItemDraft>) => {
     const next = syllabusItems.find((item) => (drafts[item.id]?.status || "not_started") !== "proficient")
     return next?.id || ""
+  }
+
+  const handleSmartListKeyDown = (
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
+    value: string,
+    setValue: Dispatch<SetStateAction<string>>
+  ) => {
+    const element = event.currentTarget
+    const selectionStart = element.selectionStart
+    const selectionEnd = element.selectionEnd
+    const hasRangeSelection = selectionStart !== selectionEnd
+
+    if (hasRangeSelection) return
+
+    if (event.key === " ") {
+      const { lineStart } = getLineBounds(value, selectionStart)
+      const prefix = value.slice(lineStart, selectionStart)
+
+      if (/^(\*|-)$/i.test(prefix)) {
+        event.preventDefault()
+        const nextValue = `${value.slice(0, lineStart)}• ${value.slice(selectionStart)}`
+        setValue(nextValue)
+        requestAnimationFrame(() => {
+          element.selectionStart = lineStart + 2
+          element.selectionEnd = lineStart + 2
+        })
+        return
+      }
+
+      if (/^\d+\.$/.test(prefix)) {
+        event.preventDefault()
+        const normalized = `${prefix} `
+        const nextValue = `${value.slice(0, lineStart)}${normalized}${value.slice(selectionStart)}`
+        setValue(nextValue)
+        requestAnimationFrame(() => {
+          element.selectionStart = lineStart + normalized.length
+          element.selectionEnd = lineStart + normalized.length
+        })
+      }
+      return
+    }
+
+    if (event.key === "Enter") {
+      const { lineStart, lineEnd } = getLineBounds(value, selectionStart)
+      const lineText = value.slice(lineStart, lineEnd)
+
+      if (/^•\s$/.test(lineText) || /^\d+\.\s$/.test(lineText)) {
+        event.preventDefault()
+        const nextValue = `${value.slice(0, lineStart)}${value.slice(lineEnd)}`
+        setValue(nextValue)
+        requestAnimationFrame(() => {
+          element.selectionStart = lineStart
+          element.selectionEnd = lineStart
+        })
+        return
+      }
+
+      if (/^•\s/.test(lineText)) {
+        event.preventDefault()
+        const insertion = "\n• "
+        const nextValue = `${value.slice(0, selectionStart)}${insertion}${value.slice(selectionStart)}`
+        setValue(nextValue)
+        requestAnimationFrame(() => {
+          const nextCursor = selectionStart + insertion.length
+          element.selectionStart = nextCursor
+          element.selectionEnd = nextCursor
+        })
+        return
+      }
+
+      const orderedMatch = lineText.match(/^(\d+)\.\s/)
+      if (orderedMatch) {
+        event.preventDefault()
+        const nextNumber = Number(orderedMatch[1]) + 1
+        const insertion = `\n${nextNumber}. `
+        const nextValue = `${value.slice(0, selectionStart)}${insertion}${value.slice(selectionStart)}`
+        setValue(nextValue)
+        requestAnimationFrame(() => {
+          const nextCursor = selectionStart + insertion.length
+          element.selectionStart = nextCursor
+          element.selectionEnd = nextCursor
+        })
+      }
+    }
   }
 
   useEffect(() => {
@@ -115,6 +224,7 @@ export default function AdminProgressPage() {
 
     const fetchCourseData = async () => {
       setStatusMessage("")
+      setLinkedSourceCourseIds([])
       const [itemsResult, lessonsResult, enrollmentsResult] = await Promise.all([
         supabase
           .from("syllabus_items")
@@ -144,8 +254,33 @@ export default function AdminProgressPage() {
         }))
       )
 
-      const enrollmentRows = (enrollmentsResult.data as { student_id: string }[] | null) || []
-      const studentIds = enrollmentRows.map((entry) => entry.student_id)
+      let enrollmentRows = (enrollmentsResult.data as { student_id: string }[] | null) || []
+
+      if (enrollmentRows.length === 0) {
+        const selectedCourseRecord = courses.find((course) => course.id === selectedCourse)
+        const normalizedSelected = selectedCourseRecord ? normalizeCourseTitle(selectedCourseRecord.title) : null
+        const relatedCourseIds = normalizedSelected
+          ? courses
+              .filter((course) => course.id !== selectedCourse && normalizeCourseTitle(course.title) === normalizedSelected)
+              .map((course) => course.id)
+          : []
+
+        if (relatedCourseIds.length > 0) {
+          const { data: relatedEnrollmentData } = await supabase
+            .from("enrollments")
+            .select("student_id")
+            .in("course_id", relatedCourseIds)
+
+          const relatedEnrollmentRows = (relatedEnrollmentData as { student_id: string }[] | null) || []
+          if (relatedEnrollmentRows.length > 0) {
+            enrollmentRows = relatedEnrollmentRows
+            setLinkedSourceCourseIds(relatedCourseIds)
+            setStatusMessage("No enrollments on this course record yet. Showing students from a linked course record with the same name.")
+          }
+        }
+      }
+
+      const studentIds = Array.from(new Set(enrollmentRows.map((entry) => entry.student_id).filter(Boolean)))
 
       if (studentIds.length === 0) {
         setStudents([])
@@ -156,8 +291,9 @@ export default function AdminProgressPage() {
       // Fetch students from students table instead of auth users for better name reliability
       const { data: studentsData, error: studentsError } = await supabase
         .from("students")
-        .select("id, email, full_name")
-        .in("id", studentIds)
+        .select("user_id, email, full_name")
+        .in("user_id", studentIds)
+        .not("user_id", "is", null)
         .order("full_name", { ascending: true })
 
       if (studentsError) {
@@ -165,7 +301,14 @@ export default function AdminProgressPage() {
         return
       }
 
-      const students_list: StudentOption[] = studentsData || []
+      const students_list: StudentOption[] =
+        (studentsData || [])
+          .filter((row: any) => Boolean(row.user_id))
+          .map((row: any) => ({
+            id: row.user_id as string,
+            email: row.email || null,
+            full_name: row.full_name || null,
+          }))
       setStudents(students_list)
       if (!students_list.find((u) => u.id === selectedStudentId)) {
         setSelectedStudentId(students_list[0]?.id || "")
@@ -173,7 +316,48 @@ export default function AdminProgressPage() {
     }
 
     fetchCourseData()
-  }, [selectedCourse, selectedStudentId])
+  }, [selectedCourse, selectedStudentId, reloadKey])
+
+  const migrateLinkedEnrollments = async () => {
+    if (!selectedCourse || linkedSourceCourseIds.length === 0) return
+
+    setMigratingEnrollments(true)
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error("Missing admin session")
+      }
+
+      const response = await fetch("/api/admin/enrollments/migrate-course", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          targetCourseId: selectedCourse,
+          sourceCourseIds: linkedSourceCourseIds,
+        }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.error || "Unable to migrate enrollments")
+      }
+
+      setStatusMessage(`Enrollment migration complete. Inserted ${result.inserted || 0}, skipped ${result.skipped || 0}.`)
+      setLinkedSourceCourseIds([])
+      setReloadKey((previous) => previous + 1)
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to migrate enrollments")
+    } finally {
+      setMigratingEnrollments(false)
+    }
+  }
 
   useEffect(() => {
     if (!selectedStudentId || syllabusItems.length === 0) {
@@ -220,11 +404,17 @@ export default function AdminProgressPage() {
   const handleMarkFocusedComplete = () => {
     if (!focusedSyllabusItemId) return
 
+    const completedItemId = focusedSyllabusItemId
+    setMarkCompletePulse(true)
+    setJustCompletedItemId(completedItemId)
+    setTimeout(() => setMarkCompletePulse(false), 220)
+    setTimeout(() => setJustCompletedItemId((current) => (current === completedItemId ? "" : current)), 1600)
+
     setItemDrafts((previous) => {
       const nextDrafts: Record<string, ItemDraft> = {
         ...previous,
-        [focusedSyllabusItemId]: {
-          ...(previous[focusedSyllabusItemId] || {
+        [completedItemId]: {
+          ...(previous[completedItemId] || {
             status: "not_started",
             score: "",
             instructorNotes: "",
@@ -233,7 +423,7 @@ export default function AdminProgressPage() {
         },
       }
 
-      const currentIndex = syllabusItems.findIndex((item) => item.id === focusedSyllabusItemId)
+      const currentIndex = syllabusItems.findIndex((item) => item.id === completedItemId)
       const nextItem = syllabusItems
         .slice(currentIndex + 1)
         .find((item) => (nextDrafts[item.id]?.status || "not_started") !== "proficient")
@@ -251,8 +441,9 @@ export default function AdminProgressPage() {
     [students, selectedStudentId]
   )
 
-  const handleSubmitEvaluation = async (e: React.FormEvent) => {
+  const handleSubmitEvaluation = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+
     if (!selectedCourse || !selectedStudentId || syllabusItems.length === 0) {
       setStatusMessage("Select a course, student, and syllabus items first")
       return
@@ -300,10 +491,21 @@ export default function AdminProgressPage() {
         studentId: selectedStudentId,
         lessonId: selectedLessonId || null,
         performanceRating,
-        strengths,
-        improvements,
-        homework,
-        nextLessonFocus,
+        briefingNotes: {
+          focusAreas: briefingFocusAreas,
+          scenarios: briefingScenarios,
+          plannedRoute: briefingPlannedRoute,
+          additionalInfo: briefingAdditionalInfo,
+        },
+        debrief: {
+          positiveObservations: debriefPositiveObservations,
+          negativeObservations: debriefNegativeObservations,
+          referenceMaterials: debriefReferenceMaterials,
+          skillsNeedingWork: debriefSkillsNeedingWork,
+          recommendedStudyPractice: debriefRecommendedStudyPractice,
+          otherFeedback: debriefOtherFeedback,
+        },
+        instructorPrivateNotes,
         syllabusUpdates,
         sendEmail,
       }),
@@ -317,13 +519,27 @@ export default function AdminProgressPage() {
       return
     }
 
+    const statusParts: string[] = ["Evaluation saved"]
+
     if (result.emailSent) {
-      setStatusMessage("Evaluation saved and student email sent")
+      statusParts.push("debrief email sent")
     } else if (sendEmail && result.emailError) {
-      setStatusMessage(`Evaluation saved, but email failed: ${result.emailError}`)
-    } else {
-      setStatusMessage("Evaluation saved")
+      statusParts.push(`debrief email failed: ${result.emailError}`)
     }
+
+    if (result.homeworkEmailStatus === "queued_on_completion") {
+      statusParts.push("homework email will queue when the student completes the lesson")
+    } else if (result.homeworkEmailStatus === "pending") {
+      statusParts.push(
+        result.homeworkQueuedFor
+          ? `homework email queued for ${new Date(result.homeworkQueuedFor).toLocaleString()}`
+          : "homework email queued"
+      )
+    } else if (result.homeworkEmailStatus === "failed") {
+      statusParts.push(`homework email failed: ${result.homeworkEmailError || "Unknown error"}`)
+    }
+
+    setStatusMessage(statusParts.join(" | "))
 
     setItemDrafts(nextDrafts)
     setFocusedSyllabusItemId(findNextOpenItemId(nextDrafts))
@@ -376,6 +592,42 @@ export default function AdminProgressPage() {
         </select>
       </div>
 
+      {linkedSourceCourseIds.length > 0 && (
+        <div
+          style={{
+            marginBottom: "16px",
+            background: "#FFFBEB",
+            border: "1px solid #FCD34D",
+            borderRadius: "10px",
+            padding: "12px 14px",
+            display: "grid",
+            gap: "8px",
+          }}
+        >
+          <p style={{ margin: 0, color: "#92400E", fontSize: "14px" }}>
+            Students are currently loaded from linked course records with similar names. Migrate those enrollments into this selected course to permanently fix debrief visibility.
+          </p>
+          <button
+            type="button"
+            onClick={() => void migrateLinkedEnrollments()}
+            disabled={migratingEnrollments}
+            style={{
+              justifySelf: "start",
+              background: "#92400E",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              padding: "10px 14px",
+              fontWeight: 600,
+              cursor: "pointer",
+              opacity: migratingEnrollments ? 0.7 : 1,
+            }}
+          >
+            {migratingEnrollments ? "Migrating Enrollments..." : "Migrate Linked Enrollments to This Course"}
+          </button>
+        </div>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
         <section style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "20px" }}>
           <h2 style={{ marginTop: 0 }}>Lesson Evaluation</h2>
@@ -402,9 +654,20 @@ export default function AdminProgressPage() {
                 <button
                   type="button"
                   onClick={handleMarkFocusedComplete}
-                  style={{ background: "#10B981", color: "white", border: "none", borderRadius: "8px", padding: "10px 14px", fontWeight: 600, cursor: "pointer" }}
+                  style={{
+                    background: "#10B981",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 14px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transform: markCompletePulse ? "translateY(1px) scale(0.97)" : "translateY(0) scale(1)",
+                    boxShadow: markCompletePulse ? "inset 0 2px 8px rgba(0,0,0,0.18)" : "0 2px 6px rgba(16, 185, 129, 0.25)",
+                    transition: "transform 180ms ease, box-shadow 180ms ease",
+                  }}
                 >
-                  Mark Complete
+                  {markCompletePulse ? "Marked" : "Mark Complete"}
                 </button>
               </div>
             </div>
@@ -452,16 +715,48 @@ export default function AdminProgressPage() {
             </div>
 
             {syllabusItems.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  border: focusedSyllabusItemId === item.id ? "2px solid #C59A2A" : "1px solid #E5E7EB",
-                  background: focusedSyllabusItemId === item.id ? "#FFFBEB" : "#FFFFFF",
-                  borderRadius: "10px",
-                  padding: "12px",
-                }}
-              >
-                <p style={{ margin: "0 0 8px 0", fontWeight: 600 }}>{item.title}</p>
+              <div key={item.id}>
+                {(() => {
+                  const itemStatus = itemDrafts[item.id]?.status || "not_started"
+                  const isProficient = itemStatus === "proficient"
+                  const isFocused = focusedSyllabusItemId === item.id
+                  const isJustCompleted = justCompletedItemId === item.id
+
+                  return (
+                    <div
+                      style={{
+                        border: isProficient
+                          ? "2px solid #059669"
+                          : isFocused
+                          ? "2px solid #C59A2A"
+                          : "1px solid #E5E7EB",
+                        background: isProficient ? "#ECFDF5" : isFocused ? "#FFFBEB" : "#FFFFFF",
+                        borderRadius: "10px",
+                        padding: "12px",
+                        boxShadow: isJustCompleted ? "0 0 0 3px rgba(16,185,129,0.25)" : "none",
+                        transition: "background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", marginBottom: "8px" }}>
+                        <p style={{ margin: 0, fontWeight: 600 }}>{item.title}</p>
+                        {isProficient && (
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: 700,
+                              letterSpacing: "0.04em",
+                              color: "#065F46",
+                              background: "#D1FAE5",
+                              border: "1px solid #6EE7B7",
+                              borderRadius: "999px",
+                              padding: "3px 8px",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            COMPLETE
+                          </span>
+                        )}
+                      </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: "10px", marginBottom: "10px" }}>
                   <select
                     value={itemDrafts[item.id]?.status || "not_started"}
@@ -515,60 +810,148 @@ export default function AdminProgressPage() {
                   }
                   style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", width: "100%" }}
                 />
+                    </div>
+                  )
+                })()}
               </div>
             ))}
 
-            <textarea
-              rows={3}
-              value={strengths}
-              onChange={(e) => setStrengths(e.target.value)}
-              placeholder="What went well"
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
-            />
-            <textarea
-              rows={3}
-              value={improvements}
-              onChange={(e) => setImprovements(e.target.value)}
-              placeholder="What to improve"
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
-            />
-            <textarea
-              rows={3}
-              value={homework}
-              onChange={(e) => setHomework(e.target.value)}
-              placeholder="Homework / prep for next lesson"
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
-            />
-            <textarea
-              rows={2}
-              value={nextLessonFocus}
-              onChange={(e) => setNextLessonFocus(e.target.value)}
-              placeholder="Next lesson focus"
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
-            />
+            <div style={{ display: "grid", gap: "10px", padding: "12px", borderRadius: "10px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
+              <p style={{ margin: 0, fontWeight: 600 }}>Briefing Notes (shared with student)</p>
+              <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
+                Add what the student should expect before the scheduled flight, ground, or simulator event.
+              </p>
+              <textarea
+                rows={2}
+                value={briefingFocusAreas}
+                onChange={(e) => setBriefingFocusAreas(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, briefingFocusAreas, setBriefingFocusAreas)}
+                placeholder="Areas of focus"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+              <textarea
+                rows={2}
+                value={briefingScenarios}
+                onChange={(e) => setBriefingScenarios(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, briefingScenarios, setBriefingScenarios)}
+                placeholder="Scenarios for this event"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+              <textarea
+                rows={2}
+                value={briefingPlannedRoute}
+                onChange={(e) => setBriefingPlannedRoute(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, briefingPlannedRoute, setBriefingPlannedRoute)}
+                placeholder="Planned route"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+              <textarea
+                rows={2}
+                value={briefingAdditionalInfo}
+                onChange={(e) => setBriefingAdditionalInfo(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, briefingAdditionalInfo, setBriefingAdditionalInfo)}
+                placeholder="Additional information to be prepared"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+            </div>
+
+            <div style={{ display: "grid", gap: "10px", padding: "12px", borderRadius: "10px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
+              <p style={{ margin: 0, fontWeight: 600 }}>Debrief (shared with student)</p>
+              <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
+                Capture performance observations and action items tied to Merlin Flight Training materials, FAA sources, and/or ACS standards.
+              </p>
+              <textarea
+                rows={3}
+                value={debriefPositiveObservations}
+                onChange={(e) => setDebriefPositiveObservations(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, debriefPositiveObservations, setDebriefPositiveObservations)}
+                placeholder="Positive performance observations"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+              <textarea
+                rows={3}
+                value={debriefNegativeObservations}
+                onChange={(e) => setDebriefNegativeObservations(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, debriefNegativeObservations, setDebriefNegativeObservations)}
+                placeholder="Negative performance observations"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+              <textarea
+                rows={3}
+                value={debriefReferenceMaterials}
+                onChange={(e) => setDebriefReferenceMaterials(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, debriefReferenceMaterials, setDebriefReferenceMaterials)}
+                placeholder="References used (Merlin material, FAA source, ACS)"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+              <textarea
+                rows={3}
+                value={debriefSkillsNeedingWork}
+                onChange={(e) => setDebriefSkillsNeedingWork(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, debriefSkillsNeedingWork, setDebriefSkillsNeedingWork)}
+                placeholder="Knowledge and skills needing work before the next meeting"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+              <textarea
+                rows={3}
+                value={debriefRecommendedStudyPractice}
+                onChange={(e) => setDebriefRecommendedStudyPractice(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, debriefRecommendedStudyPractice, setDebriefRecommendedStudyPractice)}
+                placeholder="Recommended study and practice"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+              <textarea
+                rows={3}
+                value={debriefOtherFeedback}
+                onChange={(e) => setDebriefOtherFeedback(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, debriefOtherFeedback, setDebriefOtherFeedback)}
+                placeholder="Other feedback to help the student prepare for the next training event"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+            </div>
 
             <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} />
               Email debrief to student after save
             </label>
 
-            <button
-              type="submit"
-              disabled={submitting || !selectedStudentId || syllabusItems.length === 0}
-              style={{
-                background: "#111827",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                padding: "12px 18px",
-                fontWeight: 600,
-                cursor: "pointer",
-                width: "fit-content",
-                opacity: submitting || !selectedStudentId || syllabusItems.length === 0 ? 0.65 : 1,
-              }}
-            >
-              {submitting ? "Saving..." : "Save Evaluation"}
-            </button>
+            <div style={{ display: "grid", gap: "8px", padding: "10px", borderRadius: "8px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
+              <label style={{ fontWeight: 600 }}>Instructor Notes (WILL NOT BE SHARED WITH STUDENT)</label>
+              <textarea
+                rows={3}
+                value={instructorPrivateNotes}
+                onChange={(e) => setInstructorPrivateNotes(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, instructorPrivateNotes, setInstructorPrivateNotes)}
+                placeholder="Internal instructor notes"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+            </div>
+
+            <div style={{ display: "grid", gap: "8px" }}>
+              <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
+                Homework email behavior after lesson completion.
+              </p>
+              <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
+                Email queueing is triggered when the student completes the lesson. Manual push/hold remains available in the Students workspace.
+              </p>
+              <button
+                type="submit"
+                disabled={submitting || !selectedStudentId || syllabusItems.length === 0}
+                style={{
+                  background: "#111827",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "12px 18px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  opacity: submitting || !selectedStudentId || syllabusItems.length === 0 ? 0.65 : 1,
+                  justifySelf: "start",
+                }}
+              >
+                {submitting ? "Saving..." : "Save Lesson Evaluation"}
+              </button>
+            </div>
           </form>
         </section>
       </div>

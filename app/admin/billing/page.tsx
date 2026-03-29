@@ -14,6 +14,7 @@ type BillingStudent = {
   userId: string | null
   fullName: string
   email: string | null
+  phone: string | null
   preferredCurrency: string
   trainingItemIds: string[]
   stripeCustomerId: string | null
@@ -122,6 +123,8 @@ export default function AdminBillingPage() {
   const [statusMessage, setStatusMessage] = useState("")
   const [loading, setLoading] = useState(true)
   const [creatingCheckout, setCreatingCheckout] = useState(false)
+  const [pushingCheckout, setPushingCheckout] = useState<"email" | "text" | "copy" | null>(null)
+  const [sendingAccountantText, setSendingAccountantText] = useState(false)
 
   const [clientSecret, setClientSecret] = useState("")
   const [checkoutTotals, setCheckoutTotals] = useState<CheckoutTotals | null>(null)
@@ -259,6 +262,113 @@ export default function AdminBillingPage() {
     }
   }
 
+  const pushCheckoutLink = async (deliveryMethod: "email" | "text" | "copy") => {
+    if (!selectedStudentId) {
+      setStatusMessage("Select a student first")
+      return
+    }
+
+    const validLines = checkoutLines.filter((line) => line.itemId && line.quantity > 0)
+    if (validLines.length === 0) {
+      setStatusMessage("Add at least one training item")
+      return
+    }
+
+    if (deliveryMethod === "email" && !selectedStudent?.email) {
+      setStatusMessage("Selected student does not have an email address")
+      return
+    }
+
+    if (deliveryMethod === "text" && !selectedStudent?.phone) {
+      setStatusMessage("Selected student does not have a phone number")
+      return
+    }
+
+    setPushingCheckout(deliveryMethod)
+    setStatusMessage("")
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) throw new Error("Missing admin session")
+
+      const response = await fetch("/api/admin/billing/push-checkout-link", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          studentId: selectedStudentId,
+          currency,
+          note,
+          itemSelections: validLines,
+          deliveryMethod,
+        }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || "Unable to push checkout link")
+
+      if (deliveryMethod === "copy") {
+        const checkoutUrl = result.checkoutUrl as string | undefined
+        if (!checkoutUrl) throw new Error("Checkout link was not returned")
+
+        if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(checkoutUrl)
+          setStatusMessage("Checkout link copied to clipboard")
+        } else {
+          setStatusMessage(`Checkout link generated: ${checkoutUrl}`)
+        }
+      } else {
+        setStatusMessage(
+          deliveryMethod === "email"
+            ? "Checkout link emailed to student"
+            : "Checkout link sent to student by text"
+        )
+      }
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to push checkout link")
+    } finally {
+      setPushingCheckout(null)
+    }
+  }
+
+  const sendAccountantTextReport = async () => {
+    setSendingAccountantText(true)
+    setStatusMessage("")
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) throw new Error("Missing admin session")
+
+      const response = await fetch('/api/admin/billing/accountant-text', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ daysBack: 7 }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || 'Unable to text accountant report')
+
+      setStatusMessage(
+        `Accountant text sent (${result.count || 0} transactions, ${result.mediaCount || 0} receipt/invoice attachment link(s)).`
+      )
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Unable to text accountant report')
+    } finally {
+      setSendingAccountantText(false)
+    }
+  }
+
   if (authLoading || loading) {
     return (
       <div className="mx-auto max-w-6xl p-8">
@@ -276,6 +386,14 @@ export default function AdminBillingPage() {
       maxWidthClassName="max-w-7xl"
       actions={
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void sendAccountantTextReport()}
+            disabled={sendingAccountantText}
+            className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 disabled:opacity-60"
+          >
+            {sendingAccountantText ? 'Sending Accountant Text...' : 'Text Accountant Purchases/Expenses'}
+          </button>
           <Link
             href="/admin/items"
             className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
@@ -451,6 +569,36 @@ export default function AdminBillingPage() {
               >
                 {creatingCheckout ? "Creating checkout..." : "Create Checkout"}
               </button>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void pushCheckoutLink("copy")}
+                  disabled={Boolean(pushingCheckout) || totals.totalCents <= 0}
+                  className="rounded-lg border border-slate-300 bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
+                >
+                  {pushingCheckout === "copy" ? "Generating link..." : "Copy Checkout Link"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void pushCheckoutLink("email")}
+                  disabled={Boolean(pushingCheckout) || totals.totalCents <= 0 || !selectedStudent?.email}
+                  className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 disabled:opacity-60"
+                >
+                  {pushingCheckout === "email" ? "Sending email..." : "Push Checkout Link (Email)"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void pushCheckoutLink("text")}
+                  disabled={Boolean(pushingCheckout) || totals.totalCents <= 0 || !selectedStudent?.phone}
+                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 disabled:opacity-60"
+                >
+                  {pushingCheckout === "text" ? "Sending text..." : "Push Checkout Link (Text)"}
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                Email uses the student email on file. Text uses the student phone number on file.
+              </p>
 
               {clientSecret && checkoutTotals ? (
                 <div className="mt-6 rounded-xl border border-slate-200 p-4">

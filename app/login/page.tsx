@@ -19,24 +19,30 @@ function LoginForm() {
     if (saved) setEmail(saved)
   }, [])
 
-  // If magic link sign-in completes on this page, continue to schedule.
+  // If magic link sign-in completes on this page, continue to selected destination.
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace('/schedule')
+      const destination = localStorage.getItem('post_login_destination') || '/schedule'
+      localStorage.removeItem('post_login_destination')
+      router.replace(destination)
     }
   }, [authLoading, user, router])
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const sendMagicLink = async (destination: '/schedule' | '/onboarding' = '/schedule') => {
     setLoading(true)
     setMessage('')
     
     // Save email for next time
     localStorage.setItem('signin_email', email)
+    localStorage.setItem('post_login_destination', destination)
 
     try {
       await signIn(email)
-      setMessage('✉️ Check your email for the magic link! It may take a few minutes to arrive.')
+      if (destination === '/onboarding') {
+        setMessage('✉️ Check your email for the magic link! After sign-in, we will guide you through onboarding setup.')
+      } else {
+        setMessage('✉️ Check your email for the magic link! It may take a few minutes to arrive.')
+      }
     } catch (error: any) {
       console.error('Sign in error:', error)
       const errorMessage = error?.message || 'Error signing in. Please try again.'
@@ -44,6 +50,11 @@ function LoginForm() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await sendMagicLink('/schedule')
   }
 
   return (
@@ -129,6 +140,14 @@ function LoginForm() {
             <p className="text-sm text-gray-600">
               Don't have an account? The magic link will create one for you!
             </p>
+            <button
+              type="button"
+              onClick={() => void sendMagicLink('/onboarding')}
+              disabled={loading}
+              className="mt-2 text-sm font-semibold text-blue-700 hover:text-blue-800 underline disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              Already a student? Setup your account.
+            </button>
           </div>
         </form>
       </div>

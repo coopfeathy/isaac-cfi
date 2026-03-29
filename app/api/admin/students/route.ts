@@ -99,6 +99,28 @@ type LessonEvaluationRow = {
   email_sent_at: string | null
 }
 
+type LessonEvaluationPrivateNoteRow = {
+  lesson_evaluation_id: string
+  notes: string
+  created_at: string
+}
+
+type HomeworkEmailQueueRow = {
+  lesson_evaluation_id: string
+  status: 'pending' | 'held' | 'sent' | 'failed'
+  send_after_at: string | null
+  sent_at: string | null
+  last_error: string | null
+}
+
+type InstructionalQualityRatingRow = {
+  lesson_evaluation_id: string
+  rating: number
+  feedback: string | null
+  created_at: string
+  updated_at: string
+}
+
 async function requireAdmin(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (!authHeader) {
@@ -161,6 +183,19 @@ export async function GET(request: NextRequest) {
       supabaseAdmin.auth.admin.listUsers(),
     ])
 
+    const privateNotesResult = await supabaseAdmin
+      .from('lesson_evaluation_private_notes')
+      .select('lesson_evaluation_id, notes, created_at')
+      .order('created_at', { ascending: false })
+
+    const homeworkQueueResult = await supabaseAdmin
+      .from('homework_email_queue')
+      .select('lesson_evaluation_id, status, send_after_at, sent_at, last_error')
+
+    const instructionalRatingsResult = await supabaseAdmin
+      .from('lesson_instructional_quality_ratings')
+      .select('lesson_evaluation_id, rating, feedback, created_at, updated_at')
+
     if (studentsResult.error) throw studentsResult.error
     if (coursesResult.error) throw coursesResult.error
     if (unitsResult.error) throw unitsResult.error
@@ -171,6 +206,15 @@ export async function GET(request: NextRequest) {
     if (syllabusProgressResult.error) throw syllabusProgressResult.error
     if (evaluationsResult.error) throw evaluationsResult.error
     if (authUsersResult.error) throw authUsersResult.error
+    if (privateNotesResult.error && privateNotesResult.error.code !== '42P01') {
+      throw privateNotesResult.error
+    }
+    if (homeworkQueueResult.error && homeworkQueueResult.error.code !== '42P01') {
+      throw homeworkQueueResult.error
+    }
+    if (instructionalRatingsResult.error && instructionalRatingsResult.error.code !== '42P01') {
+      throw instructionalRatingsResult.error
+    }
 
     const students = (studentsResult.data || []) as StudentRow[]
     const courses = (coursesResult.data || []) as CourseRow[]
@@ -181,7 +225,27 @@ export async function GET(request: NextRequest) {
     const syllabusItems = (syllabusItemsResult.data || []) as SyllabusItemRow[]
     const syllabusProgressRows = (syllabusProgressResult.data || []) as SyllabusProgressRow[]
     const evaluationRows = (evaluationsResult.data || []) as LessonEvaluationRow[]
+    const privateNoteRows = (privateNotesResult.data || []) as LessonEvaluationPrivateNoteRow[]
+    const homeworkQueueRows = (homeworkQueueResult.data || []) as HomeworkEmailQueueRow[]
+    const instructionalRatingRows = (instructionalRatingsResult.data || []) as InstructionalQualityRatingRow[]
     const authUsers = authUsersResult.data.users || []
+
+    const privateNotesByEvaluationId = new Map<string, string>()
+    privateNoteRows.forEach((row) => {
+      if (!privateNotesByEvaluationId.has(row.lesson_evaluation_id)) {
+        privateNotesByEvaluationId.set(row.lesson_evaluation_id, row.notes)
+      }
+    })
+
+    const homeworkQueueByEvaluationId = new Map<string, HomeworkEmailQueueRow>()
+    homeworkQueueRows.forEach((row) => {
+      homeworkQueueByEvaluationId.set(row.lesson_evaluation_id, row)
+    })
+
+    const instructionalRatingByEvaluationId = new Map<string, InstructionalQualityRatingRow>()
+    instructionalRatingRows.forEach((row) => {
+      instructionalRatingByEvaluationId.set(row.lesson_evaluation_id, row)
+    })
 
     const studentUserIds = Array.from(new Set(students.map((student) => student.user_id).filter(Boolean))) as string[]
     const profilesResult = studentUserIds.length
@@ -336,6 +400,8 @@ export async function GET(request: NextRequest) {
         : null
 
       const recentEvaluations = evaluationsForStudent.slice(0, 5).map((row) => ({
+        homeworkQueue: homeworkQueueByEvaluationId.get(row.id) || null,
+        instructionalQualityRating: instructionalRatingByEvaluationId.get(row.id) || null,
         id: row.id,
         courseId: row.course_id,
         courseTitle: courseById.get(row.course_id)?.title || 'Untitled Course',
@@ -346,6 +412,7 @@ export async function GET(request: NextRequest) {
         improvements: row.improvements,
         homework: row.homework,
         nextLessonFocus: row.next_lesson_focus,
+        instructorPrivateNotes: privateNotesByEvaluationId.get(row.id) || null,
         createdAt: row.created_at,
         emailSentAt: row.email_sent_at,
       }))

@@ -100,10 +100,18 @@ export const emailTemplates = {
     courseTitle: string
     lessonTitle?: string | null
     performanceRating: number
-    strengths?: string | null
-    improvements?: string | null
-    homework?: string | null
-    nextLessonFocus?: string | null
+    positiveObservations?: string | null
+    negativeObservations?: string | null
+    referenceMaterials?: string | null
+    recommendedStudyPractice?: string | null
+    skillsNeedingWork?: string | null
+    otherFeedback?: string | null
+    satisfactory?: string | null
+    unsatisfactory?: string | null
+    deteriorating?: string | null
+    recommendations?: string | null
+    practiceToProficiency?: string | null
+    briefingSummary?: string | null
     progressSummary: Array<{ title: string; status: string }>
   }) => ({
     subject: `Training Debrief: ${payload.courseTitle} - Merlin Flight Training`,

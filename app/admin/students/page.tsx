@@ -28,6 +28,18 @@ type StudentCourseSummary = {
 }
 
 type StudentEvaluation = {
+  homeworkQueue: {
+    status: 'pending' | 'held' | 'sent' | 'failed'
+    send_after_at: string | null
+    sent_at: string | null
+    last_error: string | null
+  } | null
+  instructionalQualityRating: {
+    rating: number
+    feedback: string | null
+    created_at: string
+    updated_at: string
+  } | null
   id: string
   courseId: string
   courseTitle: string
@@ -38,6 +50,7 @@ type StudentEvaluation = {
   improvements: string | null
   homework: string | null
   nextLessonFocus: string | null
+  instructorPrivateNotes: string | null
   createdAt: string
   emailSentAt: string | null
 }
@@ -181,6 +194,7 @@ export default function AdminStudentsPage() {
   })
   const [savingSettings, setSavingSettings] = useState(false)
   const [settingsMessage, setSettingsMessage] = useState('')
+  const [homeworkActionLoadingId, setHomeworkActionLoadingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (authLoading) return
@@ -322,6 +336,41 @@ export default function AdminStudentsPage() {
       setSettingsMessage(error instanceof Error ? error.message : 'Unable to save billing settings')
     } finally {
       setSavingSettings(false)
+    }
+  }
+
+  const handleHomeworkEmailAction = async (evaluationId: string, action: 'send_now' | 'hold') => {
+    setHomeworkActionLoadingId(evaluationId)
+    setErrorMessage('')
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error('Missing session. Please sign in again.')
+      }
+
+      const response = await fetch('/api/admin/homework-emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ evaluationId, action }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.error || 'Unable to update homework email status')
+      }
+
+      await fetchStudents()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to update homework email status')
+    } finally {
+      setHomeworkActionLoadingId(null)
     }
   }
 
@@ -769,7 +818,7 @@ export default function AdminStudentsPage() {
 
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h3 className="text-lg font-bold text-darkText">Recent Lesson Evaluations</h3>
-                <p className="mt-1 text-sm text-slate-500">Latest debriefs, strengths, homework, and next-step notes emailed or saved by instructors.</p>
+                <p className="mt-1 text-sm text-slate-500">Latest debriefs, strengths, homework, next-step notes, and instructor-only notes.</p>
                 <div className="mt-5 space-y-4">
                   {selectedStudent.recentEvaluations.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
@@ -797,6 +846,52 @@ export default function AdminStudentsPage() {
                             <p className="text-xs text-slate-500">{evaluation.emailSentAt ? 'Emailed to student' : 'Saved only'}</p>
                           </div>
                         </div>
+
+                        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Instructional Quality Rating</p>
+                          <p className="mt-2 text-sm text-slate-700">
+                            {evaluation.instructionalQualityRating
+                              ? `${'★'.repeat(Math.max(0, Math.min(5, evaluation.instructionalQualityRating.rating)))}${'☆'.repeat(Math.max(0, 5 - Math.min(5, evaluation.instructionalQualityRating.rating)))} (${evaluation.instructionalQualityRating.rating}/5)`
+                              : 'Not rated by student yet'}
+                          </p>
+                          {evaluation.instructionalQualityRating?.feedback ? (
+                            <p className="mt-2 text-sm text-slate-700 whitespace-pre-wrap">{evaluation.instructionalQualityRating.feedback}</p>
+                          ) : null}
+                        </div>
+
+                        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Homework Email</p>
+                          <p className="mt-2 text-sm text-slate-700">
+                            {evaluation.homeworkQueue?.status === 'sent'
+                              ? `Sent ${formatDateTime(evaluation.homeworkQueue.sent_at)}`
+                              : evaluation.homeworkQueue?.status === 'held'
+                                ? 'On hold until instructor action'
+                                : evaluation.homeworkQueue?.status === 'pending'
+                                  ? `Queued for ${formatDateTime(evaluation.homeworkQueue.send_after_at)}`
+                                  : evaluation.homeworkQueue?.status === 'failed'
+                                    ? `Failed: ${evaluation.homeworkQueue.last_error || 'Unknown error'}`
+                                    : 'Not queued yet'}
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void handleHomeworkEmailAction(evaluation.id, 'send_now')}
+                              disabled={homeworkActionLoadingId === evaluation.id}
+                              className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                            >
+                              {homeworkActionLoadingId === evaluation.id ? 'Working...' : 'Push Homework Email'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleHomeworkEmailAction(evaluation.id, 'hold')}
+                              disabled={homeworkActionLoadingId === evaluation.id}
+                              className="rounded-lg bg-amber-700 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-800 disabled:opacity-60"
+                            >
+                              {homeworkActionLoadingId === evaluation.id ? 'Working...' : 'Hold Homework Email'}
+                            </button>
+                          </div>
+                        </div>
+
                         <div className="mt-4 grid gap-4 md:grid-cols-2">
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Strengths</p>
@@ -814,6 +909,14 @@ export default function AdminStudentsPage() {
                             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Next Lesson Focus</p>
                             <p className="mt-2 text-sm text-slate-700 whitespace-pre-wrap">{evaluation.nextLessonFocus || 'No next-step focus recorded.'}</p>
                           </div>
+                        </div>
+                        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">
+                            Instructor Notes (WILL NOT BE SHARED WITH STUDENT)
+                          </p>
+                          <p className="mt-2 text-sm text-amber-900 whitespace-pre-wrap">
+                            {evaluation.instructorPrivateNotes || 'No instructor-only notes recorded.'}
+                          </p>
                         </div>
                       </div>
                     ))
