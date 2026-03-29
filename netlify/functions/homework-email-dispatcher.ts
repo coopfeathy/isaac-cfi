@@ -47,8 +47,8 @@ const sendHomeworkEmail = async (params: {
         ${params.lessonTitle ? `<p style="margin: 0;"><strong>Upcoming Lesson:</strong> ${params.lessonTitle}</p>` : ''}
       </div>
 
-      ${params.recommendations ? `<h3 style="margin-bottom: 6px;">Instructor Recommendations</h3><p style="margin-top: 0; white-space: pre-wrap;">${params.recommendations}</p>` : ''}
-      ${params.practiceToProficiency ? `<h3 style="margin-bottom: 6px;">Practice To Proficiency</h3><p style="margin-top: 0; white-space: pre-wrap;">${params.practiceToProficiency}</p>` : ''}
+      ${params.recommendations ? `<h3 style="margin-bottom: 6px;">Recommended Study and Practice</h3><p style="margin-top: 0; white-space: pre-wrap;">${params.recommendations}</p>` : ''}
+      ${params.practiceToProficiency ? `<h3 style="margin-bottom: 6px;">Knowledge and Skills Needing Work</h3><p style="margin-top: 0; white-space: pre-wrap;">${params.practiceToProficiency}</p>` : ''}
       ${params.briefingSummary ? `<h3 style="margin-bottom: 6px;">Briefing Notes</h3><p style="margin-top: 0; white-space: pre-wrap;">${params.briefingSummary}</p>` : ''}
 
       <p style="margin-top: 24px; color: #4b5563;">Please practice these items to proficiency before your next flight, ground, or simulator event.</p>

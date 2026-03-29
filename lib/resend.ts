@@ -83,6 +83,12 @@ export const emailTemplates = {
     courseTitle: string
     lessonTitle?: string | null
     performanceRating: number
+    positiveObservations?: string | null
+    negativeObservations?: string | null
+    referenceMaterials?: string | null
+    recommendedStudyPractice?: string | null
+    skillsNeedingWork?: string | null
+    otherFeedback?: string | null
     satisfactory?: string | null
     unsatisfactory?: string | null
     deteriorating?: string | null
@@ -104,11 +110,12 @@ export const emailTemplates = {
         </div>
 
         ${payload.briefingSummary ? `<h3 style="margin-bottom: 6px;">Briefing Notes</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.briefingSummary}</p>` : ""}
-        ${payload.satisfactory ? `<h3 style="margin-bottom: 6px;">Satisfactory</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.satisfactory}</p>` : ""}
-        ${payload.unsatisfactory ? `<h3 style="margin-bottom: 6px;">Unsatisfactory</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.unsatisfactory}</p>` : ""}
-        ${payload.deteriorating ? `<h3 style="margin-bottom: 6px;">Deteriorating</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.deteriorating}</p>` : ""}
-        ${payload.recommendations ? `<h3 style="margin-bottom: 6px;">Instructor Recommendations</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.recommendations}</p>` : ""}
-        ${payload.practiceToProficiency ? `<h3 style="margin-bottom: 6px;">Practice To Proficiency</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.practiceToProficiency}</p>` : ""}
+        ${payload.positiveObservations || payload.satisfactory ? `<h3 style="margin-bottom: 6px;">Positive Performance Observations</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.positiveObservations || payload.satisfactory}</p>` : ""}
+        ${payload.negativeObservations || payload.unsatisfactory ? `<h3 style="margin-bottom: 6px;">Negative Performance Observations</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.negativeObservations || payload.unsatisfactory}</p>` : ""}
+        ${payload.referenceMaterials || payload.deteriorating ? `<h3 style="margin-bottom: 6px;">Reference Materials and Standards</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.referenceMaterials || payload.deteriorating}</p>` : ""}
+        ${payload.skillsNeedingWork || payload.practiceToProficiency ? `<h3 style="margin-bottom: 6px;">Knowledge and Skills Needing Work</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.skillsNeedingWork || payload.practiceToProficiency}</p>` : ""}
+        ${payload.recommendedStudyPractice || payload.recommendations ? `<h3 style="margin-bottom: 6px;">Recommended Study and Practice</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.recommendedStudyPractice || payload.recommendations}</p>` : ""}
+        ${payload.otherFeedback ? `<h3 style="margin-bottom: 6px;">Additional Feedback</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.otherFeedback}</p>` : ""}
 
         <h3 style="margin-bottom: 8px;">Syllabus Progress Snapshot</h3>
         <ul style="padding-left: 20px;">

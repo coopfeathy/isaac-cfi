@@ -305,12 +305,19 @@ export default function ProgressPage() {
         ) : (
           <div style={{ display: "grid", gap: "12px" }}>
             {evaluations.map((entry) => {
-              const unsatisfactory = extractLabeledSection(entry.improvements, "Unsatisfactory") || entry.improvements
-              const deteriorating = extractLabeledSection(entry.improvements, "Deteriorating")
+              const negativeObservations =
+                extractLabeledSection(entry.improvements, "Negative Observations") ||
+                extractLabeledSection(entry.improvements, "Unsatisfactory") ||
+                entry.improvements
+              const referenceMaterials =
+                extractLabeledSection(entry.improvements, "References") ||
+                extractLabeledSection(entry.improvements, "Deteriorating")
+              const otherFeedback = extractLabeledSection(entry.improvements, "Other Feedback")
               const briefingNotes = extractLabeledSection(entry.next_lesson_focus, "Briefing Notes")
-              const extractedPractice = extractLabeledSection(entry.next_lesson_focus, "Practice to Proficiency")
-              const practiceToProficiency =
-                extractedPractice || (!briefingNotes ? entry.next_lesson_focus : null)
+              const extractedSkills =
+                extractLabeledSection(entry.next_lesson_focus, "Knowledge and Skills Needing Work") ||
+                extractLabeledSection(entry.next_lesson_focus, "Practice to Proficiency")
+              const skillsNeedingWork = extractedSkills || (!briefingNotes ? entry.next_lesson_focus : null)
 
               return (
                 <article key={entry.id} style={{ border: "1px solid #F3F4F6", borderRadius: "10px", padding: "12px" }}>
@@ -319,11 +326,12 @@ export default function ProgressPage() {
                     {entry.lesson_id && lessonLookup[entry.lesson_id] ? ` • ${lessonLookup[entry.lesson_id]}` : ""}
                   </p>
                   {briefingNotes && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Briefing Notes:</strong> {briefingNotes}</p>}
-                  {entry.strengths && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Satisfactory:</strong> {entry.strengths}</p>}
-                  {unsatisfactory && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Unsatisfactory:</strong> {unsatisfactory}</p>}
-                  {deteriorating && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Deteriorating:</strong> {deteriorating}</p>}
-                  {entry.homework && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Instructor Recommendations:</strong> {entry.homework}</p>}
-                  {practiceToProficiency && <p style={{ margin: 0, whiteSpace: "pre-wrap" }}><strong>Practice To Proficiency:</strong> {practiceToProficiency}</p>}
+                  {entry.strengths && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Positive Performance Observations:</strong> {entry.strengths}</p>}
+                  {negativeObservations && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Negative Performance Observations:</strong> {negativeObservations}</p>}
+                  {referenceMaterials && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Reference Materials and Standards:</strong> {referenceMaterials}</p>}
+                  {skillsNeedingWork && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Knowledge and Skills Needing Work:</strong> {skillsNeedingWork}</p>}
+                  {entry.homework && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Recommended Study and Practice:</strong> {entry.homework}</p>}
+                  {otherFeedback && <p style={{ margin: 0, whiteSpace: "pre-wrap" }}><strong>Additional Feedback:</strong> {otherFeedback}</p>}
                 </article>
               )
             })}

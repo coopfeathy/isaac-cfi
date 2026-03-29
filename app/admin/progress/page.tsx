@@ -73,11 +73,12 @@ export default function AdminProgressPage() {
   const [briefingScenarios, setBriefingScenarios] = useState("")
   const [briefingPlannedRoute, setBriefingPlannedRoute] = useState("")
   const [briefingAdditionalInfo, setBriefingAdditionalInfo] = useState("")
-  const [debriefSatisfactory, setDebriefSatisfactory] = useState("")
-  const [debriefUnsatisfactory, setDebriefUnsatisfactory] = useState("")
-  const [debriefDeteriorating, setDebriefDeteriorating] = useState("")
-  const [instructorRecommendations, setInstructorRecommendations] = useState("")
-  const [studentPracticeToProficiency, setStudentPracticeToProficiency] = useState("")
+  const [debriefPositiveObservations, setDebriefPositiveObservations] = useState("")
+  const [debriefNegativeObservations, setDebriefNegativeObservations] = useState("")
+  const [debriefReferenceMaterials, setDebriefReferenceMaterials] = useState("")
+  const [debriefSkillsNeedingWork, setDebriefSkillsNeedingWork] = useState("")
+  const [debriefRecommendedStudyPractice, setDebriefRecommendedStudyPractice] = useState("")
+  const [debriefOtherFeedback, setDebriefOtherFeedback] = useState("")
   const [instructorPrivateNotes, setInstructorPrivateNotes] = useState("")
   const [sendEmail, setSendEmail] = useState(true)
 
@@ -322,11 +323,12 @@ export default function AdminProgressPage() {
           additionalInfo: briefingAdditionalInfo,
         },
         debrief: {
-          satisfactory: debriefSatisfactory,
-          unsatisfactory: debriefUnsatisfactory,
-          deteriorating: debriefDeteriorating,
-          recommendations: instructorRecommendations,
-          practiceToProficiency: studentPracticeToProficiency,
+          positiveObservations: debriefPositiveObservations,
+          negativeObservations: debriefNegativeObservations,
+          referenceMaterials: debriefReferenceMaterials,
+          skillsNeedingWork: debriefSkillsNeedingWork,
+          recommendedStudyPractice: debriefRecommendedStudyPractice,
+          otherFeedback: debriefOtherFeedback,
         },
         instructorPrivateNotes,
         syllabusUpdates,
@@ -640,43 +642,50 @@ export default function AdminProgressPage() {
 
             <div style={{ display: "grid", gap: "10px", padding: "12px", borderRadius: "10px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
               <p style={{ margin: 0, fontWeight: 600 }}>Debrief (shared with student)</p>
+              <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
+                Capture performance observations and action items tied to Merlin Flight Training materials, FAA sources, and/or ACS standards.
+              </p>
               <textarea
                 rows={3}
-                value={debriefSatisfactory}
-                onChange={(e) => setDebriefSatisfactory(e.target.value)}
-                placeholder="Satisfactory"
+                value={debriefPositiveObservations}
+                onChange={(e) => setDebriefPositiveObservations(e.target.value)}
+                placeholder="Positive performance observations"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
               <textarea
                 rows={3}
-                value={debriefUnsatisfactory}
-                onChange={(e) => setDebriefUnsatisfactory(e.target.value)}
-                placeholder="Unsatisfactory"
+                value={debriefNegativeObservations}
+                onChange={(e) => setDebriefNegativeObservations(e.target.value)}
+                placeholder="Negative performance observations"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
               <textarea
                 rows={3}
-                value={debriefDeteriorating}
-                onChange={(e) => setDebriefDeteriorating(e.target.value)}
-                placeholder="Deteriorating"
+                value={debriefReferenceMaterials}
+                onChange={(e) => setDebriefReferenceMaterials(e.target.value)}
+                placeholder="References used (Merlin material, FAA source, ACS)"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
-            </div>
-
-            <div style={{ display: "grid", gap: "10px" }}>
               <textarea
                 rows={3}
-                value={instructorRecommendations}
-                onChange={(e) => setInstructorRecommendations(e.target.value)}
-                placeholder="Instructor recommendations for practice"
-                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
+                value={debriefSkillsNeedingWork}
+                onChange={(e) => setDebriefSkillsNeedingWork(e.target.value)}
+                placeholder="Knowledge and skills needing work before the next meeting"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
               <textarea
                 rows={3}
-                value={studentPracticeToProficiency}
-                onChange={(e) => setStudentPracticeToProficiency(e.target.value)}
-                placeholder="Student practice-to-proficiency before next flight/simulator event"
-                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
+                value={debriefRecommendedStudyPractice}
+                onChange={(e) => setDebriefRecommendedStudyPractice(e.target.value)}
+                placeholder="Recommended study and practice"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+              <textarea
+                rows={3}
+                value={debriefOtherFeedback}
+                onChange={(e) => setDebriefOtherFeedback(e.target.value)}
+                placeholder="Other feedback to help the student prepare for the next training event"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
             </div>
 

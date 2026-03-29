@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
     }
 
     const practiceToProficiency =
+      extractLabeledSection(evaluation.next_lesson_focus, "Knowledge and Skills Needing Work") ||
       extractLabeledSection(evaluation.next_lesson_focus, "Practice to Proficiency") ||
       normalizeText(evaluation.next_lesson_focus)
     const briefingSummary = extractLabeledSection(evaluation.next_lesson_focus, "Briefing Notes")

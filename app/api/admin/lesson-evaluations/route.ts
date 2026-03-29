@@ -18,6 +18,12 @@ type BriefingNotesInput = {
 }
 
 type DebriefInput = {
+  positiveObservations?: string | null
+  negativeObservations?: string | null
+  referenceMaterials?: string | null
+  skillsNeedingWork?: string | null
+  recommendedStudyPractice?: string | null
+  otherFeedback?: string | null
   satisfactory?: string | null
   unsatisfactory?: string | null
   deteriorating?: string | null
@@ -178,11 +184,17 @@ export async function POST(request: NextRequest) {
 
     const supabaseAdmin = getSupabaseAdmin()
 
-    const debriefSatisfactory = normalizeText(debrief?.satisfactory) || normalizeText(strengths)
-    const debriefUnsatisfactory = normalizeText(debrief?.unsatisfactory)
-    const debriefDeteriorating = normalizeText(debrief?.deteriorating)
-    const instructorRecommendations = normalizeText(debrief?.recommendations) || normalizeText(homework)
-    const studentPracticeToProficiency = normalizeText(debrief?.practiceToProficiency)
+    const debriefPositiveObservations =
+      normalizeText(debrief?.positiveObservations) || normalizeText(debrief?.satisfactory) || normalizeText(strengths)
+    const debriefNegativeObservations =
+      normalizeText(debrief?.negativeObservations) || normalizeText(debrief?.unsatisfactory)
+    const debriefReferenceMaterials =
+      normalizeText(debrief?.referenceMaterials) || normalizeText(debrief?.deteriorating)
+    const debriefSkillsNeedingWork =
+      normalizeText(debrief?.skillsNeedingWork) || normalizeText(debrief?.practiceToProficiency)
+    const debriefRecommendedStudyPractice =
+      normalizeText(debrief?.recommendedStudyPractice) || normalizeText(debrief?.recommendations) || normalizeText(homework)
+    const debriefOtherFeedback = normalizeText(debrief?.otherFeedback)
 
     const briefingSummary =
       buildLabeledBlock([
@@ -192,14 +204,15 @@ export async function POST(request: NextRequest) {
         { label: "Additional Information", value: normalizeText(briefingNotes?.additionalInfo) },
       ]) || normalizeText(nextLessonFocus)
 
-    const unsatisfactoryAndDeteriorating =
+    const negativeAndReferences =
       buildLabeledBlock([
-        { label: "Unsatisfactory", value: debriefUnsatisfactory },
-        { label: "Deteriorating", value: debriefDeteriorating },
+        { label: "Negative Observations", value: debriefNegativeObservations },
+        { label: "References", value: debriefReferenceMaterials },
+        { label: "Other Feedback", value: debriefOtherFeedback },
       ]) || normalizeText(improvements)
 
-    const practiceAndBriefing = buildLabeledBlock([
-      { label: "Practice to Proficiency", value: studentPracticeToProficiency },
+    const skillsAndBriefing = buildLabeledBlock([
+      { label: "Knowledge and Skills Needing Work", value: debriefSkillsNeedingWork },
       { label: "Briefing Notes", value: briefingSummary },
     ])
 
@@ -230,10 +243,10 @@ export async function POST(request: NextRequest) {
           student_id: studentId,
           instructor_id: user.id,
           performance_rating: performanceRating,
-          strengths: debriefSatisfactory,
-          improvements: unsatisfactoryAndDeteriorating,
-          homework: instructorRecommendations,
-          next_lesson_focus: practiceAndBriefing,
+          strengths: debriefPositiveObservations,
+          improvements: negativeAndReferences,
+          homework: debriefRecommendedStudyPractice,
+          next_lesson_focus: skillsAndBriefing,
         },
       ])
       .select("id")
@@ -244,8 +257,8 @@ export async function POST(request: NextRequest) {
     }
 
     const homeworkPayload = {
-      recommendations: instructorRecommendations,
-      practiceToProficiency: studentPracticeToProficiency,
+      recommendations: debriefRecommendedStudyPractice,
+      practiceToProficiency: debriefSkillsNeedingWork,
       briefingSummary,
     }
 
@@ -304,11 +317,12 @@ export async function POST(request: NextRequest) {
           courseTitle,
           lessonTitle,
           performanceRating,
-          satisfactory: debriefSatisfactory,
-          unsatisfactory: debriefUnsatisfactory,
-          deteriorating: debriefDeteriorating,
-          recommendations: instructorRecommendations,
-          practiceToProficiency: studentPracticeToProficiency,
+          positiveObservations: debriefPositiveObservations,
+          negativeObservations: debriefNegativeObservations,
+          referenceMaterials: debriefReferenceMaterials,
+          recommendedStudyPractice: debriefRecommendedStudyPractice,
+          skillsNeedingWork: debriefSkillsNeedingWork,
+          otherFeedback: debriefOtherFeedback,
           briefingSummary,
           progressSummary,
         })
