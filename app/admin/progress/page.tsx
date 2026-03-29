@@ -193,6 +193,16 @@ export default function AdminProgressPage() {
     }
   }
 
+  const focusSyllabusItem = (itemId: string) => {
+    setFocusedSyllabusItemId(itemId)
+    requestAnimationFrame(() => {
+      const element = document.getElementById(`syllabus-item-${itemId}`)
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" })
+      }
+    })
+  }
+
   useEffect(() => {
     if (authLoading) return
     if (!isAdmin) {
@@ -638,16 +648,16 @@ export default function AdminProgressPage() {
           <form onSubmit={handleSubmitEvaluation} style={{ display: "grid", gap: "14px" }}>
             <div style={{ display: "grid", gap: "8px", padding: "10px", borderRadius: "8px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
               <label style={{ fontSize: "14px", fontWeight: 600 }}>Debriefed syllabus item</label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "8px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "8px" }}>
                 <select
                   value={focusedSyllabusItemId}
-                  onChange={(e) => setFocusedSyllabusItemId(e.target.value)}
+                  onChange={(e) => focusSyllabusItem(e.target.value)}
                   style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
                 >
                   <option value="">Select syllabus item</option>
                   {syllabusItems.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.title}
+                      {item.title} ({(itemDrafts[item.id]?.status || "not_started").replace(/_/g, " ")})
                     </option>
                   ))}
                 </select>
@@ -670,6 +680,9 @@ export default function AdminProgressPage() {
                   {markCompletePulse ? "Marked" : "Mark Complete"}
                 </button>
               </div>
+              <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
+                The selected debriefed syllabus item is linked to the highlighted card below and is the item auto-marked proficient on save.
+              </p>
             </div>
 
             <select
@@ -715,7 +728,7 @@ export default function AdminProgressPage() {
             </div>
 
             {syllabusItems.map((item) => (
-              <div key={item.id}>
+              <div key={item.id} id={`syllabus-item-${item.id}`}>
                 {(() => {
                   const itemStatus = itemDrafts[item.id]?.status || "not_started"
                   const isProficient = itemStatus === "proficient"
@@ -724,6 +737,7 @@ export default function AdminProgressPage() {
 
                   return (
                     <div
+                      onClick={() => setFocusedSyllabusItemId(item.id)}
                       style={{
                         border: isProficient
                           ? "2px solid #059669"
@@ -735,6 +749,7 @@ export default function AdminProgressPage() {
                         padding: "12px",
                         boxShadow: isJustCompleted ? "0 0 0 3px rgba(16,185,129,0.25)" : "none",
                         transition: "background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease",
+                        cursor: "pointer",
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", marginBottom: "8px" }}>
@@ -757,7 +772,7 @@ export default function AdminProgressPage() {
                           </span>
                         )}
                       </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: "10px", marginBottom: "10px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "10px", marginBottom: "10px" }}>
                   <select
                     value={itemDrafts[item.id]?.status || "not_started"}
                     onChange={(e) =>

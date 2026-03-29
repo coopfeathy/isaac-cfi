@@ -100,6 +100,9 @@ export const emailTemplates = {
     courseTitle: string
     lessonTitle?: string | null
     performanceRating: number
+    strengths?: string | null
+    improvements?: string | null
+    homework?: string | null
     positiveObservations?: string | null
     negativeObservations?: string | null
     referenceMaterials?: string | null
@@ -125,21 +128,21 @@ export const emailTemplates = {
         ${payload.lessonTitle ? `<p style="margin: 0 0 6px 0; font-size: 16px;"><strong>Lesson:</strong> ${payload.lessonTitle}</p>` : ""}
         <p style="margin: 0; font-size: 16px;"><strong>Performance:</strong> <span style="color: ${brand.gold}; font-weight: 700;">${getPerformanceGrade(payload.performanceRating).arrows}</span></p>
       </div>
-      ${payload.strengths ? `
+      ${(payload.positiveObservations || payload.strengths || payload.satisfactory) ? `
       <div style="margin: 24px 0;">
-        <h3 style="margin: 0 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: ${brand.dark}; border-bottom: 2px solid ${brand.gold}; padding-bottom: 6px; display: inline-block;">Strengths</h3>
-        <p style="margin: 8px 0 0 0; white-space: pre-wrap; line-height: 1.6;">${payload.strengths}</p>
+        <h3 style="margin: 0 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: ${brand.dark}; border-bottom: 2px solid ${brand.gold}; padding-bottom: 6px; display: inline-block;">Positive Performance Observations</h3>
+        <p style="margin: 8px 0 0 0; white-space: pre-wrap; line-height: 1.6;">${payload.positiveObservations || payload.strengths || payload.satisfactory}</p>
       </div>` : ""}
 
-      ${payload.improvements ? `
+      ${(payload.negativeObservations || payload.improvements || payload.unsatisfactory) ? `
       <div style="margin: 24px 0;">
-        <h3 style="margin: 0 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: ${brand.dark}; border-bottom: 2px solid ${brand.gold}; padding-bottom: 6px; display: inline-block;">Areas for Development</h3>
-        <p style="margin: 8px 0 0 0; white-space: pre-wrap; line-height: 1.6;">${payload.improvements}</p>
+        <h3 style="margin: 0 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: ${brand.dark}; border-bottom: 2px solid ${brand.gold}; padding-bottom: 6px; display: inline-block;">Negative Performance Observations</h3>
+        <p style="margin: 8px 0 0 0; white-space: pre-wrap; line-height: 1.6;">${payload.negativeObservations || payload.improvements || payload.unsatisfactory}</p>
       </div>` : ""}
-      ${payload.homework ? `
+      ${(payload.recommendedStudyPractice || payload.homework || payload.recommendations) ? `
       <div style="margin: 24px 0;">
-        <h3 style="margin: 0 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: ${brand.dark}; border-bottom: 2px solid ${brand.gold}; padding-bottom: 6px; display: inline-block;">Homework</h3>
-        <p style="margin: 8px 0 0 0; white-space: pre-wrap; line-height: 1.6;">${payload.homework}</p>
+        <h3 style="margin: 0 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: ${brand.dark}; border-bottom: 2px solid ${brand.gold}; padding-bottom: 6px; display: inline-block;">Recommended Study and Practice</h3>
+        <p style="margin: 8px 0 0 0; white-space: pre-wrap; line-height: 1.6;">${payload.recommendedStudyPractice || payload.homework || payload.recommendations}</p>
       </div>` : ""}
 
 
