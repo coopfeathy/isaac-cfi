@@ -93,12 +93,20 @@ export default function BookingsPage() {
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-4xl font-bold text-darkText">My Bookings</h1>
-          <Link
-            href="/learn"
-            className="inline-flex items-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
-          >
-            ← Back to Learn
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/lesson-scheduling"
+              className="inline-flex items-center rounded-full border border-golden bg-golden/10 px-4 py-2 text-sm font-semibold text-darkText transition-colors hover:bg-golden/20"
+            >
+              Open Scheduling Dashboard
+            </Link>
+            <Link
+              href="/learn"
+              className="inline-flex items-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
+            >
+              ← Back to Learn
+            </Link>
+          </div>
         </div>
 
         {bookings.length === 0 ? (

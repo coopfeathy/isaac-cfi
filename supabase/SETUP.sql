@@ -1211,6 +1211,31 @@ CREATE POLICY "Admins read instructional ratings"
   USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
 
 -- ============================================================
+-- 27. STUDENT LESSON SCHEDULING GOALS (weekly targets)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS student_lesson_scheduling_goals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  weekly_goal INTEGER NOT NULL DEFAULT 2 CHECK (weekly_goal >= 1 AND weekly_goal <= 14),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE student_lesson_scheduling_goals ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Students manage own scheduling goals" ON student_lesson_scheduling_goals;
+DROP POLICY IF EXISTS "Admins read scheduling goals" ON student_lesson_scheduling_goals;
+
+CREATE POLICY "Students manage own scheduling goals"
+  ON student_lesson_scheduling_goals FOR ALL
+  USING (student_id = auth.uid())
+  WITH CHECK (student_id = auth.uid());
+
+CREATE POLICY "Admins read scheduling goals"
+  ON student_lesson_scheduling_goals FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+-- ============================================================
 -- 24. SOCIAL MEDIA POSTS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS social_media_posts (
@@ -1605,6 +1630,7 @@ CREATE INDEX IF NOT EXISTS idx_homework_email_queue_status_send_after ON homewor
 CREATE INDEX IF NOT EXISTS idx_homework_email_queue_student_id ON homework_email_queue(student_id);
 CREATE INDEX IF NOT EXISTS idx_lesson_instructional_quality_student_id ON lesson_instructional_quality_ratings(student_id);
 CREATE INDEX IF NOT EXISTS idx_lesson_instructional_quality_instructor_id ON lesson_instructional_quality_ratings(instructor_id);
+CREATE INDEX IF NOT EXISTS idx_student_lesson_scheduling_goals_student_id ON student_lesson_scheduling_goals(student_id);
 CREATE INDEX IF NOT EXISTS idx_class_appointments_group_id ON class_appointments(group_id);
 CREATE INDEX IF NOT EXISTS idx_class_appointments_start_time ON class_appointments(start_time);
 CREATE INDEX IF NOT EXISTS idx_class_appointments_instructor_id ON class_appointments(instructor_id);
