@@ -18,7 +18,7 @@ type Lesson = {
 
 type StudentOption = {
   id: string
-  email: string
+  email: string | null
   full_name: string | null
 }
 
@@ -52,6 +52,12 @@ const STATUS_OPTIONS: SyllabusStatus[] = [
   "proficient",
   "needs_work",
 ]
+
+const normalizeCourseTitle = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/course|training/g, "")
+    .replace(/[^a-z0-9]/g, "")
 
 export default function AdminProgressPage() {
   const { isAdmin, loading: authLoading } = useAuth()
@@ -87,6 +93,9 @@ export default function AdminProgressPage() {
   const [statusMessage, setStatusMessage] = useState("")
   const [markCompletePulse, setMarkCompletePulse] = useState(false)
   const [justCompletedItemId, setJustCompletedItemId] = useState("")
+  const [linkedSourceCourseIds, setLinkedSourceCourseIds] = useState<string[]>([])
+  const [migratingEnrollments, setMigratingEnrollments] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   const findNextOpenItemId = (drafts: Record<string, ItemDraft>) => {
     const next = syllabusItems.find((item) => (drafts[item.id]?.status || "not_started") !== "proficient")
@@ -124,6 +133,7 @@ export default function AdminProgressPage() {
 
     const fetchCourseData = async () => {
       setStatusMessage("")
+      setLinkedSourceCourseIds([])
       const [itemsResult, lessonsResult, enrollmentsResult] = await Promise.all([
         supabase
           .from("syllabus_items")
@@ -153,8 +163,33 @@ export default function AdminProgressPage() {
         }))
       )
 
-      const enrollmentRows = (enrollmentsResult.data as { student_id: string }[] | null) || []
-      const studentIds = enrollmentRows.map((entry) => entry.student_id)
+      let enrollmentRows = (enrollmentsResult.data as { student_id: string }[] | null) || []
+
+      if (enrollmentRows.length === 0) {
+        const selectedCourseRecord = courses.find((course) => course.id === selectedCourse)
+        const normalizedSelected = selectedCourseRecord ? normalizeCourseTitle(selectedCourseRecord.title) : null
+        const relatedCourseIds = normalizedSelected
+          ? courses
+              .filter((course) => course.id !== selectedCourse && normalizeCourseTitle(course.title) === normalizedSelected)
+              .map((course) => course.id)
+          : []
+
+        if (relatedCourseIds.length > 0) {
+          const { data: relatedEnrollmentData } = await supabase
+            .from("enrollments")
+            .select("student_id")
+            .in("course_id", relatedCourseIds)
+
+          const relatedEnrollmentRows = (relatedEnrollmentData as { student_id: string }[] | null) || []
+          if (relatedEnrollmentRows.length > 0) {
+            enrollmentRows = relatedEnrollmentRows
+            setLinkedSourceCourseIds(relatedCourseIds)
+            setStatusMessage("No enrollments on this course record yet. Showing students from a linked course record with the same name.")
+          }
+        }
+      }
+
+      const studentIds = Array.from(new Set(enrollmentRows.map((entry) => entry.student_id).filter(Boolean)))
 
       if (studentIds.length === 0) {
         setStudents([])
@@ -165,8 +200,9 @@ export default function AdminProgressPage() {
       // Fetch students from students table instead of auth users for better name reliability
       const { data: studentsData, error: studentsError } = await supabase
         .from("students")
-        .select("id, email, full_name")
-        .in("id", studentIds)
+        .select("user_id, email, full_name")
+        .in("user_id", studentIds)
+        .not("user_id", "is", null)
         .order("full_name", { ascending: true })
 
       if (studentsError) {
@@ -174,7 +210,14 @@ export default function AdminProgressPage() {
         return
       }
 
-      const students_list: StudentOption[] = studentsData || []
+      const students_list: StudentOption[] =
+        (studentsData || [])
+          .filter((row: any) => Boolean(row.user_id))
+          .map((row: any) => ({
+            id: row.user_id as string,
+            email: row.email || null,
+            full_name: row.full_name || null,
+          }))
       setStudents(students_list)
       if (!students_list.find((u) => u.id === selectedStudentId)) {
         setSelectedStudentId(students_list[0]?.id || "")
@@ -182,7 +225,48 @@ export default function AdminProgressPage() {
     }
 
     fetchCourseData()
-  }, [selectedCourse, selectedStudentId])
+  }, [selectedCourse, selectedStudentId, reloadKey])
+
+  const migrateLinkedEnrollments = async () => {
+    if (!selectedCourse || linkedSourceCourseIds.length === 0) return
+
+    setMigratingEnrollments(true)
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error("Missing admin session")
+      }
+
+      const response = await fetch("/api/admin/enrollments/migrate-course", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          targetCourseId: selectedCourse,
+          sourceCourseIds: linkedSourceCourseIds,
+        }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.error || "Unable to migrate enrollments")
+      }
+
+      setStatusMessage(`Enrollment migration complete. Inserted ${result.inserted || 0}, skipped ${result.skipped || 0}.`)
+      setLinkedSourceCourseIds([])
+      setReloadKey((previous) => previous + 1)
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to migrate enrollments")
+    } finally {
+      setMigratingEnrollments(false)
+    }
+  }
 
   useEffect(() => {
     if (!selectedStudentId || syllabusItems.length === 0) {
@@ -416,6 +500,42 @@ export default function AdminProgressPage() {
           ))}
         </select>
       </div>
+
+      {linkedSourceCourseIds.length > 0 && (
+        <div
+          style={{
+            marginBottom: "16px",
+            background: "#FFFBEB",
+            border: "1px solid #FCD34D",
+            borderRadius: "10px",
+            padding: "12px 14px",
+            display: "grid",
+            gap: "8px",
+          }}
+        >
+          <p style={{ margin: 0, color: "#92400E", fontSize: "14px" }}>
+            Students are currently loaded from linked course records with similar names. Migrate those enrollments into this selected course to permanently fix debrief visibility.
+          </p>
+          <button
+            type="button"
+            onClick={() => void migrateLinkedEnrollments()}
+            disabled={migratingEnrollments}
+            style={{
+              justifySelf: "start",
+              background: "#92400E",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              padding: "10px 14px",
+              fontWeight: 600,
+              cursor: "pointer",
+              opacity: migratingEnrollments ? 0.7 : 1,
+            }}
+          >
+            {migratingEnrollments ? "Migrating Enrollments..." : "Migrate Linked Enrollments to This Course"}
+          </button>
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "20px" }}>
         <section style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "20px" }}>
