@@ -84,6 +84,8 @@ export default function AdminProgressPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [statusMessage, setStatusMessage] = useState("")
+  const [markCompletePulse, setMarkCompletePulse] = useState(false)
+  const [justCompletedItemId, setJustCompletedItemId] = useState("")
 
   const findNextOpenItemId = (drafts: Record<string, ItemDraft>) => {
     const next = syllabusItems.find((item) => (drafts[item.id]?.status || "not_started") !== "proficient")
@@ -226,11 +228,17 @@ export default function AdminProgressPage() {
   const handleMarkFocusedComplete = () => {
     if (!focusedSyllabusItemId) return
 
+    const completedItemId = focusedSyllabusItemId
+    setMarkCompletePulse(true)
+    setJustCompletedItemId(completedItemId)
+    setTimeout(() => setMarkCompletePulse(false), 220)
+    setTimeout(() => setJustCompletedItemId((current) => (current === completedItemId ? "" : current)), 1600)
+
     setItemDrafts((previous) => {
       const nextDrafts: Record<string, ItemDraft> = {
         ...previous,
-        [focusedSyllabusItemId]: {
-          ...(previous[focusedSyllabusItemId] || {
+        [completedItemId]: {
+          ...(previous[completedItemId] || {
             status: "not_started",
             score: "",
             instructorNotes: "",
@@ -239,7 +247,7 @@ export default function AdminProgressPage() {
         },
       }
 
-      const currentIndex = syllabusItems.findIndex((item) => item.id === focusedSyllabusItemId)
+      const currentIndex = syllabusItems.findIndex((item) => item.id === completedItemId)
       const nextItem = syllabusItems
         .slice(currentIndex + 1)
         .find((item) => (nextDrafts[item.id]?.status || "not_started") !== "proficient")
@@ -259,12 +267,6 @@ export default function AdminProgressPage() {
 
   const handleSubmitEvaluation = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-        const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null
-        const homeworkEmailAction =
-          submitter?.getAttribute("data-homework-action") === "send_now" ||
-          submitter?.getAttribute("data-homework-action") === "hold"
-            ? (submitter.getAttribute("data-homework-action") as "send_now" | "hold")
-            : "auto"
 
     if (!selectedCourse || !selectedStudentId || syllabusItems.length === 0) {
       setStatusMessage("Select a course, student, and syllabus items first")
@@ -327,7 +329,6 @@ export default function AdminProgressPage() {
           practiceToProficiency: studentPracticeToProficiency,
         },
         instructorPrivateNotes,
-        homeworkEmailAction,
         syllabusUpdates,
         sendEmail,
       }),
@@ -349,10 +350,8 @@ export default function AdminProgressPage() {
       statusParts.push(`debrief email failed: ${result.emailError}`)
     }
 
-    if (result.homeworkEmailStatus === "sent") {
-      statusParts.push("homework email sent")
-    } else if (result.homeworkEmailStatus === "held") {
-      statusParts.push("homework email is on hold")
+    if (result.homeworkEmailStatus === "queued_on_completion") {
+      statusParts.push("homework email will queue when the student completes the lesson")
     } else if (result.homeworkEmailStatus === "pending") {
       statusParts.push(
         result.homeworkQueuedFor
@@ -442,9 +441,20 @@ export default function AdminProgressPage() {
                 <button
                   type="button"
                   onClick={handleMarkFocusedComplete}
-                  style={{ background: "#10B981", color: "white", border: "none", borderRadius: "8px", padding: "10px 14px", fontWeight: 600, cursor: "pointer" }}
+                  style={{
+                    background: "#10B981",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 14px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transform: markCompletePulse ? "translateY(1px) scale(0.97)" : "translateY(0) scale(1)",
+                    boxShadow: markCompletePulse ? "inset 0 2px 8px rgba(0,0,0,0.18)" : "0 2px 6px rgba(16, 185, 129, 0.25)",
+                    transition: "transform 180ms ease, box-shadow 180ms ease",
+                  }}
                 >
-                  Mark Complete
+                  {markCompletePulse ? "Marked" : "Mark Complete"}
                 </button>
               </div>
             </div>
@@ -492,16 +502,48 @@ export default function AdminProgressPage() {
             </div>
 
             {syllabusItems.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  border: focusedSyllabusItemId === item.id ? "2px solid #C59A2A" : "1px solid #E5E7EB",
-                  background: focusedSyllabusItemId === item.id ? "#FFFBEB" : "#FFFFFF",
-                  borderRadius: "10px",
-                  padding: "12px",
-                }}
-              >
-                <p style={{ margin: "0 0 8px 0", fontWeight: 600 }}>{item.title}</p>
+              <div key={item.id}>
+                {(() => {
+                  const itemStatus = itemDrafts[item.id]?.status || "not_started"
+                  const isProficient = itemStatus === "proficient"
+                  const isFocused = focusedSyllabusItemId === item.id
+                  const isJustCompleted = justCompletedItemId === item.id
+
+                  return (
+                    <div
+                      style={{
+                        border: isProficient
+                          ? "2px solid #059669"
+                          : isFocused
+                          ? "2px solid #C59A2A"
+                          : "1px solid #E5E7EB",
+                        background: isProficient ? "#ECFDF5" : isFocused ? "#FFFBEB" : "#FFFFFF",
+                        borderRadius: "10px",
+                        padding: "12px",
+                        boxShadow: isJustCompleted ? "0 0 0 3px rgba(16,185,129,0.25)" : "none",
+                        transition: "background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", marginBottom: "8px" }}>
+                        <p style={{ margin: 0, fontWeight: 600 }}>{item.title}</p>
+                        {isProficient && (
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: 700,
+                              letterSpacing: "0.04em",
+                              color: "#065F46",
+                              background: "#D1FAE5",
+                              border: "1px solid #6EE7B7",
+                              borderRadius: "999px",
+                              padding: "3px 8px",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            COMPLETE
+                          </span>
+                        )}
+                      </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: "10px", marginBottom: "10px" }}>
                   <select
                     value={itemDrafts[item.id]?.status || "not_started"}
@@ -555,6 +597,9 @@ export default function AdminProgressPage() {
                   }
                   style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", width: "100%" }}
                 />
+                    </div>
+                  )
+                })()}
               </div>
             ))}
 
@@ -655,61 +700,26 @@ export default function AdminProgressPage() {
               <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
                 Homework email behavior after lesson completion.
               </p>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                <button
-                  type="submit"
-                  data-homework-action="send_now"
-                  disabled={submitting || !selectedStudentId || syllabusItems.length === 0}
-                  style={{
-                    background: "#1D4ED8",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    padding: "12px 18px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    opacity: submitting || !selectedStudentId || syllabusItems.length === 0 ? 0.65 : 1,
-                  }}
-                >
-                  {submitting ? "Saving..." : "Save + Send Homework Now"}
-                </button>
-
-                <button
-                  type="submit"
-                  data-homework-action="auto"
-                  disabled={submitting || !selectedStudentId || syllabusItems.length === 0}
-                  style={{
-                    background: "#111827",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    padding: "12px 18px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    opacity: submitting || !selectedStudentId || syllabusItems.length === 0 ? 0.65 : 1,
-                  }}
-                >
-                  {submitting ? "Saving..." : "Save + Auto Send in 1 Hour"}
-                </button>
-
-                <button
-                  type="submit"
-                  data-homework-action="hold"
-                  disabled={submitting || !selectedStudentId || syllabusItems.length === 0}
-                  style={{
-                    background: "#92400E",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    padding: "12px 18px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    opacity: submitting || !selectedStudentId || syllabusItems.length === 0 ? 0.65 : 1,
-                  }}
-                >
-                  {submitting ? "Saving..." : "Save + Hold Homework Email"}
-                </button>
-              </div>
+              <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
+                Email queueing is triggered when the student completes the lesson. Manual push/hold remains available in the Students workspace.
+              </p>
+              <button
+                type="submit"
+                disabled={submitting || !selectedStudentId || syllabusItems.length === 0}
+                style={{
+                  background: "#111827",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "12px 18px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  opacity: submitting || !selectedStudentId || syllabusItems.length === 0 ? 0.65 : 1,
+                  justifySelf: "start",
+                }}
+              >
+                {submitting ? "Saving..." : "Save Lesson Evaluation"}
+              </button>
             </div>
           </form>
         </section>

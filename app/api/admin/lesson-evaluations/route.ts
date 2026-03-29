@@ -25,10 +25,6 @@ type DebriefInput = {
   practiceToProficiency?: string | null
 }
 
-type HomeworkEmailAction = "auto" | "send_now" | "hold"
-
-const HOMEWORK_EMAIL_DELAY_MINUTES = Number(process.env.HOMEWORK_EMAIL_DELAY_MINUTES || "60")
-
 const normalizeText = (value?: string | null): string | null => {
   if (typeof value !== "string") return null
   const trimmed = value.trim()
@@ -150,7 +146,6 @@ export async function POST(request: NextRequest) {
       briefingNotes,
       debrief,
       instructorPrivateNotes,
-      homeworkEmailAction,
       strengths,
       improvements,
       homework,
@@ -165,7 +160,6 @@ export async function POST(request: NextRequest) {
       briefingNotes?: BriefingNotesInput
       debrief?: DebriefInput
       instructorPrivateNotes?: string | null
-      homeworkEmailAction?: HomeworkEmailAction
       strengths?: string | null
       improvements?: string | null
       homework?: string | null
@@ -208,9 +202,6 @@ export async function POST(request: NextRequest) {
       { label: "Practice to Proficiency", value: studentPracticeToProficiency },
       { label: "Briefing Notes", value: briefingSummary },
     ])
-
-    const parsedHomeworkAction: HomeworkEmailAction =
-      homeworkEmailAction === "send_now" || homeworkEmailAction === "hold" ? homeworkEmailAction : "auto"
 
     const progressRows = syllabusUpdates.map((item) => ({
       syllabus_item_id: item.syllabusItemId,
@@ -256,83 +247,6 @@ export async function POST(request: NextRequest) {
       recommendations: instructorRecommendations,
       practiceToProficiency: studentPracticeToProficiency,
       briefingSummary,
-    }
-
-    const delayMs = Math.max(5, HOMEWORK_EMAIL_DELAY_MINUTES) * 60 * 1000
-    const queuedSendAt = new Date(Date.now() + delayMs).toISOString()
-
-    const initialHomeworkStatus = parsedHomeworkAction === "hold" ? "held" : parsedHomeworkAction === "send_now" ? "sent" : "pending"
-
-    let homeworkEmailStatus: "pending" | "held" | "sent" | "failed" = initialHomeworkStatus
-    let homeworkEmailError: string | null = null
-
-    const { error: queueError } = await supabaseAdmin
-      .from("homework_email_queue")
-      .upsert(
-        [
-          {
-            lesson_evaluation_id: evaluation.id,
-            student_id: studentId,
-            course_id: courseId,
-            lesson_id: lessonId || null,
-            payload: homeworkPayload,
-            status: initialHomeworkStatus,
-            send_after_at: parsedHomeworkAction === "auto" ? queuedSendAt : null,
-            held_at: parsedHomeworkAction === "hold" ? new Date().toISOString() : null,
-            sent_at: parsedHomeworkAction === "send_now" ? new Date().toISOString() : null,
-            sent_by: parsedHomeworkAction === "send_now" ? user.id : null,
-            last_error: null,
-            created_by: user.id,
-            updated_at: new Date().toISOString(),
-          },
-        ],
-        { onConflict: "lesson_evaluation_id" }
-      )
-
-    if (queueError) {
-      homeworkEmailStatus = "failed"
-      homeworkEmailError = queueError.message
-    }
-
-    if (!queueError && parsedHomeworkAction === "send_now") {
-      const sendResult = await sendHomeworkEmailNow({
-        supabaseAdmin,
-        studentId,
-        courseId,
-        lessonId,
-        recommendations: instructorRecommendations,
-        practiceToProficiency: studentPracticeToProficiency,
-        briefingSummary,
-      })
-
-      if (!sendResult.sent) {
-        homeworkEmailStatus = "failed"
-        homeworkEmailError = sendResult.error
-        await supabaseAdmin
-          .from("homework_email_queue")
-          .update({
-            status: "failed",
-            last_error: sendResult.error,
-            attempts: 1,
-            sent_at: null,
-            sent_by: null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("lesson_evaluation_id", evaluation.id)
-      } else {
-        homeworkEmailStatus = "sent"
-        await supabaseAdmin
-          .from("homework_email_queue")
-          .update({
-            status: "sent",
-            attempts: 1,
-            last_error: null,
-            sent_at: new Date().toISOString(),
-            sent_by: user.id,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("lesson_evaluation_id", evaluation.id)
-      }
     }
 
     const privateNotesValue = normalizeText(instructorPrivateNotes)
@@ -429,9 +343,10 @@ export async function POST(request: NextRequest) {
       privateNotesSaved,
       emailSent,
       emailError,
-      homeworkEmailStatus,
-      homeworkEmailError,
-      homeworkQueuedFor: parsedHomeworkAction === "auto" && homeworkEmailStatus === "pending" ? queuedSendAt : null,
+      homeworkEmailStatus: "queued_on_completion",
+      homeworkEmailError: null,
+      homeworkQueuedFor: null,
+      homeworkPayloadReady: Boolean(homeworkPayload.recommendations || homeworkPayload.practiceToProficiency || homeworkPayload.briefingSummary),
     })
   } catch (error: any) {
     return NextResponse.json(

@@ -48,6 +48,7 @@ export default function LessonPage() {
   const [error, setError] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const progressUpdateRef = useRef<NodeJS.Timeout | null>(null)
+  const completionQueuedRef = useRef(false)
 
   useEffect(() => {
     const fetchLesson = async () => {
@@ -144,6 +145,34 @@ export default function LessonPage() {
     }
   }
 
+  const queueHomeworkOnLessonComplete = async () => {
+    if (!user || !lesson || completionQueuedRef.current) return
+
+    completionQueuedRef.current = true
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) return
+
+      await fetch("/api/lesson-completion/homework-queue", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          courseId,
+          lessonId: lesson.id,
+        }),
+      })
+    } catch (err) {
+      console.error("Error queueing homework email after lesson completion:", err)
+    }
+  }
+
   const handleTimeUpdate = () => {
     if (!videoRef.current) return
 
@@ -160,6 +189,7 @@ export default function LessonPage() {
 
   const handleVideoEnd = () => {
     updateProgress(100)
+    void queueHomeworkOnLessonComplete()
   }
 
   const getVideoSources = (storagePath: string) => {
