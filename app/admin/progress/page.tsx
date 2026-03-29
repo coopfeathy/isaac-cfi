@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react"
 import { useRouter } from "next/navigation"
 import AdminPageShell from "@/app/components/AdminPageShell"
 import { useAuth } from "@/app/contexts/AuthContext"
@@ -59,6 +59,13 @@ const normalizeCourseTitle = (value: string) =>
     .replace(/course|training/g, "")
     .replace(/[^a-z0-9]/g, "")
 
+const getLineBounds = (text: string, cursor: number) => {
+  const lineStart = text.lastIndexOf("\n", Math.max(0, cursor - 1)) + 1
+  const nextNewline = text.indexOf("\n", cursor)
+  const lineEnd = nextNewline === -1 ? text.length : nextNewline
+  return { lineStart, lineEnd }
+}
+
 export default function AdminProgressPage() {
   const { isAdmin, loading: authLoading } = useAuth()
   const router = useRouter()
@@ -100,6 +107,90 @@ export default function AdminProgressPage() {
   const findNextOpenItemId = (drafts: Record<string, ItemDraft>) => {
     const next = syllabusItems.find((item) => (drafts[item.id]?.status || "not_started") !== "proficient")
     return next?.id || ""
+  }
+
+  const handleSmartListKeyDown = (
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
+    value: string,
+    setValue: Dispatch<SetStateAction<string>>
+  ) => {
+    const element = event.currentTarget
+    const selectionStart = element.selectionStart
+    const selectionEnd = element.selectionEnd
+    const hasRangeSelection = selectionStart !== selectionEnd
+
+    if (hasRangeSelection) return
+
+    if (event.key === " ") {
+      const { lineStart } = getLineBounds(value, selectionStart)
+      const prefix = value.slice(lineStart, selectionStart)
+
+      if (/^(\*|-)$/i.test(prefix)) {
+        event.preventDefault()
+        const nextValue = `${value.slice(0, lineStart)}• ${value.slice(selectionStart)}`
+        setValue(nextValue)
+        requestAnimationFrame(() => {
+          element.selectionStart = lineStart + 2
+          element.selectionEnd = lineStart + 2
+        })
+        return
+      }
+
+      if (/^\d+\.$/.test(prefix)) {
+        event.preventDefault()
+        const normalized = `${prefix} `
+        const nextValue = `${value.slice(0, lineStart)}${normalized}${value.slice(selectionStart)}`
+        setValue(nextValue)
+        requestAnimationFrame(() => {
+          element.selectionStart = lineStart + normalized.length
+          element.selectionEnd = lineStart + normalized.length
+        })
+      }
+      return
+    }
+
+    if (event.key === "Enter") {
+      const { lineStart, lineEnd } = getLineBounds(value, selectionStart)
+      const lineText = value.slice(lineStart, lineEnd)
+
+      if (/^•\s$/.test(lineText) || /^\d+\.\s$/.test(lineText)) {
+        event.preventDefault()
+        const nextValue = `${value.slice(0, lineStart)}${value.slice(lineEnd)}`
+        setValue(nextValue)
+        requestAnimationFrame(() => {
+          element.selectionStart = lineStart
+          element.selectionEnd = lineStart
+        })
+        return
+      }
+
+      if (/^•\s/.test(lineText)) {
+        event.preventDefault()
+        const insertion = "\n• "
+        const nextValue = `${value.slice(0, selectionStart)}${insertion}${value.slice(selectionStart)}`
+        setValue(nextValue)
+        requestAnimationFrame(() => {
+          const nextCursor = selectionStart + insertion.length
+          element.selectionStart = nextCursor
+          element.selectionEnd = nextCursor
+        })
+        return
+      }
+
+      const orderedMatch = lineText.match(/^(\d+)\.\s/)
+      if (orderedMatch) {
+        event.preventDefault()
+        const nextNumber = Number(orderedMatch[1]) + 1
+        const insertion = `\n${nextNumber}. `
+        const nextValue = `${value.slice(0, selectionStart)}${insertion}${value.slice(selectionStart)}`
+        setValue(nextValue)
+        requestAnimationFrame(() => {
+          const nextCursor = selectionStart + insertion.length
+          element.selectionStart = nextCursor
+          element.selectionEnd = nextCursor
+        })
+      }
+    }
   }
 
   useEffect(() => {
@@ -734,6 +825,7 @@ export default function AdminProgressPage() {
                 rows={2}
                 value={briefingFocusAreas}
                 onChange={(e) => setBriefingFocusAreas(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, briefingFocusAreas, setBriefingFocusAreas)}
                 placeholder="Areas of focus"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
@@ -741,6 +833,7 @@ export default function AdminProgressPage() {
                 rows={2}
                 value={briefingScenarios}
                 onChange={(e) => setBriefingScenarios(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, briefingScenarios, setBriefingScenarios)}
                 placeholder="Scenarios for this event"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
@@ -748,6 +841,7 @@ export default function AdminProgressPage() {
                 rows={2}
                 value={briefingPlannedRoute}
                 onChange={(e) => setBriefingPlannedRoute(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, briefingPlannedRoute, setBriefingPlannedRoute)}
                 placeholder="Planned route"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
@@ -755,6 +849,7 @@ export default function AdminProgressPage() {
                 rows={2}
                 value={briefingAdditionalInfo}
                 onChange={(e) => setBriefingAdditionalInfo(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, briefingAdditionalInfo, setBriefingAdditionalInfo)}
                 placeholder="Additional information to be prepared"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
@@ -769,6 +864,7 @@ export default function AdminProgressPage() {
                 rows={3}
                 value={debriefPositiveObservations}
                 onChange={(e) => setDebriefPositiveObservations(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, debriefPositiveObservations, setDebriefPositiveObservations)}
                 placeholder="Positive performance observations"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
@@ -776,6 +872,7 @@ export default function AdminProgressPage() {
                 rows={3}
                 value={debriefNegativeObservations}
                 onChange={(e) => setDebriefNegativeObservations(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, debriefNegativeObservations, setDebriefNegativeObservations)}
                 placeholder="Negative performance observations"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
@@ -783,6 +880,7 @@ export default function AdminProgressPage() {
                 rows={3}
                 value={debriefReferenceMaterials}
                 onChange={(e) => setDebriefReferenceMaterials(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, debriefReferenceMaterials, setDebriefReferenceMaterials)}
                 placeholder="References used (Merlin material, FAA source, ACS)"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
@@ -790,6 +888,7 @@ export default function AdminProgressPage() {
                 rows={3}
                 value={debriefSkillsNeedingWork}
                 onChange={(e) => setDebriefSkillsNeedingWork(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, debriefSkillsNeedingWork, setDebriefSkillsNeedingWork)}
                 placeholder="Knowledge and skills needing work before the next meeting"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
@@ -797,6 +896,7 @@ export default function AdminProgressPage() {
                 rows={3}
                 value={debriefRecommendedStudyPractice}
                 onChange={(e) => setDebriefRecommendedStudyPractice(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, debriefRecommendedStudyPractice, setDebriefRecommendedStudyPractice)}
                 placeholder="Recommended study and practice"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
@@ -804,6 +904,7 @@ export default function AdminProgressPage() {
                 rows={3}
                 value={debriefOtherFeedback}
                 onChange={(e) => setDebriefOtherFeedback(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, debriefOtherFeedback, setDebriefOtherFeedback)}
                 placeholder="Other feedback to help the student prepare for the next training event"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
@@ -820,6 +921,7 @@ export default function AdminProgressPage() {
                 rows={3}
                 value={instructorPrivateNotes}
                 onChange={(e) => setInstructorPrivateNotes(e.target.value)}
+                onKeyDown={(e) => handleSmartListKeyDown(e, instructorPrivateNotes, setInstructorPrivateNotes)}
                 placeholder="Internal instructor notes"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
