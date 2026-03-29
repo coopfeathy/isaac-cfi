@@ -105,6 +105,14 @@ type LessonEvaluationPrivateNoteRow = {
   created_at: string
 }
 
+type HomeworkEmailQueueRow = {
+  lesson_evaluation_id: string
+  status: 'pending' | 'held' | 'sent' | 'failed'
+  send_after_at: string | null
+  sent_at: string | null
+  last_error: string | null
+}
+
 async function requireAdmin(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (!authHeader) {
@@ -172,6 +180,10 @@ export async function GET(request: NextRequest) {
       .select('lesson_evaluation_id, notes, created_at')
       .order('created_at', { ascending: false })
 
+    const homeworkQueueResult = await supabaseAdmin
+      .from('homework_email_queue')
+      .select('lesson_evaluation_id, status, send_after_at, sent_at, last_error')
+
     if (studentsResult.error) throw studentsResult.error
     if (coursesResult.error) throw coursesResult.error
     if (unitsResult.error) throw unitsResult.error
@@ -185,6 +197,9 @@ export async function GET(request: NextRequest) {
     if (privateNotesResult.error && privateNotesResult.error.code !== '42P01') {
       throw privateNotesResult.error
     }
+    if (homeworkQueueResult.error && homeworkQueueResult.error.code !== '42P01') {
+      throw homeworkQueueResult.error
+    }
 
     const students = (studentsResult.data || []) as StudentRow[]
     const courses = (coursesResult.data || []) as CourseRow[]
@@ -196,6 +211,7 @@ export async function GET(request: NextRequest) {
     const syllabusProgressRows = (syllabusProgressResult.data || []) as SyllabusProgressRow[]
     const evaluationRows = (evaluationsResult.data || []) as LessonEvaluationRow[]
     const privateNoteRows = (privateNotesResult.data || []) as LessonEvaluationPrivateNoteRow[]
+    const homeworkQueueRows = (homeworkQueueResult.data || []) as HomeworkEmailQueueRow[]
     const authUsers = authUsersResult.data.users || []
 
     const privateNotesByEvaluationId = new Map<string, string>()
@@ -203,6 +219,11 @@ export async function GET(request: NextRequest) {
       if (!privateNotesByEvaluationId.has(row.lesson_evaluation_id)) {
         privateNotesByEvaluationId.set(row.lesson_evaluation_id, row.notes)
       }
+    })
+
+    const homeworkQueueByEvaluationId = new Map<string, HomeworkEmailQueueRow>()
+    homeworkQueueRows.forEach((row) => {
+      homeworkQueueByEvaluationId.set(row.lesson_evaluation_id, row)
     })
 
     const studentUserIds = Array.from(new Set(students.map((student) => student.user_id).filter(Boolean))) as string[]
@@ -358,6 +379,7 @@ export async function GET(request: NextRequest) {
         : null
 
       const recentEvaluations = evaluationsForStudent.slice(0, 5).map((row) => ({
+        homeworkQueue: homeworkQueueByEvaluationId.get(row.id) || null,
         id: row.id,
         courseId: row.course_id,
         courseTitle: courseById.get(row.course_id)?.title || 'Untitled Course',

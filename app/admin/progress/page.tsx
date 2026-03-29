@@ -257,8 +257,15 @@ export default function AdminProgressPage() {
     [students, selectedStudentId]
   )
 
-  const handleSubmitEvaluation = async (e: React.FormEvent) => {
+  const handleSubmitEvaluation = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+        const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null
+        const homeworkEmailAction =
+          submitter?.getAttribute("data-homework-action") === "send_now" ||
+          submitter?.getAttribute("data-homework-action") === "hold"
+            ? (submitter.getAttribute("data-homework-action") as "send_now" | "hold")
+            : "auto"
+
     if (!selectedCourse || !selectedStudentId || syllabusItems.length === 0) {
       setStatusMessage("Select a course, student, and syllabus items first")
       return
@@ -320,6 +327,7 @@ export default function AdminProgressPage() {
           practiceToProficiency: studentPracticeToProficiency,
         },
         instructorPrivateNotes,
+        homeworkEmailAction,
         syllabusUpdates,
         sendEmail,
       }),
@@ -333,13 +341,29 @@ export default function AdminProgressPage() {
       return
     }
 
+    const statusParts: string[] = ["Evaluation saved"]
+
     if (result.emailSent) {
-      setStatusMessage("Evaluation saved and student email sent")
+      statusParts.push("debrief email sent")
     } else if (sendEmail && result.emailError) {
-      setStatusMessage(`Evaluation saved, but email failed: ${result.emailError}`)
-    } else {
-      setStatusMessage("Evaluation saved")
+      statusParts.push(`debrief email failed: ${result.emailError}`)
     }
+
+    if (result.homeworkEmailStatus === "sent") {
+      statusParts.push("homework email sent")
+    } else if (result.homeworkEmailStatus === "held") {
+      statusParts.push("homework email is on hold")
+    } else if (result.homeworkEmailStatus === "pending") {
+      statusParts.push(
+        result.homeworkQueuedFor
+          ? `homework email queued for ${new Date(result.homeworkQueuedFor).toLocaleString()}`
+          : "homework email queued"
+      )
+    } else if (result.homeworkEmailStatus === "failed") {
+      statusParts.push(`homework email failed: ${result.homeworkEmailError || "Unknown error"}`)
+    }
+
+    setStatusMessage(statusParts.join(" | "))
 
     setItemDrafts(nextDrafts)
     setFocusedSyllabusItemId(findNextOpenItemId(nextDrafts))
@@ -627,23 +651,66 @@ export default function AdminProgressPage() {
               />
             </div>
 
-            <button
-              type="submit"
-              disabled={submitting || !selectedStudentId || syllabusItems.length === 0}
-              style={{
-                background: "#111827",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                padding: "12px 18px",
-                fontWeight: 600,
-                cursor: "pointer",
-                width: "fit-content",
-                opacity: submitting || !selectedStudentId || syllabusItems.length === 0 ? 0.65 : 1,
-              }}
-            >
-              {submitting ? "Saving..." : "Save Evaluation"}
-            </button>
+            <div style={{ display: "grid", gap: "8px" }}>
+              <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
+                Homework email behavior after lesson completion.
+              </p>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <button
+                  type="submit"
+                  data-homework-action="send_now"
+                  disabled={submitting || !selectedStudentId || syllabusItems.length === 0}
+                  style={{
+                    background: "#1D4ED8",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "12px 18px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    opacity: submitting || !selectedStudentId || syllabusItems.length === 0 ? 0.65 : 1,
+                  }}
+                >
+                  {submitting ? "Saving..." : "Save + Send Homework Now"}
+                </button>
+
+                <button
+                  type="submit"
+                  data-homework-action="auto"
+                  disabled={submitting || !selectedStudentId || syllabusItems.length === 0}
+                  style={{
+                    background: "#111827",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "12px 18px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    opacity: submitting || !selectedStudentId || syllabusItems.length === 0 ? 0.65 : 1,
+                  }}
+                >
+                  {submitting ? "Saving..." : "Save + Auto Send in 1 Hour"}
+                </button>
+
+                <button
+                  type="submit"
+                  data-homework-action="hold"
+                  disabled={submitting || !selectedStudentId || syllabusItems.length === 0}
+                  style={{
+                    background: "#92400E",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "12px 18px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    opacity: submitting || !selectedStudentId || syllabusItems.length === 0 ? 0.65 : 1,
+                  }}
+                >
+                  {submitting ? "Saving..." : "Save + Hold Homework Email"}
+                </button>
+              </div>
+            </div>
           </form>
         </section>
       </div>

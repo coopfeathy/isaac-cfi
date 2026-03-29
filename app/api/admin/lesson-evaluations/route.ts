@@ -25,6 +25,10 @@ type DebriefInput = {
   practiceToProficiency?: string | null
 }
 
+type HomeworkEmailAction = "auto" | "send_now" | "hold"
+
+const HOMEWORK_EMAIL_DELAY_MINUTES = Number(process.env.HOMEWORK_EMAIL_DELAY_MINUTES || "60")
+
 const normalizeText = (value?: string | null): string | null => {
   if (typeof value !== "string") return null
   const trimmed = value.trim()
@@ -37,6 +41,74 @@ const buildLabeledBlock = (sections: Array<{ label: string; value: string | null
     .map((section) => `${section.label}:\n${section.value}`)
   if (lines.length === 0) return null
   return lines.join("\n\n")
+}
+
+const sendHomeworkEmailNow = async (params: {
+  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>
+  studentId: string
+  courseId: string
+  lessonId?: string | null
+  recommendations: string | null
+  practiceToProficiency: string | null
+  briefingSummary: string | null
+}) => {
+  const { supabaseAdmin, studentId, courseId, lessonId, recommendations, practiceToProficiency, briefingSummary } = params
+
+  const [courseResult, lessonResult, studentResult] = await Promise.all([
+    supabaseAdmin.from("courses").select("title").eq("id", courseId).single(),
+    lessonId
+      ? supabaseAdmin.from("lessons").select("title").eq("id", lessonId).single()
+      : Promise.resolve({ data: null, error: null } as any),
+    supabaseAdmin.auth.admin.getUserById(studentId),
+  ])
+
+  const studentEmail = studentResult.data.user?.email || null
+  const studentName =
+    (studentResult.data.user?.user_metadata?.full_name as string | undefined) ||
+    studentEmail ||
+    "Student"
+
+  if (!studentEmail) {
+    return { sent: false, error: "Student does not have an email on their account" }
+  }
+
+  const courseTitle = courseResult.data?.title || "Your Course"
+  const lessonTitle = lessonResult.data?.title || null
+
+  const subject = lessonTitle
+    ? `Homework for Next Lesson: ${lessonTitle}`
+    : `Homework for Your Next Lesson: ${courseTitle}`
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #111827;">
+      <h1 style="color: #1e3a8a; margin-bottom: 8px;">Next Lesson Homework</h1>
+      <p style="margin-top: 0; color: #4b5563;">Hi ${studentName}, here is your assigned preparation before the next lesson.</p>
+
+      <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 20px 0;">
+        <p style="margin: 0 0 8px 0;"><strong>Course:</strong> ${courseTitle}</p>
+        ${lessonTitle ? `<p style="margin: 0;"><strong>Upcoming Lesson:</strong> ${lessonTitle}</p>` : ""}
+      </div>
+
+      ${recommendations ? `<h3 style="margin-bottom: 6px;">Instructor Recommendations</h3><p style="margin-top: 0; white-space: pre-wrap;">${recommendations}</p>` : ""}
+      ${practiceToProficiency ? `<h3 style="margin-bottom: 6px;">Practice To Proficiency</h3><p style="margin-top: 0; white-space: pre-wrap;">${practiceToProficiency}</p>` : ""}
+      ${briefingSummary ? `<h3 style="margin-bottom: 6px;">Briefing Notes</h3><p style="margin-top: 0; white-space: pre-wrap;">${briefingSummary}</p>` : ""}
+
+      <p style="margin-top: 24px; color: #4b5563;">Please practice these items to proficiency before your next flight, ground, or simulator event.</p>
+    </div>
+  `
+
+  const { error } = await resend.emails.send({
+    from: "Merlin Flight Training <noreply@merlinflighttraining.com>",
+    to: [studentEmail],
+    subject,
+    html,
+  })
+
+  if (error) {
+    return { sent: false, error: error.message || "Failed to send homework email" }
+  }
+
+  return { sent: true, error: null as string | null }
 }
 
 export async function POST(request: NextRequest) {
@@ -78,6 +150,7 @@ export async function POST(request: NextRequest) {
       briefingNotes,
       debrief,
       instructorPrivateNotes,
+      homeworkEmailAction,
       strengths,
       improvements,
       homework,
@@ -92,6 +165,7 @@ export async function POST(request: NextRequest) {
       briefingNotes?: BriefingNotesInput
       debrief?: DebriefInput
       instructorPrivateNotes?: string | null
+      homeworkEmailAction?: HomeworkEmailAction
       strengths?: string | null
       improvements?: string | null
       homework?: string | null
@@ -135,6 +209,9 @@ export async function POST(request: NextRequest) {
       { label: "Briefing Notes", value: briefingSummary },
     ])
 
+    const parsedHomeworkAction: HomeworkEmailAction =
+      homeworkEmailAction === "send_now" || homeworkEmailAction === "hold" ? homeworkEmailAction : "auto"
+
     const progressRows = syllabusUpdates.map((item) => ({
       syllabus_item_id: item.syllabusItemId,
       student_id: studentId,
@@ -173,6 +250,89 @@ export async function POST(request: NextRequest) {
 
     if (evaluationError) {
       return NextResponse.json({ error: evaluationError.message }, { status: 400 })
+    }
+
+    const homeworkPayload = {
+      recommendations: instructorRecommendations,
+      practiceToProficiency: studentPracticeToProficiency,
+      briefingSummary,
+    }
+
+    const delayMs = Math.max(5, HOMEWORK_EMAIL_DELAY_MINUTES) * 60 * 1000
+    const queuedSendAt = new Date(Date.now() + delayMs).toISOString()
+
+    const initialHomeworkStatus = parsedHomeworkAction === "hold" ? "held" : parsedHomeworkAction === "send_now" ? "sent" : "pending"
+
+    let homeworkEmailStatus: "pending" | "held" | "sent" | "failed" = initialHomeworkStatus
+    let homeworkEmailError: string | null = null
+
+    const { error: queueError } = await supabaseAdmin
+      .from("homework_email_queue")
+      .upsert(
+        [
+          {
+            lesson_evaluation_id: evaluation.id,
+            student_id: studentId,
+            course_id: courseId,
+            lesson_id: lessonId || null,
+            payload: homeworkPayload,
+            status: initialHomeworkStatus,
+            send_after_at: parsedHomeworkAction === "auto" ? queuedSendAt : null,
+            held_at: parsedHomeworkAction === "hold" ? new Date().toISOString() : null,
+            sent_at: parsedHomeworkAction === "send_now" ? new Date().toISOString() : null,
+            sent_by: parsedHomeworkAction === "send_now" ? user.id : null,
+            last_error: null,
+            created_by: user.id,
+            updated_at: new Date().toISOString(),
+          },
+        ],
+        { onConflict: "lesson_evaluation_id" }
+      )
+
+    if (queueError) {
+      homeworkEmailStatus = "failed"
+      homeworkEmailError = queueError.message
+    }
+
+    if (!queueError && parsedHomeworkAction === "send_now") {
+      const sendResult = await sendHomeworkEmailNow({
+        supabaseAdmin,
+        studentId,
+        courseId,
+        lessonId,
+        recommendations: instructorRecommendations,
+        practiceToProficiency: studentPracticeToProficiency,
+        briefingSummary,
+      })
+
+      if (!sendResult.sent) {
+        homeworkEmailStatus = "failed"
+        homeworkEmailError = sendResult.error
+        await supabaseAdmin
+          .from("homework_email_queue")
+          .update({
+            status: "failed",
+            last_error: sendResult.error,
+            attempts: 1,
+            sent_at: null,
+            sent_by: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("lesson_evaluation_id", evaluation.id)
+      } else {
+        homeworkEmailStatus = "sent"
+        await supabaseAdmin
+          .from("homework_email_queue")
+          .update({
+            status: "sent",
+            attempts: 1,
+            last_error: null,
+            sent_at: new Date().toISOString(),
+            sent_by: user.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("lesson_evaluation_id", evaluation.id)
+      }
     }
 
     const privateNotesValue = normalizeText(instructorPrivateNotes)
@@ -269,6 +429,9 @@ export async function POST(request: NextRequest) {
       privateNotesSaved,
       emailSent,
       emailError,
+      homeworkEmailStatus,
+      homeworkEmailError,
+      homeworkQueuedFor: parsedHomeworkAction === "auto" && homeworkEmailStatus === "pending" ? queuedSendAt : null,
     })
   } catch (error: any) {
     return NextResponse.json(

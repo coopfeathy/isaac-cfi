@@ -1057,6 +1057,37 @@ CREATE POLICY "Admins manage lesson evaluation private notes"
   WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
 
 -- ============================================================
+-- 25. HOMEWORK EMAIL QUEUE (auto-send, hold, manual send)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS homework_email_queue (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_evaluation_id UUID NOT NULL UNIQUE REFERENCES lesson_evaluations(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  lesson_id UUID REFERENCES lessons(id) ON DELETE SET NULL,
+  payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'held', 'sent', 'failed')),
+  send_after_at TIMESTAMPTZ,
+  held_at TIMESTAMPTZ,
+  sent_at TIMESTAMPTZ,
+  sent_by UUID REFERENCES auth.users(id),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  last_error TEXT,
+  created_by UUID NOT NULL REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE homework_email_queue ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins manage homework email queue" ON homework_email_queue;
+
+CREATE POLICY "Admins manage homework email queue"
+  ON homework_email_queue FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+-- ============================================================
 -- 24. SOCIAL MEDIA POSTS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS social_media_posts (
@@ -1447,6 +1478,8 @@ CREATE INDEX IF NOT EXISTS idx_lesson_evaluations_student_id ON lesson_evaluatio
 CREATE INDEX IF NOT EXISTS idx_lesson_evaluations_course_id ON lesson_evaluations(course_id);
 CREATE INDEX IF NOT EXISTS idx_lesson_eval_private_notes_eval_id ON lesson_evaluation_private_notes(lesson_evaluation_id);
 CREATE INDEX IF NOT EXISTS idx_lesson_eval_private_notes_instructor_id ON lesson_evaluation_private_notes(instructor_id);
+CREATE INDEX IF NOT EXISTS idx_homework_email_queue_status_send_after ON homework_email_queue(status, send_after_at);
+CREATE INDEX IF NOT EXISTS idx_homework_email_queue_student_id ON homework_email_queue(student_id);
 
 -- ============================================================
 -- DONE

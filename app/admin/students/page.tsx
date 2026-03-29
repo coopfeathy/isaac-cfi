@@ -28,6 +28,12 @@ type StudentCourseSummary = {
 }
 
 type StudentEvaluation = {
+  homeworkQueue: {
+    status: 'pending' | 'held' | 'sent' | 'failed'
+    send_after_at: string | null
+    sent_at: string | null
+    last_error: string | null
+  } | null
   id: string
   courseId: string
   courseTitle: string
@@ -182,6 +188,7 @@ export default function AdminStudentsPage() {
   })
   const [savingSettings, setSavingSettings] = useState(false)
   const [settingsMessage, setSettingsMessage] = useState('')
+  const [homeworkActionLoadingId, setHomeworkActionLoadingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (authLoading) return
@@ -323,6 +330,41 @@ export default function AdminStudentsPage() {
       setSettingsMessage(error instanceof Error ? error.message : 'Unable to save billing settings')
     } finally {
       setSavingSettings(false)
+    }
+  }
+
+  const handleHomeworkEmailAction = async (evaluationId: string, action: 'send_now' | 'hold') => {
+    setHomeworkActionLoadingId(evaluationId)
+    setErrorMessage('')
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error('Missing session. Please sign in again.')
+      }
+
+      const response = await fetch('/api/admin/homework-emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ evaluationId, action }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.error || 'Unable to update homework email status')
+      }
+
+      await fetchStudents()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to update homework email status')
+    } finally {
+      setHomeworkActionLoadingId(null)
     }
   }
 
@@ -798,6 +840,40 @@ export default function AdminStudentsPage() {
                             <p className="text-xs text-slate-500">{evaluation.emailSentAt ? 'Emailed to student' : 'Saved only'}</p>
                           </div>
                         </div>
+
+                        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Homework Email</p>
+                          <p className="mt-2 text-sm text-slate-700">
+                            {evaluation.homeworkQueue?.status === 'sent'
+                              ? `Sent ${formatDateTime(evaluation.homeworkQueue.sent_at)}`
+                              : evaluation.homeworkQueue?.status === 'held'
+                                ? 'On hold until instructor action'
+                                : evaluation.homeworkQueue?.status === 'pending'
+                                  ? `Queued for ${formatDateTime(evaluation.homeworkQueue.send_after_at)}`
+                                  : evaluation.homeworkQueue?.status === 'failed'
+                                    ? `Failed: ${evaluation.homeworkQueue.last_error || 'Unknown error'}`
+                                    : 'Not queued yet'}
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void handleHomeworkEmailAction(evaluation.id, 'send_now')}
+                              disabled={homeworkActionLoadingId === evaluation.id}
+                              className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                            >
+                              {homeworkActionLoadingId === evaluation.id ? 'Working...' : 'Push Homework Email'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleHomeworkEmailAction(evaluation.id, 'hold')}
+                              disabled={homeworkActionLoadingId === evaluation.id}
+                              className="rounded-lg bg-amber-700 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-800 disabled:opacity-60"
+                            >
+                              {homeworkActionLoadingId === evaluation.id ? 'Working...' : 'Hold Homework Email'}
+                            </button>
+                          </div>
+                        </div>
+
                         <div className="mt-4 grid gap-4 md:grid-cols-2">
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Strengths</p>
