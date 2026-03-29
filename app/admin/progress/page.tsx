@@ -69,10 +69,16 @@ export default function AdminProgressPage() {
 
   const [selectedLessonId, setSelectedLessonId] = useState("")
   const [performanceRating, setPerformanceRating] = useState(3)
-  const [strengths, setStrengths] = useState("")
-  const [improvements, setImprovements] = useState("")
-  const [homework, setHomework] = useState("")
-  const [nextLessonFocus, setNextLessonFocus] = useState("")
+  const [briefingFocusAreas, setBriefingFocusAreas] = useState("")
+  const [briefingScenarios, setBriefingScenarios] = useState("")
+  const [briefingPlannedRoute, setBriefingPlannedRoute] = useState("")
+  const [briefingAdditionalInfo, setBriefingAdditionalInfo] = useState("")
+  const [debriefSatisfactory, setDebriefSatisfactory] = useState("")
+  const [debriefUnsatisfactory, setDebriefUnsatisfactory] = useState("")
+  const [debriefDeteriorating, setDebriefDeteriorating] = useState("")
+  const [instructorRecommendations, setInstructorRecommendations] = useState("")
+  const [studentPracticeToProficiency, setStudentPracticeToProficiency] = useState("")
+  const [instructorPrivateNotes, setInstructorPrivateNotes] = useState("")
   const [sendEmail, setSendEmail] = useState(true)
 
   const [loading, setLoading] = useState(true)
@@ -300,10 +306,20 @@ export default function AdminProgressPage() {
         studentId: selectedStudentId,
         lessonId: selectedLessonId || null,
         performanceRating,
-        strengths,
-        improvements,
-        homework,
-        nextLessonFocus,
+        briefingNotes: {
+          focusAreas: briefingFocusAreas,
+          scenarios: briefingScenarios,
+          plannedRoute: briefingPlannedRoute,
+          additionalInfo: briefingAdditionalInfo,
+        },
+        debrief: {
+          satisfactory: debriefSatisfactory,
+          unsatisfactory: debriefUnsatisfactory,
+          deteriorating: debriefDeteriorating,
+          recommendations: instructorRecommendations,
+          practiceToProficiency: studentPracticeToProficiency,
+        },
+        instructorPrivateNotes,
         syllabusUpdates,
         sendEmail,
       }),
@@ -518,39 +534,98 @@ export default function AdminProgressPage() {
               </div>
             ))}
 
-            <textarea
-              rows={3}
-              value={strengths}
-              onChange={(e) => setStrengths(e.target.value)}
-              placeholder="What went well"
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
-            />
-            <textarea
-              rows={3}
-              value={improvements}
-              onChange={(e) => setImprovements(e.target.value)}
-              placeholder="What to improve"
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
-            />
-            <textarea
-              rows={3}
-              value={homework}
-              onChange={(e) => setHomework(e.target.value)}
-              placeholder="Homework / prep for next lesson"
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
-            />
-            <textarea
-              rows={2}
-              value={nextLessonFocus}
-              onChange={(e) => setNextLessonFocus(e.target.value)}
-              placeholder="Next lesson focus"
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
-            />
+            <div style={{ display: "grid", gap: "10px", padding: "12px", borderRadius: "10px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
+              <p style={{ margin: 0, fontWeight: 600 }}>Briefing Notes (shared with student)</p>
+              <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
+                Add what the student should expect before the scheduled flight, ground, or simulator event.
+              </p>
+              <textarea
+                rows={2}
+                value={briefingFocusAreas}
+                onChange={(e) => setBriefingFocusAreas(e.target.value)}
+                placeholder="Areas of focus"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+              <textarea
+                rows={2}
+                value={briefingScenarios}
+                onChange={(e) => setBriefingScenarios(e.target.value)}
+                placeholder="Scenarios for this event"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+              <textarea
+                rows={2}
+                value={briefingPlannedRoute}
+                onChange={(e) => setBriefingPlannedRoute(e.target.value)}
+                placeholder="Planned route"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+              <textarea
+                rows={2}
+                value={briefingAdditionalInfo}
+                onChange={(e) => setBriefingAdditionalInfo(e.target.value)}
+                placeholder="Additional information to be prepared"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+            </div>
+
+            <div style={{ display: "grid", gap: "10px", padding: "12px", borderRadius: "10px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
+              <p style={{ margin: 0, fontWeight: 600 }}>Debrief (shared with student)</p>
+              <textarea
+                rows={3}
+                value={debriefSatisfactory}
+                onChange={(e) => setDebriefSatisfactory(e.target.value)}
+                placeholder="Satisfactory"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+              <textarea
+                rows={3}
+                value={debriefUnsatisfactory}
+                onChange={(e) => setDebriefUnsatisfactory(e.target.value)}
+                placeholder="Unsatisfactory"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+              <textarea
+                rows={3}
+                value={debriefDeteriorating}
+                onChange={(e) => setDebriefDeteriorating(e.target.value)}
+                placeholder="Deteriorating"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+            </div>
+
+            <div style={{ display: "grid", gap: "10px" }}>
+              <textarea
+                rows={3}
+                value={instructorRecommendations}
+                onChange={(e) => setInstructorRecommendations(e.target.value)}
+                placeholder="Instructor recommendations for practice"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
+              />
+              <textarea
+                rows={3}
+                value={studentPracticeToProficiency}
+                onChange={(e) => setStudentPracticeToProficiency(e.target.value)}
+                placeholder="Student practice-to-proficiency before next flight/simulator event"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
+              />
+            </div>
 
             <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} />
               Email debrief to student after save
             </label>
+
+            <div style={{ display: "grid", gap: "8px", padding: "10px", borderRadius: "8px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
+              <label style={{ fontWeight: 600 }}>Instructor Notes (WILL NOT BE SHARED WITH STUDENT)</label>
+              <textarea
+                rows={3}
+                value={instructorPrivateNotes}
+                onChange={(e) => setInstructorPrivateNotes(e.target.value)}
+                placeholder="Internal instructor notes"
+                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
+              />
+            </div>
 
             <button
               type="submit"

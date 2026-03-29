@@ -83,10 +83,12 @@ export const emailTemplates = {
     courseTitle: string
     lessonTitle?: string | null
     performanceRating: number
-    strengths?: string | null
-    improvements?: string | null
-    homework?: string | null
-    nextLessonFocus?: string | null
+    satisfactory?: string | null
+    unsatisfactory?: string | null
+    deteriorating?: string | null
+    recommendations?: string | null
+    practiceToProficiency?: string | null
+    briefingSummary?: string | null
     progressSummary: Array<{ title: string; status: string }>
   }) => ({
     subject: `Lesson Debrief: ${payload.courseTitle}`,
@@ -101,10 +103,12 @@ export const emailTemplates = {
           <p style="margin: 0;"><strong>Performance Grade:</strong> ${getPerformanceGrade(payload.performanceRating).arrows} ${getPerformanceGrade(payload.performanceRating).label}</p>
         </div>
 
-        ${payload.strengths ? `<h3 style="margin-bottom: 6px;">What Went Well</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.strengths}</p>` : ""}
-        ${payload.improvements ? `<h3 style="margin-bottom: 6px;">What To Improve</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.improvements}</p>` : ""}
-        ${payload.homework ? `<h3 style="margin-bottom: 6px;">Homework</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.homework}</p>` : ""}
-        ${payload.nextLessonFocus ? `<h3 style="margin-bottom: 6px;">Next Lesson Focus</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.nextLessonFocus}</p>` : ""}
+        ${payload.briefingSummary ? `<h3 style="margin-bottom: 6px;">Briefing Notes</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.briefingSummary}</p>` : ""}
+        ${payload.satisfactory ? `<h3 style="margin-bottom: 6px;">Satisfactory</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.satisfactory}</p>` : ""}
+        ${payload.unsatisfactory ? `<h3 style="margin-bottom: 6px;">Unsatisfactory</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.unsatisfactory}</p>` : ""}
+        ${payload.deteriorating ? `<h3 style="margin-bottom: 6px;">Deteriorating</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.deteriorating}</p>` : ""}
+        ${payload.recommendations ? `<h3 style="margin-bottom: 6px;">Instructor Recommendations</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.recommendations}</p>` : ""}
+        ${payload.practiceToProficiency ? `<h3 style="margin-bottom: 6px;">Practice To Proficiency</h3><p style="margin-top: 0; white-space: pre-wrap;">${payload.practiceToProficiency}</p>` : ""}
 
         <h3 style="margin-bottom: 8px;">Syllabus Progress Snapshot</h3>
         <ul style="padding-left: 20px;">

@@ -99,6 +99,12 @@ type LessonEvaluationRow = {
   email_sent_at: string | null
 }
 
+type LessonEvaluationPrivateNoteRow = {
+  lesson_evaluation_id: string
+  notes: string
+  created_at: string
+}
+
 async function requireAdmin(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (!authHeader) {
@@ -161,6 +167,11 @@ export async function GET(request: NextRequest) {
       supabaseAdmin.auth.admin.listUsers(),
     ])
 
+    const privateNotesResult = await supabaseAdmin
+      .from('lesson_evaluation_private_notes')
+      .select('lesson_evaluation_id, notes, created_at')
+      .order('created_at', { ascending: false })
+
     if (studentsResult.error) throw studentsResult.error
     if (coursesResult.error) throw coursesResult.error
     if (unitsResult.error) throw unitsResult.error
@@ -171,6 +182,9 @@ export async function GET(request: NextRequest) {
     if (syllabusProgressResult.error) throw syllabusProgressResult.error
     if (evaluationsResult.error) throw evaluationsResult.error
     if (authUsersResult.error) throw authUsersResult.error
+    if (privateNotesResult.error && privateNotesResult.error.code !== '42P01') {
+      throw privateNotesResult.error
+    }
 
     const students = (studentsResult.data || []) as StudentRow[]
     const courses = (coursesResult.data || []) as CourseRow[]
@@ -181,7 +195,15 @@ export async function GET(request: NextRequest) {
     const syllabusItems = (syllabusItemsResult.data || []) as SyllabusItemRow[]
     const syllabusProgressRows = (syllabusProgressResult.data || []) as SyllabusProgressRow[]
     const evaluationRows = (evaluationsResult.data || []) as LessonEvaluationRow[]
+    const privateNoteRows = (privateNotesResult.data || []) as LessonEvaluationPrivateNoteRow[]
     const authUsers = authUsersResult.data.users || []
+
+    const privateNotesByEvaluationId = new Map<string, string>()
+    privateNoteRows.forEach((row) => {
+      if (!privateNotesByEvaluationId.has(row.lesson_evaluation_id)) {
+        privateNotesByEvaluationId.set(row.lesson_evaluation_id, row.notes)
+      }
+    })
 
     const studentUserIds = Array.from(new Set(students.map((student) => student.user_id).filter(Boolean))) as string[]
     const profilesResult = studentUserIds.length
@@ -346,6 +368,7 @@ export async function GET(request: NextRequest) {
         improvements: row.improvements,
         homework: row.homework,
         nextLessonFocus: row.next_lesson_focus,
+        instructorPrivateNotes: privateNotesByEvaluationId.get(row.id) || null,
         createdAt: row.created_at,
         emailSentAt: row.email_sent_at,
       }))

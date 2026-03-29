@@ -1036,6 +1036,27 @@ CREATE POLICY "Students view own lesson evaluations"
   ON lesson_evaluations FOR SELECT USING (student_id = auth.uid());
 
 -- ============================================================
+-- 24. LESSON EVALUATION PRIVATE NOTES (instructor-only)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS lesson_evaluation_private_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  lesson_evaluation_id UUID NOT NULL REFERENCES lesson_evaluations(id) ON DELETE CASCADE,
+  instructor_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  notes TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE lesson_evaluation_private_notes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins manage lesson evaluation private notes" ON lesson_evaluation_private_notes;
+
+CREATE POLICY "Admins manage lesson evaluation private notes"
+  ON lesson_evaluation_private_notes FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+-- ============================================================
 -- 24. SOCIAL MEDIA POSTS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS social_media_posts (
@@ -1424,6 +1445,8 @@ CREATE INDEX IF NOT EXISTS idx_student_syllabus_progress_student_id ON student_s
 CREATE INDEX IF NOT EXISTS idx_student_syllabus_progress_item_id ON student_syllabus_progress(syllabus_item_id);
 CREATE INDEX IF NOT EXISTS idx_lesson_evaluations_student_id ON lesson_evaluations(student_id);
 CREATE INDEX IF NOT EXISTS idx_lesson_evaluations_course_id ON lesson_evaluations(course_id);
+CREATE INDEX IF NOT EXISTS idx_lesson_eval_private_notes_eval_id ON lesson_evaluation_private_notes(lesson_evaluation_id);
+CREATE INDEX IF NOT EXISTS idx_lesson_eval_private_notes_instructor_id ON lesson_evaluation_private_notes(instructor_id);
 
 -- ============================================================
 -- DONE

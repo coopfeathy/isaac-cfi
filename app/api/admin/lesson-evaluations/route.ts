@@ -10,6 +10,35 @@ type SyllabusUpdate = {
   instructorNotes?: string | null
 }
 
+type BriefingNotesInput = {
+  focusAreas?: string | null
+  scenarios?: string | null
+  plannedRoute?: string | null
+  additionalInfo?: string | null
+}
+
+type DebriefInput = {
+  satisfactory?: string | null
+  unsatisfactory?: string | null
+  deteriorating?: string | null
+  recommendations?: string | null
+  practiceToProficiency?: string | null
+}
+
+const normalizeText = (value?: string | null): string | null => {
+  if (typeof value !== "string") return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+const buildLabeledBlock = (sections: Array<{ label: string; value: string | null }>): string | null => {
+  const lines = sections
+    .filter((section) => section.value)
+    .map((section) => `${section.label}:\n${section.value}`)
+  if (lines.length === 0) return null
+  return lines.join("\n\n")
+}
+
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization")
@@ -46,6 +75,9 @@ export async function POST(request: NextRequest) {
       studentId,
       lessonId,
       performanceRating,
+      briefingNotes,
+      debrief,
+      instructorPrivateNotes,
       strengths,
       improvements,
       homework,
@@ -57,6 +89,9 @@ export async function POST(request: NextRequest) {
       studentId: string
       lessonId?: string | null
       performanceRating: number
+      briefingNotes?: BriefingNotesInput
+      debrief?: DebriefInput
+      instructorPrivateNotes?: string | null
       strengths?: string | null
       improvements?: string | null
       homework?: string | null
@@ -74,6 +109,31 @@ export async function POST(request: NextRequest) {
     }
 
     const supabaseAdmin = getSupabaseAdmin()
+
+    const debriefSatisfactory = normalizeText(debrief?.satisfactory) || normalizeText(strengths)
+    const debriefUnsatisfactory = normalizeText(debrief?.unsatisfactory)
+    const debriefDeteriorating = normalizeText(debrief?.deteriorating)
+    const instructorRecommendations = normalizeText(debrief?.recommendations) || normalizeText(homework)
+    const studentPracticeToProficiency = normalizeText(debrief?.practiceToProficiency)
+
+    const briefingSummary =
+      buildLabeledBlock([
+        { label: "Areas of Focus", value: normalizeText(briefingNotes?.focusAreas) },
+        { label: "Scenarios", value: normalizeText(briefingNotes?.scenarios) },
+        { label: "Planned Route", value: normalizeText(briefingNotes?.plannedRoute) },
+        { label: "Additional Information", value: normalizeText(briefingNotes?.additionalInfo) },
+      ]) || normalizeText(nextLessonFocus)
+
+    const unsatisfactoryAndDeteriorating =
+      buildLabeledBlock([
+        { label: "Unsatisfactory", value: debriefUnsatisfactory },
+        { label: "Deteriorating", value: debriefDeteriorating },
+      ]) || normalizeText(improvements)
+
+    const practiceAndBriefing = buildLabeledBlock([
+      { label: "Practice to Proficiency", value: studentPracticeToProficiency },
+      { label: "Briefing Notes", value: briefingSummary },
+    ])
 
     const progressRows = syllabusUpdates.map((item) => ({
       syllabus_item_id: item.syllabusItemId,
@@ -102,10 +162,10 @@ export async function POST(request: NextRequest) {
           student_id: studentId,
           instructor_id: user.id,
           performance_rating: performanceRating,
-          strengths: strengths || null,
-          improvements: improvements || null,
-          homework: homework || null,
-          next_lesson_focus: nextLessonFocus || null,
+          strengths: debriefSatisfactory,
+          improvements: unsatisfactoryAndDeteriorating,
+          homework: instructorRecommendations,
+          next_lesson_focus: practiceAndBriefing,
         },
       ])
       .select("id")
@@ -113,6 +173,24 @@ export async function POST(request: NextRequest) {
 
     if (evaluationError) {
       return NextResponse.json({ error: evaluationError.message }, { status: 400 })
+    }
+
+    const privateNotesValue = normalizeText(instructorPrivateNotes)
+    let privateNotesSaved = false
+    if (privateNotesValue) {
+      const { error: privateNotesError } = await supabaseAdmin
+        .from("lesson_evaluation_private_notes")
+        .insert([
+          {
+            lesson_evaluation_id: evaluation.id,
+            notes: privateNotesValue,
+            instructor_id: user.id,
+          },
+        ])
+
+      if (!privateNotesError) {
+        privateNotesSaved = true
+      }
     }
 
     let emailSent = false
@@ -152,10 +230,12 @@ export async function POST(request: NextRequest) {
           courseTitle,
           lessonTitle,
           performanceRating,
-          strengths,
-          improvements,
-          homework,
-          nextLessonFocus,
+          satisfactory: debriefSatisfactory,
+          unsatisfactory: debriefUnsatisfactory,
+          deteriorating: debriefDeteriorating,
+          recommendations: instructorRecommendations,
+          practiceToProficiency: studentPracticeToProficiency,
+          briefingSummary,
           progressSummary,
         })
 
@@ -186,6 +266,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       evaluationId: evaluation.id,
+      privateNotesSaved,
       emailSent,
       emailError,
     })

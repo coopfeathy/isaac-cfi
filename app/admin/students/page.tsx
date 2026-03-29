@@ -38,6 +38,7 @@ type StudentEvaluation = {
   improvements: string | null
   homework: string | null
   nextLessonFocus: string | null
+  instructorPrivateNotes: string | null
   createdAt: string
   emailSentAt: string | null
 }
@@ -769,7 +770,7 @@ export default function AdminStudentsPage() {
 
               <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h3 className="text-lg font-bold text-darkText">Recent Lesson Evaluations</h3>
-                <p className="mt-1 text-sm text-slate-500">Latest debriefs, strengths, homework, and next-step notes emailed or saved by instructors.</p>
+                <p className="mt-1 text-sm text-slate-500">Latest debriefs, strengths, homework, next-step notes, and instructor-only notes.</p>
                 <div className="mt-5 space-y-4">
                   {selectedStudent.recentEvaluations.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
@@ -814,6 +815,14 @@ export default function AdminStudentsPage() {
                             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Next Lesson Focus</p>
                             <p className="mt-2 text-sm text-slate-700 whitespace-pre-wrap">{evaluation.nextLessonFocus || 'No next-step focus recorded.'}</p>
                           </div>
+                        </div>
+                        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">
+                            Instructor Notes (WILL NOT BE SHARED WITH STUDENT)
+                          </p>
+                          <p className="mt-2 text-sm text-amber-900 whitespace-pre-wrap">
+                            {evaluation.instructorPrivateNotes || 'No instructor-only notes recorded.'}
+                          </p>
                         </div>
                       </div>
                     ))

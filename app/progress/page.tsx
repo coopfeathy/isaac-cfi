@@ -76,6 +76,16 @@ const getGradeLabel = (rating: number): { arrows: string; label: string; color: 
   }
 }
 
+const extractLabeledSection = (source: string | null | undefined, label: string): string | null => {
+  if (!source) return null
+  const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const regex = new RegExp(`${escapedLabel}:\\n([\\s\\S]*?)(?=\\n\\n[A-Za-z ]+:\\n|$)`, "i")
+  const match = source.match(regex)
+  if (!match?.[1]) return null
+  const value = match[1].trim()
+  return value.length > 0 ? value : null
+}
+
 export default function ProgressPage() {
   const { user, loading: authLoading } = useAuth()
 
@@ -294,18 +304,29 @@ export default function ProgressPage() {
           <p style={{ color: "#6B7280" }}>No debriefs yet.</p>
         ) : (
           <div style={{ display: "grid", gap: "12px" }}>
-            {evaluations.map((entry) => (
-              <article key={entry.id} style={{ border: "1px solid #F3F4F6", borderRadius: "10px", padding: "12px" }}>
-                <p style={{ marginTop: 0, marginBottom: "8px", fontSize: "13px", color: "#6B7280" }}>
-                  {new Date(entry.created_at).toLocaleString()} • {getGradeLabel(entry.performance_rating).arrows} {getGradeLabel(entry.performance_rating).label}
-                  {entry.lesson_id && lessonLookup[entry.lesson_id] ? ` • ${lessonLookup[entry.lesson_id]}` : ""}
-                </p>
-                {entry.strengths && <p style={{ margin: "0 0 6px 0" }}><strong>Strengths:</strong> {entry.strengths}</p>}
-                {entry.improvements && <p style={{ margin: "0 0 6px 0" }}><strong>Improvements:</strong> {entry.improvements}</p>}
-                {entry.homework && <p style={{ margin: "0 0 6px 0" }}><strong>Homework:</strong> {entry.homework}</p>}
-                {entry.next_lesson_focus && <p style={{ margin: 0 }}><strong>Next lesson:</strong> {entry.next_lesson_focus}</p>}
-              </article>
-            ))}
+            {evaluations.map((entry) => {
+              const unsatisfactory = extractLabeledSection(entry.improvements, "Unsatisfactory") || entry.improvements
+              const deteriorating = extractLabeledSection(entry.improvements, "Deteriorating")
+              const briefingNotes = extractLabeledSection(entry.next_lesson_focus, "Briefing Notes")
+              const extractedPractice = extractLabeledSection(entry.next_lesson_focus, "Practice to Proficiency")
+              const practiceToProficiency =
+                extractedPractice || (!briefingNotes ? entry.next_lesson_focus : null)
+
+              return (
+                <article key={entry.id} style={{ border: "1px solid #F3F4F6", borderRadius: "10px", padding: "12px" }}>
+                  <p style={{ marginTop: 0, marginBottom: "8px", fontSize: "13px", color: "#6B7280" }}>
+                    {new Date(entry.created_at).toLocaleString()} • {getGradeLabel(entry.performance_rating).arrows} {getGradeLabel(entry.performance_rating).label}
+                    {entry.lesson_id && lessonLookup[entry.lesson_id] ? ` • ${lessonLookup[entry.lesson_id]}` : ""}
+                  </p>
+                  {briefingNotes && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Briefing Notes:</strong> {briefingNotes}</p>}
+                  {entry.strengths && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Satisfactory:</strong> {entry.strengths}</p>}
+                  {unsatisfactory && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Unsatisfactory:</strong> {unsatisfactory}</p>}
+                  {deteriorating && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Deteriorating:</strong> {deteriorating}</p>}
+                  {entry.homework && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Instructor Recommendations:</strong> {entry.homework}</p>}
+                  {practiceToProficiency && <p style={{ margin: 0, whiteSpace: "pre-wrap" }}><strong>Practice To Proficiency:</strong> {practiceToProficiency}</p>}
+                </article>
+              )
+            })}
           </div>
         )}
       </section>
