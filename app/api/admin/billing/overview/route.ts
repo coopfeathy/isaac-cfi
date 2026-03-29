@@ -8,6 +8,7 @@ type StudentRow = {
   user_id: string | null
   full_name: string
   email: string | null
+  phone: string | null
   preferred_currency: string | null
   training_item_ids: string[] | null
   stripe_customer_id: string | null
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
     const [studentsResult, itemsResult] = await Promise.all([
       supabaseAdmin
         .from('students')
-        .select('id, user_id, full_name, email, preferred_currency, training_item_ids, stripe_customer_id')
+        .select('id, user_id, full_name, email, phone, preferred_currency, training_item_ids, stripe_customer_id')
         .order('full_name', { ascending: true }),
       supabaseAdmin
         .from('items')
@@ -87,6 +88,7 @@ export async function GET(request: NextRequest) {
           userId: student.user_id,
           fullName: student.full_name,
           email: student.email,
+          phone: student.phone,
           preferredCurrency: (student.preferred_currency || 'usd').toLowerCase(),
           trainingItemIds: student.training_item_ids || [],
           stripeCustomerId: student.stripe_customer_id,
@@ -130,6 +132,7 @@ export async function GET(request: NextRequest) {
           userId: student.user_id,
           fullName: student.full_name,
           email: student.email,
+          phone: student.phone,
           preferredCurrency: (student.preferred_currency || customer?.currency || 'usd').toLowerCase(),
           trainingItemIds: student.training_item_ids || [],
           stripeCustomerId: customer?.id || student.stripe_customer_id,

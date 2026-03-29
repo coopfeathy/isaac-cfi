@@ -2,6 +2,8 @@ import Stripe from 'stripe'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { resend } from '@/lib/resend'
+import { sendTwilioMessage } from '@/lib/twilio'
 
 type CheckoutItemSelection = {
   itemId: string
@@ -41,6 +43,59 @@ async function requireAdmin(request: NextRequest) {
   return { user }
 }
 
+async function sendCheckoutEmail(params: {
+  to: string
+  studentName: string
+  checkoutUrl: string
+  totalCents: number
+  currency: string
+}) {
+  const amount = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: params.currency.toUpperCase(),
+  }).format(params.totalCents / 100)
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #111827;">
+      <h2 style="margin-bottom: 8px;">Complete Your Lesson Checkout</h2>
+      <p style="margin-top: 0; color: #4B5563;">Hi ${params.studentName}, your instructor sent a secure payment link for your training checkout.</p>
+      <p style="font-size: 16px;"><strong>Total Due:</strong> ${amount}</p>
+      <p>
+        <a href="${params.checkoutUrl}" style="display: inline-block; background: #C59A2A; color: #111827; text-decoration: none; font-weight: 700; border-radius: 8px; padding: 10px 14px;">
+          Open Secure Checkout
+        </a>
+      </p>
+      <p style="font-size: 13px; color: #6B7280;">If the button does not work, copy and paste this URL in your browser:</p>
+      <p style="font-size: 13px; word-break: break-all; color: #1F2937;">${params.checkoutUrl}</p>
+    </div>
+  `
+
+  const { error } = await resend.emails.send({
+    from: 'Merlin Flight Training <noreply@merlinflighttraining.com>',
+    to: [params.to],
+    subject: 'Your Merlin Flight Training Checkout Link',
+    html,
+  })
+
+  if (error) {
+    throw new Error(error.message || 'Unable to send email')
+  }
+}
+
+async function sendCheckoutText(params: { to: string; checkoutUrl: string; totalCents: number; currency: string }) {
+  const amount = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: params.currency.toUpperCase(),
+  }).format(params.totalCents / 100)
+
+  const body = `Merlin Flight Training: Your checkout link is ready for ${amount}. Complete payment here: ${params.checkoutUrl}`
+
+  await sendTwilioMessage({
+    to: params.to,
+    body,
+  })
+}
+
 export async function POST(request: NextRequest) {
   try {
     const adminCheck = await requireAdmin(request)
@@ -55,6 +110,11 @@ export async function POST(request: NextRequest) {
     const studentId = typeof body.studentId === 'string' ? body.studentId : ''
     const currencyInput = typeof body.currency === 'string' ? body.currency.trim().toLowerCase() : 'usd'
     const note = typeof body.note === 'string' ? body.note.trim() : ''
+    const deliveryMethod = body.deliveryMethod === 'text'
+      ? 'text'
+      : body.deliveryMethod === 'copy'
+        ? 'copy'
+        : 'email'
     const itemSelections: CheckoutItemSelection[] = Array.isArray(body.itemSelections)
       ? body.itemSelections
           .map((selection: any) => ({
@@ -76,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     const { data: student, error: studentError } = await supabaseAdmin
       .from('students')
-      .select('id, user_id, full_name, email, preferred_currency, stripe_customer_id')
+      .select('id, user_id, full_name, email, phone, preferred_currency, stripe_customer_id')
       .eq('id', studentId)
       .single()
 
@@ -85,7 +145,6 @@ export async function POST(request: NextRequest) {
     }
 
     const itemIds = Array.from(new Set(itemSelections.map((selection) => selection.itemId)))
-
     const { data: items, error: itemsError } = await supabaseAdmin
       .from('items')
       .select('id, name, rate_cents, is_active')
@@ -161,44 +220,95 @@ export async function POST(request: NextRequest) {
         .eq('id', student.id)
     }
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: totalCents,
-      currency: currencyInput,
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || '').replace(/\/$/, '')
+    if (!siteUrl) {
+      return NextResponse.json({ error: 'NEXT_PUBLIC_SITE_URL is required to generate checkout links' }, { status: 500 })
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
       customer: customer.id,
-      automatic_payment_methods: {
-        enabled: true,
-      },
-      description: `Lesson checkout for ${student.full_name}`,
-      receipt_email: student.email || undefined,
+      success_url: `${siteUrl}/bookings?checkout=success`,
+      cancel_url: `${siteUrl}/bookings?checkout=cancelled`,
+      line_items: [
+        ...lineItems.map((line) => ({
+          quantity: line.quantity,
+          price_data: {
+            currency: currencyInput,
+            unit_amount: line.unitAmountCents,
+            product_data: {
+              name: line.name,
+            },
+          },
+        })),
+        {
+          quantity: 1,
+          price_data: {
+            currency: currencyInput,
+            unit_amount: processingFeeCents,
+            product_data: {
+              name: 'Card processing fee (3.5%)',
+            },
+          },
+        },
+      ],
       metadata: {
         studentId: student.id,
         subtotal_cents: String(subtotalCents),
         processing_fee_cents: String(processingFeeCents),
         items_count: String(lineItems.length),
+        admin_note: note,
+        created_by: adminCheck.user.id,
+      },
+      payment_intent_data: {
+        description: `Lesson checkout for ${student.full_name}`,
+        receipt_email: student.email || undefined,
+        metadata: {
+          studentId: student.id,
+          subtotal_cents: String(subtotalCents),
+          processing_fee_cents: String(processingFeeCents),
+          items_count: String(lineItems.length),
+          created_by: adminCheck.user.id,
+        },
       },
     })
 
-    if (student.user_id) {
-      await supabaseAdmin.from('transactions').insert([
-        {
-          user_id: student.user_id,
-          amount_cents: totalCents,
-          type: 'charge',
-          description: `Admin lesson checkout (${lineItems.length} item(s), processing fee included) | PI:${paymentIntent.id}${note ? ` - ${note}` : ''}`,
-          created_by: adminCheck.user.id,
-        },
-      ])
+    const checkoutUrl = session.url
+    if (!checkoutUrl) {
+      return NextResponse.json({ error: 'Stripe did not return a checkout URL' }, { status: 500 })
+    }
+
+    if (deliveryMethod === 'email') {
+      if (!student.email) {
+        return NextResponse.json({ error: 'Student does not have an email address on file' }, { status: 400 })
+      }
+
+      await sendCheckoutEmail({
+        to: student.email,
+        studentName: student.full_name,
+        checkoutUrl,
+        totalCents,
+        currency: currencyInput,
+      })
+    } else if (deliveryMethod === 'text') {
+      if (!student.phone) {
+        return NextResponse.json({ error: 'Student does not have a phone number on file' }, { status: 400 })
+      }
+
+      await sendCheckoutText({
+        to: student.phone,
+        checkoutUrl,
+        totalCents,
+        currency: currencyInput,
+      })
     }
 
     return NextResponse.json({
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id,
-      studentId: student.id,
-      currency: currencyInput,
-      lineItems,
-      subtotalCents,
-      processingFeeCents,
+      success: true,
+      checkoutUrl,
+      deliveryMethod,
       totalCents,
+      currency: currencyInput,
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
