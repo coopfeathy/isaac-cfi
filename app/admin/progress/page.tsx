@@ -299,7 +299,7 @@ export default function AdminProgressPage() {
       }
 
       // Fetch students from students table instead of auth users for better name reliability
-      const { data: studentsData, error: studentsError } = await supabase
+      let { data: studentsData, error: studentsError } = await supabase
         .from("students")
         .select("user_id, email, full_name")
         .in("user_id", studentIds)
@@ -311,7 +311,7 @@ export default function AdminProgressPage() {
         return
       }
 
-      const students_list: StudentOption[] =
+      let students_list: StudentOption[] =
         (studentsData || [])
           .filter((row: any) => Boolean(row.user_id))
           .map((row: any) => ({
@@ -319,6 +319,72 @@ export default function AdminProgressPage() {
             email: row.email || null,
             full_name: row.full_name || null,
           }))
+
+      const loadedIds = new Set(students_list.map((student) => student.id))
+      let missingStudentIds = studentIds.filter((id) => !loadedIds.has(id))
+
+      if (missingStudentIds.length > 0) {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        if (session?.access_token) {
+          await fetch("/api/admin/students/sync", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          })
+
+          const syncResult = await supabase
+            .from("students")
+            .select("user_id, email, full_name")
+            .in("user_id", studentIds)
+            .not("user_id", "is", null)
+            .order("full_name", { ascending: true })
+
+          if (!syncResult.error) {
+            students_list =
+              (syncResult.data || [])
+                .filter((row: any) => Boolean(row.user_id))
+                .map((row: any) => ({
+                  id: row.user_id as string,
+                  email: row.email || null,
+                  full_name: row.full_name || null,
+                }))
+          }
+        }
+
+        const loadedAfterSync = new Set(students_list.map((student) => student.id))
+        missingStudentIds = studentIds.filter((id) => !loadedAfterSync.has(id))
+
+        if (missingStudentIds.length > 0) {
+          const { data: profileRows } = await supabase
+            .from("profiles")
+            .select("id, full_name")
+            .in("id", missingStudentIds)
+
+          const profileById = new Map(
+            ((profileRows as Array<{ id: string; full_name: string | null }> | null) || []).map((row) => [row.id, row.full_name])
+          )
+
+          const profileFallbacks: StudentOption[] = missingStudentIds.map((id) => ({
+            id,
+            email: null,
+            full_name: profileById.get(id) || `Student (${id.slice(0, 8)})`,
+          }))
+
+          students_list = [...students_list, ...profileFallbacks]
+          setStatusMessage("Some enrolled students were missing from the student registry. Fallback records are shown; run Sync Students in Admin Students to normalize records.")
+        }
+      }
+
+      students_list.sort((left, right) => {
+        const leftName = (left.full_name || left.email || "").toLowerCase()
+        const rightName = (right.full_name || right.email || "").toLowerCase()
+        return leftName.localeCompare(rightName)
+      })
+
       setStudents(students_list)
       if (!students_list.find((u) => u.id === selectedStudentId)) {
         setSelectedStudentId(students_list[0]?.id || "")
