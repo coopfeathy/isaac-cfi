@@ -23,6 +23,28 @@ interface Course {
   title: string
 }
 
+const normalizeEmail = (value: string | null | undefined) =>
+  typeof value === "string" ? value.trim().toLowerCase() : ""
+
+const studentQualityScore = (student: StudentEnrollment) => {
+  let score = 0
+  if (student.auth_user_id) score += 4
+  if (student.full_name && student.full_name.trim().length > 0) score += 2
+  if (student.email && student.email.trim().length > 0) score += 1
+  if (student.phone && student.phone.trim().length > 0) score += 1
+  if (student.status === "active") score += 1
+  return score
+}
+
+const mergeStudentRecords = (existing: StudentEnrollment, incoming: StudentEnrollment) => {
+  const preferred = studentQualityScore(incoming) > studentQualityScore(existing) ? incoming : existing
+  return {
+    ...preferred,
+    has_linked_account: existing.has_linked_account || incoming.has_linked_account,
+    is_enrolled: existing.is_enrolled || incoming.is_enrolled,
+  }
+}
+
 export default function AdminStudentEnrollmentPage() {
   const { isAdmin, loading: authLoading } = useAuth()
   const router = useRouter()
@@ -31,6 +53,7 @@ export default function AdminStudentEnrollmentPage() {
   const [students, setStudents] = useState<StudentEnrollment[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(false)
+  const [collapsedDuplicates, setCollapsedDuplicates] = useState(0)
   const [savingProfile, setSavingProfile] = useState(false)
   const [editingStudent, setEditingStudent] = useState<StudentEnrollment | null>(null)
   const [editForm, setEditForm] = useState({
@@ -70,6 +93,7 @@ export default function AdminStudentEnrollmentPage() {
     if (!courseId) {
       setSelectedCourse(null)
       setStudents([])
+      setCollapsedDuplicates(0)
       return
     }
 
@@ -120,7 +144,7 @@ export default function AdminStudentEnrollmentPage() {
 
       const enrolledIds = new Set((enrollmentsResult.data || []).map((enrollment: any) => enrollment.student_id))
 
-      const studentList = (studentsResult.data || []).map((student) => {
+      const rawStudentList = (studentsResult.data || []).map((student) => {
         const resolvedAuthUserId = student.user_id || (student.email ? authUserIdByEmail.get(student.email.trim().toLowerCase()) || null : null)
 
         return {
@@ -135,7 +159,34 @@ export default function AdminStudentEnrollmentPage() {
         }
       })
 
+      const studentsByIdentity = new Map<string, StudentEnrollment>()
+      let duplicateCount = 0
+
+      rawStudentList.forEach((student) => {
+        const key = student.auth_user_id
+          ? `auth:${student.auth_user_id}`
+          : normalizeEmail(student.email)
+          ? `email:${normalizeEmail(student.email)}`
+          : `record:${student.student_record_id}`
+
+        const existing = studentsByIdentity.get(key)
+        if (!existing) {
+          studentsByIdentity.set(key, student)
+          return
+        }
+
+        duplicateCount += 1
+        studentsByIdentity.set(key, mergeStudentRecords(existing, student))
+      })
+
+      const studentList = Array.from(studentsByIdentity.values()).sort((left, right) => {
+        const leftLabel = (left.full_name || left.email || "").toLowerCase()
+        const rightLabel = (right.full_name || right.email || "").toLowerCase()
+        return leftLabel.localeCompare(rightLabel)
+      })
+
       setStudents(studentList)
+      setCollapsedDuplicates(duplicateCount)
     } catch (error) {
       console.error("Error loading students:", error)
     } finally {
@@ -251,6 +302,8 @@ export default function AdminStudentEnrollmentPage() {
       student.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const enrolledCount = students.filter((student) => student.is_enrolled).length
+
   return (
     <AdminPageShell
       title="Assign Students to Courses"
@@ -284,6 +337,21 @@ export default function AdminStudentEnrollmentPage() {
 
       {selectedCourse && (
         <>
+          <div
+            style={{
+              marginBottom: "14px",
+              background: "#F8FAFC",
+              border: "1px solid #E2E8F0",
+              borderRadius: "8px",
+              padding: "10px 12px",
+              color: "#334155",
+              fontSize: "14px",
+            }}
+          >
+            Showing {students.length} unique students for this course, with {enrolledCount} currently enrolled.
+            {collapsedDuplicates > 0 ? ` Collapsed ${collapsedDuplicates} duplicate student records by linked account/email.` : ""}
+          </div>
+
           <div style={{ marginBottom: "20px" }}>
             <input
               type="text"
