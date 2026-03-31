@@ -195,6 +195,7 @@ export default function AdminStudentsPage() {
   const [savingSettings, setSavingSettings] = useState(false)
   const [settingsMessage, setSettingsMessage] = useState('')
   const [homeworkActionLoadingId, setHomeworkActionLoadingId] = useState<string | null>(null)
+  const [sendingAccountLinkStudentId, setSendingAccountLinkStudentId] = useState<string | null>(null)
 
   useEffect(() => {
     if (authLoading) return
@@ -371,6 +372,44 @@ export default function AdminStudentsPage() {
       setErrorMessage(error instanceof Error ? error.message : 'Unable to update homework email status')
     } finally {
       setHomeworkActionLoadingId(null)
+    }
+  }
+
+  const handleSendAccountSetupLink = async (student: StudentRecord) => {
+    setSendingAccountLinkStudentId(student.id)
+    setErrorMessage('')
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error('Missing session. Please sign in again.')
+      }
+
+      const response = await fetch('/api/admin/students/send-account-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          studentRecordId: student.id,
+        }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.error || 'Unable to send setup link')
+      }
+
+      setSettingsMessage(result.message || 'Account setup link sent')
+      await fetchStudents()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to send setup link')
+    } finally {
+      setSendingAccountLinkStudentId(null)
     }
   }
 
@@ -555,6 +594,18 @@ export default function AdminStudentsPage() {
                     <p className="mt-3 text-sm text-slate-500">
                       Last activity: {formatDateTime(selectedStudent.overall.lastActivityAt)}
                     </p>
+                    {!selectedStudent.hasLinkedAccount ? (
+                      <div className="mt-3">
+                        <button
+                          type="button"
+                          onClick={() => void handleSendAccountSetupLink(selectedStudent)}
+                          disabled={sendingAccountLinkStudentId === selectedStudent.id || !selectedStudent.email}
+                          className="inline-flex items-center rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800 disabled:opacity-60"
+                        >
+                          {sendingAccountLinkStudentId === selectedStudent.id ? 'Sending setup link...' : 'Send Account Setup Link'}
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[320px]">
                     <StudentMetric

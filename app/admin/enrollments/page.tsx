@@ -56,6 +56,8 @@ export default function AdminStudentEnrollmentPage() {
   const [collapsedDuplicates, setCollapsedDuplicates] = useState(0)
   const [normalizing, setNormalizing] = useState(false)
   const [normalizationMessage, setNormalizationMessage] = useState("")
+  const [statusMessage, setStatusMessage] = useState("")
+  const [sendingAccountLinkId, setSendingAccountLinkId] = useState<string | null>(null)
   const [savingProfile, setSavingProfile] = useState(false)
   const [editingStudent, setEditingStudent] = useState<StudentEnrollment | null>(null)
   const [editForm, setEditForm] = useState({
@@ -96,6 +98,7 @@ export default function AdminStudentEnrollmentPage() {
       setSelectedCourse(null)
       setStudents([])
       setCollapsedDuplicates(0)
+      setStatusMessage("")
       return
     }
 
@@ -192,8 +195,47 @@ export default function AdminStudentEnrollmentPage() {
       setCollapsedDuplicates(duplicateCount)
     } catch (error) {
       console.error("Error loading students:", error)
+      setStatusMessage(error instanceof Error ? error.message : "Error loading students")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const sendAccountSetupLink = async (student: StudentEnrollment) => {
+    setSendingAccountLinkId(student.student_record_id)
+    setStatusMessage('')
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) throw new Error('Missing admin session token')
+
+      const response = await fetch('/api/admin/students/send-account-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          studentRecordId: student.student_record_id,
+        }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.error || 'Unable to send account setup link')
+      }
+
+      setStatusMessage(result.message || 'Account setup link sent')
+      if (selectedCourse) {
+        await handleCourseSelect(selectedCourse)
+      }
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Unable to send account setup link')
+    } finally {
+      setSendingAccountLinkId(null)
     }
   }
 
@@ -379,6 +421,22 @@ export default function AdminStudentEnrollmentPage() {
 
       {selectedCourse && (
         <>
+          {statusMessage ? (
+            <div
+              style={{
+                marginBottom: '12px',
+                background: '#EFF6FF',
+                border: '1px solid #BFDBFE',
+                borderRadius: '8px',
+                padding: '10px 12px',
+                color: '#1E3A8A',
+                fontSize: '14px',
+              }}
+            >
+              {statusMessage}
+            </div>
+          ) : null}
+
           <div style={{ marginBottom: '12px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
             <button
               onClick={() => void handleNormalizeStudents()}
@@ -497,22 +555,41 @@ export default function AdminStudentEnrollmentPage() {
                     >
                       Edit
                     </button>
-                    <button
-                      onClick={() => handleToggleEnrollment(student.auth_user_id, student.is_enrolled)}
-                      disabled={!student.auth_user_id}
-                      style={{
-                        backgroundColor: !student.auth_user_id ? '#CBD5E1' : student.is_enrolled ? "#EF4444" : "#10B981",
-                        color: !student.auth_user_id ? '#475569' : "white",
-                        padding: "8px 16px",
-                        borderRadius: "6px",
-                        border: "none",
-                        cursor: !student.auth_user_id ? 'not-allowed' : "pointer",
-                        fontWeight: "600",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {!student.auth_user_id ? "No Account" : student.is_enrolled ? "Remove" : "Enroll"}
-                    </button>
+                    {!student.auth_user_id ? (
+                      <button
+                        onClick={() => void sendAccountSetupLink(student)}
+                        disabled={sendingAccountLinkId === student.student_record_id || !student.email}
+                        style={{
+                          backgroundColor: '#1D4ED8',
+                          color: 'white',
+                          padding: '8px 16px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: sendingAccountLinkId === student.student_record_id || !student.email ? 'not-allowed' : 'pointer',
+                          opacity: sendingAccountLinkId === student.student_record_id || !student.email ? 0.65 : 1,
+                          fontWeight: '600',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {sendingAccountLinkId === student.student_record_id ? 'Sending Link...' : 'Send Setup Link'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleToggleEnrollment(student.auth_user_id, student.is_enrolled)}
+                        style={{
+                          backgroundColor: student.is_enrolled ? '#EF4444' : '#10B981',
+                          color: 'white',
+                          padding: '8px 16px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontWeight: '600',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {student.is_enrolled ? 'Remove' : 'Enroll'}
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
