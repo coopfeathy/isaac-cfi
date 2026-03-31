@@ -49,24 +49,97 @@ async function sendCheckoutEmail(params: {
   checkoutUrl: string
   totalCents: number
   currency: string
+  lineItems: Array<{ name: string; quantity: number; unitAmountCents: number; totalCents: number }>
+  processingFeeCents: number
 }) {
-  const amount = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: params.currency.toUpperCase(),
-  }).format(params.totalCents / 100)
+  const fmt = (cents: number) =>
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: params.currency.toUpperCase() }).format(cents / 100)
+
+  const brand = {
+    gold: '#FFBF00',
+    dark: '#0B0B0B',
+    lightBg: '#F9FAFB',
+    borderColor: '#E5E7EB',
+    mutedText: '#6B7280',
+    logoUrl: 'https://isaac-cfi.netlify.app/merlin-logo.png',
+    font: "'Inter', 'Helvetica Neue', Arial, sans-serif",
+  }
+
+  const lineItemRows = params.lineItems
+    .map(
+      (item, i) => `
+      <tr style="background: ${i % 2 === 0 ? brand.lightBg : '#FFFFFF'};">
+        <td style="padding: 10px 14px; font-size: 14px; color: #374151; border-bottom: 1px solid ${brand.borderColor};">
+          ${item.name}${item.quantity > 1 ? ` <span style="color:${brand.mutedText};">x${item.quantity}</span>` : ''}
+        </td>
+        <td style="padding: 10px 14px; font-size: 14px; font-weight: 600; text-align: right; color: ${brand.dark}; border-bottom: 1px solid ${brand.borderColor};">
+          ${fmt(item.totalCents)}
+        </td>
+      </tr>`
+    )
+    .join('')
 
   const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #111827;">
-      <h2 style="margin-bottom: 8px;">Complete Your Lesson Checkout</h2>
-      <p style="margin-top: 0; color: #4B5563;">Hi ${params.studentName}, your instructor sent a secure payment link for your training checkout.</p>
-      <p style="font-size: 16px;"><strong>Total Due:</strong> ${amount}</p>
-      <p>
-        <a href="${params.checkoutUrl}" style="display: inline-block; background: #C59A2A; color: #111827; text-decoration: none; font-weight: 700; border-radius: 8px; padding: 10px 14px;">
-          Open Secure Checkout
-        </a>
-      </p>
-      <p style="font-size: 13px; color: #6B7280;">If the button does not work, copy and paste this URL in your browser:</p>
-      <p style="font-size: 13px; word-break: break-all; color: #1F2937;">${params.checkoutUrl}</p>
+    <div style="font-family: ${brand.font}; max-width: 640px; margin: 0 auto; background: #FFFFFF; color: ${brand.dark};">
+
+      <!-- Header -->
+      <div style="background: ${brand.dark}; padding: 12px 32px; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: space-between;">
+        <div style="flex: 1; text-align: center; padding-right: 80px;">
+          <p style="margin: 0; color: #FFFFFF; font-family: ${brand.font}; font-size: 28px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Merlin Flight Training</p>
+          <p style="margin: 4px 0 0 0; color: ${brand.gold}; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600;">Pilot Flight Instruction</p>
+        </div>
+        <img src="${brand.logoUrl}" alt="Merlin Flight Training" style="width: 140px; height: 140px; object-fit: contain; flex-shrink: 0; align-self: center; margin-top: 25px;" />
+      </div>
+
+      <!-- Body -->
+      <div style="padding: 32px;">
+        <h1 style="color: ${brand.dark}; margin: 0 0 8px 0; font-size: 24px;">Complete Your Checkout</h1>
+        <div style="width: 40px; height: 3px; background: ${brand.gold}; margin-bottom: 20px; border-radius: 2px;"></div>
+
+        <p style="font-size: 14px; line-height: 1.6; color: #374151; margin-bottom: 20px;">
+          Hi <strong>${params.studentName}</strong>, your instructor has sent you a secure payment link for your flight training.
+          Please complete your checkout at your earliest convenience.
+        </p>
+
+        <!-- Payment Summary -->
+        <div style="background: ${brand.dark}; border-radius: 8px; overflow: hidden; margin: 0 0 24px 0;">
+          <div style="padding: 14px 16px; border-bottom: 1px solid #1F2937;">
+            <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: ${brand.gold}; font-weight: 700;">Payment Summary</p>
+          </div>
+          <table style="width: 100%; border-collapse: collapse;">
+            ${lineItemRows}
+            <tr style="background: #F9FAFB;">
+              <td style="padding: 10px 14px; font-size: 14px; color: ${brand.mutedText}; border-bottom: 1px solid ${brand.borderColor};">Card Processing Fee (3.5%)</td>
+              <td style="padding: 10px 14px; font-size: 14px; font-weight: 600; text-align: right; color: ${brand.mutedText}; border-bottom: 1px solid ${brand.borderColor};">${fmt(params.processingFeeCents)}</td>
+            </tr>
+            <tr style="background: ${brand.dark};">
+              <td style="padding: 14px 16px; font-size: 15px; font-weight: 700; color: #FFFFFF;">Total Due</td>
+              <td style="padding: 14px 16px; font-size: 16px; font-weight: 700; text-align: right; color: ${brand.gold};">${fmt(params.totalCents)}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- CTA Button -->
+        <div style="text-align: center; margin: 28px 0 16px;">
+          <a href="${params.checkoutUrl}"
+             style="display: inline-block; background: ${brand.gold}; color: ${brand.dark}; font-weight: 700; text-decoration: none; padding: 14px 36px; border-radius: 6px; font-size: 15px; letter-spacing: 0.3px;">
+            Open Secure Checkout &rarr;
+          </a>
+        </div>
+
+        <!-- Security note -->
+        <p style="font-size: 12px; color: ${brand.mutedText}; text-align: center; margin: 0 0 16px 0;">&#128274; Payments are secured and processed by Stripe</p>
+
+        <!-- Fallback URL -->
+        <p style="font-size: 12px; color: ${brand.mutedText}; text-align: center; margin: 0;">If the button does not work, copy and paste this URL into your browser:</p>
+        <p style="font-size: 12px; word-break: break-all; color: #374151; text-align: center; margin: 4px 0 0 0;">${params.checkoutUrl}</p>
+      </div>
+
+      <!-- Footer -->
+      <div style="background: ${brand.lightBg}; padding: 20px 32px; border-top: 1px solid ${brand.borderColor}; border-radius: 0 0 8px 8px; text-align: center;">
+        <p style="margin: 0; color: ${brand.mutedText}; font-size: 12px;">Merlin Flight Training &bull; Professional Flight Instruction</p>
+      </div>
+
     </div>
   `
 
@@ -289,6 +362,8 @@ export async function POST(request: NextRequest) {
         checkoutUrl,
         totalCents,
         currency: currencyInput,
+        lineItems,
+        processingFeeCents,
       })
     } else if (deliveryMethod === 'text') {
       if (!student.phone) {
