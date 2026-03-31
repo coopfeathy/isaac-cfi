@@ -131,6 +131,20 @@ export default function AdminProgressPage() {
   const [migratingEnrollments, setMigratingEnrollments] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
 
+  const [showSyllabusManager, setShowSyllabusManager] = useState(false)
+  const [syllabusManagerItems, setSyllabusManagerItems] = useState<SyllabusItem[]>([])
+  const [syllabusManagerLoading, setSyllabusManagerLoading] = useState(false)
+  const [syllabusManagerStatus, setSyllabusManagerStatus] = useState("")
+  const [syllabusNewTitle, setSyllabusNewTitle] = useState("")
+  const [syllabusNewDescription, setSyllabusNewDescription] = useState("")
+  const [syllabusNewStage, setSyllabusNewStage] = useState("")
+  const [syllabusEditingId, setSyllabusEditingId] = useState<string | null>(null)
+  const [syllabusEditTitle, setSyllabusEditTitle] = useState("")
+  const [syllabusEditDescription, setSyllabusEditDescription] = useState("")
+  const [syllabusEditStage, setSyllabusEditStage] = useState("")
+  const [syllabusSaving, setSyllabusSaving] = useState(false)
+  const [syllabusDeleting, setSyllabusDeleting] = useState<string | null>(null)
+
   const findNextOpenItemId = (drafts: Record<string, ItemDraft>) => {
     const next = syllabusItems.find((item) => (drafts[item.id]?.status || "not_started") !== "proficient")
     return next?.id || ""
@@ -493,6 +507,205 @@ export default function AdminProgressPage() {
     }
   }
 
+  const openSyllabusManager = async () => {
+    if (!selectedCourse) {
+      setStatusMessage("Select a course first")
+      return
+    }
+    setShowSyllabusManager(true)
+    setSyllabusManagerStatus("")
+    await loadSyllabusManagerItems()
+  }
+
+  const loadSyllabusManagerItems = async () => {
+    setSyllabusManagerLoading(true)
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error("Missing admin session")
+
+      const response = await fetch(`/api/admin/syllabus-items?courseId=${selectedCourse}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || "Unable to load syllabus items")
+      setSyllabusManagerItems(result.items || [])
+    } catch (error) {
+      setSyllabusManagerStatus(error instanceof Error ? error.message : "Unable to load syllabus items")
+    } finally {
+      setSyllabusManagerLoading(false)
+    }
+  }
+
+  const createSyllabusItem = async () => {
+    if (!syllabusNewTitle.trim()) {
+      setSyllabusManagerStatus("Title is required")
+      return
+    }
+    setSyllabusSaving(true)
+    setSyllabusManagerStatus("")
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error("Missing admin session")
+
+      const response = await fetch("/api/admin/syllabus-items", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          courseId: selectedCourse,
+          title: syllabusNewTitle,
+          description: syllabusNewDescription || null,
+          stage: syllabusNewStage || null,
+        }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || "Unable to create syllabus item")
+
+      setSyllabusNewTitle("")
+      setSyllabusNewDescription("")
+      setSyllabusNewStage("")
+      setSyllabusManagerStatus("Syllabus item created")
+      await loadSyllabusManagerItems()
+    } catch (error) {
+      setSyllabusManagerStatus(error instanceof Error ? error.message : "Unable to create syllabus item")
+    } finally {
+      setSyllabusSaving(false)
+    }
+  }
+
+  const startEditSyllabusItem = (item: SyllabusItem) => {
+    setSyllabusEditingId(item.id)
+    setSyllabusEditTitle(item.title)
+    setSyllabusEditDescription(item.description || "")
+    setSyllabusEditStage(item.stage || "")
+    setSyllabusManagerStatus("")
+  }
+
+  const cancelEditSyllabusItem = () => {
+    setSyllabusEditingId(null)
+    setSyllabusEditTitle("")
+    setSyllabusEditDescription("")
+    setSyllabusEditStage("")
+  }
+
+  const saveEditSyllabusItem = async () => {
+    if (!syllabusEditingId || !syllabusEditTitle.trim()) {
+      setSyllabusManagerStatus("Title is required")
+      return
+    }
+    setSyllabusSaving(true)
+    setSyllabusManagerStatus("")
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error("Missing admin session")
+
+      const response = await fetch("/api/admin/syllabus-items", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          id: syllabusEditingId,
+          title: syllabusEditTitle,
+          description: syllabusEditDescription || null,
+          stage: syllabusEditStage || null,
+        }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || "Unable to update syllabus item")
+
+      cancelEditSyllabusItem()
+      setSyllabusManagerStatus("Syllabus item updated")
+      await loadSyllabusManagerItems()
+    } catch (error) {
+      setSyllabusManagerStatus(error instanceof Error ? error.message : "Unable to update syllabus item")
+    } finally {
+      setSyllabusSaving(false)
+    }
+  }
+
+  const deleteSyllabusItem = async (itemId: string, itemTitle: string) => {
+    if (!confirm(`Delete syllabus item "${itemTitle}"? This will also remove all student progress for this item.`)) return
+    setSyllabusDeleting(itemId)
+    setSyllabusManagerStatus("")
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error("Missing admin session")
+
+      const response = await fetch("/api/admin/syllabus-items", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ id: itemId }),
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || "Unable to delete syllabus item")
+
+      setSyllabusManagerStatus("Syllabus item deleted")
+      await loadSyllabusManagerItems()
+    } catch (error) {
+      setSyllabusManagerStatus(error instanceof Error ? error.message : "Unable to delete syllabus item")
+    } finally {
+      setSyllabusDeleting(null)
+    }
+  }
+
+  const closeSyllabusManager = () => {
+    setShowSyllabusManager(false)
+    cancelEditSyllabusItem()
+    setSyllabusManagerStatus("")
+    setReloadKey((previous) => previous + 1)
+  }
+
+  const moveSyllabusItem = async (itemId: string, direction: "up" | "down") => {
+    const idx = syllabusManagerItems.findIndex((item) => item.id === itemId)
+    if (idx < 0) return
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1
+    if (swapIdx < 0 || swapIdx >= syllabusManagerItems.length) return
+
+    const currentItem = syllabusManagerItems[idx]
+    const swapItem = syllabusManagerItems[swapIdx]
+
+    setSyllabusSaving(true)
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error("Missing admin session")
+
+      await Promise.all([
+        fetch("/api/admin/syllabus-items", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ id: currentItem.id, order_index: swapItem.order_index }),
+        }),
+        fetch("/api/admin/syllabus-items", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ id: swapItem.id, order_index: currentItem.order_index }),
+        }),
+      ])
+      await loadSyllabusManagerItems()
+    } catch {
+      setSyllabusManagerStatus("Unable to reorder items")
+    } finally {
+      setSyllabusSaving(false)
+    }
+  }
+
   useEffect(() => {
     if (!selectedStudentId || syllabusItems.length === 0) {
       setItemDrafts({})
@@ -805,7 +1018,25 @@ export default function AdminProgressPage() {
             </div>
 
             <div style={{ display: "grid", gap: "8px", padding: "10px", borderRadius: "8px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
-              <label style={{ fontSize: "14px", fontWeight: 600 }}>Debriefed Syllabus Item</label>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <label style={{ fontSize: "14px", fontWeight: 600 }}>Debriefed Syllabus Item</label>
+                <button
+                  type="button"
+                  onClick={() => void openSyllabusManager()}
+                  style={{
+                    background: "#F3F4F6",
+                    color: "#374151",
+                    border: "1px solid #D1D5DB",
+                    borderRadius: "6px",
+                    padding: "5px 10px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Manage Syllabus Items
+                </button>
+              </div>
               {focusedSyllabusItemId && syllabusItems.find((item) => item.id === focusedSyllabusItemId) && (
                 <div style={{ padding: "8px 12px", borderRadius: "8px", background: "#FFFBEB", border: "1px solid #C59A2A", fontSize: "14px", fontWeight: 500 }}>
                   {syllabusItems.find((item) => item.id === focusedSyllabusItemId)?.title} — {(itemDrafts[focusedSyllabusItemId]?.status || "not_started").replace(/_/g, " ")}
@@ -1043,6 +1274,281 @@ export default function AdminProgressPage() {
           }}
         >
           {statusMessage}
+        </div>
+      )}
+      {statusMessage && (
+        <div
+          style={{
+            marginTop: "16px",
+            background: "#F9FAFB",
+            border: "1px solid #E5E7EB",
+            borderRadius: "10px",
+            padding: "12px 14px",
+            color: "#374151",
+          }}
+        >
+          {statusMessage}
+        </div>
+      )}
+
+      {showSyllabusManager && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)" }} onClick={closeSyllabusManager} />
+          <div
+            style={{
+              position: "relative",
+              zIndex: 10,
+              width: "100%",
+              maxWidth: "640px",
+              maxHeight: "85vh",
+              overflowY: "auto",
+              background: "#fff",
+              border: "1px solid #E5E7EB",
+              borderRadius: "16px",
+              padding: "24px",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 700 }}>Manage Syllabus Items</h3>
+              <button
+                type="button"
+                onClick={closeSyllabusManager}
+                style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#6B7280", padding: "4px" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {syllabusManagerStatus && (
+              <div style={{ marginBottom: "12px", background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: "8px", padding: "8px 12px", fontSize: "13px", color: "#374151" }}>
+                {syllabusManagerStatus}
+              </div>
+            )}
+
+            <div style={{ marginBottom: "16px", padding: "12px", background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: "10px" }}>
+              <p style={{ margin: "0 0 8px", fontSize: "13px", fontWeight: 600, color: "#374151" }}>Add New Syllabus Item</p>
+              <div style={{ display: "grid", gap: "8px" }}>
+                <input
+                  type="text"
+                  value={syllabusNewTitle}
+                  onChange={(e) => setSyllabusNewTitle(e.target.value)}
+                  placeholder="Title (required)"
+                  style={{ padding: "8px 10px", borderRadius: "6px", border: "1px solid #D1D5DB", fontSize: "13px" }}
+                />
+                <input
+                  type="text"
+                  value={syllabusNewDescription}
+                  onChange={(e) => setSyllabusNewDescription(e.target.value)}
+                  placeholder="Description (optional)"
+                  style={{ padding: "8px 10px", borderRadius: "6px", border: "1px solid #D1D5DB", fontSize: "13px" }}
+                />
+                <input
+                  type="text"
+                  value={syllabusNewStage}
+                  onChange={(e) => setSyllabusNewStage(e.target.value)}
+                  placeholder="Stage (optional, e.g. Pre-Solo, Cross-Country)"
+                  style={{ padding: "8px 10px", borderRadius: "6px", border: "1px solid #D1D5DB", fontSize: "13px" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => void createSyllabusItem()}
+                  disabled={syllabusSaving || !syllabusNewTitle.trim()}
+                  style={{
+                    background: "#111827",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "8px 14px",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    opacity: syllabusSaving || !syllabusNewTitle.trim() ? 0.6 : 1,
+                  }}
+                >
+                  {syllabusSaving ? "Saving..." : "Add Item"}
+                </button>
+              </div>
+            </div>
+
+            {syllabusManagerLoading ? (
+              <p style={{ fontSize: "13px", color: "#6B7280" }}>Loading syllabus items...</p>
+            ) : syllabusManagerItems.length === 0 ? (
+              <p style={{ fontSize: "13px", color: "#6B7280" }}>No syllabus items for this course yet.</p>
+            ) : (
+              <div style={{ display: "grid", gap: "8px" }}>
+                {syllabusManagerItems.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      border: "1px solid #E5E7EB",
+                      borderRadius: "10px",
+                      padding: "12px",
+                      background: syllabusEditingId === item.id ? "#FFFBEB" : "#fff",
+                    }}
+                  >
+                    {syllabusEditingId === item.id ? (
+                      <div style={{ display: "grid", gap: "8px" }}>
+                        <input
+                          type="text"
+                          value={syllabusEditTitle}
+                          onChange={(e) => setSyllabusEditTitle(e.target.value)}
+                          placeholder="Title"
+                          style={{ padding: "8px 10px", borderRadius: "6px", border: "1px solid #D1D5DB", fontSize: "13px" }}
+                        />
+                        <input
+                          type="text"
+                          value={syllabusEditDescription}
+                          onChange={(e) => setSyllabusEditDescription(e.target.value)}
+                          placeholder="Description"
+                          style={{ padding: "8px 10px", borderRadius: "6px", border: "1px solid #D1D5DB", fontSize: "13px" }}
+                        />
+                        <input
+                          type="text"
+                          value={syllabusEditStage}
+                          onChange={(e) => setSyllabusEditStage(e.target.value)}
+                          placeholder="Stage"
+                          style={{ padding: "8px 10px", borderRadius: "6px", border: "1px solid #D1D5DB", fontSize: "13px" }}
+                        />
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <button
+                            type="button"
+                            onClick={() => void saveEditSyllabusItem()}
+                            disabled={syllabusSaving || !syllabusEditTitle.trim()}
+                            style={{
+                              background: "#111827",
+                              color: "#fff",
+                              border: "none",
+                              borderRadius: "6px",
+                              padding: "6px 12px",
+                              fontSize: "12px",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              opacity: syllabusSaving ? 0.6 : 1,
+                            }}
+                          >
+                            {syllabusSaving ? "Saving..." : "Save"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEditSyllabusItem}
+                            style={{
+                              background: "#F3F4F6",
+                              color: "#374151",
+                              border: "1px solid #D1D5DB",
+                              borderRadius: "6px",
+                              padding: "6px 12px",
+                              fontSize: "12px",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: 0, fontWeight: 600, fontSize: "14px" }}>{item.title}</p>
+                            {item.description && (
+                              <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#6B7280" }}>{item.description}</p>
+                            )}
+                            {item.stage && (
+                              <span
+                                style={{
+                                  display: "inline-block",
+                                  marginTop: "4px",
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  color: "#4338CA",
+                                  background: "#EEF2FF",
+                                  border: "1px solid #C7D2FE",
+                                  borderRadius: "999px",
+                                  padding: "2px 8px",
+                                }}
+                              >
+                                {item.stage}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "4px", flexShrink: 0 }}>
+                            <button
+                              type="button"
+                              onClick={() => void moveSyllabusItem(item.id, "up")}
+                              disabled={idx === 0 || syllabusSaving}
+                              title="Move up"
+                              style={{
+                                background: "none",
+                                border: "1px solid #D1D5DB",
+                                borderRadius: "4px",
+                                padding: "2px 6px",
+                                fontSize: "12px",
+                                cursor: idx === 0 ? "default" : "pointer",
+                                opacity: idx === 0 ? 0.3 : 1,
+                              }}
+                            >
+                              ↑
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void moveSyllabusItem(item.id, "down")}
+                              disabled={idx === syllabusManagerItems.length - 1 || syllabusSaving}
+                              title="Move down"
+                              style={{
+                                background: "none",
+                                border: "1px solid #D1D5DB",
+                                borderRadius: "4px",
+                                padding: "2px 6px",
+                                fontSize: "12px",
+                                cursor: idx === syllabusManagerItems.length - 1 ? "default" : "pointer",
+                                opacity: idx === syllabusManagerItems.length - 1 ? 0.3 : 1,
+                              }}
+                            >
+                              ↓
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => startEditSyllabusItem(item)}
+                              style={{
+                                background: "none",
+                                border: "1px solid #D1D5DB",
+                                borderRadius: "4px",
+                                padding: "2px 8px",
+                                fontSize: "12px",
+                                cursor: "pointer",
+                                color: "#374151",
+                              }}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void deleteSyllabusItem(item.id, item.title)}
+                              disabled={syllabusDeleting === item.id}
+                              style={{
+                                background: "none",
+                                border: "1px solid #FCA5A5",
+                                borderRadius: "4px",
+                                padding: "2px 8px",
+                                fontSize: "12px",
+                                cursor: "pointer",
+                                color: "#DC2626",
+                                opacity: syllabusDeleting === item.id ? 0.5 : 1,
+                              }}
+                            >
+                              {syllabusDeleting === item.id ? "..." : "Delete"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </AdminPageShell>
