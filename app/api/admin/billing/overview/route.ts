@@ -14,6 +14,12 @@ type StudentRow = {
   stripe_customer_id: string | null
 }
 
+type TransactionRow = {
+  user_id: string | null
+  amount_cents: number
+  type: string
+}
+
 type ItemRow = {
   id: string
   name: string
@@ -80,6 +86,24 @@ export async function GET(request: NextRequest) {
 
     const students = (studentsResult.data || []) as StudentRow[]
     const items = (itemsResult.data || []) as ItemRow[]
+    const userIds = Array.from(new Set(students.map((student) => student.user_id).filter(Boolean))) as string[]
+
+    let cashPaidByUserId = new Map<string, number>()
+    if (userIds.length > 0) {
+      const transactionsResult = await supabaseAdmin
+        .from('transactions')
+        .select('user_id, amount_cents, type')
+        .in('user_id', userIds)
+        .in('type', ['cash_payment'])
+
+      if (!transactionsResult.error) {
+        ;((transactionsResult.data || []) as TransactionRow[]).forEach((row) => {
+          if (!row.user_id) return
+          const current = cashPaidByUserId.get(row.user_id) || 0
+          cashPaidByUserId.set(row.user_id, current + Number(row.amount_cents || 0))
+        })
+      }
+    }
 
     if (!stripe) {
       return NextResponse.json({
@@ -94,6 +118,7 @@ export async function GET(request: NextRequest) {
           stripeCustomerId: student.stripe_customer_id,
           stripeInvoiceBalanceCents: 0,
           stripeBalanceCurrency: (student.preferred_currency || 'usd').toLowerCase(),
+          manualCashPaidCents: student.user_id ? cashPaidByUserId.get(student.user_id) || 0 : 0,
         })),
         items,
         stripeConfigured: false,
@@ -138,6 +163,7 @@ export async function GET(request: NextRequest) {
           stripeCustomerId: customer?.id || student.stripe_customer_id,
           stripeInvoiceBalanceCents: customer?.balance || 0,
           stripeBalanceCurrency: (customer?.currency || student.preferred_currency || 'usd').toLowerCase(),
+          manualCashPaidCents: student.user_id ? cashPaidByUserId.get(student.user_id) || 0 : 0,
         }
       })
     )

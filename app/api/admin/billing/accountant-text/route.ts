@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     const uniqueMediaUrls = Array.from(new Set(mediaCandidates)).slice(0, 5)
 
     const purchaseTotal = transactionRows
-      .filter((row) => ['charge', 'purchase'].includes(row.type.toLowerCase()))
+      .filter((row) => ['charge', 'purchase', 'cash_payment'].includes(row.type.toLowerCase()))
       .reduce((sum, row) => sum + Number(row.amount_cents || 0), 0)
 
     const expenseTotal = transactionRows

@@ -20,6 +20,7 @@ type BillingStudent = {
   stripeCustomerId: string | null
   stripeInvoiceBalanceCents: number
   stripeBalanceCurrency: string
+  manualCashPaidCents: number
 }
 
 type BillingItem = {
@@ -125,6 +126,11 @@ export default function AdminBillingPage() {
   const [creatingCheckout, setCreatingCheckout] = useState(false)
   const [pushingCheckout, setPushingCheckout] = useState<"email" | "text" | "copy" | null>(null)
   const [sendingAccountantText, setSendingAccountantText] = useState(false)
+  const [latestCheckoutUrl, setLatestCheckoutUrl] = useState("")
+
+  const [cashPaymentDollars, setCashPaymentDollars] = useState("")
+  const [cashPaymentNote, setCashPaymentNote] = useState("")
+  const [recordingCashPayment, setRecordingCashPayment] = useState(false)
 
   const [clientSecret, setClientSecret] = useState("")
   const [checkoutTotals, setCheckoutTotals] = useState<CheckoutTotals | null>(null)
@@ -316,11 +322,17 @@ export default function AdminBillingPage() {
         const checkoutUrl = result.checkoutUrl as string | undefined
         if (!checkoutUrl) throw new Error("Checkout link was not returned")
 
+        setLatestCheckoutUrl(checkoutUrl)
+
         if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-          await navigator.clipboard.writeText(checkoutUrl)
-          setStatusMessage("Checkout link copied to clipboard")
+          try {
+            await navigator.clipboard.writeText(checkoutUrl)
+            setStatusMessage("Checkout link copied to clipboard")
+          } catch {
+            setStatusMessage("Checkout link generated below. Use Copy Link Field or manual copy.")
+          }
         } else {
-          setStatusMessage(`Checkout link generated: ${checkoutUrl}`)
+          setStatusMessage("Checkout link generated below. Use Copy Link Field or manual copy.")
         }
       } else {
         setStatusMessage(
@@ -333,6 +345,79 @@ export default function AdminBillingPage() {
       setStatusMessage(error instanceof Error ? error.message : "Unable to push checkout link")
     } finally {
       setPushingCheckout(null)
+    }
+  }
+
+  const copyCheckoutLinkField = async () => {
+    if (!latestCheckoutUrl) return
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(latestCheckoutUrl)
+        setStatusMessage("Checkout link copied to clipboard")
+        return
+      }
+    } catch {
+      // fall through to legacy clipboard behavior
+    }
+
+    if (typeof document !== "undefined") {
+      const input = document.getElementById("admin-checkout-link-field") as HTMLInputElement | null
+      if (input) {
+        input.focus()
+        input.select()
+        const copied = document.execCommand("copy")
+        setStatusMessage(copied ? "Checkout link copied to clipboard" : "Select the checkout link and copy manually")
+      }
+    }
+  }
+
+  const recordPartialCashPayment = async () => {
+    if (!selectedStudentId) {
+      setStatusMessage("Select a student first")
+      return
+    }
+
+    const amountDollars = Number(cashPaymentDollars)
+    if (!Number.isFinite(amountDollars) || amountDollars <= 0) {
+      setStatusMessage("Enter a valid cash payment amount greater than 0")
+      return
+    }
+
+    setRecordingCashPayment(true)
+    setStatusMessage("")
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) throw new Error("Missing admin session")
+
+      const response = await fetch("/api/admin/billing/cash-payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          studentId: selectedStudentId,
+          amountDollars,
+          note: cashPaymentNote,
+        }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || "Unable to record cash payment")
+
+      setCashPaymentDollars("")
+      setCashPaymentNote("")
+      setStatusMessage(`Recorded partial cash payment: ${formatMoney(result.amountCents || 0, currency)}`)
+      await loadData()
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to record cash payment")
+    } finally {
+      setRecordingCashPayment(false)
     }
   }
 
@@ -481,6 +566,39 @@ export default function AdminBillingPage() {
                 </label>
               </div>
 
+              <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm">
+                <p className="font-semibold text-emerald-900">Partial Cash Payment</p>
+                <p className="mt-1 text-emerald-800">
+                  Recorded cash received (lifetime): {formatMoney(selectedStudent.manualCashPaidCents || 0, currency)}
+                </p>
+                <div className="mt-3 grid gap-3 md:grid-cols-[180px_minmax(0,1fr)_auto]">
+                  <input
+                    type="number"
+                    min={0.01}
+                    step={0.01}
+                    value={cashPaymentDollars}
+                    onChange={(event) => setCashPaymentDollars(event.target.value)}
+                    placeholder="Amount (USD)"
+                    className="rounded-lg border border-emerald-300 px-3 py-2 text-sm"
+                  />
+                  <input
+                    type="text"
+                    value={cashPaymentNote}
+                    onChange={(event) => setCashPaymentNote(event.target.value)}
+                    placeholder="Optional note (lesson/date/reference)"
+                    className="rounded-lg border border-emerald-300 px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void recordPartialCashPayment()}
+                    disabled={recordingCashPayment}
+                    className="rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 disabled:opacity-60"
+                  >
+                    {recordingCashPayment ? "Recording..." : "Record Cash Payment"}
+                  </button>
+                </div>
+              </div>
+
               <div className="mt-5 space-y-3">
                 {checkoutLines.map((line, index) => (
                   <div key={`${index}-${line.itemId}`} className="grid gap-2 md:grid-cols-[minmax(0,1fr)_120px_96px]">
@@ -599,6 +717,35 @@ export default function AdminBillingPage() {
               <p className="mt-2 text-xs text-slate-500">
                 Email uses the student email on file. Text uses the student phone number on file.
               </p>
+
+              {latestCheckoutUrl ? (
+                <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Latest Checkout Link</p>
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      id="admin-checkout-link-field"
+                      value={latestCheckoutUrl}
+                      readOnly
+                      className="min-w-[280px] flex-1 rounded border border-slate-300 bg-white px-3 py-2 text-xs text-slate-700"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void copyCheckoutLinkField()}
+                      className="rounded border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
+                    >
+                      Copy Link Field
+                    </button>
+                    <a
+                      href={latestCheckoutUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded border border-blue-300 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700"
+                    >
+                      Open Link
+                    </a>
+                  </div>
+                </div>
+              ) : null}
 
               {clientSecret && checkoutTotals ? (
                 <div className="mt-6 rounded-xl border border-slate-200 p-4">
