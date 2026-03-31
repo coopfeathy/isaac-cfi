@@ -121,7 +121,6 @@ export default function AdminProgressPage() {
   const [debriefRecommendedStudyPractice, setDebriefRecommendedStudyPractice] = useState("")
   const [debriefOtherFeedback, setDebriefOtherFeedback] = useState("")
   const [instructorPrivateNotes, setInstructorPrivateNotes] = useState("")
-  const [sendEmail, setSendEmail] = useState(true)
 
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -576,8 +575,7 @@ export default function AdminProgressPage() {
     [students, selectedStudentId]
   )
 
-  const handleSubmitEvaluation = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const handleSubmitEvaluation = async (sendEvaluationEmail: boolean) => {
 
     if (!selectedCourse || !selectedStudentId || syllabusItems.length === 0) {
       setStatusMessage("Select a course, student, and syllabus items first")
@@ -642,7 +640,7 @@ export default function AdminProgressPage() {
         },
         instructorPrivateNotes,
         syllabusUpdates,
-        sendEmail,
+        sendEmail: sendEvaluationEmail,
       }),
     })
 
@@ -654,11 +652,11 @@ export default function AdminProgressPage() {
       return
     }
 
-    const statusParts: string[] = ["Evaluation saved"]
+    const statusParts: string[] = [sendEvaluationEmail ? "Lesson evaluation sent" : "Lesson evaluation saved for later"]
 
     if (result.emailSent) {
       statusParts.push("debrief email sent")
-    } else if (sendEmail && result.emailError) {
+    } else if (sendEvaluationEmail && result.emailError) {
       statusParts.push(`debrief email failed: ${result.emailError}`)
     }
 
@@ -770,7 +768,13 @@ export default function AdminProgressPage() {
             Student: {selectedStudent ? selectedStudent.full_name || selectedStudent.email : "Select a student"}
           </p>
 
-          <form onSubmit={handleSubmitEvaluation} style={{ display: "grid", gap: "14px" }}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              void handleSubmitEvaluation(true)
+            }}
+            style={{ display: "grid", gap: "14px" }}
+          >
             <div style={{ display: "grid", gap: "8px", padding: "10px", borderRadius: "8px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
               <label style={{ fontSize: "14px", fontWeight: 600 }}>Debriefed syllabus item</label>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "8px" }}>
@@ -1050,11 +1054,6 @@ export default function AdminProgressPage() {
               />
             </div>
 
-            <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} />
-              Email debrief to student after save
-            </label>
-
             <div style={{ display: "grid", gap: "8px", padding: "10px", borderRadius: "8px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
               <label style={{ fontWeight: 600 }}>Instructor Notes (WILL NOT BE SHARED WITH STUDENT)</label>
               <textarea
@@ -1074,23 +1073,41 @@ export default function AdminProgressPage() {
               <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
                 Email queueing is triggered when the student completes the lesson. Manual push/hold remains available in the Students workspace.
               </p>
-              <button
-                type="submit"
-                disabled={submitting || !selectedStudentId || syllabusItems.length === 0}
-                style={{
-                  background: "#111827",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  padding: "12px 18px",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  opacity: submitting || !selectedStudentId || syllabusItems.length === 0 ? 0.65 : 1,
-                  justifySelf: "start",
-                }}
-              >
-                {submitting ? "Saving..." : "Save Lesson Evaluation"}
-              </button>
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                <button
+                  type="submit"
+                  disabled={submitting || !selectedStudentId || syllabusItems.length === 0}
+                  style={{
+                    background: "#111827",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "12px 18px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    opacity: submitting || !selectedStudentId || syllabusItems.length === 0 ? 0.65 : 1,
+                  }}
+                >
+                  {submitting ? "Saving..." : "Send Lesson Evaluation"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSubmitEvaluation(false)}
+                  disabled={submitting || !selectedStudentId || syllabusItems.length === 0}
+                  style={{
+                    background: "#F3F4F6",
+                    color: "#111827",
+                    border: "1px solid #D1D5DB",
+                    borderRadius: "8px",
+                    padding: "12px 18px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    opacity: submitting || !selectedStudentId || syllabusItems.length === 0 ? 0.65 : 1,
+                  }}
+                >
+                  {submitting ? "Saving..." : "Save for Later"}
+                </button>
+              </div>
             </div>
           </form>
         </section>
