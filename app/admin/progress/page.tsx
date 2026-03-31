@@ -59,6 +59,34 @@ const normalizeCourseTitle = (value: string) =>
     .replace(/course|training/g, "")
     .replace(/[^a-z0-9]/g, "")
 
+const normalizeName = (value: string | null | undefined) =>
+  typeof value === "string" ? value.trim().replace(/\s+/g, " ") : ""
+
+const normalizeEmail = (value: string | null | undefined) =>
+  typeof value === "string" ? value.trim().toLowerCase() : ""
+
+const isEmailLikeValue = (value: string | null | undefined) => {
+  const normalized = normalizeName(value).toLowerCase()
+  if (!normalized) return true
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)
+}
+
+const deriveNameFromEmail = (email: string | null | undefined) => {
+  const normalized = normalizeEmail(email)
+  if (!normalized) return "Student"
+  const localPart = normalized.split("@")[0] || ""
+  const words = localPart
+    .replace(/[^a-z0-9._-]/gi, "")
+    .split(/[._-]+/)
+    .filter(Boolean)
+
+  if (words.length === 0) return "Student"
+
+  return words
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ")
+}
+
 const getLineBounds = (text: string, cursor: number) => {
   const lineStart = text.lastIndexOf("\n", Math.max(0, cursor - 1)) + 1
   const nextNewline = text.indexOf("\n", cursor)
@@ -298,6 +326,15 @@ export default function AdminProgressPage() {
         return
       }
 
+      const { data: profileRows } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", studentIds)
+
+      const profileNameById = new Map(
+        ((profileRows as Array<{ id: string; full_name: string | null }> | null) || []).map((row) => [row.id, row.full_name])
+      )
+
       // Fetch students from students table instead of auth users for better name reliability
       let { data: studentsData, error: studentsError } = await supabase
         .from("students")
@@ -317,7 +354,18 @@ export default function AdminProgressPage() {
           .map((row: any) => ({
             id: row.user_id as string,
             email: row.email || null,
-            full_name: row.full_name || null,
+            full_name: (() => {
+              const profileName = profileNameById.get(row.user_id as string) || null
+              const studentName = normalizeName(row.full_name)
+              const preferredName = !isEmailLikeValue(studentName)
+                ? studentName
+                : !isEmailLikeValue(profileName)
+                ? normalizeName(profileName)
+                : ""
+
+              if (preferredName) return preferredName
+              return deriveNameFromEmail(row.email)
+            })(),
           }))
 
       const loadedIds = new Set(students_list.map((student) => student.id))
@@ -350,7 +398,18 @@ export default function AdminProgressPage() {
                 .map((row: any) => ({
                   id: row.user_id as string,
                   email: row.email || null,
-                  full_name: row.full_name || null,
+                  full_name: (() => {
+                    const profileName = profileNameById.get(row.user_id as string) || null
+                    const studentName = normalizeName(row.full_name)
+                    const preferredName = !isEmailLikeValue(studentName)
+                      ? studentName
+                      : !isEmailLikeValue(profileName)
+                      ? normalizeName(profileName)
+                      : ""
+
+                    if (preferredName) return preferredName
+                    return deriveNameFromEmail(row.email)
+                  })(),
                 }))
           }
         }
