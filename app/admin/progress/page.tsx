@@ -375,7 +375,7 @@ export default function AdminProgressPage() {
           }))
 
           students_list = [...students_list, ...profileFallbacks]
-          setStatusMessage("Some enrolled students were missing from the student registry. Fallback records are shown; run Sync Students in Admin Students to normalize records.")
+          setStatusMessage("Some enrolled students were missing from the student registry. Fallback records are shown; run Normalize Student Records in Admin Enrollments to repair duplicate and incomplete student records.")
         }
       }
 

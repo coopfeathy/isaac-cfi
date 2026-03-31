@@ -54,6 +54,8 @@ export default function AdminStudentEnrollmentPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(false)
   const [collapsedDuplicates, setCollapsedDuplicates] = useState(0)
+  const [normalizing, setNormalizing] = useState(false)
+  const [normalizationMessage, setNormalizationMessage] = useState("")
   const [savingProfile, setSavingProfile] = useState(false)
   const [editingStudent, setEditingStudent] = useState<StudentEnrollment | null>(null)
   const [editForm, setEditForm] = useState({
@@ -163,10 +165,11 @@ export default function AdminStudentEnrollmentPage() {
       let duplicateCount = 0
 
       rawStudentList.forEach((student) => {
-        const key = student.auth_user_id
+        const normalizedEmail = normalizeEmail(student.email)
+        const key = normalizedEmail
+          ? `email:${normalizedEmail}`
+          : student.auth_user_id
           ? `auth:${student.auth_user_id}`
-          : normalizeEmail(student.email)
-          ? `email:${normalizeEmail(student.email)}`
           : `record:${student.student_record_id}`
 
         const existing = studentsByIdentity.get(key)
@@ -304,6 +307,45 @@ export default function AdminStudentEnrollmentPage() {
 
   const enrolledCount = students.filter((student) => student.is_enrolled).length
 
+  const handleNormalizeStudents = async () => {
+    setNormalizing(true)
+    setNormalizationMessage('')
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error('Missing admin session token')
+      }
+
+      const response = await fetch('/api/admin/students/normalize', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.error || 'Unable to normalize student records')
+      }
+
+      setNormalizationMessage(
+        `Normalization complete: ${result.deleted || 0} duplicates removed, ${result.updated || 0} records updated, ${result.unresolved || 0} still missing a proper name or email.`
+      )
+
+      if (selectedCourse) {
+        await handleCourseSelect(selectedCourse)
+      }
+    } catch (error) {
+      setNormalizationMessage(error instanceof Error ? error.message : 'Unable to normalize student records')
+    } finally {
+      setNormalizing(false)
+    }
+  }
+
   return (
     <AdminPageShell
       title="Assign Students to Courses"
@@ -337,6 +379,26 @@ export default function AdminStudentEnrollmentPage() {
 
       {selectedCourse && (
         <>
+          <div style={{ marginBottom: '12px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <button
+              onClick={() => void handleNormalizeStudents()}
+              disabled={normalizing}
+              style={{
+                backgroundColor: '#1E3A8A',
+                color: 'white',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                border: 'none',
+                fontWeight: 600,
+                cursor: normalizing ? 'wait' : 'pointer',
+                opacity: normalizing ? 0.75 : 1,
+              }}
+            >
+              {normalizing ? 'Normalizing Student Records...' : 'Normalize Student Records'}
+            </button>
+            {normalizationMessage ? <p style={{ margin: 0, color: '#334155', fontSize: '14px' }}>{normalizationMessage}</p> : null}
+          </div>
+
           <div
             style={{
               marginBottom: "14px",

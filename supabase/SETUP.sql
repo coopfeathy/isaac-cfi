@@ -1615,6 +1615,8 @@ CREATE INDEX IF NOT EXISTS idx_units_course_id ON units(course_id);
 CREATE INDEX IF NOT EXISTS idx_lessons_unit_id ON lessons(unit_id);
 CREATE INDEX IF NOT EXISTS idx_videos_lesson_id ON videos(lesson_id);
 CREATE INDEX IF NOT EXISTS idx_lesson_documents_lesson_id_perf ON lesson_documents(lesson_id);
+CREATE INDEX IF NOT EXISTS idx_students_user_id ON students(user_id);
+CREATE INDEX IF NOT EXISTS idx_students_email_lower ON students((lower(trim(email))));
 CREATE INDEX IF NOT EXISTS idx_enrollments_course_id ON enrollments(course_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_student_id ON enrollments(student_id);
 CREATE INDEX IF NOT EXISTS idx_progress_lesson_id ON progress(lesson_id);
@@ -1635,6 +1637,30 @@ CREATE INDEX IF NOT EXISTS idx_class_appointments_group_id ON class_appointments
 CREATE INDEX IF NOT EXISTS idx_class_appointments_start_time ON class_appointments(start_time);
 CREATE INDEX IF NOT EXISTS idx_class_appointments_instructor_id ON class_appointments(instructor_id);
 CREATE INDEX IF NOT EXISTS idx_class_appointment_attendees_user_id ON class_appointment_attendees(user_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_indexes
+    WHERE schemaname = 'public' AND indexname = 'students_email_unique_ci'
+  ) THEN
+    IF NOT EXISTS (
+      SELECT lower(trim(email))
+      FROM students
+      WHERE email IS NOT NULL AND btrim(email) <> ''
+      GROUP BY lower(trim(email))
+      HAVING COUNT(*) > 1
+    ) THEN
+      EXECUTE $sql$
+        CREATE UNIQUE INDEX students_email_unique_ci
+        ON students (lower(trim(email)))
+        WHERE email IS NOT NULL AND btrim(email) <> ''
+      $sql$;
+    END IF;
+  END IF;
+END
+$$;
 
 -- ============================================================
 -- DONE

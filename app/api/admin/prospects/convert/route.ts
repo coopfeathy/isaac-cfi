@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
+const normalizeEmail = (value: string | null | undefined) =>
+  typeof value === 'string' ? value.trim().toLowerCase() : ''
+
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization')
@@ -38,18 +41,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Prospect not found' }, { status: 404 })
     }
 
-    const existingStudentQuery = prospect.email
-      ? supabaseAdmin.from('students').select('id').eq('email', prospect.email).maybeSingle()
-      : Promise.resolve({ data: null, error: null } as any)
+    const normalizedEmail = normalizeEmail(prospect.email) || null
+    const existingStudentsResult = normalizedEmail
+      ? await supabaseAdmin
+          .from('students')
+          .select('id, user_id, email, created_at')
+          .ilike('email', normalizedEmail)
+          .order('created_at', { ascending: true })
+      : ({ data: [], error: null } as any)
 
-    const existingStudent = await existingStudentQuery
-    const normalizedEmail = prospect.email?.trim().toLowerCase() || null
+    if (existingStudentsResult.error) {
+      return NextResponse.json({ error: existingStudentsResult.error.message }, { status: 500 })
+    }
+
     const authUsers = normalizedEmail ? await supabaseAdmin.auth.admin.listUsers() : null
     const matchingAuthUser = normalizedEmail
       ? authUsers?.data?.users?.find((candidate) => candidate.email?.trim().toLowerCase() === normalizedEmail) || null
       : null
 
-    if (existingStudent?.data?.id) {
+    const existingStudentCandidates = (existingStudentsResult.data || []) as Array<{
+      id: string
+      user_id: string | null
+      email: string | null
+      created_at: string
+    }>
+
+    const existingStudent =
+      existingStudentCandidates.find((row) => row.user_id && row.user_id === matchingAuthUser?.id) ||
+      existingStudentCandidates.find((row) => row.user_id) ||
+      existingStudentCandidates[0] ||
+      null
+
+    if (existingStudent?.id) {
       const { error: updateStudentError } = await supabaseAdmin
         .from('students')
         .update({
@@ -60,7 +83,7 @@ export async function POST(request: NextRequest) {
           status: 'active',
           updated_at: new Date().toISOString(),
         })
-        .eq('id', existingStudent.data.id)
+        .eq('id', existingStudent.id)
 
       if (updateStudentError) {
         return NextResponse.json({ error: updateStudentError.message }, { status: 500 })
