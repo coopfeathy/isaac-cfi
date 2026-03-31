@@ -775,8 +775,42 @@ export default function AdminProgressPage() {
             }}
             style={{ display: "grid", gap: "14px" }}
           >
+            <div style={{ display: "grid", gap: "10px", fontSize: "14px" }}>
+              <label style={{ fontWeight: 600 }}>Event Performance Grade</label>
+              <div style={{ display: "grid", gap: "10px" }}>
+                {[
+                  { value: 4, label: "Above Average", arrows: "⬆️⬆️", description: "Consistently meeting or exceeding standards" },
+                  { value: 3, label: "Slightly Above Average", arrows: "⬆️", description: "Meeting most expectations" },
+                  { value: 2, label: "Slightly Below Average", arrows: "⬇️", description: "Uncertain if they will meet standards" },
+                  { value: 1, label: "Below Average", arrows: "⬇️⬇️", description: "Unlikely to meet standards" },
+                ].map((grade) => (
+                  <label key={grade.value} style={{ display: "flex", alignItems: "flex-start", gap: "10px", cursor: "pointer", padding: "10px", borderRadius: "8px", border: performanceRating === grade.value ? "2px solid #C59A2A" : "1px solid #E5E7EB", background: performanceRating === grade.value ? "#FFFBEB" : "#F9FAFB" }}>
+                    <input
+                      type="radio"
+                      name="performance-grade"
+                      value={grade.value}
+                      checked={performanceRating === grade.value}
+                      onChange={(e) => setPerformanceRating(Number(e.target.value))}
+                      style={{ marginTop: "4px" }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, marginBottom: "2px" }}>
+                        {grade.arrows} {grade.label}
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#6B7280" }}>{grade.description}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div style={{ display: "grid", gap: "8px", padding: "10px", borderRadius: "8px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
-              <label style={{ fontSize: "14px", fontWeight: 600 }}>Debriefed syllabus item</label>
+              <label style={{ fontSize: "14px", fontWeight: 600 }}>Debriefed Syllabus Item</label>
+              {focusedSyllabusItemId && syllabusItems.find((item) => item.id === focusedSyllabusItemId) && (
+                <div style={{ padding: "8px 12px", borderRadius: "8px", background: "#FFFBEB", border: "1px solid #C59A2A", fontSize: "14px", fontWeight: 500 }}>
+                  {syllabusItems.find((item) => item.id === focusedSyllabusItemId)?.title} — {(itemDrafts[focusedSyllabusItemId]?.status || "not_started").replace(/_/g, " ")}
+                </div>
+              )}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "8px" }}>
                 <select
                   value={focusedSyllabusItemId}
@@ -812,48 +846,6 @@ export default function AdminProgressPage() {
               <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
                 The selected debriefed syllabus item is linked to the highlighted card below and is the item auto-marked proficient on save.
               </p>
-            </div>
-
-            <select
-              value={selectedLessonId}
-              onChange={(e) => setSelectedLessonId(e.target.value)}
-              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
-            >
-              <option value="">No specific lesson</option>
-              {lessons.map((lesson) => (
-                <option key={lesson.id} value={lesson.id}>
-                  {lesson.title}
-                </option>
-              ))}
-            </select>
-
-            <div style={{ display: "grid", gap: "10px", fontSize: "14px" }}>
-              <label style={{ fontWeight: 600 }}>Event Performance Grade</label>
-              <div style={{ display: "grid", gap: "10px" }}>
-                {[
-                  { value: 4, label: "Above Average", arrows: "⬆️⬆️", description: "Consistently meeting or exceeding standards" },
-                  { value: 3, label: "Slightly Above Average", arrows: "⬆️", description: "Meeting most expectations" },
-                  { value: 2, label: "Slightly Below Average", arrows: "⬇️", description: "Uncertain if they will meet standards" },
-                  { value: 1, label: "Below Average", arrows: "⬇️⬇️", description: "Unlikely to meet standards" },
-                ].map((grade) => (
-                  <label key={grade.value} style={{ display: "flex", alignItems: "flex-start", gap: "10px", cursor: "pointer", padding: "10px", borderRadius: "8px", border: performanceRating === grade.value ? "2px solid #C59A2A" : "1px solid #E5E7EB", background: performanceRating === grade.value ? "#FFFBEB" : "#F9FAFB" }}>
-                    <input
-                      type="radio"
-                      name="performance-grade"
-                      value={grade.value}
-                      checked={performanceRating === grade.value}
-                      onChange={(e) => setPerformanceRating(Number(e.target.value))}
-                      style={{ marginTop: "4px" }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, marginBottom: "2px" }}>
-                        {grade.arrows} {grade.label}
-                      </div>
-                      <div style={{ fontSize: "12px", color: "#6B7280" }}>{grade.description}</div>
-                    </div>
-                  </label>
-                ))}
-              </div>
             </div>
 
             {syllabusItems.map((item) => (
@@ -960,44 +952,6 @@ export default function AdminProgressPage() {
               </div>
             ))}
 
-            <div style={{ display: "grid", gap: "10px", padding: "12px", borderRadius: "10px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
-              <p style={{ margin: 0, fontWeight: 600 }}>Briefing Notes (shared with student)</p>
-              <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
-                Add what the student should expect before the scheduled flight, ground, or simulator event.
-              </p>
-              <textarea
-                rows={2}
-                value={briefingFocusAreas}
-                onChange={(e) => setBriefingFocusAreas(e.target.value)}
-                onKeyDown={(e) => handleSmartListKeyDown(e, briefingFocusAreas, setBriefingFocusAreas)}
-                placeholder="Areas of focus"
-                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
-              />
-              <textarea
-                rows={2}
-                value={briefingScenarios}
-                onChange={(e) => setBriefingScenarios(e.target.value)}
-                onKeyDown={(e) => handleSmartListKeyDown(e, briefingScenarios, setBriefingScenarios)}
-                placeholder="Scenarios for this event"
-                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
-              />
-              <textarea
-                rows={2}
-                value={briefingPlannedRoute}
-                onChange={(e) => setBriefingPlannedRoute(e.target.value)}
-                onKeyDown={(e) => handleSmartListKeyDown(e, briefingPlannedRoute, setBriefingPlannedRoute)}
-                placeholder="Planned route"
-                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
-              />
-              <textarea
-                rows={2}
-                value={briefingAdditionalInfo}
-                onChange={(e) => setBriefingAdditionalInfo(e.target.value)}
-                onKeyDown={(e) => handleSmartListKeyDown(e, briefingAdditionalInfo, setBriefingAdditionalInfo)}
-                placeholder="Additional information to be prepared"
-                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
-              />
-            </div>
 
             <div style={{ display: "grid", gap: "10px", padding: "12px", borderRadius: "10px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
               <p style={{ margin: 0, fontWeight: 600 }}>Debrief (shared with student)</p>
@@ -1022,46 +976,10 @@ export default function AdminProgressPage() {
               />
               <textarea
                 rows={3}
-                value={debriefReferenceMaterials}
-                onChange={(e) => setDebriefReferenceMaterials(e.target.value)}
-                onKeyDown={(e) => handleSmartListKeyDown(e, debriefReferenceMaterials, setDebriefReferenceMaterials)}
-                placeholder="References used (Merlin material, FAA source, ACS)"
-                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
-              />
-              <textarea
-                rows={3}
-                value={debriefSkillsNeedingWork}
-                onChange={(e) => setDebriefSkillsNeedingWork(e.target.value)}
-                onKeyDown={(e) => handleSmartListKeyDown(e, debriefSkillsNeedingWork, setDebriefSkillsNeedingWork)}
-                placeholder="Knowledge and skills needing work before the next meeting"
-                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
-              />
-              <textarea
-                rows={3}
                 value={debriefRecommendedStudyPractice}
                 onChange={(e) => setDebriefRecommendedStudyPractice(e.target.value)}
                 onKeyDown={(e) => handleSmartListKeyDown(e, debriefRecommendedStudyPractice, setDebriefRecommendedStudyPractice)}
                 placeholder="Recommended study and practice"
-                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
-              />
-              <textarea
-                rows={3}
-                value={debriefOtherFeedback}
-                onChange={(e) => setDebriefOtherFeedback(e.target.value)}
-                onKeyDown={(e) => handleSmartListKeyDown(e, debriefOtherFeedback, setDebriefOtherFeedback)}
-                placeholder="Other feedback to help the student prepare for the next training event"
-                style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
-              />
-            </div>
-
-            <div style={{ display: "grid", gap: "8px", padding: "10px", borderRadius: "8px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
-              <label style={{ fontWeight: 600 }}>Instructor Notes (WILL NOT BE SHARED WITH STUDENT)</label>
-              <textarea
-                rows={3}
-                value={instructorPrivateNotes}
-                onChange={(e) => setInstructorPrivateNotes(e.target.value)}
-                onKeyDown={(e) => handleSmartListKeyDown(e, instructorPrivateNotes, setInstructorPrivateNotes)}
-                placeholder="Internal instructor notes"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
             </div>
