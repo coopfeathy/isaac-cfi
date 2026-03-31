@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { Slot, Booking } from '@/lib/supabase'
+import AdminBookingPlanner from '@/app/components/AdminBookingPlanner'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -2348,6 +2349,8 @@ ${blogContent}
         {/* Bookings Tab */}
         {activeTab === 'bookings' && (
           <div className="space-y-4">
+            <AdminBookingPlanner slots={slots} onCreated={fetchData} />
+
             <div className="bg-white rounded-lg shadow-md p-6">
               <h3 className="text-xl font-bold text-darkText mb-2">Class Appointment Attendance</h3>
               <p className="text-sm text-gray-600 mb-4">Live attendance and invitation status for group class appointments.</p>
