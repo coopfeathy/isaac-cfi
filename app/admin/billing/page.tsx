@@ -21,6 +21,17 @@ type BillingStudent = {
   stripeInvoiceBalanceCents: number
   stripeBalanceCurrency: string
   manualCashPaidCents: number
+  cashTransactions: Array<{ id: string; amountCents: number; description: string; createdAt: string }>
+  checkouts: Array<{
+    id: string
+    amountCents: number
+    currency: string
+    status: 'paid' | 'pending' | 'canceled'
+    description: string | null
+    createdAt: string
+    itemsCount: number
+    cashAppliedCents: number
+  }>
 }
 
 type BillingItem = {
@@ -40,6 +51,7 @@ type CheckoutLine = {
 type CheckoutTotals = {
   subtotalCents: number
   processingFeeCents: number
+  cashAppliedCents: number
   totalCents: number
   currency: string
 }
@@ -127,10 +139,13 @@ export default function AdminBillingPage() {
   const [pushingCheckout, setPushingCheckout] = useState<"email" | "text" | "copy" | null>(null)
   const [sendingAccountantText, setSendingAccountantText] = useState(false)
   const [latestCheckoutUrl, setLatestCheckoutUrl] = useState("")
+  const [copiedLink, setCopiedLink] = useState(false)
 
   const [cashPaymentDollars, setCashPaymentDollars] = useState("")
   const [cashPaymentNote, setCashPaymentNote] = useState("")
   const [recordingCashPayment, setRecordingCashPayment] = useState(false)
+  const [showCashModal, setShowCashModal] = useState(false)
+  const [removingCashTxId, setRemovingCashTxId] = useState<string | null>(null)
 
   const [clientSecret, setClientSecret] = useState("")
   const [checkoutTotals, setCheckoutTotals] = useState<CheckoutTotals | null>(null)
@@ -172,13 +187,17 @@ export default function AdminBillingPage() {
       return sum + item.rate_cents * line.quantity
     }, 0)
 
-    const processingFeeCents = Math.round(lineTotal * 0.035)
+    const cashPaid = selectedStudent?.manualCashPaidCents || 0
+    const cashAppliedCents = Math.min(cashPaid, lineTotal)
+    const afterCash = lineTotal - cashAppliedCents
+    const processingFeeCents = Math.round(afterCash * 0.035)
     return {
       subtotalCents: lineTotal,
+      cashAppliedCents,
       processingFeeCents,
-      totalCents: lineTotal + processingFeeCents,
+      totalCents: afterCash + processingFeeCents,
     }
-  }, [checkoutLines, items])
+  }, [checkoutLines, items, selectedStudent])
 
   async function loadData() {
     setLoading(true)
@@ -257,6 +276,7 @@ export default function AdminBillingPage() {
       setCheckoutTotals({
         subtotalCents: result.subtotalCents,
         processingFeeCents: result.processingFeeCents,
+        cashAppliedCents: result.cashAppliedCents || 0,
         totalCents: result.totalCents,
         currency: result.currency,
       })
@@ -354,7 +374,8 @@ export default function AdminBillingPage() {
     try {
       if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(latestCheckoutUrl)
-        setStatusMessage("Checkout link copied to clipboard")
+        setCopiedLink(true)
+        setTimeout(() => setCopiedLink(false), 2000)
         return
       }
     } catch {
@@ -367,7 +388,12 @@ export default function AdminBillingPage() {
         input.focus()
         input.select()
         const copied = document.execCommand("copy")
-        setStatusMessage(copied ? "Checkout link copied to clipboard" : "Select the checkout link and copy manually")
+        if (copied) {
+          setCopiedLink(true)
+          setTimeout(() => setCopiedLink(false), 2000)
+        } else {
+          setStatusMessage("Select the checkout link and copy manually")
+        }
       }
     }
   }
@@ -418,6 +444,44 @@ export default function AdminBillingPage() {
       setStatusMessage(error instanceof Error ? error.message : "Unable to record cash payment")
     } finally {
       setRecordingCashPayment(false)
+    }
+  }
+
+  const removeCashPayment = async (transactionId: string, amountCents: number) => {
+    if (!selectedStudentId) return
+    if (!confirm(`Remove this $${(amountCents / 100).toFixed(2)} cash payment?`)) return
+
+    setRemovingCashTxId(transactionId)
+    setStatusMessage("")
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) throw new Error("Missing admin session")
+
+      const response = await fetch("/api/admin/billing/cash-payment", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          transactionId,
+          studentId: selectedStudentId,
+        }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || "Unable to remove cash payment")
+
+      setStatusMessage("Cash payment removed")
+      await loadData()
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to remove cash payment")
+    } finally {
+      setRemovingCashTxId(null)
     }
   }
 
@@ -546,7 +610,7 @@ export default function AdminBillingPage() {
             <p className="mt-4 text-sm text-slate-500">Select a student to start a checkout.</p>
           ) : (
             <>
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <div className="mt-5 grid gap-4 md:grid-cols-[1fr_100px_auto]">
                 <label className="grid gap-1 text-sm font-medium text-slate-700">
                   Student
                   <input
@@ -564,37 +628,13 @@ export default function AdminBillingPage() {
                     className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
                   />
                 </label>
-              </div>
-
-              <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm">
-                <p className="font-semibold text-emerald-900">Partial Cash Payment</p>
-                <p className="mt-1 text-emerald-800">
-                  Recorded cash received (lifetime): {formatMoney(selectedStudent.manualCashPaidCents || 0, currency)}
-                </p>
-                <div className="mt-3 grid gap-3 md:grid-cols-[180px_minmax(0,1fr)_auto]">
-                  <input
-                    type="number"
-                    min={0.01}
-                    step={0.01}
-                    value={cashPaymentDollars}
-                    onChange={(event) => setCashPaymentDollars(event.target.value)}
-                    placeholder="Amount (USD)"
-                    className="rounded-lg border border-emerald-300 px-3 py-2 text-sm"
-                  />
-                  <input
-                    type="text"
-                    value={cashPaymentNote}
-                    onChange={(event) => setCashPaymentNote(event.target.value)}
-                    placeholder="Optional note (lesson/date/reference)"
-                    className="rounded-lg border border-emerald-300 px-3 py-2 text-sm"
-                  />
+                <div className="flex items-end">
                   <button
                     type="button"
-                    onClick={() => void recordPartialCashPayment()}
-                    disabled={recordingCashPayment}
-                    className="rounded-lg border border-emerald-300 bg-white px-4 py-2 text-sm font-semibold text-emerald-800 disabled:opacity-60"
+                    onClick={() => setShowCashModal(true)}
+                    className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800"
                   >
-                    {recordingCashPayment ? "Recording..." : "Record Cash Payment"}
+                    💵 Cash ({formatMoney(selectedStudent.manualCashPaidCents || 0, currency)})
                   </button>
                 </div>
               </div>
@@ -623,12 +663,30 @@ export default function AdminBillingPage() {
                     <input
                       type="number"
                       min={1}
-                      value={line.quantity}
+                      value={line.quantity || ""}
+                      onFocus={() => {
+                        if (line.quantity <= 1) {
+                          setCheckoutLines((prev) =>
+                            prev.map((entry, entryIndex) =>
+                              entryIndex === index ? { ...entry, quantity: 0 } : entry
+                            )
+                          )
+                        }
+                      }}
                       onChange={(event) =>
                         setCheckoutLines((prev) =>
                           prev.map((entry, entryIndex) =>
                             entryIndex === index
-                              ? { ...entry, quantity: Math.max(1, Number(event.target.value || 1)) }
+                              ? { ...entry, quantity: event.target.value === "" ? 0 : Number(event.target.value) }
+                              : entry
+                          )
+                        )
+                      }
+                      onBlur={() =>
+                        setCheckoutLines((prev) =>
+                          prev.map((entry, entryIndex) =>
+                            entryIndex === index
+                              ? { ...entry, quantity: Math.max(1, entry.quantity || 1) }
                               : entry
                           )
                         )
@@ -669,8 +727,16 @@ export default function AdminBillingPage() {
                   <span>Subtotal</span>
                   <span>{formatMoney(totals.subtotalCents, currency)}</span>
                 </div>
+                {totals.cashAppliedCents > 0 ? (
+                  <div className="flex items-center justify-between py-1 text-emerald-700">
+                    <span>Cash received</span>
+                    <span>− {formatMoney(totals.cashAppliedCents, currency)}</span>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between py-1">
-                  <span>Processing fee (3.5%)</span>
+                  <span>
+                    Processing fee (3.5%{totals.cashAppliedCents > 0 ? ` on ${formatMoney(totals.subtotalCents - totals.cashAppliedCents, currency)}` : ""})
+                  </span>
                   <span>{formatMoney(totals.processingFeeCents, currency)}</span>
                 </div>
                 <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 font-semibold text-darkText">
@@ -688,35 +754,39 @@ export default function AdminBillingPage() {
                 {creatingCheckout ? "Creating checkout..." : "Create Checkout"}
               </button>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => void pushCheckoutLink("copy")}
-                  disabled={Boolean(pushingCheckout) || totals.totalCents <= 0}
-                  className="rounded-lg border border-slate-300 bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
-                >
-                  {pushingCheckout === "copy" ? "Generating link..." : "Copy Checkout Link"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void pushCheckoutLink("email")}
-                  disabled={Boolean(pushingCheckout) || totals.totalCents <= 0 || !selectedStudent?.email}
-                  className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 disabled:opacity-60"
-                >
-                  {pushingCheckout === "email" ? "Sending email..." : "Push Checkout Link (Email)"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void pushCheckoutLink("text")}
-                  disabled={Boolean(pushingCheckout) || totals.totalCents <= 0 || !selectedStudent?.phone}
-                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 disabled:opacity-60"
-                >
-                  {pushingCheckout === "text" ? "Sending text..." : "Push Checkout Link (Text)"}
-                </button>
-              </div>
-              <p className="mt-2 text-xs text-slate-500">
-                Email uses the student email on file. Text uses the student phone number on file.
-              </p>
+              {clientSecret ? (
+                <>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void pushCheckoutLink("copy")}
+                      disabled={Boolean(pushingCheckout)}
+                      className="rounded-lg border border-slate-300 bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-800 disabled:opacity-60"
+                    >
+                      {pushingCheckout === "copy" ? "Generating link..." : "Copy Checkout Link"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void pushCheckoutLink("email")}
+                      disabled={Boolean(pushingCheckout) || !selectedStudent?.email}
+                      className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 disabled:opacity-60"
+                    >
+                      {pushingCheckout === "email" ? "Sending email..." : "Push Checkout Link (Email)"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void pushCheckoutLink("text")}
+                      disabled={Boolean(pushingCheckout) || !selectedStudent?.phone}
+                      className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 disabled:opacity-60"
+                    >
+                      {pushingCheckout === "text" ? "Sending text..." : "Push Checkout Link (Text)"}
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Email uses the student email on file. Text uses the student phone number on file.
+                  </p>
+                </>
+              ) : null}
 
               {latestCheckoutUrl ? (
                 <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
@@ -731,9 +801,13 @@ export default function AdminBillingPage() {
                     <button
                       type="button"
                       onClick={() => void copyCheckoutLinkField()}
-                      className="rounded border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
+                      className={`rounded px-3 py-2 text-xs font-semibold transition-all duration-200 ${
+                        copiedLink
+                          ? "border border-emerald-400 bg-emerald-50 text-emerald-700 scale-95"
+                          : "border border-slate-300 bg-white text-slate-700"
+                      }`}
                     >
-                      Copy Link Field
+                      {copiedLink ? "✓ Copied!" : "Copy Link Field"}
                     </button>
                     <a
                       href={latestCheckoutUrl}
@@ -750,9 +824,26 @@ export default function AdminBillingPage() {
               {clientSecret && checkoutTotals ? (
                 <div className="mt-6 rounded-xl border border-slate-200 p-4">
                   <h3 className="text-base font-bold text-darkText">Complete Payment</h3>
-                  <p className="mb-3 mt-1 text-sm text-slate-500">
-                    Charging {formatMoney(checkoutTotals.totalCents, checkoutTotals.currency)}
-                  </p>
+                  <div className="mb-3 mt-1 text-sm text-slate-500 space-y-1">
+                    <div className="flex justify-between">
+                      <span>Subtotal</span>
+                      <span>{formatMoney(checkoutTotals.subtotalCents, checkoutTotals.currency)}</span>
+                    </div>
+                    {checkoutTotals.cashAppliedCents > 0 ? (
+                      <div className="flex justify-between text-emerald-700">
+                        <span>Cash credit</span>
+                        <span>− {formatMoney(checkoutTotals.cashAppliedCents, checkoutTotals.currency)}</span>
+                      </div>
+                    ) : null}
+                    <div className="flex justify-between">
+                      <span>Processing fee (3.5%)</span>
+                      <span>{formatMoney(checkoutTotals.processingFeeCents, checkoutTotals.currency)}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold text-darkText">
+                      <span>Charging card</span>
+                      <span>{formatMoney(checkoutTotals.totalCents, checkoutTotals.currency)}</span>
+                    </div>
+                  </div>
                   <Elements stripe={stripePromise} options={{ clientSecret }}>
                     <CheckoutPaymentForm
                       totalCents={checkoutTotals.totalCents}
@@ -765,6 +856,156 @@ export default function AdminBillingPage() {
                       }}
                     />
                   </Elements>
+                </div>
+              ) : null}
+
+              {showCashModal ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                  <div className="fixed inset-0 bg-black/40" onClick={() => setShowCashModal(false)} />
+                  <div className="relative z-10 w-full max-w-lg rounded-2xl border border-emerald-200 bg-white p-6 shadow-xl max-h-[80vh] overflow-y-auto">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-bold text-emerald-900">Cash Payment</h3>
+                      <button
+                        type="button"
+                        onClick={() => setShowCashModal(false)}
+                        className="rounded-full p-1 hover:bg-slate-100"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-500" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div className="mb-4 text-sm text-emerald-800">
+                      <p>Total cash received (lifetime): {formatMoney(selectedStudent.manualCashPaidCents || 0, currency)}</p>
+                      {selectedStudent.stripeInvoiceBalanceCents > 0 ? (
+                        <p className="mt-1">
+                          Net remaining (Stripe balance − cash):{" "}
+                          {formatMoney(selectedStudent.stripeInvoiceBalanceCents - (selectedStudent.manualCashPaidCents || 0), currency)}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div className="mb-4">
+                      <div className="grid gap-3 md:grid-cols-[160px_minmax(0,1fr)]">
+                        <input
+                          type="number"
+                          min={0.01}
+                          step={0.01}
+                          value={cashPaymentDollars}
+                          onChange={(event) => setCashPaymentDollars(event.target.value)}
+                          placeholder="Amount (USD)"
+                          className="rounded-lg border border-emerald-300 px-3 py-2 text-sm"
+                        />
+                        <input
+                          type="text"
+                          value={cashPaymentNote}
+                          onChange={(event) => setCashPaymentNote(event.target.value)}
+                          placeholder="Note (lesson date, reference, etc.)"
+                          className="rounded-lg border border-emerald-300 px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void recordPartialCashPayment()}
+                        disabled={recordingCashPayment}
+                        className="mt-3 w-full rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 disabled:opacity-60"
+                      >
+                        {recordingCashPayment ? "Recording..." : "Record Cash"}
+                      </button>
+                    </div>
+
+                    {selectedStudent.cashTransactions && selectedStudent.cashTransactions.length > 0 ? (
+                      <div>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">Cash Payment History</p>
+                        <div className="space-y-2">
+                          {selectedStudent.cashTransactions.map((tx) => {
+                            const noteMatch = tx.description.match(/Note:(.+)/)
+                            const noteText = noteMatch ? noteMatch[1].trim() : ""
+                            return (
+                              <div key={tx.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-semibold text-emerald-700">
+                                    + {formatMoney(tx.amountCents, currency)} cash
+                                  </span>
+                                  <span className="text-xs text-slate-500">
+                                    {new Date(tx.createdAt).toLocaleString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                      hour: "numeric",
+                                      minute: "2-digit",
+                                      hour12: true,
+                                    })}
+                                  </span>
+                                </div>
+                                {noteText ? <p className="mt-1 text-xs text-slate-600">{noteText}</p> : null}
+                                <button
+                                  type="button"
+                                  onClick={() => void removeCashPayment(tx.id, tx.amountCents)}
+                                  disabled={removingCashTxId === tx.id}
+                                  className="mt-2 rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 disabled:opacity-60"
+                                >
+                                  {removingCashTxId === tx.id ? "Removing..." : "Remove"}
+                                </button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500">No cash payments recorded for this student yet.</p>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
+              {selectedStudent.checkouts && selectedStudent.checkouts.length > 0 ? (
+                <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
+                  <h3 className="text-base font-bold text-darkText">Checkout History</h3>
+                  <p className="mt-1 text-xs text-slate-500">Auto-updated from Stripe</p>
+                  <div className="mt-3 space-y-2">
+                    {selectedStudent.checkouts.map((co) => (
+                      <div key={co.id} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                        <div>
+                          <p className="text-sm font-semibold text-darkText">
+                            {formatMoney(co.amountCents, co.currency)}
+                            {co.itemsCount > 0 ? (
+                              <span className="ml-2 text-xs font-normal text-slate-500">
+                                {co.itemsCount} item{co.itemsCount !== 1 ? "s" : ""}
+                              </span>
+                            ) : null}
+                            {co.cashAppliedCents > 0 ? (
+                              <span className="ml-2 text-xs font-normal text-emerald-600">
+                                ({formatMoney(co.cashAppliedCents, co.currency)} cash applied)
+                              </span>
+                            ) : null}
+                          </p>
+                          <p className="mt-0.5 text-xs text-slate-500">
+                            {new Date(co.createdAt).toLocaleString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                          </p>
+                        </div>
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                            co.status === "paid"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : co.status === "canceled"
+                                ? "bg-slate-100 text-slate-500"
+                                : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {co.status === "paid" ? "Paid" : co.status === "canceled" ? "Canceled" : "Pending"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : null}
             </>

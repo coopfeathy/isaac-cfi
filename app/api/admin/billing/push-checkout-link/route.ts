@@ -255,8 +255,31 @@ export async function POST(request: NextRequest) {
     }
 
     const subtotalCents = lineItems.reduce((sum, line) => sum + line.totalCents, 0)
-    const processingFeeCents = Math.round(subtotalCents * 0.035)
-    const totalCents = subtotalCents + processingFeeCents
+
+    // Look up cash credit for this student
+    let cashCreditCents = 0
+    if (student.user_id) {
+      const { data: allTx } = await supabaseAdmin
+        .from('transactions')
+        .select('amount_cents, description')
+        .eq('user_id', student.user_id)
+
+      if (allTx) {
+        cashCreditCents = allTx.reduce((sum: number, row: any) => {
+          const desc = (row.description || '') as string
+          const isCash =
+            desc.startsWith('CASH:') ||
+            desc.startsWith('[CASH]') ||
+            desc.startsWith('Partial cash payment')
+          return isCash ? sum + Number(row.amount_cents || 0) : sum
+        }, 0)
+      }
+    }
+
+    const cashAppliedCents = Math.min(cashCreditCents, subtotalCents)
+    const afterCashCents = subtotalCents - cashAppliedCents
+    const processingFeeCents = Math.round(afterCashCents * 0.035)
+    const totalCents = Math.max(afterCashCents + processingFeeCents, 50)
 
     let customer: Stripe.Customer | null = null
 
@@ -298,11 +321,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'NEXT_PUBLIC_SITE_URL is required to generate checkout links' }, { status: 500 })
     }
 
+    // Create a one-time Stripe coupon for cash credit if applicable
+    let discounts: Array<{ coupon: string }> = []
+    if (cashAppliedCents > 0) {
+      const coupon = await stripe.coupons.create({
+        amount_off: cashAppliedCents,
+        currency: currencyInput,
+        name: 'Cash payment credit',
+        duration: 'once',
+      })
+      discounts = [{ coupon: coupon.id }]
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       customer: customer.id,
       success_url: `${siteUrl}/bookings?checkout=success`,
       cancel_url: `${siteUrl}/bookings?checkout=cancelled`,
+      discounts,
       line_items: [
         ...lineItems.map((line) => ({
           quantity: line.quantity,
@@ -329,6 +365,7 @@ export async function POST(request: NextRequest) {
         studentId: student.id,
         subtotal_cents: String(subtotalCents),
         processing_fee_cents: String(processingFeeCents),
+        cash_applied_cents: String(cashAppliedCents),
         items_count: String(lineItems.length),
         admin_note: note,
         created_by: adminCheck.user.id,
@@ -340,6 +377,7 @@ export async function POST(request: NextRequest) {
           studentId: student.id,
           subtotal_cents: String(subtotalCents),
           processing_fee_cents: String(processingFeeCents),
+          cash_applied_cents: String(cashAppliedCents),
           items_count: String(lineItems.length),
           created_by: adminCheck.user.id,
         },
@@ -349,6 +387,18 @@ export async function POST(request: NextRequest) {
     const checkoutUrl = session.url
     if (!checkoutUrl) {
       return NextResponse.json({ error: 'Stripe did not return a checkout URL' }, { status: 500 })
+    }
+
+    if (cashAppliedCents > 0 && student.user_id) {
+      await supabaseAdmin.from('transactions').insert([
+        {
+          user_id: student.user_id,
+          amount_cents: -cashAppliedCents,
+          type: 'charge',
+          description: `CASH: Cash applied to checkout | Student:${student.full_name} | Session:${session.id}`,
+          created_by: adminCheck.user.id,
+        },
+      ])
     }
 
     if (deliveryMethod === 'email') {

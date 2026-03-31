@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     const description = [
-      `Partial cash payment recorded in admin billing`,
+      `CASH: Cash payment recorded in admin billing`,
       `Student:${student.full_name || 'Student'}`,
       note ? `Note:${note}` : null,
     ]
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       {
         user_id: student.user_id || null,
         amount_cents: amountCents,
-        type: 'cash_payment',
+        type: 'charge',
         description,
         created_by: adminCheck.user.id,
       },
@@ -94,6 +94,56 @@ export async function POST(request: NextRequest) {
       studentId: student.id,
       userId: student.user_id,
     })
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const adminCheck = await requireAdmin(request)
+    if ('error' in adminCheck) return adminCheck.error
+
+    const body = await request.json().catch(() => ({}))
+    const transactionId = typeof body.transactionId === 'string' ? body.transactionId : ''
+    const studentId = typeof body.studentId === 'string' ? body.studentId : ''
+
+    if (!transactionId || !studentId) {
+      return NextResponse.json({ error: 'transactionId and studentId are required' }, { status: 400 })
+    }
+
+    const supabaseAdmin = getSupabaseAdmin()
+
+    const { data: transaction, error: txError } = await supabaseAdmin
+      .from('transactions')
+      .select('id, description')
+      .eq('id', transactionId)
+      .single()
+
+    if (txError || !transaction) {
+      return NextResponse.json({ error: 'Transaction not found' }, { status: 404 })
+    }
+
+    const desc = (transaction.description || '') as string
+    const isCash =
+      desc.startsWith('CASH:') ||
+      desc.startsWith('[CASH]') ||
+      desc.startsWith('Partial cash payment')
+
+    if (!isCash) {
+      return NextResponse.json({ error: 'Transaction is not a cash payment' }, { status: 400 })
+    }
+
+    const { error: deleteError } = await supabaseAdmin
+      .from('transactions')
+      .delete()
+      .eq('id', transactionId)
+
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 400 })
+    }
+
+    return NextResponse.json({ success: true })
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 })
   }
