@@ -123,8 +123,31 @@ export async function POST(request: NextRequest) {
     }
 
     const subtotalCents = lineItems.reduce((sum, line) => sum + line.totalCents, 0)
-    const processingFeeCents = Math.round(subtotalCents * 0.035)
-    const totalCents = subtotalCents + processingFeeCents
+
+    // Look up cash credit for this student
+    let cashCreditCents = 0
+    if (student.user_id) {
+      const { data: allTx } = await supabaseAdmin
+        .from('transactions')
+        .select('amount_cents, description')
+        .eq('user_id', student.user_id)
+
+      if (allTx) {
+        cashCreditCents = allTx.reduce((sum: number, row: any) => {
+          const desc = (row.description || '') as string
+          const isCash =
+            desc.startsWith('CASH:') ||
+            desc.startsWith('[CASH]') ||
+            desc.startsWith('Partial cash payment')
+          return isCash ? sum + Number(row.amount_cents || 0) : sum
+        }, 0)
+      }
+    }
+
+    const cashAppliedCents = Math.min(cashCreditCents, subtotalCents)
+    const afterCashCents = subtotalCents - cashAppliedCents
+    const processingFeeCents = Math.round(afterCashCents * 0.035)
+    const totalCents = Math.max(afterCashCents + processingFeeCents, 50)
 
     let customer: Stripe.Customer | null = null
 
@@ -174,12 +197,13 @@ export async function POST(request: NextRequest) {
         studentId: student.id,
         subtotal_cents: String(subtotalCents),
         processing_fee_cents: String(processingFeeCents),
+        cash_applied_cents: String(cashAppliedCents),
         items_count: String(lineItems.length),
       },
     })
 
     if (student.user_id) {
-      await supabaseAdmin.from('transactions').insert([
+      const txInserts: Array<Record<string, any>> = [
         {
           user_id: student.user_id,
           amount_cents: totalCents,
@@ -187,7 +211,19 @@ export async function POST(request: NextRequest) {
           description: `Admin lesson checkout (${lineItems.length} item(s), processing fee included) | PI:${paymentIntent.id}${note ? ` - ${note}` : ''}`,
           created_by: adminCheck.user.id,
         },
-      ])
+      ]
+
+      if (cashAppliedCents > 0) {
+        txInserts.push({
+          user_id: student.user_id,
+          amount_cents: -cashAppliedCents,
+          type: 'charge',
+          description: `CASH: Cash applied to checkout | Student:${student.full_name} | PI:${paymentIntent.id}`,
+          created_by: adminCheck.user.id,
+        })
+      }
+
+      await supabaseAdmin.from('transactions').insert(txInserts)
     }
 
     return NextResponse.json({
@@ -198,6 +234,7 @@ export async function POST(request: NextRequest) {
       lineItems,
       subtotalCents,
       processingFeeCents,
+      cashAppliedCents,
       totalCents,
     })
   } catch (error: any) {
