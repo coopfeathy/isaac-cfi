@@ -124,6 +124,36 @@ export interface Communication {
   status: 'scheduled' | 'sent' | 'delivered' | 'failed' | 'opened'
 }
 
+// Fleet types
+export interface Aircraft {
+  id: string
+  registration: string
+  model: string
+  year: number | null
+  equipment: string | null
+  rate_per_hour_cents: number
+  status: string | null
+  image_url: string | null
+  created_at: string
+}
+
+export interface AircraftHoursEntry {
+  id: string
+  aircraft_id: string
+  date: string
+  hobbs_start: number | null
+  hobbs_end: number | null
+  tach_start: number | null
+  tach_end: number | null
+  flight_hours: number | null
+  tach_hours: number | null
+  pilot_name: string | null
+  flight_type: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface Reminder {
   id: string
   prospect_id: string | null

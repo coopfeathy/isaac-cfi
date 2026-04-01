@@ -4,21 +4,54 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 
-const navItems = [
-  { href: '/admin/courses', label: 'Courses', match: ['/admin/courses', '/admin/lessons'] },
-  { href: '/admin/enrollments', label: 'Enrollments', match: ['/admin/enrollments'] },
-  { href: '/admin/progress', label: 'Debriefs', match: ['/admin/progress'] },
-  { href: '/admin/students', label: 'Students', match: ['/admin/students'] },
-  { href: '/admin/billing', label: 'Billing', match: ['/admin/billing'] },
-  { href: '/admin/items', label: 'Training Items', match: ['/admin/items'] },
-  { href: '/admin/slots', label: 'Slots', match: ['/admin/slots'] },
-  { href: '/admin/bookings', label: 'Bookings', match: ['/admin/bookings'] },
-  { href: '/admin/prospects', label: 'Prospects', match: ['/admin/prospects', '/admin/leads'] },
-  { href: '/admin/onboarding', label: 'Onboarding', match: ['/admin/onboarding'] },
-  { href: '/admin/blog', label: 'Blog', match: ['/admin/blog'] },
-  { href: '/admin/social', label: 'Social', match: ['/admin/social'] },
-  { href: '/admin/email', label: 'Email', match: ['/admin/email'] },
+type NavSection = {
+  label: string
+  items: { href: string; label: string; match: string[] }[]
+}
+
+const navSections: NavSection[] = [
+  {
+    label: 'Training',
+    items: [
+      { href: '/admin/courses', label: 'Courses', match: ['/admin/courses', '/admin/lessons'] },
+      { href: '/admin/enrollments', label: 'Enrollments', match: ['/admin/enrollments'] },
+      { href: '/admin/progress', label: 'Debriefs', match: ['/admin/progress'] },
+      { href: '/admin/students', label: 'Students', match: ['/admin/students'] },
+    ],
+  },
+  {
+    label: 'Fleet',
+    items: [
+      { href: '/admin/aircraft', label: 'Aircraft', match: ['/admin/aircraft'] },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { href: '/admin/billing', label: 'Billing', match: ['/admin/billing'] },
+      { href: '/admin/items', label: 'Training Items', match: ['/admin/items'] },
+      { href: '/admin/slots', label: 'Slots', match: ['/admin/slots'] },
+      { href: '/admin/bookings', label: 'Bookings', match: ['/admin/bookings'] },
+    ],
+  },
+  {
+    label: 'CRM',
+    items: [
+      { href: '/admin/prospects', label: 'Prospects', match: ['/admin/prospects', '/admin/leads'] },
+      { href: '/admin/onboarding', label: 'Onboarding', match: ['/admin/onboarding'] },
+    ],
+  },
+  {
+    label: 'Content',
+    items: [
+      { href: '/admin/blog', label: 'Blog', match: ['/admin/blog'] },
+      { href: '/admin/social', label: 'Social', match: ['/admin/social'] },
+      { href: '/admin/email', label: 'Email', match: ['/admin/email'] },
+    ],
+  },
 ]
+
+const allNavItems = navSections.flatMap((section) => section.items)
 
 export default function AdminTopNav() {
   const pathname = usePathname()
@@ -28,7 +61,7 @@ export default function AdminTopNav() {
     return null
   }
 
-  const currentSection = navItems.find((item) =>
+  const currentSection = allNavItems.find((item) =>
     item.match.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
   )?.label || 'Workspace'
 
@@ -61,25 +94,36 @@ export default function AdminTopNav() {
                 ← Back to Admin
               </Link>
             </div>
-            <nav className="flex flex-wrap gap-2">
-              {navItems.map((item) => {
-                const isActive = item.match.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
+            <nav className="space-y-3">
+              {navSections.map((section) => (
+                <div key={section.label}>
+                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-slate-400">
+                    {section.label}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {section.items.map((item) => {
+                      const isActive = item.match.some(
+                        (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+                      )
 
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={[
-                      'rounded-full border px-3 py-2 text-sm font-medium transition-colors',
-                      isActive
-                        ? 'border-golden bg-golden/15 text-darkText'
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
-                    ].join(' ')}
-                  >
-                    {item.label}
-                  </Link>
-                )
-              })}
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={[
+                            'rounded-full border px-3 py-2 text-sm font-medium transition-colors',
+                            isActive
+                              ? 'border-golden bg-golden/15 text-darkText'
+                              : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
+                          ].join(' ')}
+                        >
+                          {item.label}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
             </nav>
           </div>
         )}
