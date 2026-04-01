@@ -14,7 +14,7 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminTopNav />
-      {children}
+      <main className="lg:pl-24 xl:pl-72">{children}</main>
     </div>
   )
 }

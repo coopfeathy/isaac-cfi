@@ -1700,6 +1700,9 @@ ${blogContent}
                 <Link href="/admin/bookings" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">
                   View Bookings
                 </Link>
+                <Link href="/admin/aircraft" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">
+                  Aircraft Flight Log
+                </Link>
                 <Link href="/admin/email" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">
                   Inbox & Support
                 </Link>
