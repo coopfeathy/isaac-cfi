@@ -4,7 +4,11 @@ import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { resend } from '@/lib/resend'
 import { sendTwilioMessage } from '@/lib/twilio'
-import { resolveDeveloperCommissionConfig, resolveStripeConnectConfig } from '@/lib/stripe-connect'
+import {
+  resolveDeveloperCommissionConfig,
+  resolveStripeConnectConfig,
+  StripeConnectConfigError,
+} from '@/lib/stripe-connect'
 
 type CheckoutItemSelection = {
   itemId: string
@@ -508,6 +512,10 @@ export async function POST(request: NextRequest) {
       currency: currencyInput,
     })
   } catch (error: any) {
+    if (error instanceof StripeConnectConfigError) {
+      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+    }
+
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
   }
 }

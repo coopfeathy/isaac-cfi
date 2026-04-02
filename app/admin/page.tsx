@@ -243,15 +243,13 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
   const [customEmails, setCustomEmails] = useState('')
   const [sendingEmail, setSendingEmail] = useState(false)
   const [emailStatus, setEmailStatus] = useState('')
+  const tabParam = searchParams.get('tab')
+  const requestIdParam = searchParams.get('requestId')
 
   useEffect(() => {
-    console.log('Admin Page Debug:', { authLoading, user: user?.email, isAdmin })
-    
     if (!authLoading && !user) {
-      console.log('Redirecting to login - no user')
       router.push('/login')
     } else if (!authLoading && user && !isAdmin) {
-      console.log('Redirecting to home - not admin')
       router.push('/')
     }
   }, [user, isAdmin, authLoading, router])
@@ -262,9 +260,8 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
     if (forcedTab) {
       setActiveTab(forcedTab)
     } else {
-      const tab = searchParams.get('tab')
-      if (isAdminTab(tab)) {
-        setActiveTab(tab)
+      if (isAdminTab(tabParam)) {
+        setActiveTab(tabParam)
       }
     }
 
@@ -276,19 +273,18 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
     fetchSlotRequests()
     fetchSupportTickets()
     fetchCourses()
-  }, [user, isAdmin, searchParams, forcedTab])
+  }, [user, isAdmin, tabParam, forcedTab])
 
   useEffect(() => {
     if (activeTab !== 'slots') return
 
-    const requestId = searchParams.get('requestId')
-    if (!requestId || slotRequests.length === 0) return
+    if (!requestIdParam || slotRequests.length === 0) return
 
-    const el = document.getElementById(`slot-request-${requestId}`)
+    const el = document.getElementById(`slot-request-${requestIdParam}`)
     if (!el) return
 
     el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }, [activeTab, slotRequests, searchParams])
+  }, [activeTab, slotRequests, requestIdParam])
 
   const fetchSupportTickets = async () => {
     try {
@@ -387,21 +383,23 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
         supabase.from('bookings').select('*, slots(*)').order('created_at', { ascending: false }),
         supabase
           .from('class_appointments')
-          .select('id, group_id, title, description, start_time, end_time, location, meeting_link, instructor_id, max_seats, is_canceled, cancel_reason, created_at, groups(name), profiles:instructor_id(full_name), class_appointment_attendees(user_id, status)')
+          .select('id, group_id, title, description, start_time, end_time, location, meeting_link, instructor_id, max_seats, is_canceled, cancel_reason, created_at, groups(name), class_appointment_attendees(user_id, status)')
           .order('start_time', { ascending: true }),
         supabase.from('groups').select('id, name').order('name', { ascending: true }),
         supabase.from('profiles').select('id, full_name').eq('is_instructor', true).order('full_name', { ascending: true }),
       ])
 
-      console.log('Slots data:', slotsData)
-      console.log('Bookings data:', bookingsData)
+      const instructorNameById = new Map(
+        ((classInstructorsData.data || []) as Array<{ id: string; full_name: string | null }>).map((instructor) => [
+          instructor.id,
+          instructor.full_name,
+        ])
+      )
 
       if (slotsData.data) {
-        console.log('Setting slots:', slotsData.data.length, 'slots')
         setSlots(slotsData.data)
       }
       if (bookingsData.data) {
-        console.log('Setting bookings:', bookingsData.data.length, 'bookings')
         setBookings(bookingsData.data as any)
       }
 
@@ -409,7 +407,9 @@ function AdminPageContent({ forcedTab }: { forcedTab?: AdminTab }) {
         const normalizedClassAppointments = ((classAppointmentsData.data || []) as any[]).map((row) => ({
           ...row,
           groups: Array.isArray(row.groups) ? row.groups[0] || null : row.groups,
-          profiles: Array.isArray(row.profiles) ? row.profiles[0] || null : row.profiles,
+          profiles: row.instructor_id
+            ? { full_name: instructorNameById.get(row.instructor_id) || null }
+            : null,
           class_appointment_attendees: Array.isArray(row.class_appointment_attendees)
             ? row.class_appointment_attendees
             : [],

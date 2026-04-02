@@ -64,6 +64,16 @@ export type DeveloperCommissionConfig = {
   appliedBps: number
 }
 
+export class StripeConnectConfigError extends Error {
+  readonly statusCode: number
+
+  constructor(message: string, statusCode = 400) {
+    super(message)
+    this.name = 'StripeConnectConfigError'
+    this.statusCode = statusCode
+  }
+}
+
 function parseBps(value: string | undefined): number | null {
   if (!value) return null
   const parsed = Number(value)
@@ -329,7 +339,9 @@ export async function resolveStripeConnectConfig(
       for (const entry of itemSpecificRules) {
         const signature = signatureForRule(entry.rule)
         if (!sameSignature(baseSignature, signature)) {
-          throw new Error('Mixed Stripe Connect payout rules across selected items. Split checkout by payout destination/fee before charging.')
+          throw new StripeConnectConfigError(
+            'Mixed Stripe Connect payout rules across selected items. Split checkout by payout destination/fee before charging.'
+          )
         }
       }
 
@@ -341,7 +353,9 @@ export async function resolveStripeConnectConfig(
           )
 
           if (unresolvedItems.length > 0) {
-            throw new Error('Selected items require multiple payout configs. Split checkout into separate payments.')
+            throw new StripeConnectConfigError(
+              'Selected items require multiple payout configs. Split checkout into separate payments.'
+            )
           }
         }
       }
