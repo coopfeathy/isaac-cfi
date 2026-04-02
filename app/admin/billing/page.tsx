@@ -300,11 +300,11 @@ export default function AdminBillingPage() {
 
       setClientSecret(result.clientSecret || "")
       setCheckoutTotals({
-        subtotalCents: result.subtotalCents,
-        processingFeeCents: result.processingFeeCents,
-        cashAppliedCents: result.cashAppliedCents || 0,
-        totalCents: result.totalCents,
-        currency: result.currency,
+        subtotalCents: result.subtotalCents ?? totals.subtotalCents,
+        processingFeeCents: result.processingFeeCents ?? totals.processingFeeCents,
+        cashAppliedCents: result.cashAppliedCents ?? totals.cashAppliedCents,
+        totalCents: result.totalCents ?? totals.totalCents,
+        currency: result.currency ?? currency,
       })
       setStatusMessage("Checkout created. Enter payment details to complete charge.")
     } catch (error) {
