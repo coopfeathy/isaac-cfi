@@ -56,6 +56,11 @@ type CheckoutTotals = {
   currency: string
 }
 
+type BillingApiError = {
+  error?: string
+  code?: string
+}
+
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "")
 
 function formatMoney(cents: number, currency: string) {
@@ -63,6 +68,14 @@ function formatMoney(cents: number, currency: string) {
     style: "currency",
     currency: currency.toUpperCase(),
   }).format((cents || 0) / 100)
+}
+
+function getBillingApiErrorMessage(result: BillingApiError, fallback: string) {
+  if (result.code === "stripe_connect_rule_conflict") {
+    return "Checkout blocked: selected items route payouts differently in Stripe Connect. Split these items into separate checkouts (same destination + fee per checkout) and try again."
+  }
+
+  return result.error || fallback
 }
 
 function CheckoutPaymentForm({
@@ -269,8 +282,8 @@ export default function AdminBillingPage() {
         }),
       })
 
-      const result = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(result.error || "Unable to create checkout")
+      const result = (await response.json().catch(() => ({}))) as BillingApiError
+      if (!response.ok) throw new Error(getBillingApiErrorMessage(result, "Unable to create checkout"))
 
       setClientSecret(result.clientSecret || "")
       setCheckoutTotals({
@@ -335,8 +348,8 @@ export default function AdminBillingPage() {
         }),
       })
 
-      const result = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(result.error || "Unable to push checkout link")
+      const result = (await response.json().catch(() => ({}))) as BillingApiError
+      if (!response.ok) throw new Error(getBillingApiErrorMessage(result, "Unable to push checkout link"))
 
       if (deliveryMethod === "copy") {
         const checkoutUrl = result.checkoutUrl as string | undefined

@@ -513,7 +513,13 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     if (error instanceof StripeConnectConfigError) {
-      return NextResponse.json({ error: error.message }, { status: error.statusCode })
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: 'stripe_connect_rule_conflict',
+        },
+        { status: error.statusCode }
+      )
     }
 
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
