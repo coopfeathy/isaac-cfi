@@ -23,8 +23,6 @@ type SyllabusItem = {
 type SyllabusProgress = {
   syllabus_item_id: string
   status: "not_started" | "introduced" | "practiced" | "proficient" | "needs_work"
-  score: number | null
-  instructor_notes: string | null
   updated_at: string
 }
 
@@ -35,7 +33,6 @@ type LessonEvaluation = {
   strengths: string | null
   improvements: string | null
   homework: string | null
-  next_lesson_focus: string | null
   course_id: string
   lesson_id: string | null
 }
@@ -80,16 +77,6 @@ const getGradeLabel = (rating: number): { arrows: string; label: string; color: 
     default:
       return { arrows: "—", label: "Not Rated", color: "#6B7280" }
   }
-}
-
-const extractLabeledSection = (source: string | null | undefined, label: string): string | null => {
-  if (!source) return null
-  const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  const regex = new RegExp(`${escapedLabel}:\\n([\\s\\S]*?)(?=\\n\\n[A-Za-z ]+:\\n|$)`, "i")
-  const match = source.match(regex)
-  if (!match?.[1]) return null
-  const value = match[1].trim()
-  return value.length > 0 ? value : null
 }
 
 export default function ProgressPage() {
@@ -146,12 +133,12 @@ export default function ProgressPage() {
           .order("order_index", { ascending: true }),
         supabase
           .from("student_syllabus_progress")
-          .select("syllabus_item_id, status, score, instructor_notes, updated_at")
+          .select("syllabus_item_id, status, updated_at")
           .eq("student_id", user.id),
         supabase
           .from("lesson_evaluations")
           .select(
-            "id, created_at, performance_rating, strengths, improvements, homework, next_lesson_focus, course_id, lesson_id"
+            "id, created_at, performance_rating, strengths, improvements, homework, course_id, lesson_id"
           )
           .eq("student_id", user.id)
           .order("created_at", { ascending: false })
@@ -343,16 +330,6 @@ export default function ProgressPage() {
                             {STATUS_LABELS[status]}
                           </span>
                         </div>
-                        {itemProgress?.score && (
-                          <p style={{ margin: "6px 0 0 0", fontSize: "13px", color: "#4B5563" }}>
-                            Score: {itemProgress.score}/5
-                          </p>
-                        )}
-                        {itemProgress?.instructor_notes && (
-                          <p style={{ margin: "6px 0 0 0", fontSize: "13px", color: "#4B5563", whiteSpace: "pre-wrap" }}>
-                            {itemProgress.instructor_notes}
-                          </p>
-                        )}
                       </div>
                     )
                   })}
@@ -371,19 +348,6 @@ export default function ProgressPage() {
           <div style={{ display: "grid", gap: "12px" }}>
             {evaluations.map((entry) => {
               const currentRating = instructionalRatings[entry.id]
-              const negativeObservations =
-                extractLabeledSection(entry.improvements, "Negative Observations") ||
-                extractLabeledSection(entry.improvements, "Unsatisfactory") ||
-                entry.improvements
-              const referenceMaterials =
-                extractLabeledSection(entry.improvements, "References") ||
-                extractLabeledSection(entry.improvements, "Deteriorating")
-              const otherFeedback = extractLabeledSection(entry.improvements, "Other Feedback")
-              const briefingNotes = extractLabeledSection(entry.next_lesson_focus, "Briefing Notes")
-              const extractedSkills =
-                extractLabeledSection(entry.next_lesson_focus, "Knowledge and Skills Needing Work") ||
-                extractLabeledSection(entry.next_lesson_focus, "Practice to Proficiency")
-              const skillsNeedingWork = extractedSkills || (!briefingNotes ? entry.next_lesson_focus : null)
 
               return (
                 <article key={entry.id} style={{ border: "1px solid #F3F4F6", borderRadius: "10px", padding: "12px" }}>
@@ -391,13 +355,9 @@ export default function ProgressPage() {
                     {new Date(entry.created_at).toLocaleString()} • {getGradeLabel(entry.performance_rating).arrows} {getGradeLabel(entry.performance_rating).label}
                     {entry.lesson_id && lessonLookup[entry.lesson_id] ? ` • ${lessonLookup[entry.lesson_id]}` : ""}
                   </p>
-                  {briefingNotes && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Briefing Notes:</strong> {briefingNotes}</p>}
                   {entry.strengths && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Positive Performance Observations:</strong> {entry.strengths}</p>}
-                  {negativeObservations && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Negative Performance Observations:</strong> {negativeObservations}</p>}
-                  {referenceMaterials && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Reference Materials and Standards:</strong> {referenceMaterials}</p>}
-                  {skillsNeedingWork && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Knowledge and Skills Needing Work:</strong> {skillsNeedingWork}</p>}
+                  {entry.improvements && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Negative Performance Observations:</strong> {entry.improvements}</p>}
                   {entry.homework && <p style={{ margin: "0 0 6px 0", whiteSpace: "pre-wrap" }}><strong>Recommended Study and Practice:</strong> {entry.homework}</p>}
-                  {otherFeedback && <p style={{ margin: 0, whiteSpace: "pre-wrap" }}><strong>Additional Feedback:</strong> {otherFeedback}</p>}
 
                   <div
                     style={{

@@ -308,6 +308,156 @@ CREATE POLICY "Service role manages operational alert state"
   WITH CHECK (auth.role() = 'service_role');
 
 -- ============================================================
+-- 3F. STRIPE CONNECT PAYOUT RULES
+-- DB-driven routing for destination charges/application fees.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS stripe_connect_payout_rules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  priority INTEGER NOT NULL DEFAULT 100,
+  source TEXT CHECK (source IN ('slot_booking', 'admin_checkout', 'any')),
+  slot_type TEXT CHECK (slot_type IN ('training', 'tour')),
+  item_id UUID,
+  transaction_type TEXT,
+  currency TEXT,
+  destination_account TEXT NOT NULL,
+  allow_developer_commission BOOLEAN NOT NULL DEFAULT true,
+  fee_mode TEXT NOT NULL CHECK (fee_mode IN ('bps', 'fixed_cents')),
+  fee_bps INTEGER CHECK (fee_bps IS NULL OR (fee_bps >= 0 AND fee_bps <= 10000)),
+  fee_cents INTEGER CHECK (fee_cents IS NULL OR fee_cents >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT stripe_connect_fee_mode_values_check CHECK (
+    (fee_mode = 'bps' AND fee_bps IS NOT NULL)
+    OR (fee_mode = 'fixed_cents' AND fee_cents IS NOT NULL)
+  )
+);
+
+ALTER TABLE stripe_connect_payout_rules ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can view Stripe Connect payout rules" ON stripe_connect_payout_rules;
+DROP POLICY IF EXISTS "Admins can manage Stripe Connect payout rules" ON stripe_connect_payout_rules;
+DROP POLICY IF EXISTS "Service role manages Stripe Connect payout rules" ON stripe_connect_payout_rules;
+
+CREATE POLICY "Admins can view Stripe Connect payout rules"
+  ON stripe_connect_payout_rules FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+CREATE POLICY "Admins can manage Stripe Connect payout rules"
+  ON stripe_connect_payout_rules FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+CREATE POLICY "Service role manages Stripe Connect payout rules"
+  ON stripe_connect_payout_rules FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+CREATE INDEX IF NOT EXISTS idx_stripe_connect_rules_active_priority
+  ON stripe_connect_payout_rules(is_active, priority);
+CREATE INDEX IF NOT EXISTS idx_stripe_connect_rules_item_id
+  ON stripe_connect_payout_rules(item_id);
+
+ALTER TABLE stripe_connect_payout_rules
+  ADD COLUMN IF NOT EXISTS allow_developer_commission BOOLEAN NOT NULL DEFAULT true;
+
+-- Optional seed examples (uncomment and adjust account IDs/item names as needed):
+--
+-- -- Aircraft owner destination by item name (admin checkout, website transactions)
+-- WITH owner AS (
+--   SELECT 'acct_1TGjHxE14NEZerCV'::text AS account_id
+-- )
+-- INSERT INTO stripe_connect_payout_rules (
+--   name,
+--   is_active,
+--   priority,
+--   source,
+--   item_id,
+--   transaction_type,
+--   currency,
+--   destination_account,
+--   allow_developer_commission,
+--   fee_mode,
+--   fee_bps
+-- )
+-- SELECT
+--   'Owner payout - ' || i.name,
+--   true,
+--   10,
+--   'admin_checkout',
+--   i.id,
+--   'website_transaction',
+--   'usd',
+--   owner.account_id,
+--   false,
+--   'bps',
+--   CASE lower(i.name)
+--     WHEN 'aircraft rental n2152z 0.1/hr' THEN 0  -- owner gets 100%
+--     WHEN 'redbird simulator rental' THEN 6       -- owner gets 94%
+--     WHEN 'frg landing fee' THEN 16               -- owner gets 84%
+--     WHEN 'fuel surcharge' THEN 3                 -- owner gets 97%
+--   END
+-- FROM items i
+-- CROSS JOIN owner
+-- WHERE lower(i.name) IN (
+--   'aircraft rental n2152z 0.1/hr',
+--   'redbird simulator rental',
+--   'frg landing fee',
+--   'fuel surcharge'
+-- );
+--
+-- -- Discovery Flight identification by exact item name in admin checkout.
+-- -- Optional Discovery Flight destination rule (uncomment only if needed):
+-- INSERT INTO stripe_connect_payout_rules (
+--   name,
+--   is_active,
+--   priority,
+--   source,
+--   transaction_type,
+--   currency,
+--   destination_account,
+--   allow_developer_commission,
+--   fee_mode,
+--   fee_bps
+-- )
+-- VALUES (
+--   'Discovery flight destination',
+--   true,
+--   20,
+--   'admin_checkout',
+--   'discovery_flight',
+--   'usd',
+--   'acct_1TGjHxE14NEZerCV',
+--   true,
+--   'bps',
+--   0
+-- );
+--
+-- -- Developer percentage payout is configured by env vars:
+-- -- STRIPE_CONNECT_DEVELOPER_DESTINATION_ACCOUNT=<developer acct_...>
+-- -- STRIPE_CONNECT_DEVELOPER_WEBSITE_TRANSACTION_BPS=100   -- 1%
+-- -- STRIPE_CONNECT_DEVELOPER_DISCOVERY_FLIGHT_BPS=1000     -- +10% on discovery
+--
+-- -- Verification query (run after inserts):
+-- SELECT
+--   r.name,
+--   r.source,
+--   r.transaction_type,
+--   i.name AS item_name,
+--   r.destination_account,
+--   r.allow_developer_commission,
+--   r.fee_mode,
+--   r.fee_bps,
+--   r.fee_cents,
+--   r.is_active,
+--   r.priority
+-- FROM stripe_connect_payout_rules r
+-- LEFT JOIN items i ON i.id = r.item_id
+-- WHERE r.destination_account IN ('acct_1TGjHxE14NEZerCV')
+-- ORDER BY r.priority ASC, r.name ASC;
+
+-- ============================================================
 -- 4. DISCOVERY FLIGHT SIGNUPS (public lead capture)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS discovery_flight_signups (
@@ -655,6 +805,13 @@ CREATE POLICY "Read Items"
 CREATE POLICY "Admin Write Items"
   ON items FOR ALL
   USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true));
+
+ALTER TABLE stripe_connect_payout_rules
+  DROP CONSTRAINT IF EXISTS stripe_connect_payout_rules_item_id_fkey;
+
+ALTER TABLE stripe_connect_payout_rules
+  ADD CONSTRAINT stripe_connect_payout_rules_item_id_fkey
+  FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE;
 
 -- ============================================================
 -- 12. TRANSACTIONS

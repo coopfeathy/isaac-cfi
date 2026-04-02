@@ -100,21 +100,9 @@ export const emailTemplates = {
     courseTitle: string
     lessonTitle?: string | null
     performanceRating: number
-    strengths?: string | null
-    improvements?: string | null
-    homework?: string | null
     positiveObservations?: string | null
     negativeObservations?: string | null
-    referenceMaterials?: string | null
     recommendedStudyPractice?: string | null
-    skillsNeedingWork?: string | null
-    otherFeedback?: string | null
-    satisfactory?: string | null
-    unsatisfactory?: string | null
-    deteriorating?: string | null
-    recommendations?: string | null
-    practiceToProficiency?: string | null
-    briefingSummary?: string | null
     progressSummary: Array<{ title: string; status: string }>
   }) => ({
     subject: `Training Debrief: ${payload.courseTitle} - Merlin Flight Training`,
@@ -128,21 +116,21 @@ export const emailTemplates = {
         ${payload.lessonTitle ? `<p style="margin: 0 0 6px 0; font-size: 16px;"><strong>Lesson:</strong> ${payload.lessonTitle}</p>` : ""}
         <p style="margin: 0; font-size: 16px;"><strong>Performance:</strong> <span style="color: ${brand.gold}; font-weight: 700;">${getPerformanceGrade(payload.performanceRating).arrows}</span></p>
       </div>
-      ${(payload.positiveObservations || payload.strengths || payload.satisfactory) ? `
+      ${payload.positiveObservations ? `
       <div style="margin: 24px 0;">
         <h3 style="margin: 0 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: ${brand.dark}; border-bottom: 2px solid ${brand.gold}; padding-bottom: 6px; display: inline-block;">Positive Performance Observations</h3>
-        <p style="margin: 8px 0 0 0; white-space: pre-wrap; line-height: 1.6;">${payload.positiveObservations || payload.strengths || payload.satisfactory}</p>
+        <p style="margin: 8px 0 0 0; white-space: pre-wrap; line-height: 1.6;">${payload.positiveObservations}</p>
       </div>` : ""}
 
-      ${(payload.negativeObservations || payload.improvements || payload.unsatisfactory) ? `
+      ${payload.negativeObservations ? `
       <div style="margin: 24px 0;">
         <h3 style="margin: 0 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: ${brand.dark}; border-bottom: 2px solid ${brand.gold}; padding-bottom: 6px; display: inline-block;">Negative Performance Observations</h3>
-        <p style="margin: 8px 0 0 0; white-space: pre-wrap; line-height: 1.6;">${payload.negativeObservations || payload.improvements || payload.unsatisfactory}</p>
+        <p style="margin: 8px 0 0 0; white-space: pre-wrap; line-height: 1.6;">${payload.negativeObservations}</p>
       </div>` : ""}
-      ${(payload.recommendedStudyPractice || payload.homework || payload.recommendations) ? `
+      ${payload.recommendedStudyPractice ? `
       <div style="margin: 24px 0;">
         <h3 style="margin: 0 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: ${brand.dark}; border-bottom: 2px solid ${brand.gold}; padding-bottom: 6px; display: inline-block;">Recommended Study and Practice</h3>
-        <p style="margin: 8px 0 0 0; white-space: pre-wrap; line-height: 1.6;">${payload.recommendedStudyPractice || payload.homework || payload.recommendations}</p>
+        <p style="margin: 8px 0 0 0; white-space: pre-wrap; line-height: 1.6;">${payload.recommendedStudyPractice}</p>
       </div>` : ""}
 
 

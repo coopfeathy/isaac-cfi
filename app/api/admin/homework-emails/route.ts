@@ -11,15 +11,6 @@ const normalizeText = (value?: string | null): string | null => {
   return trimmed.length > 0 ? trimmed : null
 }
 
-const extractLabeledSection = (source: string | null | undefined, label: string): string | null => {
-  if (!source) return null
-  const escapedLabel = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  const regex = new RegExp(`${escapedLabel}:\\n([\\s\\S]*?)(?=\\n\\n[A-Za-z ]+:\\n|$)`, "i")
-  const match = source.match(regex)
-  if (!match?.[1]) return null
-  return normalizeText(match[1])
-}
-
 const sendHomeworkEmail = async (params: {
   supabaseAdmin: ReturnType<typeof getSupabaseAdmin>
   studentId: string
@@ -135,16 +126,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Lesson evaluation not found" }, { status: 404 })
     }
 
-    const practiceToProficiency =
-      extractLabeledSection(evaluation.next_lesson_focus, "Knowledge and Skills Needing Work") ||
-      extractLabeledSection(evaluation.next_lesson_focus, "Practice to Proficiency") ||
-      normalizeText(evaluation.next_lesson_focus)
-    const briefingSummary = extractLabeledSection(evaluation.next_lesson_focus, "Briefing Notes")
-
     const payload = {
       recommendations: normalizeText(evaluation.homework),
-      practiceToProficiency,
-      briefingSummary,
+      practiceToProficiency: null,
+      briefingSummary: null,
     }
 
     if (action === "hold") {

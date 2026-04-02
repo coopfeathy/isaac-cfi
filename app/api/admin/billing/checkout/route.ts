@@ -2,6 +2,7 @@ import Stripe from 'stripe'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { resolveDeveloperCommissionConfig, resolveStripeConnectConfig } from '@/lib/stripe-connect'
 
 type CheckoutItemSelection = {
   itemId: string
@@ -184,6 +185,41 @@ export async function POST(request: NextRequest) {
         .eq('id', student.id)
     }
 
+    const hasDiscoveryItem = lineItems.some((line) => line.name.trim().toLowerCase() === 'discovery flight')
+    const transactionType = hasDiscoveryItem ? 'discovery_flight' : 'website_transaction'
+
+    const connectConfig = await resolveStripeConnectConfig({
+      supabaseAdmin,
+      source: 'admin_checkout',
+      currency: currencyInput,
+      totalAmountCents: totalCents,
+      transactionType,
+      lineItems: lineItems.map((line) => ({
+        itemId: line.itemId,
+        totalCents: line.totalCents,
+      })),
+    })
+
+    const developerCommission = connectConfig.enabled && !connectConfig.allowDeveloperCommission
+      ? {
+          enabled: false,
+          destinationAccount: null,
+          amountCents: 0,
+          appliedBps: 0,
+        }
+      : resolveDeveloperCommissionConfig({
+          totalAmountCents: totalCents,
+          transactionType,
+        })
+
+    const finalApplicationFeeAmount = connectConfig.enabled
+      ? Math.min(
+          totalCents,
+          connectConfig.applicationFeeAmount +
+            (developerCommission.enabled ? developerCommission.amountCents : 0)
+        )
+      : undefined
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: totalCents,
       currency: currencyInput,
@@ -191,6 +227,14 @@ export async function POST(request: NextRequest) {
       automatic_payment_methods: {
         enabled: true,
       },
+      ...(connectConfig.enabled
+        ? {
+            application_fee_amount: finalApplicationFeeAmount,
+            transfer_data: {
+              destination: connectConfig.destinationAccount,
+            },
+          }
+        : {}),
       description: `Lesson checkout for ${student.full_name}`,
       receipt_email: student.email || undefined,
       metadata: {
@@ -199,6 +243,20 @@ export async function POST(request: NextRequest) {
         processing_fee_cents: String(processingFeeCents),
         cash_applied_cents: String(cashAppliedCents),
         items_count: String(lineItems.length),
+        connect_destination_account: connectConfig.enabled ? connectConfig.destinationAccount : '',
+        connect_application_fee_cents: connectConfig.enabled
+          ? String(finalApplicationFeeAmount || 0)
+          : '',
+        connect_rule_source: connectConfig.enabled ? connectConfig.matchSource : '',
+        connect_rule_id: connectConfig.enabled && connectConfig.matchedRuleId ? connectConfig.matchedRuleId : '',
+        transaction_type: transactionType,
+        connect_developer_destination_account:
+          developerCommission.enabled && developerCommission.destinationAccount
+            ? developerCommission.destinationAccount
+            : '',
+        connect_developer_payout_cents: developerCommission.enabled
+          ? String(developerCommission.amountCents)
+          : '',
       },
     })
 

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { resend } from '@/lib/resend'
 import { sendTwilioMessage } from '@/lib/twilio'
+import { resolveDeveloperCommissionConfig, resolveStripeConnectConfig } from '@/lib/stripe-connect'
 
 type CheckoutItemSelection = {
   itemId: string
@@ -333,6 +334,41 @@ export async function POST(request: NextRequest) {
       discounts = [{ coupon: coupon.id }]
     }
 
+    const hasDiscoveryItem = lineItems.some((line) => line.name.trim().toLowerCase() === 'discovery flight')
+    const transactionType = hasDiscoveryItem ? 'discovery_flight' : 'website_transaction'
+
+    const connectConfig = await resolveStripeConnectConfig({
+      supabaseAdmin,
+      source: 'admin_checkout',
+      currency: currencyInput,
+      totalAmountCents: totalCents,
+      transactionType,
+      lineItems: lineItems.map((line) => ({
+        itemId: line.itemId,
+        totalCents: line.totalCents,
+      })),
+    })
+
+    const developerCommission = connectConfig.enabled && !connectConfig.allowDeveloperCommission
+      ? {
+          enabled: false,
+          destinationAccount: null,
+          amountCents: 0,
+          appliedBps: 0,
+        }
+      : resolveDeveloperCommissionConfig({
+          totalAmountCents: totalCents,
+          transactionType,
+        })
+
+    const finalApplicationFeeAmount = connectConfig.enabled
+      ? Math.min(
+          totalCents,
+          connectConfig.applicationFeeAmount +
+            (developerCommission.enabled ? developerCommission.amountCents : 0)
+        )
+      : undefined
+
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       customer: customer.id,
@@ -369,10 +405,32 @@ export async function POST(request: NextRequest) {
         items_count: String(lineItems.length),
         admin_note: note,
         created_by: adminCheck.user.id,
+        connect_destination_account: connectConfig.enabled ? connectConfig.destinationAccount : '',
+        connect_application_fee_cents: connectConfig.enabled
+          ? String(finalApplicationFeeAmount || 0)
+          : '',
+        connect_rule_source: connectConfig.enabled ? connectConfig.matchSource : '',
+        connect_rule_id: connectConfig.enabled && connectConfig.matchedRuleId ? connectConfig.matchedRuleId : '',
+        transaction_type: transactionType,
+        connect_developer_destination_account:
+          developerCommission.enabled && developerCommission.destinationAccount
+            ? developerCommission.destinationAccount
+            : '',
+        connect_developer_payout_cents: developerCommission.enabled
+          ? String(developerCommission.amountCents)
+          : '',
       },
       payment_intent_data: {
         description: `Lesson checkout for ${student.full_name}`,
         receipt_email: student.email || undefined,
+        ...(connectConfig.enabled
+          ? {
+              application_fee_amount: finalApplicationFeeAmount,
+              transfer_data: {
+                destination: connectConfig.destinationAccount,
+              },
+            }
+          : {}),
         metadata: {
           studentId: student.id,
           subtotal_cents: String(subtotalCents),
@@ -380,6 +438,20 @@ export async function POST(request: NextRequest) {
           cash_applied_cents: String(cashAppliedCents),
           items_count: String(lineItems.length),
           created_by: adminCheck.user.id,
+          connect_destination_account: connectConfig.enabled ? connectConfig.destinationAccount : '',
+          connect_application_fee_cents: connectConfig.enabled
+            ? String(finalApplicationFeeAmount || 0)
+            : '',
+          connect_rule_source: connectConfig.enabled ? connectConfig.matchSource : '',
+          connect_rule_id: connectConfig.enabled && connectConfig.matchedRuleId ? connectConfig.matchedRuleId : '',
+          transaction_type: transactionType,
+          connect_developer_destination_account:
+            developerCommission.enabled && developerCommission.destinationAccount
+              ? developerCommission.destinationAccount
+              : '',
+          connect_developer_payout_cents: developerCommission.enabled
+            ? String(developerCommission.amountCents)
+            : '',
         },
       },
     })

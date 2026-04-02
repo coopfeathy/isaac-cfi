@@ -142,6 +142,38 @@ export async function POST(req: Request) {
   try {
     if (event.type === 'payment_intent.succeeded') {
       const intent = event.data.object as Stripe.PaymentIntent
+      const developerDestination = intent.metadata?.connect_developer_destination_account
+      const developerPayoutCents = Number(intent.metadata?.connect_developer_payout_cents || 0)
+
+      if (
+        developerDestination &&
+        Number.isFinite(developerPayoutCents) &&
+        developerPayoutCents > 0
+      ) {
+        const chargeId =
+          typeof intent.latest_charge === 'string' ? intent.latest_charge : intent.latest_charge?.id
+
+        if (chargeId) {
+          await stripe.transfers.create(
+            {
+              amount: Math.round(developerPayoutCents),
+              currency: intent.currency,
+              destination: developerDestination,
+              source_transaction: chargeId,
+              description: `Developer payout for PaymentIntent ${intent.id}`,
+              metadata: {
+                payment_intent_id: intent.id,
+                event_id: event.id,
+                transaction_type: intent.metadata?.transaction_type || '',
+              },
+            },
+            {
+              idempotencyKey: `dev-transfer-${intent.id}-${event.id}`,
+            }
+          )
+        }
+      }
+
       const bookingId = intent.metadata?.bookingId
       const slotId = intent.metadata?.slotId
       const userId = intent.metadata?.userId

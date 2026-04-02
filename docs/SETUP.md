@@ -34,6 +34,15 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 STRIPE_SECRET_KEY=sk_test_...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_CONNECT_ENABLED=0
+STRIPE_CONNECT_DEFAULT_DESTINATION_ACCOUNT=
+STRIPE_CONNECT_DISCOVERY_FLIGHT_DESTINATION_ACCOUNT=
+STRIPE_CONNECT_WEBSITE_TRANSACTION_DESTINATION_ACCOUNT=
+STRIPE_CONNECT_DEFAULT_PLATFORM_FEE_BPS=
+STRIPE_CONNECT_DEFAULT_PLATFORM_FEE_CENTS=
+STRIPE_CONNECT_DEVELOPER_DESTINATION_ACCOUNT=
+STRIPE_CONNECT_DEVELOPER_WEBSITE_TRANSACTION_BPS=100
+STRIPE_CONNECT_DEVELOPER_DISCOVERY_FLIGHT_BPS=1000
 
 # Resend
 RESEND_API_KEY=re_...
@@ -114,6 +123,16 @@ WHERE id = (
    - Events: `payment_intent.succeeded`, `checkout.session.completed`
 3. Copy signing secret to `STRIPE_WEBHOOK_SECRET`.
 4. Enable Apple Pay in Stripe dashboard (Payment methods).
+5. Optional Stripe Connect auto-payouts (destination charges):
+   - Set `STRIPE_CONNECT_ENABLED=1`.
+   - Create DB rules in `stripe_connect_payout_rules` for per-item/per-transaction routing.
+   - Env vars are fallback defaults when no DB rule matches.
+   - DB routing supports `source`, `item_id`, `slot_type`, `transaction_type`, and `currency`.
+   - Transaction types used by code are `discovery_flight` and `website_transaction`.
+   - In admin billing, `discovery_flight` is detected by exact item name: `Discovery Flight`.
+   - Optional developer transfer payout runs from metadata on `payment_intent.succeeded`.
+   - Per-rule `allow_developer_commission` can disable developer percentage for specific owner payout rules.
+   - For admin checkouts with multiple items, mixed payout configs are intentionally blocked; split into separate charges.
 
 Webhook processing persists every event in `stripe_webhook_events` for auditability:
 - `event_id`

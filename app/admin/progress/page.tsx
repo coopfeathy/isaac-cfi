@@ -33,25 +33,24 @@ type SyllabusItem = {
 type ProgressRow = {
   syllabus_item_id: string
   status: SyllabusStatus
-  score: number | null
   instructor_notes: string | null
 }
 
 type SyllabusStatus = "not_started" | "introduced" | "practiced" | "proficient" | "needs_work"
+type EditableSyllabusStatus = "proficient" | "needs_work"
 
 type ItemDraft = {
-  status: SyllabusStatus
-  score: number | ""
+  status: EditableSyllabusStatus
   instructorNotes: string
 }
 
-const STATUS_OPTIONS: SyllabusStatus[] = [
-  "not_started",
-  "introduced",
-  "practiced",
+const STATUS_OPTIONS: EditableSyllabusStatus[] = [
   "proficient",
   "needs_work",
 ]
+
+const toEditableStatus = (value: SyllabusStatus | null | undefined): EditableSyllabusStatus =>
+  value === "proficient" ? "proficient" : "needs_work"
 
 const normalizeCourseTitle = (value: string) =>
   value
@@ -110,17 +109,9 @@ export default function AdminProgressPage() {
 
   const [selectedLessonId, setSelectedLessonId] = useState("")
   const [performanceRating, setPerformanceRating] = useState(3)
-  const [briefingFocusAreas, setBriefingFocusAreas] = useState("")
-  const [briefingScenarios, setBriefingScenarios] = useState("")
-  const [briefingPlannedRoute, setBriefingPlannedRoute] = useState("")
-  const [briefingAdditionalInfo, setBriefingAdditionalInfo] = useState("")
   const [debriefPositiveObservations, setDebriefPositiveObservations] = useState("")
   const [debriefNegativeObservations, setDebriefNegativeObservations] = useState("")
-  const [debriefReferenceMaterials, setDebriefReferenceMaterials] = useState("")
-  const [debriefSkillsNeedingWork, setDebriefSkillsNeedingWork] = useState("")
   const [debriefRecommendedStudyPractice, setDebriefRecommendedStudyPractice] = useState("")
-  const [debriefOtherFeedback, setDebriefOtherFeedback] = useState("")
-  const [instructorPrivateNotes, setInstructorPrivateNotes] = useState("")
 
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -715,7 +706,7 @@ export default function AdminProgressPage() {
     const fetchProgress = async () => {
       const { data } = await supabase
         .from("student_syllabus_progress")
-        .select("syllabus_item_id, status, score, instructor_notes")
+        .select("syllabus_item_id, status, instructor_notes")
         .eq("student_id", selectedStudentId)
         .in(
           "syllabus_item_id",
@@ -732,8 +723,7 @@ export default function AdminProgressPage() {
       syllabusItems.forEach((item) => {
         const existing = lookup[item.id]
         nextDrafts[item.id] = {
-          status: existing?.status || "not_started",
-          score: existing?.score || "",
+          status: toEditableStatus(existing?.status),
           instructorNotes: existing?.instructor_notes || "",
         }
       })
@@ -752,31 +742,35 @@ export default function AdminProgressPage() {
     if (!focusedSyllabusItemId) return
 
     const completedItemId = focusedSyllabusItemId
+    const nextStatus = itemDrafts[completedItemId]?.status === "proficient" ? "needs_work" : "proficient"
     setMarkCompletePulse(true)
-    setJustCompletedItemId(completedItemId)
+    setJustCompletedItemId(nextStatus === "proficient" ? completedItemId : "")
     setTimeout(() => setMarkCompletePulse(false), 220)
-    setTimeout(() => setJustCompletedItemId((current) => (current === completedItemId ? "" : current)), 1600)
+    if (nextStatus === "proficient") {
+      setTimeout(() => setJustCompletedItemId((current) => (current === completedItemId ? "" : current)), 1600)
+    }
 
     setItemDrafts((previous) => {
       const nextDrafts: Record<string, ItemDraft> = {
         ...previous,
         [completedItemId]: {
           ...(previous[completedItemId] || {
-            status: "not_started",
-            score: "",
+            status: "needs_work",
             instructorNotes: "",
           }),
-          status: "proficient",
+          status: nextStatus,
         },
       }
 
-      const currentIndex = syllabusItems.findIndex((item) => item.id === completedItemId)
-      const nextItem = syllabusItems
-        .slice(currentIndex + 1)
-        .find((item) => (nextDrafts[item.id]?.status || "not_started") !== "proficient")
+      if (nextStatus === "proficient") {
+        const currentIndex = syllabusItems.findIndex((item) => item.id === completedItemId)
+        const nextItem = syllabusItems
+          .slice(currentIndex + 1)
+          .find((item) => (nextDrafts[item.id]?.status || "needs_work") !== "proficient")
 
-      if (nextItem) {
-        setFocusedSyllabusItemId(nextItem.id)
+        if (nextItem) {
+          setFocusedSyllabusItemId(nextItem.id)
+        }
       }
 
       return nextDrafts
@@ -790,28 +784,25 @@ export default function AdminProgressPage() {
 
   const handleSubmitEvaluation = async (sendEvaluationEmail: boolean) => {
 
-    if (!selectedCourse || !selectedStudentId || syllabusItems.length === 0) {
+    if (!selectedCourse || !selectedStudentId || syllabusItems.length === 0 || !focusedSyllabusItemId) {
       setStatusMessage("Select a course, student, and syllabus items first")
       return
     }
 
     const nextDrafts: Record<string, ItemDraft> = { ...itemDrafts }
-    if (focusedSyllabusItemId) {
-      const focused = nextDrafts[focusedSyllabusItemId]
-      if (focused && focused.status !== "proficient") {
-        nextDrafts[focusedSyllabusItemId] = {
-          ...focused,
-          status: "proficient",
-        }
-      }
+    const focusedDraft = nextDrafts[focusedSyllabusItemId] || {
+      status: "needs_work" as EditableSyllabusStatus,
+      instructorNotes: "",
     }
+    const focusedSyllabusItem = syllabusItems.find((item) => item.id === focusedSyllabusItemId) || null
 
-    const syllabusUpdates = syllabusItems.map((item) => ({
-      syllabusItemId: item.id,
-      status: nextDrafts[item.id]?.status || "not_started",
-      score: nextDrafts[item.id]?.score === "" ? null : Number(nextDrafts[item.id]?.score),
-      instructorNotes: nextDrafts[item.id]?.instructorNotes || null,
-    }))
+    const syllabusUpdates = [
+      {
+        syllabusItemId: focusedSyllabusItemId,
+        status: focusedDraft.status,
+        instructorNotes: focusedDraft.instructorNotes || null,
+      },
+    ]
 
     setSubmitting(true)
     setStatusMessage("")
@@ -836,22 +827,13 @@ export default function AdminProgressPage() {
         courseId: selectedCourse,
         studentId: selectedStudentId,
         lessonId: selectedLessonId || null,
+        syllabusItemTitle: focusedSyllabusItem?.title || null,
         performanceRating,
-        briefingNotes: {
-          focusAreas: briefingFocusAreas,
-          scenarios: briefingScenarios,
-          plannedRoute: briefingPlannedRoute,
-          additionalInfo: briefingAdditionalInfo,
-        },
         debrief: {
           positiveObservations: debriefPositiveObservations,
           negativeObservations: debriefNegativeObservations,
-          referenceMaterials: debriefReferenceMaterials,
-          skillsNeedingWork: debriefSkillsNeedingWork,
           recommendedStudyPractice: debriefRecommendedStudyPractice,
-          otherFeedback: debriefOtherFeedback,
         },
-        instructorPrivateNotes,
         syllabusUpdates,
         sendEmail: sendEvaluationEmail,
       }),
@@ -888,7 +870,7 @@ export default function AdminProgressPage() {
     setStatusMessage(statusParts.join(" | "))
 
     setItemDrafts(nextDrafts)
-    setFocusedSyllabusItemId(findNextOpenItemId(nextDrafts))
+    setFocusedSyllabusItemId(focusedDraft.status === "proficient" ? findNextOpenItemId(nextDrafts) : focusedSyllabusItemId)
 
     setSubmitting(false)
   }
@@ -1039,7 +1021,7 @@ export default function AdminProgressPage() {
               </div>
               {focusedSyllabusItemId && syllabusItems.find((item) => item.id === focusedSyllabusItemId) && (
                 <div style={{ padding: "8px 12px", borderRadius: "8px", background: "#FFFBEB", border: "1px solid #C59A2A", fontSize: "14px", fontWeight: 500 }}>
-                  {syllabusItems.find((item) => item.id === focusedSyllabusItemId)?.title} — {(itemDrafts[focusedSyllabusItemId]?.status || "not_started").replace(/_/g, " ")}
+                  {syllabusItems.find((item) => item.id === focusedSyllabusItemId)?.title} — {(itemDrafts[focusedSyllabusItemId]?.status || "needs_work").replace(/_/g, " ")}
                 </div>
               )}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "8px" }}>
@@ -1051,7 +1033,7 @@ export default function AdminProgressPage() {
                   <option value="">Select syllabus item</option>
                   {syllabusItems.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.title} ({(itemDrafts[item.id]?.status || "not_started").replace(/_/g, " ")})
+                      {item.title} ({(itemDrafts[item.id]?.status || "needs_work").replace(/_/g, " ")})
                     </option>
                   ))}
                 </select>
@@ -1059,9 +1041,9 @@ export default function AdminProgressPage() {
                   type="button"
                   onClick={handleMarkFocusedComplete}
                   style={{
-                    background: "#10B981",
-                    color: "white",
-                    border: "none",
+                    background: itemDrafts[focusedSyllabusItemId]?.status === "proficient" ? "#F3F4F6" : "#10B981",
+                    color: itemDrafts[focusedSyllabusItemId]?.status === "proficient" ? "#111827" : "white",
+                    border: itemDrafts[focusedSyllabusItemId]?.status === "proficient" ? "1px solid #D1D5DB" : "none",
                     borderRadius: "8px",
                     padding: "10px 14px",
                     fontWeight: 600,
@@ -1071,18 +1053,18 @@ export default function AdminProgressPage() {
                     transition: "transform 180ms ease, box-shadow 180ms ease",
                   }}
                 >
-                  {markCompletePulse ? "Marked" : "Mark Complete"}
+                  {markCompletePulse ? "Updated" : itemDrafts[focusedSyllabusItemId]?.status === "proficient" ? "Mark Incomplete" : "Mark Complete"}
                 </button>
               </div>
               <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
-                The selected debriefed syllabus item is linked to the highlighted card below and is the item auto-marked proficient on save.
+                Only the active syllabus item below is updated when you save or send this lesson evaluation.
               </p>
             </div>
 
             {syllabusItems.map((item) => (
               <div key={item.id} id={`syllabus-item-${item.id}`}>
                 {(() => {
-                  const itemStatus = itemDrafts[item.id]?.status || "not_started"
+                  const itemStatus = itemDrafts[item.id]?.status || "needs_work"
                   const isProficient = itemStatus === "proficient"
                   const isFocused = focusedSyllabusItemId === item.id
                   const isJustCompleted = justCompletedItemId === item.id
@@ -1124,59 +1106,53 @@ export default function AdminProgressPage() {
                           </span>
                         )}
                       </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "10px", marginBottom: "10px" }}>
-                  <select
-                    value={itemDrafts[item.id]?.status || "not_started"}
-                    onChange={(e) =>
-                      setItemDrafts((prev) => ({
-                        ...prev,
-                        [item.id]: {
-                          ...(prev[item.id] || { status: "not_started", score: "", instructorNotes: "" }),
-                          status: e.target.value as SyllabusStatus,
-                        },
-                      }))
-                    }
-                    style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
-                  >
-                    {STATUS_OPTIONS.map((status) => (
-                      <option key={status} value={status}>
-                        {status.replace(/_/g, " ")}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    min={1}
-                    max={5}
-                    placeholder="Score"
-                    value={itemDrafts[item.id]?.score ?? ""}
-                    onChange={(e) =>
-                      setItemDrafts((prev) => ({
-                        ...prev,
-                        [item.id]: {
-                          ...(prev[item.id] || { status: "not_started", score: "", instructorNotes: "" }),
-                          score: e.target.value ? Number(e.target.value) : "",
-                        },
-                      }))
-                    }
-                    style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
-                  />
-                </div>
-                <textarea
-                  rows={2}
-                  placeholder="Instructor notes for this syllabus item"
-                  value={itemDrafts[item.id]?.instructorNotes || ""}
-                  onChange={(e) =>
-                    setItemDrafts((prev) => ({
-                      ...prev,
-                      [item.id]: {
-                        ...(prev[item.id] || { status: "not_started", score: "", instructorNotes: "" }),
-                        instructorNotes: e.target.value,
-                      },
-                    }))
-                  }
-                  style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", width: "100%" }}
-                />
+                      {isFocused ? (
+                        <>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "10px", marginBottom: "10px" }}>
+                            <select
+                              value={itemDrafts[item.id]?.status || "needs_work"}
+                              onChange={(e) =>
+                                setItemDrafts((prev) => ({
+                                  ...prev,
+                                  [item.id]: {
+                                    ...(prev[item.id] || { status: "needs_work", instructorNotes: "" }),
+                                    status: e.target.value as EditableSyllabusStatus,
+                                  },
+                                }))
+                              }
+                              style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB" }}
+                            >
+                              {STATUS_OPTIONS.map((status) => (
+                                <option key={status} value={status}>
+                                  {status.replace(/_/g, " ")}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <textarea
+                            rows={3}
+                            placeholder="Private instructor note for this syllabus item"
+                            value={itemDrafts[item.id]?.instructorNotes || ""}
+                            onChange={(e) =>
+                              setItemDrafts((prev) => ({
+                                ...prev,
+                                [item.id]: {
+                                  ...(prev[item.id] || { status: "needs_work", instructorNotes: "" }),
+                                  instructorNotes: e.target.value,
+                                },
+                              }))
+                            }
+                            style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", width: "100%" }}
+                          />
+                          <p style={{ margin: "8px 0 0 0", fontSize: "12px", color: "#6B7280" }}>
+                            This syllabus note is private to instructors and is not shared with the student.
+                          </p>
+                        </>
+                      ) : (
+                        <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
+                          Click this item to make it the active debriefed syllabus item.
+                        </p>
+                      )}
                     </div>
                   )
                 })()}
@@ -1187,7 +1163,7 @@ export default function AdminProgressPage() {
             <div style={{ display: "grid", gap: "10px", padding: "12px", borderRadius: "10px", border: "1px solid #E5E7EB", background: "#F9FAFB" }}>
               <p style={{ margin: 0, fontWeight: 600 }}>Debrief (shared with student)</p>
               <p style={{ margin: 0, fontSize: "12px", color: "#6B7280" }}>
-                Capture performance observations and action items tied to Merlin Flight Training materials, FAA sources, and/or ACS standards.
+                Keep the student-facing lesson evaluation focused on what went well, what still needs work, and what to study next.
               </p>
               <textarea
                 rows={3}
@@ -1262,20 +1238,6 @@ export default function AdminProgressPage() {
         </section>
       </div>
 
-      {statusMessage && (
-        <div
-          style={{
-            marginTop: "16px",
-            background: "#F9FAFB",
-            border: "1px solid #E5E7EB",
-            borderRadius: "10px",
-            padding: "12px 14px",
-            color: "#374151",
-          }}
-        >
-          {statusMessage}
-        </div>
-      )}
       {statusMessage && (
         <div
           style={{
