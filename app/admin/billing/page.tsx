@@ -61,6 +61,19 @@ type BillingApiError = {
   code?: string
 }
 
+type BillingCheckoutResponse = BillingApiError & {
+  clientSecret?: string
+  subtotalCents?: number
+  processingFeeCents?: number
+  cashAppliedCents?: number
+  totalCents?: number
+  currency?: string
+}
+
+type BillingPushCheckoutResponse = BillingApiError & {
+  checkoutUrl?: string
+}
+
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "")
 
 function formatMoney(cents: number, currency: string) {
@@ -282,7 +295,7 @@ export default function AdminBillingPage() {
         }),
       })
 
-      const result = (await response.json().catch(() => ({}))) as BillingApiError
+      const result = (await response.json().catch(() => ({}))) as BillingCheckoutResponse
       if (!response.ok) throw new Error(getBillingApiErrorMessage(result, "Unable to create checkout"))
 
       setClientSecret(result.clientSecret || "")
@@ -348,7 +361,7 @@ export default function AdminBillingPage() {
         }),
       })
 
-      const result = (await response.json().catch(() => ({}))) as BillingApiError
+      const result = (await response.json().catch(() => ({}))) as BillingPushCheckoutResponse
       if (!response.ok) throw new Error(getBillingApiErrorMessage(result, "Unable to push checkout link"))
 
       if (deliveryMethod === "copy") {
