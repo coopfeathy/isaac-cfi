@@ -458,6 +458,43 @@ ALTER TABLE stripe_connect_payout_rules
 -- ORDER BY r.priority ASC, r.name ASC;
 
 -- ============================================================
+-- 3G. STRIPE CONNECT PAYOUT LEDGER
+-- Tracks post-payment transfer and reversal lifecycle.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS stripe_connect_payout_ledger (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  payment_intent_id TEXT NOT NULL,
+  charge_id TEXT,
+  destination_account TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+  currency TEXT NOT NULL,
+  rule_id UUID,
+  transfer_id TEXT,
+  transfer_kind TEXT NOT NULL DEFAULT 'primary' CHECK (transfer_kind IN ('primary', 'developer')),
+  status TEXT NOT NULL DEFAULT 'planned' CHECK (status IN ('planned', 'transferred', 'partially_reversed', 'reversed', 'failed')),
+  reversed_amount_cents INTEGER NOT NULL DEFAULT 0 CHECK (reversed_amount_cents >= 0),
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT stripe_connect_payout_ledger_rule_id_fkey
+    FOREIGN KEY (rule_id) REFERENCES stripe_connect_payout_rules(id) ON DELETE SET NULL
+);
+
+ALTER TABLE stripe_connect_payout_ledger ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can view Stripe Connect payout ledger" ON stripe_connect_payout_ledger;
+DROP POLICY IF EXISTS "Service role manages Stripe Connect payout ledger" ON stripe_connect_payout_ledger;
+
+CREATE POLICY "Admins can view Stripe Connect payout ledger"
+  ON stripe_connect_payout_ledger FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+CREATE POLICY "Service role manages Stripe Connect payout ledger"
+  ON stripe_connect_payout_ledger FOR ALL
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+-- ============================================================
 -- 4. DISCOVERY FLIGHT SIGNUPS (public lead capture)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS discovery_flight_signups (
@@ -484,6 +521,8 @@ CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status)
 CREATE INDEX IF NOT EXISTS idx_support_tickets_created_at ON support_tickets(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_stripe_webhook_events_status ON stripe_webhook_events(status);
 CREATE INDEX IF NOT EXISTS idx_stripe_webhook_events_processed_at ON stripe_webhook_events(processed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_stripe_connect_payout_ledger_intent ON stripe_connect_payout_ledger(payment_intent_id, status);
+CREATE INDEX IF NOT EXISTS idx_stripe_connect_payout_ledger_transfer ON stripe_connect_payout_ledger(transfer_id);
 CREATE INDEX IF NOT EXISTS idx_booking_integrity_runs_created_at ON booking_integrity_runs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_booking_integrity_alerts_detected_at ON booking_integrity_alerts(detected_at DESC);
 CREATE INDEX IF NOT EXISTS idx_booking_integrity_alerts_unresolved ON booking_integrity_alerts(alert_type, booking_id, slot_id) WHERE resolved_at IS NULL;

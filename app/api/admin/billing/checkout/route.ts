@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import {
-  resolveDeveloperCommissionConfig,
-  resolveStripeConnectConfig,
+  resolveStripeConnectChargePlan,
   StripeConnectConfigError,
 } from '@/lib/stripe-connect'
 
@@ -192,11 +191,13 @@ export async function POST(request: NextRequest) {
     const hasDiscoveryItem = lineItems.some((line) => line.name.trim().toLowerCase() === 'discovery flight')
     const transactionType = hasDiscoveryItem ? 'discovery_flight' : 'website_transaction'
 
-    const connectConfig = await resolveStripeConnectConfig({
+    const chargePlan = await resolveStripeConnectChargePlan({
       supabaseAdmin,
       source: 'admin_checkout',
       currency: currencyInput,
       totalAmountCents: totalCents,
+      subtotalCents,
+      processingFeeCents,
       transactionType,
       lineItems: lineItems.map((line) => ({
         itemId: line.itemId,
@@ -204,25 +205,10 @@ export async function POST(request: NextRequest) {
       })),
     })
 
-    const developerCommission = connectConfig.enabled && !connectConfig.allowDeveloperCommission
-      ? {
-          enabled: false,
-          destinationAccount: null,
-          amountCents: 0,
-          appliedBps: 0,
-        }
-      : resolveDeveloperCommissionConfig({
-          totalAmountCents: totalCents,
-          transactionType,
-        })
-
-    const finalApplicationFeeAmount = connectConfig.enabled
-      ? Math.min(
-          totalCents,
-          connectConfig.applicationFeeAmount +
-            (developerCommission.enabled ? developerCommission.amountCents : 0)
-        )
-      : undefined
+    const connectConfig = chargePlan.connectConfig
+    const developerCommission = chargePlan.developerCommission
+    const finalApplicationFeeAmount =
+      chargePlan.mode === 'destination_charge' ? chargePlan.finalApplicationFeeAmount : undefined
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: totalCents,
@@ -231,7 +217,7 @@ export async function POST(request: NextRequest) {
       automatic_payment_methods: {
         enabled: true,
       },
-      ...(connectConfig.enabled
+      ...(chargePlan.mode === 'destination_charge' && connectConfig.enabled
         ? {
             application_fee_amount: finalApplicationFeeAmount,
             transfer_data: {
@@ -247,6 +233,9 @@ export async function POST(request: NextRequest) {
         processing_fee_cents: String(processingFeeCents),
         cash_applied_cents: String(cashAppliedCents),
         items_count: String(lineItems.length),
+        connect_payout_mode: chargePlan.mode,
+        connect_payout_plan_v1:
+          chargePlan.mode === 'split_transfers' ? chargePlan.serializedSplitPlan : '',
         connect_destination_account: connectConfig.enabled ? connectConfig.destinationAccount : '',
         connect_application_fee_cents: connectConfig.enabled
           ? String(finalApplicationFeeAmount || 0)
@@ -255,10 +244,13 @@ export async function POST(request: NextRequest) {
         connect_rule_id: connectConfig.enabled && connectConfig.matchedRuleId ? connectConfig.matchedRuleId : '',
         transaction_type: transactionType,
         connect_developer_destination_account:
-          developerCommission.enabled && developerCommission.destinationAccount
+          chargePlan.mode === 'destination_charge' &&
+          developerCommission.enabled &&
+          developerCommission.destinationAccount
             ? developerCommission.destinationAccount
             : '',
-        connect_developer_payout_cents: developerCommission.enabled
+        connect_developer_payout_cents:
+          chargePlan.mode === 'destination_charge' && developerCommission.enabled
           ? String(developerCommission.amountCents)
           : '',
       },
