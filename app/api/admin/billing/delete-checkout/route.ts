@@ -55,7 +55,8 @@ export async function DELETE(request: NextRequest) {
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
 
     // Cancel if still pending/requires_payment_method
-    if (['requires_payment_method', 'requires_confirmation', 'requires_action', 'processing'].includes(paymentIntent.status)) {
+    const cancelableStatuses = ['requires_payment_method', 'requires_confirmation', 'requires_action', 'processing']
+    if (cancelableStatuses.includes(paymentIntent.status)) {
       await stripe.paymentIntents.cancel(paymentIntentId)
     }
 

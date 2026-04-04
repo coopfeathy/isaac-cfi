@@ -63,6 +63,7 @@ type BillingApiError = {
 
 type BillingCheckoutResponse = BillingApiError & {
   clientSecret?: string
+  paymentIntentId?: string
   subtotalCents?: number
   processingFeeCents?: number
   cashAppliedCents?: number
@@ -179,6 +180,7 @@ export default function AdminBillingPage() {
   const [removingCashTxId, setRemovingCashTxId] = useState<string | null>(null)
 
   const [clientSecret, setClientSecret] = useState("")
+  const [activePaymentIntentId, setActivePaymentIntentId] = useState("")
   const [checkoutTotals, setCheckoutTotals] = useState<CheckoutTotals | null>(null)
 
   const [sendingReminder, setSendingReminder] = useState<string | null>(null)
@@ -307,6 +309,7 @@ export default function AdminBillingPage() {
       if (!response.ok) throw new Error(getBillingApiErrorMessage(result, "Unable to create checkout"))
 
       setClientSecret(result.clientSecret || "")
+      setActivePaymentIntentId(result.paymentIntentId || "")
       setCheckoutTotals({
         subtotalCents: result.subtotalCents ?? totals.subtotalCents,
         processingFeeCents: result.processingFeeCents ?? totals.processingFeeCents,
@@ -366,6 +369,7 @@ export default function AdminBillingPage() {
           note,
           itemSelections: validLines,
           deliveryMethod,
+          existingPaymentIntentId: activePaymentIntentId || undefined,
         }),
       })
 
@@ -395,6 +399,11 @@ export default function AdminBillingPage() {
             : "Checkout link sent to student by text"
         )
       }
+
+      // The push endpoint cancelled the old PaymentIntent, so clear local state
+      setClientSecret("")
+      setActivePaymentIntentId("")
+      setCheckoutTotals(null)
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "Unable to push checkout link")
     } finally {
@@ -954,6 +963,7 @@ export default function AdminBillingPage() {
                       currency={checkoutTotals.currency}
                       onSuccess={() => {
                         setClientSecret("")
+                        setActivePaymentIntentId("")
                         setCheckoutTotals(null)
                         setStatusMessage("Payment completed successfully")
                         void loadData()

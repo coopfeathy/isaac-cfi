@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
             })
 
             checkouts = paymentIntents.data
-              .filter((pi) => pi.metadata?.studentId === student.id)
+              .filter((pi) => pi.metadata?.studentId === student.id && pi.status !== 'canceled')
               .map((pi) => ({
                 id: pi.id,
                 amountCents: pi.amount,
