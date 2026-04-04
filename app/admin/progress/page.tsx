@@ -125,6 +125,7 @@ export default function AdminProgressPage() {
   const [debriefImages, setDebriefImages] = useState<File[]>([])
   const [debriefImagePreviews, setDebriefImagePreviews] = useState<string[]>([])
   const [uploadingImages, setUploadingImages] = useState(false)
+  const [showAttachMenu, setShowAttachMenu] = useState(false)
 
   const [showSyllabusManager, setShowSyllabusManager] = useState(false)
   const [syllabusManagerItems, setSyllabusManagerItems] = useState<SyllabusItem[]>([])
@@ -1290,9 +1291,18 @@ export default function AdminProgressPage() {
                 </div>
               )}
 
-              <div>
+              <div style={{ position: "relative", display: "inline-block" }}>
                 <input
-                  id="debrief-image-input"
+                  id="debrief-image-photos"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  multiple
+                  onChange={(e) => { handleAttachImages(e.target.files); e.target.value = "" }}
+                  style={{ display: "none" }}
+                />
+                <input
+                  id="debrief-image-files"
                   type="file"
                   accept="image/jpeg,image/png,image/gif,image/webp"
                   multiple
@@ -1301,7 +1311,7 @@ export default function AdminProgressPage() {
                 />
                 <button
                   type="button"
-                  onClick={() => document.getElementById("debrief-image-input")?.click()}
+                  onClick={() => setShowAttachMenu((prev) => !prev)}
                   disabled={uploadingImages}
                   style={{
                     display: "inline-flex",
@@ -1321,7 +1331,78 @@ export default function AdminProgressPage() {
                   {debriefImages.length > 0 && (
                     <span style={{ fontSize: "12px", color: "#6B7280" }}>({debriefImages.length})</span>
                   )}
+                  <span style={{ fontSize: "10px", marginLeft: "2px" }}>▼</span>
                 </button>
+                {showAttachMenu && (
+                  <>
+                    <div
+                      style={{ position: "fixed", inset: 0, zIndex: 40 }}
+                      onClick={() => setShowAttachMenu(false)}
+                    />
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: "calc(100% + 6px)",
+                        left: 0,
+                        zIndex: 50,
+                        background: "#fff",
+                        border: "1px solid #D1D5DB",
+                        borderRadius: "10px",
+                        boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                        overflow: "hidden",
+                        minWidth: "200px",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAttachMenu(false)
+                          document.getElementById("debrief-image-photos")?.click()
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          width: "100%",
+                          padding: "10px 14px",
+                          background: "none",
+                          border: "none",
+                          borderBottom: "1px solid #F3F4F6",
+                          fontSize: "13px",
+                          fontWeight: 500,
+                          color: "#111827",
+                          cursor: "pointer",
+                          textAlign: "left",
+                        }}
+                      >
+                        <span style={{ fontSize: "16px" }}>🖼️</span> Photo Library
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAttachMenu(false)
+                          document.getElementById("debrief-image-files")?.click()
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          width: "100%",
+                          padding: "10px 14px",
+                          background: "none",
+                          border: "none",
+                          fontSize: "13px",
+                          fontWeight: 500,
+                          color: "#111827",
+                          cursor: "pointer",
+                          textAlign: "left",
+                        }}
+                      >
+                        <span style={{ fontSize: "16px" }}>📁</span> Choose Files
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
