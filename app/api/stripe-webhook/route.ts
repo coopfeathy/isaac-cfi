@@ -87,6 +87,136 @@ async function sendBookingEmail(to: string, payload: {
   })
 }
 
+async function sendPaymentConfirmationEmail(to: string, payload: {
+  studentName: string
+  amountDollars: string
+  currency: string
+  description: string | null
+  itemsCount: number
+}) {
+  const resendApiKey = process.env.RESEND_API_KEY
+  if (!resendApiKey) return
+
+  const brand = {
+    gold: '#FFBF00',
+    dark: '#0B0B0B',
+    lightBg: '#F9FAFB',
+    borderColor: '#E5E7EB',
+    mutedText: '#6B7280',
+    logoUrl: 'https://isaac-cfi.netlify.app/merlin-logo.png',
+    font: "'Inter', 'Helvetica Neue', Arial, sans-serif",
+  }
+
+  const html = `
+    <div style="font-family: ${brand.font}; max-width: 640px; margin: 0 auto; background: #FFFFFF; color: ${brand.dark};">
+      <div style="background: ${brand.dark}; padding: 12px 32px; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: space-between;">
+        <div style="flex: 1; text-align: center; padding-right: 80px;">
+          <p style="margin: 0; color: #FFFFFF; font-family: ${brand.font}; font-size: 28px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Merlin Flight Training</p>
+          <p style="margin: 4px 0 0 0; color: ${brand.gold}; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600;">Pilot Flight Instruction</p>
+        </div>
+        <img src="${brand.logoUrl}" alt="Merlin Flight Training" style="width: 140px; height: 140px; object-fit: contain; flex-shrink: 0; align-self: center; margin-top: 25px;" />
+      </div>
+      <div style="padding: 32px;">
+        <h1 style="color: ${brand.dark}; margin: 0 0 8px 0; font-size: 24px;">Payment Confirmed</h1>
+        <div style="width: 40px; height: 3px; background: ${brand.gold}; margin-bottom: 20px; border-radius: 2px;"></div>
+        <p style="font-size: 14px; line-height: 1.6; color: #374151;">
+          Hi <strong>${payload.studentName}</strong>, your payment has been successfully processed.
+        </p>
+        <div style="background: ${brand.dark}; border-radius: 8px; padding: 20px 24px; margin: 24px 0;">
+          <p style="margin: 0 0 8px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: ${brand.gold}; font-weight: 700;">Payment Receipt</p>
+          <p style="margin: 0 0 6px 0; font-size: 16px; color: #FFFFFF;"><strong>Amount Paid:</strong> <span style="color: ${brand.gold}; font-weight: 700;">$${payload.amountDollars}</span></p>
+          ${payload.itemsCount > 0 ? `<p style="margin: 0 0 6px 0; font-size: 14px; color: #D1D5DB;">${payload.itemsCount} training item${payload.itemsCount !== 1 ? 's' : ''}</p>` : ''}
+          <p style="margin: 0; font-size: 14px; color: #D1D5DB;">Date: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+        </div>
+        <p style="font-size: 14px; line-height: 1.6; color: #374151;">
+          A receipt from Stripe has also been sent to your email. If you have any questions about this charge, please contact your instructor.
+        </p>
+        <p style="margin-top: 24px; color: ${brand.mutedText}; font-size: 13px; text-align: center;">Thank you for training with Merlin Flight Training.</p>
+      </div>
+      <div style="background: ${brand.lightBg}; padding: 20px 32px; border-top: 1px solid ${brand.borderColor}; border-radius: 0 0 8px 8px; text-align: center;">
+        <p style="margin: 0; color: ${brand.mutedText}; font-size: 12px;">Merlin Flight Training &bull; Professional Flight Instruction</p>
+      </div>
+    </div>
+  `
+
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${resendApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'Merlin Flight Training <noreply@merlinflighttraining.com>',
+      to: [to],
+      subject: `Payment Confirmed - $${payload.amountDollars} - Merlin Flight Training`,
+      html,
+    }),
+  })
+}
+
+async function sendPaymentDeclinedEmail(to: string, payload: {
+  studentName: string
+  amountDollars: string
+  declineReason: string
+}) {
+  const resendApiKey = process.env.RESEND_API_KEY
+  if (!resendApiKey) return
+
+  const brand = {
+    gold: '#FFBF00',
+    dark: '#0B0B0B',
+    lightBg: '#F9FAFB',
+    borderColor: '#E5E7EB',
+    mutedText: '#6B7280',
+    logoUrl: 'https://isaac-cfi.netlify.app/merlin-logo.png',
+    font: "'Inter', 'Helvetica Neue', Arial, sans-serif",
+  }
+
+  const html = `
+    <div style="font-family: ${brand.font}; max-width: 640px; margin: 0 auto; background: #FFFFFF; color: ${brand.dark};">
+      <div style="background: ${brand.dark}; padding: 12px 32px; border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: space-between;">
+        <div style="flex: 1; text-align: center; padding-right: 80px;">
+          <p style="margin: 0; color: #FFFFFF; font-family: ${brand.font}; font-size: 28px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Merlin Flight Training</p>
+          <p style="margin: 4px 0 0 0; color: ${brand.gold}; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600;">Pilot Flight Instruction</p>
+        </div>
+        <img src="${brand.logoUrl}" alt="Merlin Flight Training" style="width: 140px; height: 140px; object-fit: contain; flex-shrink: 0; align-self: center; margin-top: 25px;" />
+      </div>
+      <div style="padding: 32px;">
+        <h1 style="color: #DC2626; margin: 0 0 8px 0; font-size: 24px;">Payment Declined</h1>
+        <div style="width: 40px; height: 3px; background: #DC2626; margin-bottom: 20px; border-radius: 2px;"></div>
+        <p style="font-size: 14px; line-height: 1.6; color: #374151;">
+          Hi <strong>${payload.studentName}</strong>, unfortunately your payment of <strong>$${payload.amountDollars}</strong> was not able to be processed.
+        </p>
+        <div style="background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 16px 20px; margin: 24px 0;">
+          <p style="margin: 0 0 4px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #991B1B; font-weight: 700;">Reason</p>
+          <p style="margin: 0; font-size: 15px; color: #991B1B; font-weight: 600;">${payload.declineReason}</p>
+        </div>
+        <p style="font-size: 14px; line-height: 1.6; color: #374151;">
+          Please try again with a different payment method or contact your bank for more information. You can also reach out to your instructor for assistance.
+        </p>
+        <p style="margin-top: 24px; color: ${brand.mutedText}; font-size: 13px; text-align: center;">Merlin Flight Training</p>
+      </div>
+      <div style="background: ${brand.lightBg}; padding: 20px 32px; border-top: 1px solid ${brand.borderColor}; border-radius: 0 0 8px 8px; text-align: center;">
+        <p style="margin: 0; color: ${brand.mutedText}; font-size: 12px;">Merlin Flight Training &bull; Professional Flight Instruction</p>
+      </div>
+    </div>
+  `
+
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${resendApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'Merlin Flight Training <noreply@merlinflighttraining.com>',
+      to: [to],
+      subject: `Payment Declined - Merlin Flight Training`,
+      html,
+    }),
+  })
+}
+
 export async function POST(req: Request) {
   const signature = req.headers.get('stripe-signature')
   if (!signature) {
@@ -315,6 +445,44 @@ export async function POST(req: Request) {
       const userId = intent.metadata?.userId
 
       if (!bookingId || !slotId) {
+        // Admin checkout payment (no booking) — send payment confirmation email
+        const studentMetaId = intent.metadata?.studentId
+        const recipientEmail = intent.receipt_email || null
+        const itemsCount = Number(intent.metadata?.items_count || 0)
+
+        if (studentMetaId && recipientEmail) {
+          const { data: studentRow } = await supabaseAdmin
+            .from('students')
+            .select('full_name')
+            .eq('id', studentMetaId)
+            .single()
+
+          await sendPaymentConfirmationEmail(recipientEmail, {
+            studentName: studentRow?.full_name || 'Student',
+            amountDollars: (intent.amount / 100).toFixed(2),
+            currency: intent.currency,
+            description: intent.description,
+            itemsCount,
+          })
+        } else if (studentMetaId && !recipientEmail) {
+          // Fallback: look up student email
+          const { data: studentRow } = await supabaseAdmin
+            .from('students')
+            .select('full_name, email')
+            .eq('id', studentMetaId)
+            .single()
+
+          if (studentRow?.email) {
+            await sendPaymentConfirmationEmail(studentRow.email, {
+              studentName: studentRow.full_name || 'Student',
+              amountDollars: (intent.amount / 100).toFixed(2),
+              currency: intent.currency,
+              description: intent.description,
+              itemsCount,
+            })
+          }
+        }
+
         return new Response(JSON.stringify({ ok: true }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
@@ -472,6 +640,34 @@ export async function POST(req: Request) {
           return new Response(JSON.stringify({ received: true }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
+          })
+        }
+      }
+    }
+
+    if (event.type === 'payment_intent.payment_failed') {
+      const intent = event.data.object as Stripe.PaymentIntent
+      const studentMetaId = intent.metadata?.studentId
+      const lastError = intent.last_payment_error
+
+      const declineReason = lastError?.message
+        || lastError?.decline_code?.replace(/_/g, ' ')
+        || 'Your card was declined. Please try a different payment method.'
+
+      if (studentMetaId) {
+        const { data: studentRow } = await supabaseAdmin
+          .from('students')
+          .select('full_name, email')
+          .eq('id', studentMetaId)
+          .single()
+
+        const recipientEmail = intent.receipt_email || studentRow?.email || null
+
+        if (recipientEmail) {
+          await sendPaymentDeclinedEmail(recipientEmail, {
+            studentName: studentRow?.full_name || 'Student',
+            amountDollars: (intent.amount / 100).toFixed(2),
+            declineReason,
           })
         }
       }

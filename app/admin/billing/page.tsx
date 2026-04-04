@@ -121,9 +121,10 @@ function CheckoutPaymentForm({
     })
 
     if (error) {
-      setMessage(error.message || "Payment failed")
+      const declineDetail = error.decline_code ? ` (${error.decline_code.replace(/_/g, ' ')})` : ''
+      setMessage(`Payment declined: ${error.message || "Unknown error"}${declineDetail}`)
     } else if (paymentIntent?.status === "succeeded") {
-      setMessage("Payment succeeded")
+      setMessage("Payment succeeded — confirmation email sent to student")
       onSuccess()
     } else {
       setMessage("Payment submitted. Stripe may still be processing this payment method.")
@@ -135,7 +136,11 @@ function CheckoutPaymentForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <PaymentElement />
-      {message ? <p className="text-sm text-slate-700">{message}</p> : null}
+      {message ? (
+        <p className={`text-sm font-medium ${message.startsWith("Payment declined") ? "text-red-600" : message.startsWith("Payment succeeded") ? "text-emerald-700" : "text-slate-700"}`}>
+          {message}
+        </p>
+      ) : null}
       <button
         type="submit"
         disabled={processing || !stripe || !elements}
@@ -175,6 +180,9 @@ export default function AdminBillingPage() {
 
   const [clientSecret, setClientSecret] = useState("")
   const [checkoutTotals, setCheckoutTotals] = useState<CheckoutTotals | null>(null)
+
+  const [sendingReminder, setSendingReminder] = useState<string | null>(null)
+  const [deletingCheckout, setDeletingCheckout] = useState<string | null>(null)
 
   useEffect(() => {
     if (authLoading) return
@@ -541,6 +549,76 @@ export default function AdminBillingPage() {
       setStatusMessage(error instanceof Error ? error.message : 'Unable to text accountant report')
     } finally {
       setSendingAccountantText(false)
+    }
+  }
+
+  const sendPaymentReminder = async (paymentIntentId: string) => {
+    if (!selectedStudentId) return
+
+    setSendingReminder(paymentIntentId)
+    setStatusMessage("")
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) throw new Error("Missing admin session")
+
+      const response = await fetch("/api/admin/billing/send-reminder", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          paymentIntentId,
+          studentId: selectedStudentId,
+        }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || "Unable to send reminder")
+
+      setStatusMessage(`Payment reminder sent to ${result.sentTo}`)
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to send reminder")
+    } finally {
+      setSendingReminder(null)
+    }
+  }
+
+  const deleteCheckoutItem = async (paymentIntentId: string, amountCents: number, currency: string) => {
+    if (!confirm(`Remove this ${formatMoney(amountCents, currency)} checkout from history? Pending payments will be canceled.`)) return
+
+    setDeletingCheckout(paymentIntentId)
+    setStatusMessage("")
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) throw new Error("Missing admin session")
+
+      const response = await fetch("/api/admin/billing/delete-checkout", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ paymentIntentId }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || "Unable to delete checkout")
+
+      setStatusMessage("Checkout removed from history")
+      await loadData()
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to delete checkout")
+    } finally {
+      setDeletingCheckout(null)
     }
   }
 
@@ -992,43 +1070,65 @@ export default function AdminBillingPage() {
                   <p className="mt-1 text-xs text-slate-500">Auto-updated from Stripe</p>
                   <div className="mt-3 space-y-2">
                     {selectedStudent.checkouts.map((co) => (
-                      <div key={co.id} className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                        <div>
-                          <p className="text-sm font-semibold text-darkText">
-                            {formatMoney(co.amountCents, co.currency)}
-                            {co.itemsCount > 0 ? (
-                              <span className="ml-2 text-xs font-normal text-slate-500">
-                                {co.itemsCount} item{co.itemsCount !== 1 ? "s" : ""}
-                              </span>
-                            ) : null}
-                            {co.cashAppliedCents > 0 ? (
-                              <span className="ml-2 text-xs font-normal text-emerald-600">
-                                ({formatMoney(co.cashAppliedCents, co.currency)} cash applied)
-                              </span>
-                            ) : null}
-                          </p>
-                          <p className="mt-0.5 text-xs text-slate-500">
-                            {new Date(co.createdAt).toLocaleString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                              hour: "numeric",
-                              minute: "2-digit",
-                              hour12: true,
-                            })}
-                          </p>
+                      <div key={co.id} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-semibold text-darkText">
+                              {formatMoney(co.amountCents, co.currency)}
+                              {co.itemsCount > 0 ? (
+                                <span className="ml-2 text-xs font-normal text-slate-500">
+                                  {co.itemsCount} item{co.itemsCount !== 1 ? "s" : ""}
+                                </span>
+                              ) : null}
+                              {co.cashAppliedCents > 0 ? (
+                                <span className="ml-2 text-xs font-normal text-emerald-600">
+                                  ({formatMoney(co.cashAppliedCents, co.currency)} cash applied)
+                                </span>
+                              ) : null}
+                            </p>
+                            <p className="mt-0.5 text-xs text-slate-500">
+                              {new Date(co.createdAt).toLocaleString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                                hour: "numeric",
+                                minute: "2-digit",
+                                hour12: true,
+                              })}
+                            </p>
+                          </div>
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                              co.status === "paid"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : co.status === "canceled"
+                                  ? "bg-slate-100 text-slate-500"
+                                  : "bg-amber-100 text-amber-700"
+                            }`}
+                          >
+                            {co.status === "paid" ? "Paid" : co.status === "canceled" ? "Canceled" : "Pending"}
+                          </span>
                         </div>
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                            co.status === "paid"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : co.status === "canceled"
-                                ? "bg-slate-100 text-slate-500"
-                                : "bg-amber-100 text-amber-700"
-                          }`}
-                        >
-                          {co.status === "paid" ? "Paid" : co.status === "canceled" ? "Canceled" : "Pending"}
-                        </span>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          {co.status === "pending" && selectedStudent.email ? (
+                            <button
+                              type="button"
+                              onClick={() => void sendPaymentReminder(co.id)}
+                              disabled={sendingReminder === co.id}
+                              className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 disabled:opacity-60"
+                            >
+                              {sendingReminder === co.id ? "Sending..." : "Send Reminder"}
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => void deleteCheckoutItem(co.id, co.amountCents, co.currency)}
+                            disabled={deletingCheckout === co.id}
+                            className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 disabled:opacity-60"
+                          >
+                            {deletingCheckout === co.id ? "Removing..." : "Delete"}
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
