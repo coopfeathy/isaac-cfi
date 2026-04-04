@@ -667,10 +667,14 @@ export async function resolveStripeConnectChargePlan(
           transactionType: input.transactionType,
         })
 
+    const processingFeeCents = Math.max(0, input.processingFeeCents ?? 0)
     const finalApplicationFeeAmount = Math.min(
       input.totalAmountCents,
-      connectConfig.applicationFeeAmount +
-        (developerCommission.enabled ? developerCommission.amountCents : 0)
+      Math.max(
+        connectConfig.applicationFeeAmount +
+          (developerCommission.enabled ? developerCommission.amountCents : 0),
+        processingFeeCents
+      )
     )
 
     return {
