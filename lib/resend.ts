@@ -104,6 +104,7 @@ export const emailTemplates = {
     negativeObservations?: string | null
     recommendedStudyPractice?: string | null
     progressSummary: Array<{ title: string; status: string }>
+    imageUrls?: string[]
   }) => ({
     subject: `Training Debrief: ${payload.courseTitle} - Merlin Flight Training`,
     html: emailWrapper(`
@@ -131,6 +132,15 @@ export const emailTemplates = {
       <div style="margin: 24px 0;">
         <h3 style="margin: 0 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: ${brand.dark}; border-bottom: 2px solid ${brand.gold}; padding-bottom: 6px; display: inline-block;">Recommended Study and Practice</h3>
         <p style="margin: 8px 0 0 0; white-space: pre-wrap; line-height: 1.6;">${payload.recommendedStudyPractice}</p>
+      </div>` : ""}
+
+      ${payload.imageUrls && payload.imageUrls.length > 0 ? `
+      <div style="margin: 24px 0;">
+        <h3 style="margin: 0 0 12px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: ${brand.dark}; border-bottom: 2px solid ${brand.gold}; padding-bottom: 6px; display: inline-block;">Debrief Photos</h3>
+        ${payload.imageUrls.map((url) => `
+          <div style="margin: 8px 0;">
+            <img src="${url}" alt="Debrief photo" style="max-width: 100%; height: auto; border-radius: 8px; border: 1px solid ${brand.borderColor};" />
+          </div>`).join("")}
       </div>` : ""}
 
 

@@ -1765,6 +1765,50 @@ END
 $$;
 
 -- ============================================================
+-- DEBRIEF IMAGES: column + storage bucket + policies
+-- ============================================================
+
+ALTER TABLE lesson_evaluations ADD COLUMN IF NOT EXISTS image_urls TEXT[];
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('debrief-images', 'debrief-images', true)
+ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public;
+
+DROP POLICY IF EXISTS "Public can view debrief images" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can upload debrief images" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can update debrief images" ON storage.objects;
+DROP POLICY IF EXISTS "Admins can delete debrief images" ON storage.objects;
+
+CREATE POLICY "Public can view debrief images"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'debrief-images');
+
+CREATE POLICY "Admins can upload debrief images"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'debrief-images'
+    AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+  );
+
+CREATE POLICY "Admins can update debrief images"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'debrief-images'
+    AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+  )
+  WITH CHECK (
+    bucket_id = 'debrief-images'
+    AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+  );
+
+CREATE POLICY "Admins can delete debrief images"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'debrief-images'
+    AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true)
+  );
+
+-- ============================================================
 -- DONE
 -- All tables, RLS policies, and indexes are created.
 -- ============================================================

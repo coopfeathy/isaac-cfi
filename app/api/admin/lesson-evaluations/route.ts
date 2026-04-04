@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
       homework,
       syllabusUpdates,
       sendEmail,
+      imageUrls,
     } = body as {
       courseId: string
       studentId: string
@@ -76,6 +77,7 @@ export async function POST(request: NextRequest) {
       homework?: string | null
       syllabusUpdates: SyllabusUpdate[]
       sendEmail?: boolean
+      imageUrls?: string[]
     }
 
     if (!courseId || !studentId || !performanceRating) {
@@ -123,6 +125,7 @@ export async function POST(request: NextRequest) {
           improvements: debriefNegativeObservations,
           homework: debriefRecommendedStudyPractice,
           next_lesson_focus: focusedSyllabusSummary,
+          image_urls: Array.isArray(imageUrls) && imageUrls.length > 0 ? imageUrls : null,
         },
       ])
       .select("id")
@@ -179,6 +182,7 @@ export async function POST(request: NextRequest) {
           negativeObservations: debriefNegativeObservations,
           recommendedStudyPractice: debriefRecommendedStudyPractice,
           progressSummary,
+          imageUrls: Array.isArray(imageUrls) ? imageUrls : [],
         })
 
         const { error } = await resend.emails.send({

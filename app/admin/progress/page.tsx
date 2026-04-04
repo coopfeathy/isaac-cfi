@@ -122,6 +122,10 @@ export default function AdminProgressPage() {
   const [migratingEnrollments, setMigratingEnrollments] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
 
+  const [debriefImages, setDebriefImages] = useState<File[]>([])
+  const [debriefImagePreviews, setDebriefImagePreviews] = useState<string[]>([])
+  const [uploadingImages, setUploadingImages] = useState(false)
+
   const [showSyllabusManager, setShowSyllabusManager] = useState(false)
   const [syllabusManagerItems, setSyllabusManagerItems] = useState<SyllabusItem[]>([])
   const [syllabusManagerLoading, setSyllabusManagerLoading] = useState(false)
@@ -233,6 +237,53 @@ export default function AdminProgressPage() {
         element.scrollIntoView({ behavior: "smooth", block: "center" })
       }
     })
+  }
+
+  const handleAttachImages = (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    const maxSize = 10 * 1024 * 1024 // 10 MB
+    const newFiles: File[] = []
+    const newPreviews: string[] = []
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      if (!allowed.includes(file.type)) continue
+      if (file.size > maxSize) continue
+      newFiles.push(file)
+      newPreviews.push(URL.createObjectURL(file))
+    }
+    setDebriefImages((prev) => [...prev, ...newFiles])
+    setDebriefImagePreviews((prev) => [...prev, ...newPreviews])
+  }
+
+  const removeDebriefImage = (index: number) => {
+    setDebriefImagePreviews((prev) => {
+      URL.revokeObjectURL(prev[index])
+      return prev.filter((_, i) => i !== index)
+    })
+    setDebriefImages((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const uploadDebriefImages = async (): Promise<string[]> => {
+    if (debriefImages.length === 0) return []
+    setUploadingImages(true)
+    const urls: string[] = []
+    try {
+      for (const file of debriefImages) {
+        const timestamp = Date.now()
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_")
+        const storagePath = `${selectedStudentId}/${timestamp}-${safeName}`
+        const { error: uploadError } = await supabase.storage
+          .from("debrief-images")
+          .upload(storagePath, file, { upsert: false, cacheControl: "3600" })
+        if (uploadError) throw new Error(`Image upload failed: ${uploadError.message}`)
+        const { data } = supabase.storage.from("debrief-images").getPublicUrl(storagePath)
+        urls.push(data.publicUrl)
+      }
+    } finally {
+      setUploadingImages(false)
+    }
+    return urls
   }
 
   useEffect(() => {
@@ -817,6 +868,17 @@ export default function AdminProgressPage() {
       return
     }
 
+    let imageUrls: string[] = []
+    if (debriefImages.length > 0) {
+      try {
+        imageUrls = await uploadDebriefImages()
+      } catch (error) {
+        setStatusMessage(error instanceof Error ? error.message : "Image upload failed")
+        setSubmitting(false)
+        return
+      }
+    }
+
     const response = await fetch("/api/admin/lesson-evaluations", {
       method: "POST",
       headers: {
@@ -836,6 +898,7 @@ export default function AdminProgressPage() {
         },
         syllabusUpdates,
         sendEmail: sendEvaluationEmail,
+        imageUrls,
       }),
     })
 
@@ -871,6 +934,11 @@ export default function AdminProgressPage() {
 
     setItemDrafts(nextDrafts)
     setFocusedSyllabusItemId(focusedDraft.status === "proficient" ? findNextOpenItemId(nextDrafts) : focusedSyllabusItemId)
+
+    // Clear attached images after successful submission
+    debriefImagePreviews.forEach((url) => URL.revokeObjectURL(url))
+    setDebriefImages([])
+    setDebriefImagePreviews([])
 
     setSubmitting(false)
   }
@@ -1189,6 +1257,72 @@ export default function AdminProgressPage() {
                 placeholder="Recommended study and practice"
                 style={{ padding: "10px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "#fff" }}
               />
+
+              {debriefImagePreviews.length > 0 && (
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                  {debriefImagePreviews.map((src, idx) => (
+                    <div key={idx} style={{ position: "relative", width: "80px", height: "80px", borderRadius: "8px", overflow: "hidden", border: "1px solid #D1D5DB" }}>
+                      <img src={src} alt={`Attachment ${idx + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <button
+                        type="button"
+                        onClick={() => removeDebriefImage(idx)}
+                        style={{
+                          position: "absolute",
+                          top: "2px",
+                          right: "2px",
+                          width: "20px",
+                          height: "20px",
+                          borderRadius: "50%",
+                          background: "rgba(0,0,0,0.6)",
+                          color: "#fff",
+                          border: "none",
+                          fontSize: "12px",
+                          lineHeight: "20px",
+                          textAlign: "center",
+                          cursor: "pointer",
+                          padding: 0,
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div>
+                <input
+                  id="debrief-image-input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  multiple
+                  onChange={(e) => { handleAttachImages(e.target.files); e.target.value = "" }}
+                  style={{ display: "none" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("debrief-image-input")?.click()}
+                  disabled={uploadingImages}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    background: "#fff",
+                    color: "#374151",
+                    border: "1px solid #D1D5DB",
+                    borderRadius: "8px",
+                    padding: "8px 14px",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  <span style={{ fontSize: "16px" }}>📎</span> Attach Picture(s)
+                  {debriefImages.length > 0 && (
+                    <span style={{ fontSize: "12px", color: "#6B7280" }}>({debriefImages.length})</span>
+                  )}
+                </button>
+              </div>
             </div>
 
             <div style={{ display: "grid", gap: "8px" }}>
