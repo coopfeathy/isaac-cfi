@@ -466,7 +466,6 @@ export default function AdminBillingPage() {
           note,
           itemSelections: validLines,
           deliveryMethod,
-          existingPaymentIntentId: activePaymentIntentId || undefined,
         }),
       })
 
@@ -497,10 +496,8 @@ export default function AdminBillingPage() {
         )
       }
 
-      // The push endpoint cancelled the old PaymentIntent, so clear local state
-      setClientSecret("")
-      setActivePaymentIntentId("")
-      setCheckoutTotals(null)
+      // Link sent — refresh data so it shows in checkout history
+      void loadData()
     } catch (error) {
       setStatusMessage(error instanceof Error ? error.message : "Unable to push checkout link")
     } finally {

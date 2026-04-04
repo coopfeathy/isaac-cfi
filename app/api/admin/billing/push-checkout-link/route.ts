@@ -187,7 +187,6 @@ export async function POST(request: NextRequest) {
     const studentId = typeof body.studentId === 'string' ? body.studentId : ''
     const currencyInput = typeof body.currency === 'string' ? body.currency.trim().toLowerCase() : 'usd'
     const note = typeof body.note === 'string' ? body.note.trim() : ''
-    const existingPaymentIntentId = typeof body.existingPaymentIntentId === 'string' ? body.existingPaymentIntentId.trim() : ''
     const deliveryMethod = body.deliveryMethod === 'text'
       ? 'text'
       : body.deliveryMethod === 'copy'
@@ -222,41 +221,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 })
     }
 
-    // Cancel the existing PaymentIntent (created by "Create Checkout") and remove its transaction records
-    // so we don't end up with two payment objects and duplicate cash deductions
-    let existingCashAlreadyDeducted = false
-    if (existingPaymentIntentId && existingPaymentIntentId.startsWith('pi_')) {
-      try {
-        const existingPI = await stripe.paymentIntents.retrieve(existingPaymentIntentId)
-        const cancelableStatuses = ['requires_payment_method', 'requires_confirmation', 'requires_action', 'processing']
-        if (cancelableStatuses.includes(existingPI.status)) {
-          await stripe.paymentIntents.cancel(existingPaymentIntentId)
-        }
-      } catch {
-        // PI may already be canceled or not found — safe to ignore
-      }
-
-      // Remove transaction records created by the original checkout endpoint
-      if (student.user_id) {
-        const { data: existingTxRows } = await supabaseAdmin
-          .from('transactions')
-          .select('id, description')
-          .eq('user_id', student.user_id)
-          .like('description', `%PI:${existingPaymentIntentId}%`)
-
-        if (existingTxRows && existingTxRows.length > 0) {
-          const hasCashTx = existingTxRows.some((row: any) =>
-            (row.description || '').startsWith('CASH:')
-          )
-          if (hasCashTx) existingCashAlreadyDeducted = false // cash tx removed, so re-deduct with the new session
-
-          await supabaseAdmin
-            .from('transactions')
-            .delete()
-            .in('id', existingTxRows.map((row: any) => row.id))
-        }
-      }
-    }
+    // If there's an existing PaymentIntent from "Create Checkout", leave it alone.
+    // It stays in requires_payment_method and will show as "pending" in history.
+    // The Checkout Session creates its own PI — both can coexist.
+    // The admin can manually delete the old pending one later if desired.
 
     const itemIds = Array.from(new Set(itemSelections.map((selection) => selection.itemId)))
     const { data: items, error: itemsError } = await supabaseAdmin
@@ -404,7 +372,7 @@ export async function POST(request: NextRequest) {
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       customer: customer.id,
-      success_url: `${siteUrl}/bookings?checkout=success`,
+      success_url: `${siteUrl}/payment-success`,
       cancel_url: `${siteUrl}/bookings?checkout=cancelled`,
       discounts,
       line_items: [

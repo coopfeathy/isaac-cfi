@@ -639,8 +639,15 @@ export async function resolveStripeConnectConfig(
 export async function resolveStripeConnectChargePlan(
   input: ResolveChargePlanInput
 ): Promise<StripeConnectChargePlan> {
+  const processingFeeCents = Math.max(0, input.processingFeeCents ?? 0)
+  const subtotalForFee = Math.max(input.totalAmountCents - processingFeeCents, 0)
+
   try {
-    const connectConfig = await resolveStripeConnectConfig(input)
+    // Calculate rule fee on subtotal only (excludes processing fee)
+    const connectConfig = await resolveStripeConnectConfig({
+      ...input,
+      totalAmountCents: subtotalForFee,
+    })
 
     if (!connectConfig.enabled) {
       return {
@@ -655,6 +662,7 @@ export async function resolveStripeConnectChargePlan(
       }
     }
 
+    // Developer commission also on subtotal only
     const developerCommission = !connectConfig.allowDeveloperCommission
       ? {
           enabled: false,
@@ -663,25 +671,76 @@ export async function resolveStripeConnectChargePlan(
           appliedBps: 0,
         }
       : resolveDeveloperCommissionConfig({
-          totalAmountCents: input.totalAmountCents,
+          totalAmountCents: subtotalForFee,
           transactionType: input.transactionType,
         })
 
-    const processingFeeCents = Math.max(0, input.processingFeeCents ?? 0)
-    const finalApplicationFeeAmount = Math.min(
-      input.totalAmountCents,
-      Math.max(
-        connectConfig.applicationFeeAmount +
-          (developerCommission.enabled ? developerCommission.amountCents : 0),
-        processingFeeCents
-      )
-    )
+    // Always use split_transfers so:
+    // 1. Processing fee stays with platform (not included in payout base)
+    // 2. Connected account only sees their transfer amount, not full charge
+    const payoutCents = Math.max(subtotalForFee - connectConfig.applicationFeeAmount, 0)
+
+    const splitTransfers: StripeConnectSplitTransferBucket[] = []
+    if (payoutCents > 0) {
+      splitTransfers.push({
+        destinationAccount: connectConfig.destinationAccount,
+        amountCents: payoutCents,
+        matchedRuleId: connectConfig.matchedRuleId,
+        matchedRuleName: connectConfig.matchedRuleName,
+      })
+    }
+
+    if (splitTransfers.length === 0) {
+      return {
+        mode: 'none',
+        connectConfig: {
+          enabled: false,
+          reason: 'Platform fee equals or exceeds subtotal — no transfer to connected account.',
+        },
+        developerCommission,
+      }
+    }
+
+    const payoutTotalCents = splitTransfers.reduce((sum, b) => sum + b.amountCents, 0)
+    const maxDevCents = Math.max(input.totalAmountCents - payoutTotalCents, 0)
+
+    const splitDeveloperTransfer: DeveloperCommissionConfig = developerCommission.enabled
+      ? {
+          ...developerCommission,
+          amountCents: clampCents(developerCommission.amountCents, maxDevCents),
+          enabled: clampCents(developerCommission.amountCents, maxDevCents) > 0,
+        }
+      : developerCommission
+
+    const splitPlanPayload: StripeConnectSplitPlanPayload = {
+      v: 1,
+      m: 'split',
+      b: splitTransfers.map((bucket) => ({
+        d: bucket.destinationAccount,
+        a: bucket.amountCents,
+        r: bucket.matchedRuleId,
+      })),
+      dev:
+        splitDeveloperTransfer.enabled && splitDeveloperTransfer.destinationAccount
+          ? {
+              d: splitDeveloperTransfer.destinationAccount,
+              a: splitDeveloperTransfer.amountCents,
+              bps: splitDeveloperTransfer.appliedBps,
+            }
+          : null,
+    }
 
     return {
-      mode: 'destination_charge',
-      connectConfig,
-      developerCommission,
-      finalApplicationFeeAmount,
+      mode: 'split_transfers',
+      connectConfig: {
+        enabled: false,
+        reason:
+          'Using split transfer mode — processing fee retained by platform, connected account sees only their payout.',
+      },
+      developerCommission: splitDeveloperTransfer,
+      splitDeveloperTransfer,
+      splitTransfers,
+      serializedSplitPlan: serializeSplitPlanPayload(splitPlanPayload),
     }
   } catch (error) {
     if (!(error instanceof StripeConnectConfigError) || !input.lineItems?.length) {
