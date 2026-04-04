@@ -377,6 +377,11 @@ export async function POST(request: NextRequest) {
     const hasDiscoveryItem = lineItems.some((line) => line.name.trim().toLowerCase() === 'discovery flight')
     const transactionType = hasDiscoveryItem ? 'discovery_flight' : 'website_transaction'
 
+    const itemsSummary = lineItems
+      .map((line) => line.quantity !== 1 ? `${line.name} x${line.quantity}` : line.name)
+      .join(', ')
+    const piDescription = `${student.full_name} — ${itemsSummary}`
+
     const chargePlan = await resolveStripeConnectChargePlan({
       supabaseAdmin,
       source: 'admin_checkout',
@@ -454,7 +459,7 @@ export async function POST(request: NextRequest) {
           : '',
       },
       payment_intent_data: {
-        description: `Lesson checkout for ${student.full_name}`,
+        description: piDescription,
         receipt_email: student.email || undefined,
         ...(chargePlan.mode === 'destination_charge' && connectConfig.enabled
           ? {
@@ -466,6 +471,7 @@ export async function POST(request: NextRequest) {
           : {}),
         metadata: {
           studentId: student.id,
+          items_summary: itemsSummary.slice(0, 500),
           subtotal_cents: String(subtotalCents),
           processing_fee_cents: String(processingFeeCents),
           cash_applied_cents: String(cashAppliedCents),

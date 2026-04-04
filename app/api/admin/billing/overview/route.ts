@@ -181,6 +181,10 @@ export async function GET(request: NextRequest) {
           createdAt: string
           itemsCount: number
           cashAppliedCents: number
+          payoutMode: string
+          payoutDestination: string
+          payoutFeeCents: number
+          payoutSplitPlan: any | null
         }> = []
 
         if (customer) {
@@ -192,20 +196,32 @@ export async function GET(request: NextRequest) {
 
             checkouts = paymentIntents.data
               .filter((pi) => pi.metadata?.studentId === student.id && pi.status !== 'canceled')
-              .map((pi) => ({
-                id: pi.id,
-                amountCents: pi.amount,
-                currency: pi.currency,
-                status: pi.status === 'succeeded'
-                  ? 'paid' as const
-                  : pi.status === 'canceled'
-                    ? 'canceled' as const
-                    : 'pending' as const,
-                description: pi.description,
-                createdAt: new Date(pi.created * 1000).toISOString(),
-                itemsCount: Number(pi.metadata?.items_count || 0),
-                cashAppliedCents: Number(pi.metadata?.cash_applied_cents || 0),
-              }))
+              .map((pi) => {
+                let splitPlan: any = null
+                try {
+                  const raw = pi.metadata?.connect_payout_plan_v1
+                  if (raw) splitPlan = JSON.parse(raw)
+                } catch {}
+
+                return {
+                  id: pi.id,
+                  amountCents: pi.amount,
+                  currency: pi.currency,
+                  status: pi.status === 'succeeded'
+                    ? 'paid' as const
+                    : pi.status === 'canceled'
+                      ? 'canceled' as const
+                      : 'pending' as const,
+                  description: pi.description,
+                  createdAt: new Date(pi.created * 1000).toISOString(),
+                  itemsCount: Number(pi.metadata?.items_count || 0),
+                  cashAppliedCents: Number(pi.metadata?.cash_applied_cents || 0),
+                  payoutMode: pi.metadata?.connect_payout_mode || '',
+                  payoutDestination: pi.metadata?.connect_destination_account || '',
+                  payoutFeeCents: Number(pi.metadata?.connect_application_fee_cents || 0),
+                  payoutSplitPlan: splitPlan,
+                }
+              })
           } catch {
             // Stripe query failed, continue without checkout history
           }

@@ -315,7 +315,7 @@ export async function POST(req: Request) {
                 currency: intent.currency,
                 destination: bucket.d,
                 source_transaction: chargeId,
-                description: `Split payout for PaymentIntent ${intent.id}`,
+                description: `${intent.description || 'Payout'} | PaymentIntent ${intent.id}`,
                 metadata: {
                   payment_intent_id: intent.id,
                   event_id: event.id,
@@ -355,7 +355,7 @@ export async function POST(req: Request) {
                 currency: intent.currency,
                 destination: splitPlan.dev.d,
                 source_transaction: chargeId,
-                description: `Developer payout for PaymentIntent ${intent.id}`,
+                description: `Developer commission — ${intent.description || intent.id}`,
                 metadata: {
                   payment_intent_id: intent.id,
                   event_id: event.id,

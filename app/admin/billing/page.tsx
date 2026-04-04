@@ -31,6 +31,10 @@ type BillingStudent = {
     createdAt: string
     itemsCount: number
     cashAppliedCents: number
+    payoutMode: string
+    payoutDestination: string
+    payoutFeeCents: number
+    payoutSplitPlan: { v: number; m: string; b: Array<{ d: string; a: number; r: string | null }>; dev: { d: string; a: number; bps: number } | null } | null
   }>
 }
 
@@ -54,6 +58,25 @@ type CheckoutTotals = {
   cashAppliedCents: number
   totalCents: number
   currency: string
+}
+
+type PayoutRule = {
+  id: string
+  name: string | null
+  isActive: boolean
+  priority: number | null
+  source: string | null
+  slotType: string | null
+  itemId: string | null
+  itemName: string | null
+  transactionType: string | null
+  currency: string | null
+  destinationAccount: string
+  allowDeveloperCommission: boolean | null
+  feeMode: 'bps' | 'fixed_cents'
+  feeBps: number | null
+  feeCents: number | null
+  createdAt: string
 }
 
 type BillingApiError = {
@@ -82,6 +105,16 @@ function formatMoney(cents: number, currency: string) {
     style: "currency",
     currency: currency.toUpperCase(),
   }).format((cents || 0) / 100)
+}
+
+const ACCOUNT_LABELS: Record<string, string> = {
+  acct_1FbdK6Cus0IiI5gg: 'Isaac / Merlin',
+  acct_1TGjHxE14NEZerCV: 'Aircraft Owner',
+  acct_1TEH7GENasfvDHGO: 'Developer (Cooper)',
+}
+
+function formatAccountLabel(acct: string) {
+  return ACCOUNT_LABELS[acct] || acct.slice(0, 12) + '…'
 }
 
 function getBillingApiErrorMessage(result: BillingApiError, fallback: string) {
@@ -186,6 +219,13 @@ export default function AdminBillingPage() {
   const [sendingReminder, setSendingReminder] = useState<string | null>(null)
   const [deletingCheckout, setDeletingCheckout] = useState<string | null>(null)
 
+  const [payoutRules, setPayoutRules] = useState<PayoutRule[]>([])
+  const [payoutRulesLoading, setPayoutRulesLoading] = useState(false)
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
+  const [editingRuleField, setEditingRuleField] = useState<string>("")
+  const [savingRuleId, setSavingRuleId] = useState<string | null>(null)
+  const [showPayoutRules, setShowPayoutRules] = useState(false)
+
   useEffect(() => {
     if (authLoading) return
     if (!isAdmin) {
@@ -266,6 +306,63 @@ export default function AdminBillingPage() {
       setStatusMessage(error instanceof Error ? error.message : "Unable to load billing data")
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadPayoutRules() {
+    setPayoutRulesLoading(true)
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) throw new Error("Missing admin session")
+
+      const response = await fetch("/api/admin/billing/payout-rules", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || "Unable to load payout rules")
+
+      setPayoutRules(result.rules || [])
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to load payout rules")
+    } finally {
+      setPayoutRulesLoading(false)
+    }
+  }
+
+  async function updatePayoutRule(ruleId: string, updates: Record<string, any>) {
+    setSavingRuleId(ruleId)
+    setStatusMessage("")
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) throw new Error("Missing admin session")
+
+      const response = await fetch("/api/admin/billing/payout-rules", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ ruleId, updates }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || "Unable to update payout rule")
+
+      setStatusMessage("Payout rule updated")
+      setEditingRuleId(null)
+      setEditingRuleField("")
+      await loadPayoutRules()
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : "Unable to update payout rule")
+    } finally {
+      setSavingRuleId(null)
     }
   }
 
@@ -1139,6 +1236,41 @@ export default function AdminBillingPage() {
                             {deletingCheckout === co.id ? "Removing..." : "Delete"}
                           </button>
                         </div>
+                        {co.payoutMode ? (
+                          <div className="mt-2 rounded border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs text-indigo-800">
+                            <p className="font-semibold">
+                              Payout: {co.payoutMode === 'split_transfers' ? 'Split transfers' : co.payoutMode === 'destination_charge' ? 'Destination charge' : co.payoutMode}
+                            </p>
+                            {co.payoutMode === 'destination_charge' && co.payoutDestination ? (
+                              <p className="mt-0.5">
+                                → {formatAccountLabel(co.payoutDestination)} &middot; Platform fee: {formatMoney(co.payoutFeeCents, co.currency)}
+                              </p>
+                            ) : null}
+                            {co.payoutMode === 'split_transfers' && co.payoutSplitPlan?.b ? (
+                              <div className="mt-1 space-y-0.5">
+                                {co.payoutSplitPlan.b.map((bucket, idx) => (
+                                  <p key={idx}>
+                                    → {formatAccountLabel(bucket.d)}: {formatMoney(bucket.a, co.currency)}
+                                  </p>
+                                ))}
+                                {co.payoutSplitPlan.dev ? (
+                                  <p>
+                                    → {formatAccountLabel(co.payoutSplitPlan.dev.d)}: {formatMoney(co.payoutSplitPlan.dev.a, co.currency)}{' '}
+                                    <span className="text-indigo-500">({(co.payoutSplitPlan.dev.bps / 100).toFixed(1)}% dev)</span>
+                                  </p>
+                                ) : null}
+                                <p className="mt-0.5 text-indigo-600">
+                                  Platform keeps: {formatMoney(
+                                    co.amountCents -
+                                      co.payoutSplitPlan.b.reduce((s: number, b: any) => s + b.a, 0) -
+                                      (co.payoutSplitPlan.dev?.a || 0),
+                                    co.currency
+                                  )}
+                                </p>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
                     ))}
                   </div>
@@ -1148,6 +1280,160 @@ export default function AdminBillingPage() {
           )}
         </section>
       </div>
+
+      {/* Payout Rules Management */}
+      <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-darkText">Payout Split Rules</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Configure how payments are split between connected Stripe accounts
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setShowPayoutRules(!showPayoutRules)
+              if (!showPayoutRules && payoutRules.length === 0) void loadPayoutRules()
+            }}
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+          >
+            {showPayoutRules ? "Hide Rules" : "Show Rules"}
+          </button>
+        </div>
+
+        {showPayoutRules ? (
+          <div className="mt-4">
+            {payoutRulesLoading ? (
+              <p className="text-sm text-slate-500">Loading payout rules...</p>
+            ) : payoutRules.length === 0 ? (
+              <p className="text-sm text-slate-500">No payout rules configured.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-500">
+                      <th className="pb-2 pr-3 font-semibold">Name</th>
+                      <th className="pb-2 pr-3 font-semibold">Item</th>
+                      <th className="pb-2 pr-3 font-semibold">Destination</th>
+                      <th className="pb-2 pr-3 font-semibold">Fee</th>
+                      <th className="pb-2 pr-3 font-semibold">Priority</th>
+                      <th className="pb-2 pr-3 font-semibold">Active</th>
+                      <th className="pb-2 font-semibold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payoutRules.map((rule) => (
+                      <tr key={rule.id} className="border-b border-slate-100">
+                        <td className="py-2 pr-3 font-medium text-darkText">{rule.name || "—"}</td>
+                        <td className="py-2 pr-3 text-slate-600">{rule.itemName || (rule.itemId ? rule.itemId.slice(0, 8) : "All items")}</td>
+                        <td className="py-2 pr-3 text-slate-600">{formatAccountLabel(rule.destinationAccount)}</td>
+                        <td className="py-2 pr-3">
+                          {editingRuleId === rule.id ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                min={0}
+                                max={10000}
+                                step={1}
+                                defaultValue={rule.feeMode === 'bps' ? (rule.feeBps ?? 0) : (rule.feeCents ?? 0)}
+                                onChange={(e) => setEditingRuleField(e.target.value)}
+                                className="w-20 rounded border border-indigo-300 px-2 py-1 text-xs"
+                                autoFocus
+                              />
+                              <span className="text-slate-500">{rule.feeMode === 'bps' ? 'bps' : '¢'}</span>
+                            </div>
+                          ) : (
+                            <span>
+                              {rule.feeMode === 'bps'
+                                ? `${rule.feeBps ?? 0} bps (${((rule.feeBps ?? 0) / 100).toFixed(1)}%)`
+                                : `${rule.feeCents ?? 0}¢`}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-3 text-slate-600">{rule.priority ?? "—"}</td>
+                        <td className="py-2 pr-3">
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${rule.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                            {rule.isActive ? "Yes" : "No"}
+                          </span>
+                        </td>
+                        <td className="py-2">
+                          {editingRuleId === rule.id ? (
+                            <div className="flex gap-1">
+                              <button
+                                type="button"
+                                disabled={savingRuleId === rule.id}
+                                onClick={() => {
+                                  const val = Number(editingRuleField)
+                                  if (!Number.isFinite(val) || val < 0) return
+                                  const updates = rule.feeMode === 'bps'
+                                    ? { feeBps: Math.round(val) }
+                                    : { feeCents: Math.round(val) }
+                                  void updatePayoutRule(rule.id, updates)
+                                }}
+                                className="rounded border border-emerald-300 bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 disabled:opacity-60"
+                              >
+                                {savingRuleId === rule.id ? "Saving..." : "Save"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setEditingRuleId(null); setEditingRuleField("") }}
+                                className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-600"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingRuleId(rule.id)
+                                  setEditingRuleField(String(rule.feeMode === 'bps' ? (rule.feeBps ?? 0) : (rule.feeCents ?? 0)))
+                                }}
+                                className="rounded border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700"
+                              >
+                                Edit Fee
+                              </button>
+                              <button
+                                type="button"
+                                disabled={savingRuleId === rule.id}
+                                onClick={() => void updatePayoutRule(rule.id, { isActive: !rule.isActive })}
+                                className={`rounded border px-2 py-1 text-xs font-semibold disabled:opacity-60 ${
+                                  rule.isActive
+                                    ? "border-rose-200 bg-rose-50 text-rose-700"
+                                    : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                }`}
+                              >
+                                {rule.isActive ? "Disable" : "Enable"}
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50 p-3 text-xs text-slate-500">
+                  <p><strong>bps</strong> = basis points (platform fee). 600 bps = 6% kept by platform, 94% sent to connected account.</p>
+                  <p className="mt-1">Rules match by specificity: item-specific rules override general fallbacks. Lower priority number = higher precedence at same specificity.</p>
+                </div>
+              </div>
+            )}
+
+            {!payoutRulesLoading && payoutRules.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => void loadPayoutRules()}
+                className="mt-3 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
+              >
+                Refresh Rules
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
     </AdminPageShell>
   )
 }
