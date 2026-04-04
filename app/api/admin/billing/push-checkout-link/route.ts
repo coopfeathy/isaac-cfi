@@ -361,6 +361,8 @@ export async function POST(request: NextRequest) {
       lineItems: lineItems.map((line) => ({
         itemId: line.itemId,
         totalCents: line.totalCents,
+        name: line.name,
+        quantity: line.quantity,
       })),
     })
 

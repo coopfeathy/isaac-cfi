@@ -3,6 +3,8 @@ type PaymentSource = 'slot_booking' | 'admin_checkout'
 type LineItemInput = {
   itemId: string
   totalCents: number
+  name?: string
+  quantity?: number
 }
 
 type ResolveConnectConfigInput = {
@@ -74,12 +76,13 @@ export type StripeConnectSplitTransferBucket = {
   amountCents: number
   matchedRuleId: string | null
   matchedRuleName: string | null
+  label: string
 }
 
 export type StripeConnectSplitPlanPayload = {
   v: 1
   m: 'split'
-  b: Array<{ d: string; a: number; r: string | null }>
+  b: Array<{ d: string; a: number; r: string | null; l?: string }>
   dev: { d: string; a: number; bps: number } | null
 }
 
@@ -255,11 +258,36 @@ function allocateProportionally(
   return baseShares
 }
 
+function formatTransferLabel(name?: string, quantity?: number): string {
+  if (!name) return 'Payout'
+  const qty = quantity ?? 1
+  if (/aircraft rental/i.test(name)) {
+    const hobbs = (qty * 0.1).toFixed(1)
+    return `${name} — ${hobbs} Hobbs`
+  }
+  return qty > 1 ? `${name} x${qty}` : name
+}
+
 function serializeSplitPlanPayload(payload: StripeConnectSplitPlanPayload): string {
   const raw = JSON.stringify(payload)
   if (raw.length <= 500) return raw
 
+  // Drop rule IDs but keep labels
   const compactPayload: StripeConnectSplitPlanPayload = {
+    ...payload,
+    b: payload.b.map((bucket) => ({
+      d: bucket.d,
+      a: bucket.a,
+      r: null,
+      l: bucket.l,
+    })),
+  }
+
+  const compact = JSON.stringify(compactPayload)
+  if (compact.length <= 500) return compact
+
+  // Drop labels too as last resort
+  const minimalPayload: StripeConnectSplitPlanPayload = {
     ...payload,
     b: payload.b.map((bucket) => ({
       d: bucket.d,
@@ -268,8 +296,8 @@ function serializeSplitPlanPayload(payload: StripeConnectSplitPlanPayload): stri
     })),
   }
 
-  const compact = JSON.stringify(compactPayload)
-  if (compact.length <= 500) return compact
+  const minimal = JSON.stringify(minimalPayload)
+  if (minimal.length <= 500) return minimal
 
   throw new StripeConnectConfigError(
     'Unable to serialize split payout plan into Stripe metadata. Reduce checkout complexity or split into separate checkouts.'
@@ -311,7 +339,7 @@ async function resolveSplitTransferPlan(
   const generalRule = chooseBestRule(rules, input)
   const fallback = resolveEnvFallback(input)
 
-  const buckets = new Map<string, StripeConnectSplitTransferBucket>()
+  const buckets: StripeConnectSplitTransferBucket[] = []
   let developerEligibleBaseCents = 0
 
   lines.forEach((line, index) => {
@@ -330,18 +358,13 @@ async function resolveSplitTransferPlan(
     const linePayout = clampCents(allocatedBase - lineFee, allocatedBase)
 
     if (linePayout > 0) {
-      const bucketKey = `${signature.destinationAccount}::${matchedRule?.id || 'env'}`
-      const existing = buckets.get(bucketKey)
-      if (existing) {
-        existing.amountCents += linePayout
-      } else {
-        buckets.set(bucketKey, {
-          destinationAccount: signature.destinationAccount,
-          amountCents: linePayout,
-          matchedRuleId: matchedRule?.id || null,
-          matchedRuleName: matchedRule?.name || null,
-        })
-      }
+      buckets.push({
+        destinationAccount: signature.destinationAccount,
+        amountCents: linePayout,
+        matchedRuleId: matchedRule?.id || null,
+        matchedRuleName: matchedRule?.name || null,
+        label: formatTransferLabel(line.name, line.quantity),
+      })
     }
 
     const allowDeveloper = matchedRule ? canApplyDeveloperCommission(matchedRule) : true
@@ -350,7 +373,7 @@ async function resolveSplitTransferPlan(
     }
   })
 
-  const splitTransfers = Array.from(buckets.values()).filter((bucket) => bucket.amountCents > 0)
+  const splitTransfers = buckets.filter((bucket) => bucket.amountCents > 0)
 
   if (splitTransfers.length === 0) {
     throw new StripeConnectConfigError(
@@ -381,6 +404,7 @@ async function resolveSplitTransferPlan(
       d: bucket.destinationAccount,
       a: bucket.amountCents,
       r: bucket.matchedRuleId,
+      l: bucket.label,
     })),
     dev:
       splitDeveloperTransfer.enabled && splitDeveloperTransfer.destinationAccount
@@ -642,6 +666,23 @@ export async function resolveStripeConnectChargePlan(
   const processingFeeCents = Math.max(0, input.processingFeeCents ?? 0)
   const subtotalForFee = Math.max(input.totalAmountCents - processingFeeCents, 0)
 
+  // When line items have names, use per-item split transfers for descriptive labels
+  if (input.lineItems?.some((l) => l.name)) {
+    try {
+      const splitPlan = await resolveSplitTransferPlan(input)
+      return {
+        mode: 'split_transfers',
+        connectConfig: splitPlan.connectConfig,
+        developerCommission: splitPlan.splitDeveloperTransfer,
+        splitDeveloperTransfer: splitPlan.splitDeveloperTransfer,
+        splitTransfers: splitPlan.splitTransfers,
+        serializedSplitPlan: splitPlan.serializedSplitPlan,
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
   try {
     // Calculate rule fee on subtotal only (excludes processing fee)
     const connectConfig = await resolveStripeConnectConfig({
@@ -687,6 +728,7 @@ export async function resolveStripeConnectChargePlan(
         amountCents: payoutCents,
         matchedRuleId: connectConfig.matchedRuleId,
         matchedRuleName: connectConfig.matchedRuleName,
+        label: 'Payout',
       })
     }
 
@@ -719,6 +761,7 @@ export async function resolveStripeConnectChargePlan(
         d: bucket.destinationAccount,
         a: bucket.amountCents,
         r: bucket.matchedRuleId,
+        l: bucket.label,
       })),
       dev:
         splitDeveloperTransfer.enabled && splitDeveloperTransfer.destinationAccount

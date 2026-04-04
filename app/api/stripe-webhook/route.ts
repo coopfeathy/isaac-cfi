@@ -8,7 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 type SplitPayoutPlan = {
   v: 1
   m: 'split'
-  b: Array<{ d: string; a: number; r: string | null }>
+  b: Array<{ d: string; a: number; r: string | null; l?: string }>
   dev: { d: string; a: number; bps: number } | null
 }
 
@@ -315,7 +315,7 @@ export async function POST(req: Request) {
                 currency: intent.currency,
                 destination: bucket.d,
                 source_transaction: chargeId,
-                description: `${intent.description || 'Payout'} | PaymentIntent ${intent.id}`,
+                description: bucket.l || intent.description || 'Payout',
                 metadata: {
                   payment_intent_id: intent.id,
                   event_id: event.id,
@@ -407,7 +407,7 @@ export async function POST(req: Request) {
             currency: intent.currency,
             destination: developerDestination,
             source_transaction: chargeId,
-            description: `Developer payout for PaymentIntent ${intent.id}`,
+            description: `Developer commission — ${intent.description || intent.id}`,
             metadata: {
               payment_intent_id: intent.id,
               event_id: event.id,
