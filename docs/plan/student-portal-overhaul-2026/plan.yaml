@@ -1,0 +1,1492 @@
+plan_id: student-portal-overhaul-2026
+objective: |
+  Complete Student Portal Overhaul for Merlin Flight Training — a Next.js + Supabase + Stripe flight school app.
+  Deliver block account purchasing, appointment request flow with cost estimation, backup queue with SMS notifications,
+  a dedicated student portal layout with dashboard (flights, balance, progress, evaluations, METAR weather),
+  admin balance deduction, and low-balance SMS alerts.
+created_at: "2026-04-04"
+created_by: gem-planner
+status: pending_approval
+research_confidence: high
+
+plan_metrics:
+  wave_1_task_count: 2
+  total_dependencies: 23
+  risk_score: medium
+
+tldr: |
+  6-wave plan to overhaul the student portal for Merlin Flight Training.
+  Wave 1: Database migrations (5 new tables: appointment_requests, backup_queue, balance_transactions, day_availability_subscriptions, bulk_hour_ledger + RLS policies).
+  Wave 2: API routes (block purchase [no Stripe Connect — 100% to Isaac], appointment requests, backup queue + day-based subscriptions, METAR proxy [hourly :55 cache], admin balance deduction + bulk hour auto-deduction, bulk hours admin API, day subscriptions API).
+  Wave 3: Portal layout shell, portal nav, auth routing (conditional root layout).
+  Wave 4: Dashboard page, billing page, schedule page with request flow + cost estimator.
+  Wave 5: Backup queue notification system (Twilio SMS chain, timeout logic, day-based notifications for open days, low-balance alerts).
+  Wave 6: Integration review + security audit.
+
+open_questions: [] # All resolved in planning pass 2:
+  # 1. Block purchase → NO Stripe Connect splits, 100% to Isaac's Stripe account (simple PaymentIntent)
+  # 2. Students CAN cancel backup queue (DELETE handler, status='withdrawn') + day-based notifications added
+  # 3. METAR refreshes hourly aligned to :55 mark (when new METARs publish)
+
+pre_mortem:
+  overall_risk_level: medium
+  critical_failure_modes:
+    - scenario: Stripe webhook fails to credit balance_cents after block purchase
+      likelihood: medium
+      impact: critical
+      mitigation: |
+        Add idempotency key to webhook handler. Log all webhook events to balance_transactions.
+        Add retry logic and dead-letter tracking. Verify with Stripe CLI webhook testing.
+    - scenario: Backup queue timeout logic fires incorrectly or out-of-order
+      likelihood: medium
+      impact: high
+      mitigation: |
+        Use database timestamps for timeout calculations rather than in-memory timers.
+        Process queue sequentially by position. Add guard checks before sending SMS.
+        Log all state transitions in backup_queue table.
+    - scenario: Root layout conditional rendering breaks marketing site or portal
+      likelihood: medium
+      impact: high
+      mitigation: |
+        Use Next.js route groups. Portal routes under /app/portal/ get their own layout.tsx.
+        Root layout renders SimpleHeader/Footer unconditionally — portal layout.tsx overrides with its own shell.
+        This avoids conditional logic in root layout entirely.
+    - scenario: Race condition on balance deduction — two admins deduct simultaneously
+      likelihood: low
+      impact: high
+      mitigation: |
+        Use Supabase RPC with row-level locking (SELECT FOR UPDATE) on profiles.balance_cents.
+        Return error if resulting balance < 0.
+    - scenario: METAR API (aviationweather.gov) is down or rate-limited
+      likelihood: low
+      impact: low
+      mitigation: |
+        Cache responses server-side with TTL aligned to :55 of the hour. Show "Weather unavailable" gracefully.
+        Use a Next.js API route as proxy to avoid CORS and protect API usage.
+    - scenario: Bulk hour ledger gets out of sync with actual flight deductions
+      likelihood: medium
+      impact: high
+      mitigation: |
+        Auto-deduction is triggered atomically alongside balance_transactions in task-2-5.
+        Ledger SUM query is the source of truth. Admin can manually add correction entries.
+        Remaining hours check happens immediately after deduction.
+    - scenario: Day-based SMS notifications flood students when many slots open at once
+      likelihood: low
+      impact: medium
+      mitigation: |
+        Debounce or batch day-based notifications. Only notify if last notification was > 1 hour ago.
+        Students can unsubscribe from specific days via DELETE /api/day-subscriptions.
+  assumptions:
+    - Existing balance_cents column on profiles table is integer (cents) and defaults to 0
+    - Twilio is fully configured with TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER
+    - Stripe secret key and webhook signing secret are configured (NO Stripe Connect needed for block purchases)
+    - Students have phone numbers stored in profiles (required for SMS features)
+    - aviationweather.gov METAR API is free and does not require an API key
+    - Supabase RLS is enforced and service-role key is available server-side
+    - Admin phone number is available in env or profiles table for low-bulk-hours SMS alerts
+    - METARs are published around :55 of each hour by aviationweather.gov
+
+implementation_specification:
+  code_structure: |
+    New portal routes under /app/portal/ with dedicated layout (no SimpleHeader/Footer).
+    New API routes under /app/api/ following existing patterns (NextRequest/NextResponse, supabase-admin).
+    Database migrations as SQL files in /supabase/.
+    Shared types extended in /lib/supabase.ts.
+    Twilio helper reused from /lib/twilio.ts.
+    Stripe payment flow follows existing create-payment-intent + stripe-webhook pattern.
+  affected_areas:
+    - /supabase/ — new migration SQL files for tables and RLS
+    - /app/api/ — new API routes for block purchase, appointment requests, backup queue, METAR, balance deduction, bulk hours, day subscriptions
+    - /app/portal/ — entirely new route group with layout, nav, dashboard, billing, schedule pages
+    - /app/layout.tsx — NO changes (portal layout overrides via route group)
+    - /lib/supabase.ts — new TypeScript interfaces for new tables (5 tables total)
+    - /app/api/stripe-webhook/route.ts — extend to handle block purchase payment intents (no Stripe Connect)
+  component_details:
+    - component: Database Schema (migrations)
+      responsibility: Create appointment_requests, backup_queue, balance_transactions, day_availability_subscriptions, bulk_hour_ledger tables with proper indexes and RLS
+      interfaces:
+        - "appointment_requests: id, user_id, aircraft_id, instructor_id, requested_date, requested_start_time, duration_minutes, estimated_cost_cents, status, admin_notes, created_at"
+        - "backup_queue: id, schedule_id, user_id, position, status (waiting/notified/confirmed/expired/withdrawn), notified_at, expires_at, created_at"
+        - "balance_transactions: id, user_id, amount_cents, type (credit/debit), source (block_purchase/admin_deduction/refund), description, related_booking_id, stripe_payment_intent_id, created_by, created_at"
+        - "day_availability_subscriptions: id, user_id, day_of_week (0-6), is_active, created_at — UNIQUE(user_id, day_of_week)"
+        - "bulk_hour_ledger: id, type (purchase/deduction), hours, cost_per_hour_cents, total_cost_cents, description, related_balance_transaction_id, student_user_id, created_by, created_at"
+    - component: Block Account API
+      responsibility: Create Stripe PaymentIntent (simple, no Connect) for preset block amounts, handle webhook to credit balance
+      interfaces:
+        - "POST /api/block-purchase — creates simple PaymentIntent for $500/$1000/$2000/$5000 (NO destination, NO application_fee)"
+        - "Webhook handler extension — credits balance_cents and logs to balance_transactions on payment success"
+    - component: Appointment Request API
+      responsibility: CRUD for appointment requests with cost estimation, admin approve/deny
+      interfaces:
+        - "POST /api/appointment-requests — student creates request with duration, returns cost estimate"
+        - "PATCH /api/appointment-requests — admin approves/denies request"
+        - "GET /api/appointment-requests — list requests (filtered by user or all for admin)"
+    - component: Backup Queue API
+      responsibility: Join queue, process cancellations, manage timeout chain
+      interfaces:
+        - "POST /api/backup-queue — student joins queue for a schedule/slot"
+        - "POST /api/backup-queue/process — triggered on cancellation, notifies first in queue"
+        - "POST /api/backup-queue/timeout — handles 15-min expiry, advances to next"
+    - component: Admin Balance Deduction API
+      responsibility: Deduct from student balance based on actual Hobbs time, auto-deduct bulk hours, alert on low hours
+      interfaces:
+        - "POST /api/admin/balance-deduction — accepts user_id, hobbs_hours, aircraft_id, instructor_id, calculates and deducts"
+        - "Auto-inserts deduction entry into bulk_hour_ledger for Hobbs hours consumed"
+        - "Sends SMS to admin if remaining bulk hours < 10 after deduction"
+    - component: Bulk Hour Inventory API
+      responsibility: Admin logs bulk aircraft hour purchases and views remaining hours
+      interfaces:
+        - "POST /api/admin/bulk-hours — admin logs a new bulk hour purchase (hours, cost_per_hour, date, notes)"
+        - "GET /api/admin/bulk-hours — returns ledger entries + computed remaining hours (SUM of all hours)"
+    - component: Day Availability Subscriptions API
+      responsibility: Students subscribe to days of the week for slot-open SMS notifications
+      interfaces:
+        - "POST /api/day-subscriptions — student subscribes to a day_of_week"
+        - "GET /api/day-subscriptions — returns student's active subscriptions"
+        - "DELETE /api/day-subscriptions — student unsubscribes from a day"
+    - component: METAR Weather API
+      responsibility: Proxy aviation weather data to avoid CORS, with caching
+      interfaces:
+        - "GET /api/metar?station=KFRG — returns decoded METAR for given station"
+    - component: Portal Layout
+      responsibility: Dedicated layout shell for logged-in students with portal navigation
+      interfaces:
+        - "PortalLayout — wraps all /portal/* routes, includes PortalNav, no SimpleHeader/Footer"
+        - "PortalNav — sidebar/topbar with links: Dashboard, Schedule, Billing, Progress, Bookings"
+    - component: Dashboard Page
+      responsibility: Student home with widgets for upcoming flights, balance, progress summary, recent evaluations, METAR
+      interfaces:
+        - "Server component fetching from Supabase, METAR client component for weather"
+    - component: Billing Page
+      responsibility: Balance display, transaction history, block purchase buttons
+      interfaces:
+        - "Shows balance_cents formatted as dollars, lists balance_transactions, preset purchase CTAs"
+    - component: Schedule Request Page
+      responsibility: Calendar + request form with cost estimator replacing direct booking for training flights
+      interfaces:
+        - "Duration selector, date/time picker, real-time cost estimate, backup queue join button"
+  dependencies:
+    - component: Block Account API
+      relationship: Extends stripe-webhook handler; writes to balance_transactions and profiles.balance_cents
+    - component: Appointment Request API
+      relationship: Reads aircraft.rate_per_hour_cents and instructor_details.rate_per_hour_cents for cost estimation
+    - component: Backup Queue API
+      relationship: Calls lib/twilio.ts sendTwilioMessage; reads profiles for phone numbers
+    - component: Portal Layout
+      relationship: Uses AuthContext for auth state; renders portal nav components
+    - component: Dashboard Page
+      relationship: Reads from schedules, profiles, student_syllabus_progress, lesson_evaluations, METAR API
+    - component: Billing Page
+      relationship: Reads balance_transactions; calls block-purchase API
+    - component: Admin Balance Deduction API
+      relationship: Uses Supabase RPC for atomic balance update; writes balance_transactions; writes bulk_hour_ledger deduction entry
+    - component: Bulk Hour Inventory API
+      relationship: Reads/writes bulk_hour_ledger; admin-only access via supabase-admin
+    - component: Day Availability Subscriptions API
+      relationship: Reads/writes day_availability_subscriptions; called from backup queue process flow for day-based notifications
+  integration_points:
+    - Stripe webhook handler extended with block_purchase metadata detection (simple PaymentIntent, no Connect)
+    - Root layout unchanged — portal uses its own layout via Next.js route group
+    - AuthContext consumed by portal layout for auth gating
+    - Twilio SMS called from backup queue process, day-based notifications, low-balance alert, and low-bulk-hours admin alert
+    - Supabase RLS policies gate student access to own data only
+    - Backup queue process falls through to day_availability_subscriptions when slot-specific queue is exhausted
+    - Admin balance deduction auto-deducts bulk_hour_ledger and checks remaining hours
+
+contracts:
+  - from_task: task-1-1
+    to_task: task-2-1
+    interface: appointment_requests, backup_queue, balance_transactions tables exist with RLS
+    format: SQL migration applied, tables queryable via supabase-admin
+  - from_task: task-1-2
+    to_task: task-2-1
+    interface: TypeScript interfaces for new tables available in lib/supabase.ts
+    format: Exported TS interfaces (AppointmentRequest, BackupQueueEntry, BalanceTransaction)
+  - from_task: task-2-1
+    to_task: task-4-2
+    interface: Block purchase API returns Stripe clientSecret for frontend payment
+    format: "POST /api/block-purchase → { clientSecret: string, amount: number }"
+  - from_task: task-2-2
+    to_task: task-4-3
+    interface: Appointment request API for creating/listing requests with cost estimates
+    format: "POST /api/appointment-requests → { id, estimated_cost_cents, status }"
+  - from_task: task-2-3
+    to_task: task-5-1
+    interface: Backup queue API for joining queue and processing cancellations
+    format: "POST /api/backup-queue → { position }; POST /api/backup-queue/process triggers SMS chain"
+  - from_task: task-2-4
+    to_task: task-4-1
+    interface: METAR API returns weather data for dashboard widget
+    format: "GET /api/metar?station=KFRG → { raw_text, temperature, wind, visibility, flight_category }"
+  - from_task: task-2-5
+    to_task: task-4-2
+    interface: Admin balance deduction API available for admin billing page
+    format: "POST /api/admin/balance-deduction → { new_balance_cents, transaction_id }"
+  - from_task: task-1-1
+    to_task: task-2-6
+    interface: bulk_hour_ledger table exists with RLS (admin-only)
+    format: SQL migration applied, table queryable via supabase-admin
+  - from_task: task-1-2
+    to_task: task-2-6
+    interface: TypeScript interface for BulkHourLedgerEntry available
+    format: Exported TS interface in lib/supabase.ts
+  - from_task: task-1-1
+    to_task: task-2-7
+    interface: day_availability_subscriptions table exists with RLS
+    format: SQL migration applied, table queryable via supabase client (student RLS) and supabase-admin
+  - from_task: task-1-2
+    to_task: task-2-7
+    interface: TypeScript interface for DayAvailabilitySubscription available
+    format: Exported TS interface in lib/supabase.ts
+  - from_task: task-2-7
+    to_task: task-5-1
+    interface: Day subscription API and data available for cancellation notification flow
+    format: "GET /api/day-subscriptions queries active subscribers for a given day_of_week"
+  - from_task: task-3-1
+    to_task: task-4-1
+    interface: Portal layout shell with nav renders child pages
+    format: /app/portal/layout.tsx wraps all portal child routes
+
+tasks:
+  # ============================================================
+  # WAVE 1: Database migrations, new tables, RLS policies
+  # ============================================================
+  - id: task-1-1
+    title: Create database migrations for new tables and RLS policies
+    description: |
+      Create SQL migration file(s) in /supabase/ with:
+
+      1. `appointment_requests` table:
+         - id (uuid, PK, default gen_random_uuid())
+         - user_id (uuid, FK to auth.users, NOT NULL)
+         - aircraft_id (uuid, FK to aircraft, nullable — default aircraft if null)
+         - instructor_id (uuid, FK to instructor_details, nullable)
+         - requested_date (date, NOT NULL)
+         - requested_start_time (time, NOT NULL)
+         - duration_minutes (integer, NOT NULL, CHECK 30-480)
+         - estimated_cost_cents (integer, NOT NULL)
+         - status (text, NOT NULL, default 'requested', CHECK in requested/approved/denied/canceled/completed)
+         - admin_notes (text, nullable)
+         - created_at (timestamptz, default now())
+         - updated_at (timestamptz, default now())
+
+      2. `backup_queue` table:
+         - id (uuid, PK, default gen_random_uuid())
+         - schedule_id (uuid, FK to schedules, NOT NULL)
+         - user_id (uuid, FK to auth.users, NOT NULL)
+         - position (integer, NOT NULL)
+         - status (text, NOT NULL, default 'waiting', CHECK in waiting/notified/confirmed/expired/withdrawn)
+         - notified_at (timestamptz, nullable)
+         - expires_at (timestamptz, nullable)
+         - created_at (timestamptz, default now())
+         - UNIQUE(schedule_id, user_id) to prevent duplicate queue entries
+
+      3. `balance_transactions` table:
+         - id (uuid, PK, default gen_random_uuid())
+         - user_id (uuid, FK to auth.users, NOT NULL)
+         - amount_cents (integer, NOT NULL) — positive for credits, negative for debits
+         - type (text, NOT NULL, CHECK in credit/debit)
+         - source (text, NOT NULL, CHECK in block_purchase/admin_deduction/refund)
+         - description (text, nullable)
+         - related_booking_id (uuid, FK to bookings, nullable)
+         - stripe_payment_intent_id (text, nullable)
+         - created_by (uuid, FK to auth.users, nullable) — admin who performed deduction
+         - created_at (timestamptz, default now())
+
+      4. `day_availability_subscriptions` table (NEW — day-based slot notifications):
+         - id (uuid, PK, default gen_random_uuid())
+         - user_id (uuid, FK to auth.users, NOT NULL)
+         - day_of_week (integer, NOT NULL, CHECK 0-6, Sunday=0)
+         - is_active (boolean, NOT NULL, default true)
+         - created_at (timestamptz, default now())
+         - UNIQUE(user_id, day_of_week) to prevent duplicate subscriptions
+
+      5. `bulk_hour_ledger` table (NEW — aircraft bulk hour inventory tracking):
+         - id (uuid, PK, default gen_random_uuid())
+         - type (text, NOT NULL, CHECK in purchase/deduction)
+         - hours (decimal(10,2), NOT NULL) — positive for purchases, negative for deductions
+         - cost_per_hour_cents (integer, nullable — only for purchases)
+         - total_cost_cents (integer, nullable — only for purchases)
+         - description (text, nullable)
+         - related_balance_transaction_id (uuid, FK to balance_transactions, nullable — links to student flight deduction)
+         - student_user_id (uuid, FK to auth.users, nullable — which student's flight triggered deduction)
+         - created_by (uuid, FK to auth.users, NOT NULL)
+         - created_at (timestamptz, default now())
+
+      6. Supabase RPC function `deduct_balance`:
+         - Accepts: p_user_id uuid, p_amount_cents integer
+         - Uses SELECT FOR UPDATE on profiles row
+         - Returns new balance or raises error if insufficient funds
+         - Atomic transaction
+
+      7. RLS policies:
+         - appointment_requests: students SELECT own rows, INSERT own rows; admins full access
+         - backup_queue: students SELECT/INSERT/DELETE own rows; admins full access
+         - balance_transactions: students SELECT own rows; admins full access (INSERT via service role)
+         - day_availability_subscriptions: students SELECT/INSERT/UPDATE/DELETE own rows; admins full access
+         - bulk_hour_ledger: admin-only full access (no student access)
+
+      8. Indexes:
+         - appointment_requests: (user_id), (status), (requested_date)
+         - backup_queue: (schedule_id, position), (user_id)
+         - balance_transactions: (user_id, created_at DESC)
+         - day_availability_subscriptions: (day_of_week, is_active) for querying subscribers by day
+         - bulk_hour_ledger: (type), (created_at DESC)
+
+      Reference existing patterns in /supabase/RULES.sql and /supabase/SETUP.sql.
+    wave: 1
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Student can purchase a block account with preset amounts via Stripe"
+      - "Admin can deduct balance based on actual Hobbs time"
+      - "Student can join backup queue for a booked slot"
+      - "Student can subscribe to day-of-week availability notifications"
+      - "Admin can track bulk aircraft hour inventory"
+    priority: high
+    status: pending
+    dependencies: []
+    conflicts_with: []
+    context_files:
+      - path: supabase/SETUP.sql
+        description: Existing database setup — reference for table patterns, column types, FK conventions
+      - path: supabase/RULES.sql
+        description: Existing RLS policies — reference for policy naming and structure
+      - path: lib/supabase.ts
+        description: Existing TypeScript types — will need new interfaces in task-1-2
+      - path: docs/PRD.yaml
+        description: State machines for appointment_request, backup_queue, block balance
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Initial plan
+        timestamp: "2026-04-04"
+        estimated_effort: medium
+        estimated_files: 1
+        estimated_lines: 300
+        focus_area: /supabase/
+        verification:
+          - All five tables created with correct columns and constraints
+          - RLS policies applied and tested for student vs admin access
+          - deduct_balance RPC function works atomically
+          - Indexes created for query performance
+          - day_availability_subscriptions UNIQUE constraint prevents duplicate subscriptions
+          - bulk_hour_ledger admin-only RLS blocks student access
+        acceptance_criteria:
+          - Tables appointment_requests, backup_queue, balance_transactions, day_availability_subscriptions, bulk_hour_ledger exist in Supabase
+          - RLS prevents students from seeing other students' data
+          - deduct_balance RPC returns error on insufficient funds
+          - Unique constraint on backup_queue(schedule_id, user_id) prevents duplicates
+          - Unique constraint on day_availability_subscriptions(user_id, day_of_week) prevents duplicates
+          - bulk_hour_ledger only accessible by admins
+        failure_modes:
+          - scenario: Migration conflicts with existing tables or columns
+            likelihood: low
+            impact: high
+            mitigation: Check existing schema before migration; use IF NOT EXISTS
+
+        tech_stack:
+          - PostgreSQL
+          - Supabase RLS
+        test_coverage: null
+
+        requires_review: true
+        review_depth: full
+        review_security_sensitive: true
+
+  - id: task-1-2
+    title: Add TypeScript interfaces for new database tables
+    description: |
+      Extend /lib/supabase.ts with TypeScript interfaces for all five new tables:
+
+      1. `AppointmentRequest` interface matching appointment_requests table columns
+      2. `BackupQueueEntry` interface matching backup_queue table columns
+      3. `BalanceTransaction` interface matching balance_transactions table columns
+      4. `DayAvailabilitySubscription` interface matching day_availability_subscriptions table columns
+      5. `BulkHourLedgerEntry` interface matching bulk_hour_ledger table columns
+
+      Follow the existing pattern in the file (e.g., Profile, Slot, Booking interfaces).
+      Use proper TypeScript union types for status fields matching the CHECK constraints.
+    wave: 1
+    agent: gem-implementer
+    prototype: false
+    priority: medium
+    status: pending
+    dependencies: []
+    conflicts_with: []
+    context_files:
+      - path: lib/supabase.ts
+        description: Existing type definitions — append new interfaces following same patterns
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Initial plan
+        timestamp: "2026-04-04"
+        estimated_effort: small
+        estimated_files: 1
+        estimated_lines: 50
+        focus_area: /lib/supabase.ts
+        verification:
+          - Interfaces compile without errors
+          - Status fields use union literal types matching DB constraints
+        acceptance_criteria:
+          - AppointmentRequest, BackupQueueEntry, BalanceTransaction, DayAvailabilitySubscription, BulkHourLedgerEntry interfaces exported from lib/supabase.ts
+          - All column types correctly mapped (uuid→string, timestamptz→string, integer→number)
+        failure_modes:
+          - scenario: Type naming conflicts with existing exports
+            likelihood: low
+            impact: low
+            mitigation: Check existing exports before adding
+
+        tech_stack:
+          - TypeScript
+        test_coverage: null
+        requires_review: false
+        review_depth: null
+        review_security_sensitive: false
+
+  # ============================================================
+  # WAVE 2: API routes
+  # ============================================================
+  - id: task-2-1
+    title: Build block account purchase API and extend Stripe webhook
+    description: |
+      Create POST /app/api/block-purchase/route.ts:
+      - Accepts { amount, userId } where amount is one of 50000/100000/200000/500000 (cents)
+      - Validates preset amounts (reject arbitrary values)
+      - Creates a SIMPLE Stripe PaymentIntent (NO Stripe Connect destination charge, NO application_fee)
+        - All funds go to Isaac's main Stripe account
+        - No developer commission on block purchases
+      - metadata: { type: 'block_purchase', userId, amount }
+      - Adds 3.5% processing fee to total (matching existing pattern)
+      - Returns { clientSecret } for frontend Stripe Elements
+
+      Extend /app/api/stripe-webhook/route.ts:
+      - Detect metadata.type === 'block_purchase' on payment_intent.succeeded
+      - Credit profiles.balance_cents using supabase-admin (atomic update)
+      - Insert balance_transactions record (type: 'credit', source: 'block_purchase')
+      - Send confirmation email via Resend (follow existing sendBookingEmail pattern)
+      - SKIP all Stripe Connect split/transfer logic for block_purchase type
+
+      Follow existing patterns: Stripe init, supabase-admin usage, error responses.
+      Do NOT use resolveStripeConnectConfig() or any Connect routing for this payment type.
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Student can purchase a block account with preset amounts via Stripe"
+    priority: high
+    status: pending
+    dependencies:
+      - task-1-1
+      - task-1-2
+    conflicts_with: []
+    context_files:
+      - path: app/api/create-payment-intent/route.ts
+        description: Reference for Stripe PaymentIntent creation pattern, processing fee calculation
+      - path: app/api/stripe-webhook/route.ts
+        description: Must extend this file to handle block_purchase payment type
+      - path: lib/stripe-connect.ts
+        description: Stripe Connect split logic — block purchase may or may not use this (open question)
+      - path: lib/supabase-admin.ts
+        description: Server-side Supabase client for updating profiles.balance_cents
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Initial plan
+        timestamp: "2026-04-04"
+        estimated_effort: medium
+        estimated_files: 2
+        estimated_lines: 200
+        focus_area: /app/api/
+        verification:
+          - PaymentIntent created with correct amount + processing fee
+          - Only preset amounts accepted (400 for others)
+          - Webhook credits balance_cents on success
+          - balance_transactions record created with correct fields
+        acceptance_criteria:
+          - POST /api/block-purchase returns clientSecret for valid preset amounts
+          - Invalid amounts rejected with 400 error
+          - Successful payment updates profiles.balance_cents
+          - balance_transactions record logged for audit
+        failure_modes:
+          - scenario: Webhook processes same event twice, double-crediting balance
+            likelihood: medium
+            impact: critical
+            mitigation: Check stripe_payment_intent_id uniqueness in balance_transactions before inserting
+
+        tech_stack:
+          - Stripe API
+          - Next.js API Routes
+          - Supabase
+        test_coverage: null
+
+        requires_review: true
+        review_depth: full
+        review_security_sensitive: true
+
+  - id: task-2-2
+    title: Build appointment request API with cost estimation
+    description: |
+      Create /app/api/appointment-requests/route.ts with GET and POST handlers:
+
+      POST handler (student creates request):
+      - Accepts { userId, requestedDate, requestedStartTime, durationMinutes, aircraftId?, instructorId?, notes? }
+      - Validates: authenticated user, valid date/time, duration 30-480 min
+      - Calculates estimated_cost_cents:
+        - Aircraft rate from aircraft.rate_per_hour_cents (default $185/hr = 18500 cents)
+        - Instructor rate from instructor_details.rate_per_hour_cents (default $65/hr = 6500 cents)
+        - Total = (aircraft_rate + instructor_rate) × (duration_minutes / 60)
+      - Inserts into appointment_requests with status='requested'
+      - Sends admin notification email (follow slot-requests alert email pattern)
+      - Returns { id, estimated_cost_cents, status, breakdown: { aircraft_cents, instructor_cents, total_cents } }
+
+      GET handler:
+      - If admin: return all requests (optionally filtered by status)
+      - If student: return only own requests
+      - Include joined aircraft name and instructor name
+
+      Create /app/api/appointment-requests/[id]/route.ts with PATCH handler:
+      - Admin-only: update status to 'approved' or 'denied' with admin_notes
+      - On approve: optionally create a schedule entry
+      - Send student notification email on status change
+
+      Follow existing slot-requests pattern for email notifications and validation.
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Student can request a flight appointment with duration and see cost estimate"
+      - "Admin can approve/deny appointment requests"
+    priority: high
+    status: pending
+    dependencies:
+      - task-1-1
+      - task-1-2
+    conflicts_with: []
+    context_files:
+      - path: app/api/slot-requests/route.ts
+        description: Reference pattern for request creation + admin alert email
+      - path: lib/supabase-admin.ts
+        description: Server-side Supabase for inserts and queries
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Initial plan
+        timestamp: "2026-04-04"
+        estimated_effort: medium
+        estimated_files: 2
+        estimated_lines: 280
+        focus_area: /app/api/appointment-requests/
+        verification:
+          - Cost estimate matches formula (aircraft + instructor) × duration
+          - Admin receives email notification on new request
+          - GET filters correctly by role
+          - PATCH only allows admin to change status
+        acceptance_criteria:
+          - POST returns cost estimate with breakdown
+          - 2hr flight estimate = ($185 × 2) + ($65 × 2) = $500
+          - Admin can approve/deny via PATCH
+          - Student can only see own requests
+        failure_modes:
+          - scenario: Aircraft or instructor rate not found in DB
+            likelihood: low
+            impact: medium
+            mitigation: Use hardcoded default rates (18500, 6500 cents/hr) as fallback
+
+        tech_stack:
+          - Next.js API Routes
+          - Supabase
+          - Resend (email)
+        test_coverage: null
+        requires_review: true
+        review_depth: standard
+        review_security_sensitive: false
+
+  - id: task-2-3
+    title: Build backup queue API
+    description: |
+      Create /app/api/backup-queue/route.ts with POST and GET handlers:
+
+      POST handler (student joins queue):
+      - Accepts { scheduleId, userId }
+      - Validates: schedule exists and is booked, user not already in queue
+      - Calculates position as MAX(position) + 1 for that schedule_id
+      - Inserts into backup_queue with status='waiting'
+      - Returns { id, position, status }
+
+      GET handler:
+      - Student: returns own queue entries with schedule details
+      - Admin: returns all entries for a given schedule_id
+
+      DELETE handler:
+      - Student can withdraw from queue (set status='withdrawn')
+
+      Create /app/api/backup-queue/process/route.ts (POST):
+      - Called when a booking is canceled (will be triggered from cancellation flow)
+      - Finds first 'waiting' entry for the schedule_id (ORDER BY position ASC)
+      - Updates status to 'notified', sets notified_at=now(), expires_at=now()+15min
+      - Sends SMS via Twilio: "A flight slot opened up on [date/time]! Reply YES to confirm within 15 minutes."
+      - Returns { notified_user_id, position }
+
+      Create /app/api/backup-queue/timeout/route.ts (POST):
+      - Called by cron/edge function when expires_at is reached
+      - If status still 'notified' (no confirmation), set status='expired'
+      - Call process endpoint logic to notify next in queue
+      - Returns { expired_user_id, next_notified_user_id }
+
+      Use lib/twilio.ts sendTwilioMessage for SMS.
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Student can join backup queue for a booked slot"
+      - "Backup queue follows sequential notification with 15-min timeout"
+    priority: high
+    status: pending
+    dependencies:
+      - task-1-1
+      - task-1-2
+    conflicts_with: []
+    context_files:
+      - path: lib/twilio.ts
+        description: Twilio SMS helper — reuse sendTwilioMessage
+      - path: lib/supabase-admin.ts
+        description: Server-side queries for queue management
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Initial plan
+        timestamp: "2026-04-04"
+        estimated_effort: medium
+        estimated_files: 3
+        estimated_lines: 250
+        focus_area: /app/api/backup-queue/
+        verification:
+          - Queue position auto-increments correctly
+          - Duplicate user+schedule prevented by unique constraint
+          - SMS sent to first in queue on cancellation
+          - Timeout advances to next person
+        acceptance_criteria:
+          - Student can join queue and see their position
+          - On cancellation, first queued student gets SMS within 1 minute
+          - After 15-min timeout, next student is notified
+          - Student can withdraw from queue
+        failure_modes:
+          - scenario: SMS delivery failure prevents student from being notified
+            likelihood: low
+            impact: high
+            mitigation: Log SMS failures, auto-advance to next in queue on send error
+          - scenario: Multiple cancellation events trigger duplicate notifications
+            likelihood: medium
+            impact: medium
+            mitigation: Check status='waiting' before notifying — idempotent processing
+
+        tech_stack:
+          - Next.js API Routes
+          - Supabase
+          - Twilio SMS
+        test_coverage: null
+        requires_review: true
+        review_depth: standard
+        review_security_sensitive: false
+
+  - id: task-2-4
+    title: Build METAR weather proxy API
+    description: |
+      Create /app/api/metar/route.ts with GET handler:
+
+      - Accepts query param: station (e.g., KFRG for Farmingdale Republic)
+      - Validates station code (alphanumeric, 4 chars)
+      - Fetches from aviationweather.gov METAR API:
+        https://aviationweather.gov/api/data/metar?ids={station}&format=json
+      - Cache TTL: aligned to the top of the hour. Calculate seconds until next :55 mark and use that as revalidate TTL.
+        (METARs publish around :55 of each hour, so cache expires right before the next METAR is issued)
+      - Returns parsed METAR data: { raw_text, station, observation_time, temperature_c, dewpoint_c, wind_dir_degrees, wind_speed_kt, visibility_statute_mi, flight_category, raw_observation }
+      - Returns graceful error if API is down: { error: 'Weather data temporarily unavailable' }
+
+      Default station: KFRG (Republic Airport, Farmingdale NY — Merlin's home base).
+      Frontend widget should poll every 60 minutes, aligned to :55 of the hour.
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Student dashboard shows balance, upcoming flights, progress, evaluations, and METAR"
+    priority: medium
+    status: pending
+    dependencies: []
+    conflicts_with: []
+    context_files: []
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Initial plan
+        timestamp: "2026-04-04"
+        estimated_effort: small
+        estimated_files: 1
+        estimated_lines: 80
+        focus_area: /app/api/metar/
+        verification:
+          - Returns valid METAR data for KFRG
+          - Handles API downtime gracefully
+          - Station code validated (prevents injection)
+        acceptance_criteria:
+          - GET /api/metar?station=KFRG returns parsed weather data
+          - Invalid station codes rejected
+          - Response cached for 10 minutes
+        failure_modes:
+          - scenario: aviationweather.gov API format changes
+            likelihood: low
+            impact: low
+            mitigation: Return raw_text as fallback even if parsing fails
+
+        tech_stack:
+          - Next.js API Routes
+        test_coverage: null
+        requires_review: false
+        review_depth: null
+        review_security_sensitive: false
+
+  - id: task-2-5
+    title: Build admin balance deduction API
+    description: |
+      Create /app/api/admin/balance-deduction/route.ts with POST handler:
+
+      - Admin-only (verify is_admin from profile)
+      - Accepts { userId, hobbsHours, aircraftId, instructorId, notes? }
+      - Looks up aircraft.rate_per_hour_cents and instructor_details.rate_per_hour_cents
+      - Calculates deduction: (aircraft_rate + instructor_rate) × hobbsHours (in cents)
+      - Calls Supabase RPC deduct_balance(p_user_id, p_amount_cents)
+      - On success:
+        1. Inserts balance_transactions record (type: 'debit', source: 'admin_deduction', created_by: admin user id)
+        2. Auto-inserts bulk_hour_ledger deduction entry (type: 'deduction', hours: -hobbsHours, student_user_id, related_balance_transaction_id)
+        3. Queries remaining bulk hours: SELECT SUM(hours) FROM bulk_hour_ledger
+        4. If remaining bulk hours < 10: send SMS to admin (ADMIN_PHONE env var) warning of low inventory
+      - Returns { new_balance_cents, deducted_cents, transaction_id, remaining_bulk_hours }
+      - On insufficient funds: returns 400 with ERR_BLOCK_002 message
+      - After successful deduction: check if new balance < 1 avg session cost (~$250×100 = 25000 cents)
+        - If yes, trigger low-balance SMS alert to student via Twilio
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Admin can deduct balance based on actual Hobbs time"
+      - "Low balance SMS alert fires when balance < 1 average flight session cost"
+    priority: high
+    status: pending
+    dependencies:
+      - task-1-1
+      - task-1-2
+    conflicts_with: []
+    context_files:
+      - path: lib/twilio.ts
+        description: SMS helper for low-balance alert
+      - path: lib/supabase-admin.ts
+        description: Server-side Supabase for RPC call and queries
+      - path: docs/PRD.yaml
+        description: Error codes ERR_BLOCK_002 and low balance threshold
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Initial plan
+        timestamp: "2026-04-04"
+        estimated_effort: medium
+        estimated_files: 1
+        estimated_lines: 150
+        focus_area: /app/api/admin/balance-deduction/
+        verification:
+          - Deduction amount correct for given Hobbs time and rates
+          - Atomic deduction via RPC prevents negative balance
+          - balance_transactions record created
+          - Low-balance SMS sent when threshold crossed
+        acceptance_criteria:
+          - 1.8 hrs Hobbs deducts (1.8 × 18500 + 1.8 × 6500) = 45000 cents = $450
+          - Insufficient funds returns 400 error
+          - SMS alert sent when balance drops below ~$250
+          - Non-admin users rejected with 403
+        failure_modes:
+          - scenario: Admin enters invalid Hobbs time (negative or extremely large)
+            likelihood: low
+            impact: medium
+            mitigation: Validate hobbsHours > 0 and <= 24 server-side
+
+        tech_stack:
+          - Next.js API Routes
+          - Supabase RPC
+          - Twilio SMS
+        test_coverage: null
+        requires_review: true
+        review_depth: full
+        review_security_sensitive: true
+
+  - id: task-2-6
+    title: Build admin bulk hour inventory API
+    description: |
+      Create /app/api/admin/bulk-hours/route.ts with POST and GET handlers:
+
+      POST handler (admin logs a new bulk purchase from aircraft owner):
+      - Admin-only (verify is_admin)
+      - Accepts { hours, costPerHourCents, notes? }
+      - Calculates total_cost_cents = hours × costPerHourCents
+      - Inserts into bulk_hour_ledger (type: 'purchase', hours: positive, cost_per_hour_cents, total_cost_cents, created_by: admin)
+      - Returns { id, hours, total_cost_cents, remaining_hours }
+
+      GET handler:
+      - Admin-only
+      - Returns full ledger (ordered by created_at DESC) + computed remaining_hours (SUM of all hours)
+      - Include related student name for deduction entries (via student_user_id → profiles.full_name)
+      - Returns { remaining_hours, ledger: [...entries] }
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Admin can track bulk aircraft hour inventory"
+    priority: medium
+    status: pending
+    dependencies:
+      - task-1-1
+      - task-1-2
+    conflicts_with: []
+    context_files:
+      - path: lib/supabase-admin.ts
+        description: Server-side Supabase for admin queries
+    planning_pass: 2
+    planning_history:
+      - pass: 2
+        reason: Added in planning pass 2 — bulk hour tracking feature
+        timestamp: "2026-04-04"
+        estimated_effort: small
+        estimated_files: 1
+        estimated_lines: 100
+        focus_area: /app/api/admin/bulk-hours/
+        verification:
+          - POST creates ledger entry with correct total_cost calculation
+          - GET returns remaining hours as SUM of all ledger entries
+          - Non-admin users rejected with 403
+        acceptance_criteria:
+          - Admin can log a 50-hour purchase at $150/hr → total $7500
+          - GET returns remaining_hours correctly after purchases and deductions
+          - Non-admin requests return 403
+        failure_modes:
+          - scenario: Floating point precision on hours calculation
+            likelihood: low
+            impact: low
+            mitigation: Use decimal(10,2) in DB and round to 2 decimal places
+        tech_stack:
+          - Next.js API Routes
+          - Supabase
+        test_coverage: null
+        requires_review: true
+        review_depth: standard
+        review_security_sensitive: false
+
+  - id: task-2-7
+    title: Build day availability subscriptions API
+    description: |
+      Create /app/api/day-subscriptions/route.ts with POST, GET, and DELETE handlers:
+
+      POST handler (student subscribes to a day):
+      - Accepts { dayOfWeek } where dayOfWeek is 0-6 (Sunday=0)
+      - Uses authenticated user_id from session
+      - Upserts into day_availability_subscriptions (set is_active=true)
+      - Returns { id, day_of_week, is_active }
+
+      GET handler:
+      - Returns all active subscriptions for the authenticated user
+      - Returns { subscriptions: [{ id, day_of_week, is_active }] }
+
+      DELETE handler:
+      - Accepts { dayOfWeek } or { id }
+      - Sets is_active=false (soft delete) for the authenticated user's subscription
+      - Returns { success: true }
+
+      Integration note: When a slot opens (cancellation or new slot created), the backup queue
+      process flow should query day_availability_subscriptions WHERE day_of_week matches
+      the slot's day AND is_active=true, then send SMS via Twilio to all matching subscribers.
+      This happens AFTER the slot-specific backup queue is exhausted.
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Student can subscribe to day-of-week availability notifications"
+    priority: medium
+    status: pending
+    dependencies:
+      - task-1-1
+      - task-1-2
+    conflicts_with: []
+    context_files:
+      - path: lib/supabase-admin.ts
+        description: Server-side Supabase for queries
+      - path: lib/twilio.ts
+        description: SMS helper for day-based notifications
+    planning_pass: 2
+    planning_history:
+      - pass: 2
+        reason: Added in planning pass 2 — day-based availability notifications
+        timestamp: "2026-04-04"
+        estimated_effort: small
+        estimated_files: 1
+        estimated_lines: 100
+        focus_area: /app/api/day-subscriptions/
+        verification:
+          - Student can subscribe to specific days
+          - GET returns only active subscriptions for the user
+          - DELETE soft-deletes the subscription
+          - UNIQUE constraint prevents duplicate day subscriptions
+        acceptance_criteria:
+          - Student subscribes to Monday (day 1) and Wednesday (day 3)
+          - GET returns both subscriptions
+          - DELETE on Monday sets is_active=false
+          - Duplicate subscription attempt upserts (no error)
+        failure_modes:
+          - scenario: Student subscribes to all 7 days creating notification spam
+            likelihood: low
+            impact: low
+            mitigation: Acceptable — students control their own subscriptions and can unsubscribe
+        tech_stack:
+          - Next.js API Routes
+          - Supabase
+        test_coverage: null
+        requires_review: false
+        review_depth: null
+        review_security_sensitive: false
+
+  # ============================================================
+  # WAVE 3: Portal layout, nav, auth routing
+  # ============================================================
+  - id: task-3-1
+    title: Create portal layout shell with dedicated navigation
+    description: |
+      Create /app/portal/layout.tsx:
+      - Server component that wraps all portal pages
+      - robots: noindex, nofollow (like existing dashboard layout)
+      - Does NOT render SimpleHeader or Footer (portal has its own nav)
+      - Renders <PortalNav /> component + {children}
+      - Auth-gated: redirects to /login if no session (use server-side Supabase check or client-side AuthContext)
+
+      Create /app/portal/components/PortalNav.tsx:
+      - Client component using AuthContext for user info
+      - Responsive sidebar (desktop) / bottom bar (mobile) navigation
+      - Links: Dashboard (/portal), Schedule (/portal/schedule), Billing (/portal/billing), Progress (/portal/progress), Bookings (/portal/bookings)
+      - Shows user name, balance (formatted from profile.balance_cents), avatar/initials
+      - Sign out button
+      - Active link highlighting based on current pathname
+
+      Styling: Use existing Tailwind classes, dark theme consistent with marketing site aesthetic.
+      The root layout.tsx stays UNCHANGED — portal layout overrides the shell entirely via Next.js route groups.
+    wave: 3
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Student portal is completely separate from marketing site after login"
+    priority: high
+    status: pending
+    dependencies:
+      - task-1-2
+    conflicts_with: []
+    context_files:
+      - path: app/layout.tsx
+        description: Root layout — do NOT modify. Portal layout overrides via route group.
+      - path: app/contexts/AuthContext.tsx
+        description: Auth state provider — portal nav uses user, profile, isAdmin
+      - path: app/components/SimpleHeader.tsx
+        description: Marketing nav — reference for styling, will NOT appear in portal
+      - path: app/dashboard/layout.tsx
+        description: Existing minimal layout — portal layout replaces this pattern
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Initial plan
+        timestamp: "2026-04-04"
+        estimated_effort: medium
+        estimated_files: 2
+        estimated_lines: 250
+        focus_area: /app/portal/
+        verification:
+          - Portal pages render without SimpleHeader/Footer
+          - Navigation links work and highlight correctly
+          - Unauthenticated users redirected to /login
+          - Balance displays correctly in nav
+        acceptance_criteria:
+          - /portal/* routes render with PortalNav, no marketing nav
+          - All 5 nav links present and functional
+          - User name and balance visible in nav
+          - Sign out works from portal
+        failure_modes:
+          - scenario: Root layout SimpleHeader still renders on portal routes
+            likelihood: medium
+            impact: high
+            mitigation: Use Next.js route group pattern — portal layout.tsx provides its own <html>/<body> or use template approach to exclude root layout elements
+
+        tech_stack:
+          - Next.js App Router
+          - React
+          - Tailwind CSS
+        test_coverage: null
+        requires_review: true
+        review_depth: standard
+        review_security_sensitive: false
+
+  # ============================================================
+  # WAVE 4: Dashboard, billing, schedule pages
+  # ============================================================
+  - id: task-4-1
+    title: Build student dashboard page
+    description: |
+      Create /app/portal/page.tsx (portal home = dashboard):
+
+      Dashboard widgets (responsive grid layout):
+      1. **Upcoming Flights** — Query schedules table for user's future flights (joined with aircraft name). Show date, time, aircraft, status. Max 5 upcoming.
+      2. **Account Balance** — Display profiles.balance_cents formatted as dollars. "Top Up" CTA linking to /portal/billing.
+      3. **Training Progress** — Summary from student_syllabus_progress: completed/total items, percentage bar. Link to /portal/progress.
+      4. **Recent Evaluations** — Last 3 lesson_evaluations with date, grade/notes preview. Link to full progress page.
+      5. **Weather (METAR)** — Client component fetching /api/metar?station=KFRG. Shows flight category (VFR/MVFR/IFR/LIFR) with color coding, temperature, wind, visibility. Auto-refresh every 10 min.
+
+      Use Supabase client-side queries for student data (RLS handles auth filtering).
+      Weather widget is a separate client component: /app/portal/components/WeatherWidget.tsx.
+    wave: 4
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Student dashboard shows balance, upcoming flights, progress, evaluations, and METAR"
+    priority: high
+    status: pending
+    dependencies:
+      - task-3-1
+      - task-2-4
+    conflicts_with: []
+    context_files:
+      - path: app/progress/page.tsx
+        description: Existing progress page — reference for syllabus queries
+      - path: app/bookings/page.tsx
+        description: Existing bookings page — reference for booking/schedule queries
+      - path: app/contexts/AuthContext.tsx
+        description: Auth context for user ID
+      - path: lib/supabase.ts
+        description: Client-side Supabase for queries
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Initial plan
+        timestamp: "2026-04-04"
+        estimated_effort: medium
+        estimated_files: 3
+        estimated_lines: 300
+        focus_area: /app/portal/
+        verification:
+          - All 5 widgets render with real data
+          - METAR widget handles API errors gracefully
+          - Balance displays correctly
+          - Progress percentage calculated correctly
+        acceptance_criteria:
+          - Dashboard shows upcoming flights from schedules table
+          - Balance widget shows current balance_cents as formatted dollars
+          - Progress shows completion percentage
+          - METAR widget shows flight category with color coding
+          - Evaluations show last 3 entries
+        failure_modes:
+          - scenario: Student has no data for one or more widgets
+            likelihood: medium
+            impact: low
+            mitigation: Show empty state messages ("No upcoming flights", "No evaluations yet")
+
+        tech_stack:
+          - Next.js App Router
+          - React
+          - Supabase
+          - Tailwind CSS
+        test_coverage: null
+        requires_review: false
+        review_depth: null
+        review_security_sensitive: false
+
+  - id: task-4-2
+    title: Build billing page with block purchase and transaction history
+    description: |
+      Create /app/portal/billing/page.tsx:
+
+      Sections:
+      1. **Current Balance** — Large display of profiles.balance_cents formatted as dollars.
+
+      2. **Purchase Block Account** — Grid of 4 preset buttons: $500, $1,000, $2,000, $5,000.
+         - Each button shows the amount + processing fee (3.5%)
+         - On click: calls POST /api/block-purchase, receives clientSecret
+         - Opens Stripe Elements payment modal (follow existing PaymentForm pattern from schedule page)
+         - On success: redirect to /portal/billing?success=true, refresh balance
+
+      3. **Transaction History** — Table/list of balance_transactions ordered by created_at DESC.
+         - Columns: Date, Type (credit/debit), Amount, Source, Description
+         - Credits shown in green, debits in red
+         - Paginated or "Load more" for long histories
+
+      Stripe Elements setup: Reuse loadStripe + Elements pattern from /app/schedule/page.tsx.
+      Create a reusable BlockPurchaseModal component: /app/portal/components/BlockPurchaseModal.tsx.
+    wave: 4
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Student can purchase a block account with preset amounts via Stripe"
+    priority: high
+    status: pending
+    dependencies:
+      - task-3-1
+      - task-2-1
+      - task-2-5
+    conflicts_with: []
+    context_files:
+      - path: app/schedule/page.tsx
+        description: Reference for Stripe Elements integration (PaymentForm, loadStripe, Elements)
+      - path: app/contexts/AuthContext.tsx
+        description: Auth context for userId and profile.balance_cents
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Initial plan
+        timestamp: "2026-04-04"
+        estimated_effort: medium
+        estimated_files: 3
+        estimated_lines: 280
+        focus_area: /app/portal/billing/
+        verification:
+          - All 4 preset amounts displayed with correct processing fees
+          - Stripe payment modal opens and processes payment
+          - Transaction history loads and displays correctly
+          - Balance refreshes after successful purchase
+        acceptance_criteria:
+          - 4 block purchase buttons showing $500, $1,000, $2,000, $5,000
+          - Processing fee shown (e.g., $500 + $17.50 fee = $517.50)
+          - Stripe payment completes and balance updates
+          - Transaction history shows credits and debits
+        failure_modes:
+          - scenario: Stripe Elements fails to load
+            likelihood: low
+            impact: high
+            mitigation: Show error state with retry button, log to console
+
+        tech_stack:
+          - Next.js App Router
+          - React
+          - Stripe Elements
+          - Supabase
+          - Tailwind CSS
+        test_coverage: null
+        requires_review: true
+        review_depth: standard
+        review_security_sensitive: true
+
+  - id: task-4-3
+    title: Build portal schedule page with appointment request flow and cost estimator
+    description: |
+      Create /app/portal/schedule/page.tsx:
+
+      Main flow:
+      1. **Calendar View** — Show available and booked time slots (query schedules/slots tables).
+         - Available slots: green, clickable
+         - Booked slots: gray, show "Join Backup Queue" button
+
+      2. **Request Appointment Form** (for requesting custom times):
+         - Date picker, start time picker, duration selector (0.5hr increments, 0.5-4hrs)
+         - Aircraft selector (from aircraft table — default selection)
+         - Cost Estimator widget (updates live as duration changes):
+           - Aircraft: $185/hr × {duration} = ${amount}
+           - Instructor: $65/hr × {duration} = ${amount}
+           - Estimated Total: ${total}
+           - Note: "Landing fees may apply and are not included in this estimate"
+         - Submit button → POST /api/appointment-requests
+         - Success: show confirmation with status='requested', note that admin will review
+
+      3. **My Requests** — List of student's appointment requests with status badges (requested/approved/denied/canceled).
+
+      4. **Join Backup Queue** — When clicking a booked slot:
+         - Show slot details and current queue length
+         - "Join Waitlist" button → POST /api/backup-queue
+         - Confirmation: "You're #N in the backup queue. You'll be notified via SMS if this slot opens up."
+
+      5. **Day Notifications** — Section to manage day-of-week subscriptions:
+         - Toggle buttons for each day (Mon-Sun)
+         - Active subscriptions highlighted
+         - "Get notified when flights open on these days" label
+         - Uses GET/POST/DELETE /api/day-subscriptions
+
+      Create /app/portal/components/CostEstimator.tsx:
+      - Client component, receives duration + rates, renders live cost breakdown.
+
+      Reference existing /app/schedule/page.tsx for calendar patterns.
+    wave: 4
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Student can request a flight appointment with duration and see cost estimate"
+      - "Student can join backup queue for a booked slot"
+    priority: high
+    status: pending
+    dependencies:
+      - task-3-1
+      - task-2-2
+      - task-2-3
+      - task-2-7
+    conflicts_with: [] — reference for calendar layout and slot display
+      - path: app/contexts/AuthContext.tsx
+        description: Auth context for user info
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Initial plan
+        timestamp: "2026-04-04"
+        estimated_effort: large
+        estimated_files: 3
+        estimated_lines: 300
+        focus_area: /app/portal/schedule/
+        verification:
+          - Cost estimator shows correct calculation for various durations
+          - Appointment request form submits successfully
+          - Backup queue join works for booked slots
+          - Request list shows all student's requests with status
+        acceptance_criteria:
+          - 2hr flight shows ($185×2) + ($65×2) = $500 estimate
+          - Landing fee note visible below estimate
+          - Appointment request creates record and shows confirmation
+          - Join backup queue shows position and SMS notification notice
+        failure_modes:
+          - scenario: Calendar data doesn't load or is stale
+            likelihood: low
+            impact: medium
+            mitigation: Add loading skeleton and error boundary with retry
+
+        tech_stack:
+          - Next.js App Router
+          - React
+          - Supabase
+          - Tailwind CSS
+        test_coverage: null
+        requires_review: true
+        review_depth: standard
+        review_security_sensitive: false
+
+  # ============================================================
+  # WAVE 5: Backup queue notification system
+  # ============================================================
+  - id: task-5-1
+    title: Implement backup queue SMS notification chain and cancellation integration
+    description: |
+      Wire up the full backup queue notification flow:
+
+      1. **Cancellation trigger** — When a booking is canceled (via existing or new cancellation UI):
+         - Check if appointment is > 24 hrs away (enforce 24hr cancellation window)
+         - If < 24 hrs: reject cancellation with ERR_APPT_002
+         - If > 24 hrs: mark booking as canceled, then call POST /api/backup-queue/process for that schedule_id
+
+      2. **SMS notification content**:
+         - First notification: "Hey {name}! A flight slot just opened up on {date} at {time} at Merlin Flight Training. Reply YES within 15 minutes to claim it, or it'll go to the next student."
+         - Confirmation response handling: Create /app/api/twilio-webhook/route.ts to receive SMS replies
+           - Parse incoming SMS for "YES" (case-insensitive)
+           - Match to pending backup_queue entry via phone number
+           - If YES within 15 min: set status='confirmed', create booking, notify student via SMS
+           - If timeout: /api/backup-queue/timeout handles expiry and next notification
+
+      3. **Timeout processing**:
+         - Create a Supabase Edge Function or Next.js API route callable via cron
+         - Query backup_queue WHERE status='notified' AND expires_at < now()
+         - For each expired entry: set status='expired', process next in queue
+         - Cron interval: every 1 minute
+
+      4. **Day-based availability notifications** (after backup queue exhausted or no queue):
+         - When a slot opens (cancellation processed through backup queue, or new slot created):
+         - After backup queue is processed (all confirmed/expired/withdrawn), check day_availability_subscriptions
+         - Query subscribers WHERE day_of_week matches the slot's day AND is_active=true
+         - Exclude: the student who canceled, any student already in the backup queue for that slot
+         - Debounce: only notify if student's last day-notification was > 1 hour ago
+         - SMS: "Hey {name}! A flight slot just opened up on {day_name} ({date}) at Merlin Flight Training. Check your portal to request it: {portal_url}/schedule"
+         - Log notification sent (to support debounce check)
+
+      5. **Low-balance SMS alert** (triggered from task-2-5 balance deduction):
+         - Already handled in task-2-5, but verify integration here
+         - Message: "Hi {name}, your Merlin Flight Training balance is ${balance}. That's less than one flight session. Top up at {portal_url}/billing"
+
+      Use lib/twilio.ts for all SMS sending.
+      Twilio webhook must verify request signature for security.
+    wave: 5
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Backup queue follows sequential notification with 15-min timeout"
+      - "24-hour cancellation window enforced"
+      - "Low balance SMS alert fires when balance < 1 average flight session cost"
+    priority: high
+    status: pending
+    dependencies:
+      - task-2-3
+      - task-2-5
+      - task-2-7
+      - task-4-3
+    conflicts_with: []
+    context_files:
+      - path: lib/twilio.ts
+        description: Twilio SMS helper — reuse for all outbound SMS
+      - path: app/api/backup-queue/process/route.ts
+        description: Process endpoint created in task-2-3
+      - path: app/api/backup-queue/timeout/route.ts
+        description: Timeout endpoint created in task-2-3
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Initial plan
+        timestamp: "2026-04-04"
+        estimated_effort: large
+        estimated_files: 3
+        estimated_lines: 280
+        focus_area: /app/api/twilio-webhook/, cancellation flow
+        verification:
+          - Cancellation within 24hrs blocked
+          - Cancellation beyond 24hrs triggers backup notification
+          - SMS sent to first in queue
+          - YES reply within 15 min confirms booking
+          - Timeout advances to next student
+          - Low-balance SMS sent when threshold crossed
+        acceptance_criteria:
+          - Student cancels > 24hrs out: backup queue processes
+          - Student cancels < 24hrs out: rejected with error
+          - First backup gets SMS within 1 minute of cancellation
+          - No response in 15 min: next backup notified
+          - YES reply confirms slot for that student
+        failure_modes:
+          - scenario: Twilio webhook receives spoofed requests
+            likelihood: medium
+            impact: high
+            mitigation: Validate Twilio request signature using X-Twilio-Signature header
+          - scenario: Cron misses timeout window by several minutes
+            likelihood: low
+            impact: medium
+            mitigation: Use 1-min interval; timeout logic processes all expired entries, not just one
+
+        tech_stack:
+          - Next.js API Routes
+          - Twilio SMS + Webhooks
+          - Supabase
+        test_coverage: null
+        requires_review: true
+        review_depth: full
+        review_security_sensitive: true
+
+  # ============================================================
+  # WAVE 6: Integration review
+  # ============================================================
+  - id: task-6-1
+    title: Integration review and security audit
+    description: |
+      Comprehensive review of all implemented features:
+
+      1. **Stripe Payment Flow**:
+         - Block purchase → webhook → balance credit → transaction log
+         - Idempotency: duplicate webhook events do not double-credit
+         - Processing fee calculation correct
+
+      2. **Appointment Request Flow**:
+         - Student request → admin notification → approve/deny → status update
+         - Cost estimation accuracy
+         - Auth gating (students only see own, admins see all)
+
+      3. **Backup Queue Flow**:
+         - Join queue → cancellation → sequential SMS → YES/timeout → next in queue
+         - 24hr cancellation enforcement
+         - Twilio webhook signature validation
+
+      4. **Balance Management**:
+         - Block purchase credits correctly
+         - Admin deduction calculates correctly from Hobbs time
+         - Low-balance alert fires at correct threshold
+         - Atomic deduction prevents negative balance
+         - balance_transactions audit trail complete
+
+      5. **Security Review**:
+         - RLS policies enforce data isolation
+         - Admin-only routes verify is_admin
+         - Stripe webhook validates signing secret
+         - Twilio webhook validates signature
+         - No SQL injection vectors
+         - Input validation on all API routes
+
+      6. **Portal UX**:
+         - Portal layout completely separate from marketing
+         - All nav links functional
+         - Dashboard widgets load and display correctly
+         - Responsive layout works on mobile
+
+      7. **Bulk Hour Tracking**:
+         - Admin can log bulk purchases and view remaining hours
+         - Auto-deduction works when admin deducts student balance
+         - Low-hours SMS alert fires when remaining < 10
+
+      8. **Day-Based Notifications**:
+         - Students can subscribe/unsubscribe to days
+         - Notifications fire after backup queue is exhausted
+         - Debounce prevents spam
+         - Day subscriptions included in portal schedule page
+    wave: 6
+    agent: gem-reviewer
+    prototype: false
+    priority: high
+    status: pending
+    dependencies:
+      - task-4-1
+      - task-4-2
+      - task-4-3
+      - task-5-1
+      - task-2-6
+      - task-2-7
+    conflicts_with: []
+    context_files:
+      - path: app/portal/layout.tsx
+        description: Portal layout to review
+      - path: app/api/stripe-webhook/route.ts
+        description: Extended webhook to review
+      - path: app/api/block-purchase/route.ts
+        description: New API to review
+      - path: app/api/appointment-requests/route.ts
+        description: New API to review
+      - path: app/api/backup-queue/route.ts
+        description: New API to review
+      - path: app/api/twilio-webhook/route.ts
+        description: New webhook to review for security
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Initial plan
+        timestamp: "2026-04-04"
+        estimated_effort: medium
+        estimated_files: 0
+        estimated_lines: 0
+        focus_area: All new code
+        verification:
+          - All acceptance criteria from PRD verified
+          - No critical security vulnerabilities found
+          - All payment flows tested end-to-end
+        acceptance_criteria:
+          - All 9 PRD acceptance criteria pass
+          - No high/critical security findings
+          - All API routes validate input and check auth
+          - RLS policies tested for data isolation
+        failure_modes:
+          - scenario: Missed security vulnerability in payment flow
+            likelihood: low
+            impact: critical
+            mitigation: Use OWASP checklist for payment endpoints, verify Stripe best practices
+
+        requires_review: true
+        review_depth: full
+        review_security_sensitive: true
+
+planning_pass: 2
+planning_history:
+  - pass: 1
+    reason: Initial plan creation
+    timestamp: "2026-04-04"
+  - pass: 2
+    reason: |
+      Resolved 3 open questions. Added 2 new features (bulk hour inventory tracking, day-based availability subscriptions).
+      Updated task-2-1 (no Stripe Connect), task-2-3 (day notification fallback), task-2-4 (hourly :55 cache),
+      task-2-5 (bulk hour auto-deduction + low hrs admin alert). Added task-2-6 (bulk hours admin API),
+      task-2-7 (day subscriptions API). Updated task-1-1/task-1-2 with 2 new tables/interfaces.
+      Updated task-5-1 with day-based notification in cancellation flow.
+    timestamp: "2026-04-04"

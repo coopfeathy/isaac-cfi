@@ -1,0 +1,234 @@
+prd_id: student-portal-overhaul-2026
+version: "1.0.0"
+
+user_stories:
+  - as_a: Student
+    i_want: Purchase a block of flight training credit upfront (e.g. $1000)
+    so_that: I can pre-fund my training and simplify per-flight payments
+  - as_a: Student
+    i_want: See my account balance and billing history in a billing portal
+    so_that: I can track my spending and know when to top up
+  - as_a: Student
+    i_want: Request a flight appointment from the schedule page with a cost estimate
+    so_that: I know how much to expect before I fly and can plan my budget
+  - as_a: Student
+    i_want: Sign up as a backup for time slots that are booked
+    so_that: I get notified via text when a cancellation opens a slot for me
+  - as_a: Student
+    i_want: See a proper student portal after login instead of the marketing site
+    so_that: I have quick access to my flights, balance, progress, and evaluations
+  - as_a: Admin/Instructor
+    i_want: Approve or deny student appointment requests
+    so_that: I control my schedule while giving students the ability to request times
+  - as_a: Admin
+    i_want: Deduct from a student's block balance based on actual Hobbs time after a flight
+    so_that: Billing is accurate to real flight time, not estimates
+
+scope:
+  in_scope:
+    - Block Account purchase system (preset amounts $500, $1000, $2000, $5000)
+    - Student billing portal (balance display, transaction history, top-up)
+    - Schedule page with appointment request flow and cost estimation
+    - Cost estimator showing aircraft hourly rate + instructor rate for requested duration
+    - Backup/waitlist queue system with SMS notifications via Twilio
+    - Student portal overhaul with dedicated layout/nav (no marketing pages)
+    - Student dashboard with upcoming flights, balance, progress, recent evaluations, METAR weather
+    - Admin balance deduction interface (post-flight actual Hobbs time entry)
+    - Low balance alert (SMS) when ~1 flight session remaining based on average cost
+    - 24-hour cancellation policy enforcement triggering backup notification chain
+    - Backup queue with 15-minute response timeout, sequential notification
+    - Day-based availability notifications (students subscribe to specific days for openings)
+    - Bulk hour inventory tracking (admin ledger of pre-purchased aircraft hours)
+    - Admin bulk hour purchase form (hours, cost/hr, date, notes)
+    - Low bulk hours alert (SMS/email when below 10 hours remaining)
+    - Auto-deduct from bulk hour pool when student flight balance deducted
+  out_of_scope:
+    - Changing existing Stripe Connect payout split logic
+    - Modifying admin dashboard
+    - Mobile native app (web responsive only)
+    - Real-time in-app chat/messaging
+    - Instructor availability calendar management
+    - Discovery flight funnel changes
+    - Marketing site redesign
+    - Payment discount for block accounts (same rates, prepaid convenience only)
+    - Stripe Connect splits on block account purchases (goes 100% to Isaac's account)
+    - Developer commission on block account purchases
+
+acceptance_criteria:
+  - criterion: Student can purchase a block account with preset amounts via Stripe
+    verification: Complete a test purchase of each preset amount, verify balance_cents updates
+  - criterion: Student dashboard shows balance, upcoming flights, progress, evaluations, and METAR
+    verification: Login as student, verify all widgets render with real data
+  - criterion: Student can request a flight appointment with duration and see cost estimate
+    verification: Request a 2hr flight, verify estimate shows ($185×2 aircraft) + ($65×2 instructor) = $500
+  - criterion: Admin can approve/deny appointment requests
+    verification: Admin receives request, approves it, student sees confirmed booking
+  - criterion: Student can join backup queue for a booked slot
+    verification: Student joins queue, original student cancels, first backup receives SMS within 1 minute
+  - criterion: Backup queue follows sequential notification with 15-min timeout
+    verification: First backup doesn't respond in 15 min, second backup receives SMS
+  - criterion: Admin can deduct balance based on actual Hobbs time
+    verification: Admin enters 1.8 hrs actual time, balance deducts correctly (1.8 × $185 aircraft + 1.8 × $65 instruction)
+  - criterion: Low balance SMS alert fires when balance < 1 average flight session cost
+    verification: After deduction bringing balance below threshold, student receives SMS alert
+  - criterion: Student portal is completely separate from marketing site after login
+    verification: Logged-in student cannot see marketing nav, homepage, pricing, FAQ — only portal
+  - criterion: 24-hour cancellation window enforced
+    verification: Cancellation within 24 hours blocked or flagged, cancellation outside 24 hours triggers backup
+
+needs_clarification: []  # All questions resolved
+
+resolved_questions:
+  - question: Should block account payments go through Stripe Connect splits?
+    answer: No. Block payments go 100% to Isaac's Stripe account. Isaac pre-buys bulk hours from aircraft owner at a discount separately. No Connect split or developer commission on block purchases.
+    resolved_at: "2026-04-04"
+  - question: Can students cancel a backup queue position?
+    answer: Yes. Students can withdraw from the backup queue. Additionally, students can subscribe to specific DAYS for availability notifications — if any slot opens on a subscribed day, they get notified even without being in a specific slot's backup queue.
+    resolved_at: "2026-04-04"
+  - question: Should the METAR weather widget auto-refresh?
+    answer: Yes. Refresh at the top of each hour (around :55 mark, since METARs are issued ~5 min before the hour).
+    resolved_at: "2026-04-04"
+
+features:
+  - name: Block Account System
+    overview: Preset purchase amounts ($500/$1000/$2000/$5000) via Stripe, stored as balance_cents on profile, admin manual deduction after flights based on actual Hobbs time
+    status: planned
+  - name: Student Billing Portal
+    overview: Balance display, transaction history, top-up functionality, low balance SMS alerts
+    status: planned
+  - name: Appointment Request & Cost Estimator
+    overview: Students request flight times with duration, see estimated cost (aircraft + instructor rates), admin approves/denies requests
+    status: planned
+  - name: Backup Schedule Queue
+    overview: Students join waitlist for booked slots, sequential SMS notification via Twilio on cancellation, 15-min response timeout, auto-escalation to next in queue
+    status: planned
+  - name: Student Portal Overhaul
+    overview: Dedicated portal layout with own nav, dashboard with upcoming flights/balance/progress/evaluations/METAR weather, completely separated from marketing site
+    status: planned
+  - name: Bulk Hour Inventory Tracking
+    overview: Admin ledger tracking pre-purchased aircraft hours from owner. Full ledger with each bulk purchase and auto-deductions when students fly. Low-hours alert at 10hrs remaining. Admin form to log new bulk purchases (hours, cost/hr, date, notes).
+    status: planned
+  - name: Day-Based Availability Notifications
+    overview: Students subscribe to specific days of the week for notifications. If any flight slot opens on a subscribed day (not just a specific slot's backup queue), student gets SMS notification.
+    status: planned
+
+state_machines:
+  - name: Appointment Request
+    states: [requested, approved, denied, canceled, completed]
+    transitions:
+      - from: requested
+        to: approved
+        trigger: admin_approve
+      - from: requested
+        to: denied
+        trigger: admin_deny
+      - from: approved
+        to: canceled
+        trigger: student_cancel (24hr+ before) OR admin_cancel
+      - from: approved
+        to: completed
+        trigger: admin_mark_complete (post-flight)
+      - from: requested
+        to: canceled
+        trigger: student_cancel
+
+  - name: Backup Queue Position
+    states: [waiting, notified, confirmed, expired, withdrawn]
+    transitions:
+      - from: waiting
+        to: notified
+        trigger: slot_cancellation (sequential by queue position)
+      - from: notified
+        to: confirmed
+        trigger: student_confirms (within 15 min)
+      - from: notified
+        to: expired
+        trigger: timeout_15min
+      - from: expired
+        to: waiting
+        trigger: system_notifies_next_in_queue
+      - from: waiting
+        to: withdrawn
+        trigger: student_withdraws
+
+  - name: Bulk Hour Pool
+    states: [empty, active, low_hours]
+    transitions:
+      - from: empty
+        to: active
+        trigger: admin_bulk_purchase
+      - from: active
+        to: active
+        trigger: bulk_purchase OR student_flight_deduction (hours still above 10)
+      - from: active
+        to: low_hours
+        trigger: student_flight_deduction (hours drop below 10)
+      - from: low_hours
+        to: active
+        trigger: admin_bulk_purchase (hours above 10 again)
+      - from: low_hours
+        to: empty
+        trigger: student_flight_deduction (hours reach 0)
+
+  - name: Block Account Balance
+    states: [zero, active, low_balance]
+    transitions:
+      - from: zero
+        to: active
+        trigger: block_purchase
+      - from: active
+        to: active
+        trigger: top_up OR deduction (balance still above threshold)
+      - from: active
+        to: low_balance
+        trigger: deduction (balance < 1 avg session cost)
+      - from: low_balance
+        to: active
+        trigger: top_up
+      - from: low_balance
+        to: zero
+        trigger: deduction (balance reaches $0)
+
+errors:
+  - code: ERR_BLOCK_001
+    message: Payment failed. Please check your card details and try again.
+  - code: ERR_BLOCK_002
+    message: Insufficient balance for this deduction. Current balance is ${amount}.
+  - code: ERR_APPT_001
+    message: This time slot is no longer available. Please choose another time.
+  - code: ERR_APPT_002
+    message: Cannot cancel within 24 hours of the appointment.
+  - code: ERR_BACKUP_001
+    message: This slot is no longer available. You have been removed from the queue.
+  - code: ERR_BACKUP_002
+    message: Response timeout. The slot has been offered to the next student.
+
+decisions:
+  - decision: Use existing balance_cents field on profiles table for block account balance
+    rationale: Already exists in schema, no migration needed for balance tracking
+  - decision: Use Twilio SMS for backup queue notifications (not email)
+    rationale: SMS provides fastest response time for time-sensitive cancellation fills, Twilio already configured
+  - decision: Admin manually enters actual Hobbs time for balance deduction
+    rationale: Actual flight time varies from scheduled time; manual entry ensures billing accuracy
+  - decision: Sequential backup notification with 15-min timeout
+    rationale: Prevents race conditions from blast notifications, gives each student fair response time
+  - decision: Completely separate portal layout for logged-in students
+    rationale: Students don't need marketing/sales pages; dedicated portal improves UX and focus
+  - decision: No discount for block accounts
+    rationale: Block purchase is for prepaid convenience, not a discount program
+  - decision: Block account payments go 100% to Isaac's Stripe account (no Connect splits)
+    rationale: Isaac pre-buys bulk hours from aircraft owner at a discount. Block purchase is a student deposit. Aircraft owner is already paid via separate bulk purchase.
+  - decision: No developer commission on block account purchases
+    rationale: Block is a prepayment/deposit, not a per-flight transaction
+  - decision: METAR refreshes at top of each hour (around :55)
+    rationale: METARs are issued ~5 minutes before the hour. Refreshing at :55 gets the freshest data.
+  - decision: Students can cancel backup queue positions
+    rationale: Students may no longer need the slot
+  - decision: Students can subscribe to day-based availability notifications
+    rationale: Goes beyond slot-specific backup queue — students interested in flying on certain days get notified when ANY slot opens on those days
+  - decision: Full ledger for bulk hour tracking with auto-deduction
+    rationale: Gives Isaac visibility into pre-purchased inventory with automatic bookkeeping when students fly
+  - decision: Cost estimator shows aircraft + instructor only, notes landing fees as additional
+    rationale: Landing fee count varies per lesson; showing a note avoids inaccurate estimates
+
+changes: []

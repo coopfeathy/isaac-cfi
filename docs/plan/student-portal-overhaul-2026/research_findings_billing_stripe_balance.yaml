@@ -1,0 +1,447 @@
+plan_id: student-portal-overhaul-2026
+objective: Research existing billing/payment infrastructure to understand how to add block account purchases and balance management
+focus_area: Billing, Stripe Integration, Balance Management
+created_at: "2026-04-04"
+created_by: researcher
+status: completed
+
+tldr: |
+  - Stripe PaymentIntent flow exists in two paths: slot booking (app/api/create-payment-intent) and admin checkout (app/api/admin/billing/checkout) — both support Stripe Connect destination charges and split transfers via a sophisticated DB-driven payout rule engine in lib/stripe-connect.ts
+  - `profiles.balance_cents` (INTEGER DEFAULT 0) already exists and is actively used by the admin adjustments page (app/manage/adjustments) which inserts into `transactions` table and updates `profiles.balance_cents` — this is the foundation for block accounts
+  - `transactions` table (id, user_id, amount_cents, type, description, related_schedule_id, created_by) is the ledger for all financial activity — currently used for admin adjustments, cash payments, and admin checkout logging
+  - Twilio SMS is fully operational via `lib/twilio.ts` with `sendTwilioMessage({to, body, mediaUrls?})` — already used for accountant billing reports and checkout link push
+  - No block account purchase flow exists yet — needs a new API route for student-initiated preset Stripe payments that credit `balance_cents`, plus a webhook handler branch to credit balance on payment success
+
+research_metadata:
+  methodology: "Hybrid retrieval: semantic_search + grep_search for codebase-wide discovery, followed by sequential read_file for detailed examination of all payment/billing files, relationship discovery across API routes, webhook handlers, and shared libraries"
+  scope: "Full examination of all billing-related API routes, Stripe integration layer, database schema, Twilio SMS, and admin balance management UI"
+  confidence: high
+  coverage: 95
+  decision_blockers: 1
+  research_blockers: 0
+
+files_analyzed:
+  - file: stripe-connect.ts
+    path: lib/stripe-connect.ts
+    purpose: Stripe Connect payout rule engine — resolves destination charges, split transfers, developer commission, and application fees based on DB-driven rules with env-var fallback
+    key_elements:
+      - element: resolveStripeConnectConfig
+        type: function
+        location: "lib/stripe-connect.ts:L589"
+        description: "Main resolver: loads active payout rules from `stripe_connect_payout_rules` table, matches by source/currency/slot_type/transaction_type/item_id with specificity scoring, falls back to env vars. Returns EnabledConnectConfig or DisabledConnectConfig."
+      - element: resolveStripeConnectChargePlan
+        type: function
+        location: "lib/stripe-connect.ts:L670"
+        description: "High-level orchestrator: decides between 'none', 'destination_charge', or 'split_transfers' mode. When line items have names, uses per-item split transfers. Calculates processing fee exclusion from payout base."
+      - element: resolveDeveloperCommissionConfig
+        type: function
+        location: "lib/stripe-connect.ts:L535"
+        description: "Calculates developer commission in basis points from env vars (STRIPE_CONNECT_DEVELOPER_*_BPS). Returns enabled/disabled with amountCents and appliedBps."
+      - element: resolveSplitTransferPlan
+        type: function
+        location: "lib/stripe-connect.ts:L310"
+        description: "Creates per-line-item transfer buckets with proportional allocation, serializes to compact JSON payload stored in PaymentIntent metadata for webhook processing."
+      - element: PaymentSource
+        type: type
+        location: "lib/stripe-connect.ts:L1"
+        description: "'slot_booking' | 'admin_checkout' — two payment sources that determine payout rule matching"
+    language: typescript
+    lines: 720
+
+  - file: route.ts (create-payment-intent)
+    path: app/api/create-payment-intent/route.ts
+    purpose: Student-facing slot booking payment — creates pending booking, calculates 3.5% processing fee, creates Stripe PaymentIntent with Connect routing
+    key_elements:
+      - element: POST handler
+        type: function
+        location: "app/api/create-payment-intent/route.ts:L9"
+        description: "Accepts {amount, slotId, userId, email, name, phone, notes}. Creates pending booking in DB, adds 3.5% processing fee, resolves Connect config, creates PaymentIntent with destination charge. Returns clientSecret + bookingId + fee breakdown."
+      - element: Processing fee calculation
+        type: pattern
+        location: "app/api/create-payment-intent/route.ts:L85-L87"
+        description: "processingFee = Math.round(baseAmount * 0.035); totalAmount = baseAmount + processingFee"
+      - element: Transaction type resolution
+        type: pattern
+        location: "app/api/create-payment-intent/route.ts:L89-L93"
+        description: "Determines 'discovery_flight' or 'website_transaction' based on slot type and description"
+    language: typescript
+    lines: 155
+
+  - file: route.ts (stripe-webhook)
+    path: app/api/stripe-webhook/route.ts
+    purpose: Webhook handler for Stripe events — processes payment_intent.succeeded, checkout.session.completed, charge.refunded, payment_intent.payment_failed
+    key_elements:
+      - element: payment_intent.succeeded handler
+        type: function
+        location: "app/api/stripe-webhook/route.ts:L280"
+        description: "Core success handler: (1) Executes split transfers if payout_mode='split_transfers' — creates Stripe transfers and logs to payout_ledger, (2) Executes developer commission transfer for destination_charge mode, (3) Updates booking status to 'paid' and slot to is_booked=true, (4) Sends confirmation email. For admin checkout (no bookingId), sends payment confirmation email to student."
+      - element: charge.refunded handler
+        type: function
+        location: "app/api/stripe-webhook/route.ts:L579"
+        description: "Reverses Connect transfers proportionally to refund amount, updates payout_ledger reversed_amount_cents and status."
+      - element: payment_intent.payment_failed handler
+        type: function
+        location: "app/api/stripe-webhook/route.ts:L663"
+        description: "Sends payment declined email to student with decline reason."
+      - element: Idempotency guard
+        type: pattern
+        location: "app/api/stripe-webhook/route.ts:L248-L260"
+        description: "Checks stripe_webhook_events table for duplicate event_id before processing."
+      - element: "KEY GAP: No balance_cents credit on payment success"
+        type: pattern
+        location: "app/api/stripe-webhook/route.ts:L280-L500"
+        description: "The webhook handler does NOT update profiles.balance_cents on payment success. This is the primary integration point for crediting block account purchases."
+    language: typescript
+    lines: 730
+
+  - file: route.ts (admin checkout)
+    path: app/api/admin/billing/checkout/route.ts
+    purpose: Admin-initiated billing checkout — selects student + training items, resolves pricing from items table, creates PaymentIntent with Connect charge plan, logs transactions
+    key_elements:
+      - element: POST handler
+        type: function
+        location: "app/api/admin/billing/checkout/route.ts:L52"
+        description: "Accepts {studentId, currency, note, itemSelections[{itemId, quantity}]}. Loads items from DB, calculates subtotal, applies cash credit from CASH-prefixed transactions, adds 3.5% processing fee, creates/finds Stripe Customer, resolves charge plan, creates PaymentIntent, inserts transaction records."
+      - element: Cash credit calculation
+        type: pattern
+        location: "app/api/admin/billing/checkout/route.ts:L137-L152"
+        description: "Sums all transactions where description starts with 'CASH:' or '[CASH]' or 'Partial cash payment' to compute available cash credit. Applied before processing fee calculation."
+      - element: Transaction logging
+        type: pattern
+        location: "app/api/admin/billing/checkout/route.ts:L271-L293"
+        description: "Inserts charge transaction and optional negative cash-applied transaction into transactions table."
+      - element: Stripe Customer management
+        type: pattern
+        location: "app/api/admin/billing/checkout/route.ts:L157-L185"
+        description: "Retrieves or creates Stripe Customer, syncs stripe_customer_id to students table."
+    language: typescript
+    lines: 320
+
+  - file: route.ts (cash-payment)
+    path: app/api/admin/billing/cash-payment/route.ts
+    purpose: Records cash payments admin-side — inserts transaction record without Stripe, no balance_cents update
+    key_elements:
+      - element: POST handler
+        type: function
+        location: "app/api/admin/billing/cash-payment/route.ts:L38"
+        description: "Accepts {studentId, amountDollars, note}. Validates, inserts transaction with 'CASH:' prefix in description. Does NOT update profiles.balance_cents."
+    language: typescript
+    lines: 95
+
+  - file: page.tsx (adjustments)
+    path: app/manage/adjustments/page.tsx
+    purpose: Admin UI for manual balance adjustments — the ONLY place that currently reads/writes profiles.balance_cents
+    key_elements:
+      - element: AddAdjustmentModal
+        type: function
+        location: "app/manage/adjustments/page.tsx:L17"
+        description: "Modal form: selects user, enters dollar amount, type (adjustment/payment/charge), description. Inserts into transactions table, then reads current balance_cents and adds amountCents to compute newBalance, updates profiles.balance_cents."
+      - element: handleDeleteAdjustment
+        type: function
+        location: "app/manage/adjustments/page.tsx:L192"
+        description: "Deletes adjustment and reverses balance_cents change by subtracting the deleted amount."
+      - element: Balance update pattern
+        type: pattern
+        location: "app/manage/adjustments/page.tsx:L47-L52"
+        description: "Non-atomic read-then-write: reads current balance_cents, adds amountCents in JS, writes back. RACE CONDITION RISK for block accounts where concurrent operations could corrupt balance."
+    language: typescript
+    lines: 350
+
+  - file: SETUP.sql
+    path: supabase/SETUP.sql
+    purpose: Complete database schema — single source of truth for all tables, RLS policies, and indexes
+    key_elements:
+      - element: profiles.balance_cents
+        type: variable
+        location: "supabase/SETUP.sql:L36"
+        description: "INTEGER DEFAULT 0 on profiles table. Currently used only by adjustments page. This is the designated field for block account balance per PRD decision."
+      - element: transactions table
+        type: class
+        location: "supabase/SETUP.sql:L793-L805"
+        description: "Schema: id UUID, user_id UUID FK, amount_cents INTEGER NOT NULL, type TEXT NOT NULL, description TEXT, related_schedule_id UUID, created_by UUID FK, created_at TIMESTAMPTZ. RLS: users read own, admins read/write all."
+      - element: items table
+        type: class
+        location: "supabase/SETUP.sql:L772-L780"
+        description: "Schema: id UUID, name TEXT NOT NULL, description TEXT, type TEXT NOT NULL, rate_cents INTEGER, is_active BOOLEAN DEFAULT true. Used as billing line items in admin checkout."
+      - element: students table
+        type: class
+        location: "supabase/SETUP.sql:L488-L520"
+        description: "Includes stripe_customer_id, preferred_currency, training_item_ids UUID[]. Links to auth.users via user_id. Contains flight hours, medical info, training stage."
+      - element: stripe_connect_payout_rules
+        type: class
+        location: "supabase/SETUP.sql:L346-L375"
+        description: "DB-driven payout routing rules with source, slot_type, item_id, transaction_type, currency matching. fee_mode is 'bps' or 'fixed_cents'."
+      - element: stripe_connect_payout_ledger
+        type: class
+        location: "supabase/SETUP.sql:L407-L428"
+        description: "Tracks post-payment transfers: payment_intent_id, destination_account, amount_cents, transfer_id, transfer_kind (primary/developer), status lifecycle."
+      - element: stripe_webhook_events
+        type: class
+        location: "supabase/SETUP.sql:L200-L215"
+        description: "Idempotency table for webhook processing: event_id UNIQUE, status (processing/processed/failed), payload JSONB."
+    language: sql
+    lines: 1000+
+
+  - file: twilio.ts
+    path: lib/twilio.ts
+    purpose: Twilio SMS client — sends text messages with optional media attachments
+    key_elements:
+      - element: sendTwilioMessage
+        type: function
+        location: "lib/twilio.ts:L9"
+        description: "Accepts {to: string, body: string, mediaUrls?: string[]}. Uses TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER env vars. Normalizes phone numbers, supports up to 5 media URLs. Returns response JSON."
+    language: typescript
+    lines: 45
+
+  - file: PaymentForm.tsx
+    path: app/components/PaymentForm.tsx
+    purpose: Legacy payment form component — collects raw card details (NOT using Stripe Elements)
+    key_elements:
+      - element: PaymentForm component
+        type: function
+        location: "app/components/PaymentForm.tsx:L16"
+        description: "Simple form collecting cardNumber, expiry, cvc as plain text inputs. Uses framer-motion for animation. This is a LEGACY component — the actual payment flow uses Stripe PaymentIntent client_secret with Stripe.js on the frontend, NOT this form."
+    language: typescript
+    lines: 86
+
+patterns_found:
+  - category: architecture
+    pattern: "PaymentIntent + Server-side Connect resolution"
+    description: "All payments follow: client requests PaymentIntent → server resolves Connect config from DB rules → creates PaymentIntent with destination/split metadata → returns clientSecret → client confirms with Stripe.js → webhook processes success"
+    examples:
+      - file: app/api/create-payment-intent/route.ts
+        location: "L9-L155"
+        snippet: "const paymentIntent = await stripe.paymentIntents.create({ amount: totalAmount, currency: 'usd', automatic_payment_methods: { enabled: true }, ...(connectConfig.enabled ? { application_fee_amount, transfer_data: { destination } } : {}) })"
+    prevalence: common
+
+  - category: architecture
+    pattern: "Processing fee as 3.5% surcharge"
+    description: "Both slot booking and admin checkout add 3.5% processing fee on top of base amount. Fee is calculated server-side and included in PaymentIntent amount."
+    examples:
+      - file: app/api/create-payment-intent/route.ts
+        location: "L85-L87"
+        snippet: "const processingFee = Math.round(baseAmount * 0.035); const totalAmount = baseAmount + processingFee"
+      - file: app/api/admin/billing/checkout/route.ts
+        location: "L154"
+        snippet: "const processingFeeCents = Math.round(afterCashCents * 0.035)"
+    prevalence: common
+
+  - category: architecture
+    pattern: "Transaction logging via transactions table"
+    description: "Financial events are logged as rows in transactions table with amount_cents (positive for charges/credits, negative for deductions), type string, and free-text description with structured prefixes (CASH:, PI:)"
+    examples:
+      - file: app/api/admin/billing/checkout/route.ts
+        location: "L271-L293"
+        snippet: "await supabaseAdmin.from('transactions').insert([{ user_id, amount_cents: totalCents, type: 'charge', description: `Admin lesson checkout... | PI:${paymentIntent.id}` }])"
+      - file: app/manage/adjustments/page.tsx
+        location: "L35-L42"
+        snippet: "await supabase.from('transactions').insert([{ user_id, amount_cents: amountCents, type: formData.type, description, created_by: user?.id }])"
+    prevalence: common
+
+  - category: architecture
+    pattern: "Non-atomic balance updates (read-modify-write)"
+    description: "The adjustments page reads current balance_cents, adds/subtracts in JavaScript, then writes back. This is NOT atomic and has race condition risk under concurrent operations."
+    examples:
+      - file: app/manage/adjustments/page.tsx
+        location: "L47-L52"
+        snippet: "const newBalance = (currentUser?.balance_cents || 0) + amountCents; await supabase.from('profiles').update({ balance_cents: newBalance }).eq('id', formData.user_id)"
+    prevalence: common
+
+  - category: architecture
+    pattern: "Webhook idempotency via stripe_webhook_events table"
+    description: "Before processing any webhook event, the handler checks for existing processed event_id to prevent duplicate processing."
+    examples:
+      - file: app/api/stripe-webhook/route.ts
+        location: "L248-L260"
+        snippet: "const { data: existingEvent } = await supabaseAdmin.from('stripe_webhook_events').select('id, status').eq('event_id', event.id).maybeSingle()"
+    prevalence: common
+
+  - category: naming
+    pattern: "Structured transaction descriptions"
+    description: "Transaction descriptions use prefix conventions: 'CASH:' for cash payments, 'PI:pi_xxx' for Stripe PaymentIntent references, pipe-delimited fields for structured data"
+    examples:
+      - file: app/api/admin/billing/cash-payment/route.ts
+        location: "L78-L83"
+        snippet: "`CASH: Cash payment recorded in admin billing | Student:${student.full_name} | Note:${note}`"
+    prevalence: common
+
+  - category: error_handling
+    pattern: "Stripe Connect config errors thrown as typed exceptions"
+    description: "StripeConnectConfigError class with statusCode property, caught by API routes and returned as JSON with specific error codes"
+    examples:
+      - file: lib/stripe-connect.ts
+        location: "L107-L115"
+        snippet: "export class StripeConnectConfigError extends Error { readonly statusCode: number; constructor(message, statusCode = 400) }"
+    prevalence: occasional
+
+related_architecture:
+  components_relevant_to_domain:
+    - component: Stripe PaymentIntent API
+      responsibility: Creates payment intents, processes charges, handles automatic payment methods
+      location: app/api/create-payment-intent/route.ts, app/api/admin/billing/checkout/route.ts
+      relationship_to_domain: "Core payment creation — block account purchases will need a similar PaymentIntent creation flow"
+    - component: Stripe Webhook Handler
+      responsibility: Processes payment success/failure events, executes Connect transfers, updates booking status
+      location: app/api/stripe-webhook/route.ts
+      relationship_to_domain: "Must be extended to credit balance_cents on block account payment success"
+    - component: Stripe Connect Payout Engine
+      responsibility: Resolves destination charges and split transfers based on DB rules and env vars
+      location: lib/stripe-connect.ts
+      relationship_to_domain: "Block account payments may need a payout rule (PRD question open) or bypass Connect entirely"
+    - component: Admin Adjustments Page
+      responsibility: Manual balance credit/debit via transactions table + profiles.balance_cents update
+      location: app/manage/adjustments/page.tsx
+      relationship_to_domain: "Establishes the existing balance_cents write pattern — admin deductions post-flight should follow same pattern but with atomic updates"
+    - component: Twilio SMS Service
+      responsibility: Sends text messages via Twilio API
+      location: lib/twilio.ts
+      relationship_to_domain: "Will be used for low balance SMS alerts when deduction brings balance below threshold"
+
+  interfaces_used_by_domain:
+    - interface: Stripe PaymentIntents.create
+      location: app/api/create-payment-intent/route.ts:L107
+      usage_pattern: "{amount, currency, automatic_payment_methods, transfer_data?, application_fee_amount?, metadata, receipt_email}"
+    - interface: Stripe Customers API
+      location: app/api/admin/billing/checkout/route.ts:L157-L185
+      usage_pattern: "Retrieve by stripe_customer_id, search by email, create new — syncs to students.stripe_customer_id"
+    - interface: Supabase profiles.balance_cents
+      location: supabase/SETUP.sql:L36
+      usage_pattern: "INTEGER DEFAULT 0, read and write via client supabase in adjustments page"
+    - interface: Supabase transactions table
+      location: supabase/SETUP.sql:L793-L805
+      usage_pattern: "Insert-only ledger: {user_id, amount_cents, type, description, created_by}"
+
+  data_flow_involving_domain: |
+    CURRENT SLOT BOOKING FLOW:
+    1. Client → POST /api/create-payment-intent {amount, slotId, userId}
+    2. Server creates pending booking, calculates 3.5% fee, resolves Connect config
+    3. Server creates Stripe PaymentIntent → returns clientSecret
+    4. Client confirms payment via Stripe.js
+    5. Stripe fires payment_intent.succeeded webhook
+    6. Webhook handler: executes Connect transfers, marks booking paid, slot booked, sends email
+
+    CURRENT ADMIN CHECKOUT FLOW:
+    1. Admin selects student + items → POST /api/admin/billing/checkout
+    2. Server loads items from DB, calculates totals + fees, creates Stripe PaymentIntent
+    3. Server inserts transaction records
+    4. Admin confirms payment → Stripe fires webhook → transfers executed + email sent
+
+    PROPOSED BLOCK ACCOUNT FLOW:
+    1. Student selects preset amount → POST /api/block-account/purchase {amount, userId}
+    2. Server validates preset amount, creates PaymentIntent with metadata {type: 'block_purchase', amount_cents}
+    3. Client confirms via Stripe.js
+    4. Webhook handler (new branch): detects block_purchase type → credits profiles.balance_cents atomically → inserts transaction record → sends confirmation
+
+    PROPOSED ADMIN DEDUCTION FLOW:
+    1. Admin enters actual Hobbs time + rates → POST /api/admin/billing/deduct-balance
+    2. Server calculates deduction: (hobbs_hours × aircraft_rate) + (hobbs_hours × instructor_rate)
+    3. Server atomically decrements profiles.balance_cents (SQL: balance_cents = balance_cents - X WHERE balance_cents >= X)
+    4. Server inserts negative transaction record
+    5. Server checks if new balance < threshold → if yes, sends low balance SMS via Twilio
+
+  key_relationships_to_domain:
+    - from: app/api/create-payment-intent/route.ts
+      to: lib/stripe-connect.ts
+      relationship: imports resolveStripeConnectConfig, resolveDeveloperCommissionConfig
+    - from: app/api/admin/billing/checkout/route.ts
+      to: lib/stripe-connect.ts
+      relationship: imports resolveStripeConnectChargePlan
+    - from: app/api/stripe-webhook/route.ts
+      to: lib/supabase-admin.ts
+      relationship: imports getSupabaseAdmin for server-side DB writes
+    - from: app/api/admin/billing/accountant-text/route.ts
+      to: lib/twilio.ts
+      relationship: imports sendTwilioMessage for SMS notifications
+    - from: app/manage/adjustments/page.tsx
+      to: supabase transactions + profiles
+      relationship: reads/writes both tables for balance management
+
+related_technology_stack:
+  languages_used_in_domain:
+    - TypeScript
+    - SQL (PostgreSQL via Supabase)
+  frameworks_used_in_domain:
+    - name: Next.js (App Router)
+      usage_in_domain: All API routes use Route Handlers (export async function POST)
+    - name: Stripe Node.js SDK
+      usage_in_domain: "PaymentIntent creation, Customer management, Transfer creation, Webhook verification (apiVersion: '2022-11-15')"
+    - name: Supabase
+      usage_in_domain: "Database (PostgreSQL), Row Level Security, Auth, client SDK + service role admin client"
+  libraries_used_in_domain:
+    - name: stripe
+      purpose_in_domain: "Server-side Stripe API client for PaymentIntents, Customers, Transfers, Webhooks"
+
+related_conventions:
+  naming_patterns_in_domain: "snake_case for DB columns (amount_cents, balance_cents, user_id), camelCase for TypeScript variables, PascalCase for types/components"
+  structure_of_domain: "API routes at app/api/*, shared libs at lib/*, admin pages at app/manage/* and app/admin/*"
+  error_handling_in_domain: "try/catch with JSON error responses, custom StripeConnectConfigError class, webhook errors logged to stripe_webhook_events table"
+  testing_in_domain: "No test files found for billing domain"
+  documentation_in_domain: "SETUP.sql is the schema source of truth with inline section comments"
+
+related_dependencies:
+  internal:
+    - component: lib/supabase-admin.ts (getSupabaseAdmin)
+      relationship_to_domain: "Service role client for server-side DB operations in API routes and webhooks"
+      direction: outbound
+    - component: lib/supabase.ts (supabase)
+      relationship_to_domain: "Client-side Supabase instance used in admin pages and auth checks"
+      direction: outbound
+    - component: lib/stripe-connect.ts
+      relationship_to_domain: "Payout rule resolution engine used by both payment creation routes"
+      direction: outbound
+    - component: lib/twilio.ts
+      relationship_to_domain: "SMS service for low balance alerts"
+      direction: outbound
+    - component: app/manage/adjustments/page.tsx
+      relationship_to_domain: "Existing balance management UI — establishes patterns for balance operations"
+      direction: bidirectional
+  external:
+    - name: stripe (npm)
+      purpose_for_domain: "Stripe API for payment processing, Connect, webhooks"
+    - name: "@supabase/supabase-js"
+      purpose_for_domain: "Database client for all DB operations"
+
+domain_security_considerations:
+  sensitive_areas:
+    - area: Balance manipulation
+      location: app/manage/adjustments/page.tsx:L47-L52
+      concern: "Non-atomic read-modify-write for balance_cents. Block account system MUST use atomic SQL update (SET balance_cents = balance_cents + X) to prevent race conditions and double-crediting."
+    - area: Webhook signature verification
+      location: app/api/stripe-webhook/route.ts:L230-L243
+      concern: "Properly verifies webhook signature using stripe.webhooks.constructEvent. Block account webhook branch must be inside this verified handler."
+    - area: Preset amount validation
+      location: "(new code needed)"
+      concern: "Block account purchase endpoint must validate amount is exactly one of the preset values ($500/$1000/$2000/$5000 = 50000/100000/200000/500000 cents) server-side. Never trust client-submitted arbitrary amounts."
+    - area: Admin-only deduction
+      location: "(new code needed)"
+      concern: "Balance deduction API must enforce admin auth check (same pattern as existing admin routes: requireAdmin function). Students must NOT be able to deduct their own balance."
+    - area: Balance overdraft prevention
+      location: "(new code needed)"
+      concern: "Deduction must check balance_cents >= deduction_amount atomically in SQL WHERE clause to prevent negative balances."
+  authentication_patterns_in_domain: "API routes use JWT from Authorization header + profiles.is_admin check via requireAdmin() helper. Webhook uses Stripe signature verification."
+  authorization_patterns_in_domain: "Admin-only: billing routes check is_admin via profiles table. Student-facing: slot booking uses userId from request body (validate matches auth). Webhook: service_role bypass for all DB writes."
+  data_validation_in_domain: "Amount validation: Number.isFinite checks, minimum amount guards, cents rounding. Input sanitization: string type checks, trim(), early returns on missing fields."
+
+open_questions:
+  - question: Should block account payments go through Stripe Connect payout splits?
+    context: "PRD lists this as open (needs_clarification). Current payment flows route funds via Connect destination charges or split transfers. Block account purchases are lump-sum credits — unclear if the flight school owner (Connect destination) should receive the funds immediately or only when the balance is spent."
+    type: decision_blocker
+    affects: ["block-account-purchase-api", "webhook-balance-credit"]
+
+gaps:
+  - area: Atomic balance operations
+    description: "Existing balance_cents updates use non-atomic read-modify-write pattern. Block account system needs atomic SQL: UPDATE profiles SET balance_cents = balance_cents + $1 WHERE id = $2 RETURNING balance_cents. Supabase JS client may need .rpc() call to a Postgres function for atomic increment/decrement."
+    impact: research_blocker
+    affects: ["block-account-purchase-api", "admin-deduction-api", "low-balance-alert"]
+  - area: No existing Stripe Elements integration for student-facing payments (non-slot)
+    description: "The PaymentForm.tsx is legacy (raw card inputs). Actual Stripe Elements integration exists in the slot booking page but not as a reusable component. Block account purchase page will need its own Stripe Elements checkout UI."
+    impact: nice_to_know
+    affects: ["block-account-ui"]
+  - area: Low balance threshold calculation
+    description: "PRD says 'when ~1 flight session remaining based on average cost'. Need to determine: average of all items on student's training_item_ids? Or fixed threshold? Aircraft rate + instructor rate for 1.5 hours? This affects the SMS trigger logic."
+    impact: research_blocker
+    affects: ["low-balance-alert"]
+  - area: Student phone number for SMS alerts
+    description: "sendTwilioMessage needs a 'to' phone number. Students have phone in both profiles.phone and students.phone. Need to determine which source to use and whether it's reliably populated."
+    impact: nice_to_know
+    affects: ["low-balance-alert"]
