@@ -1,0 +1,1195 @@
+plan_id: apple-calendar-sync
+objective: Build bidirectional Apple Calendar sync + student dashboard with syllabus-linked lessons + email notifications
+created_at: "2026-04-05"
+created_by: gem-planner
+status: pending_approval
+research_confidence: high
+
+plan_metrics:
+  wave_1_task_count: 3
+  total_dependencies: 14
+  risk_score: medium
+
+tldr: |
+  Bidirectional CalDAV sync between Supabase and iCloud via tsdav library, plus a student-facing weekly dashboard
+  showing syllabus-linked lessons, and email notifications when lessons are scheduled.
+
+  Wave 1 (parallel): DB schema migration, CalDAV client library, TypeScript type updates
+  Wave 2 (parallel): API routes for CalDAV CRUD, Netlify scheduled sync function, email template
+  Wave 3 (parallel): Student dashboard page, admin CalDAV settings UI, admin booking planner syllabus integration
+  Wave 4: Integration wiring — connect booking creation to CalDAV push + email send
+
+  Architecture: Supabase is source of truth. Outbound push on booking mutation. Inbound poll every 10 min via
+  Netlify Scheduled Function. Conflict resolution: app wins. UID mapping via slot.id@merlinflight.com convention.
+
+open_questions:
+  - Which iCloud calendar name should be targeted (e.g., "Merlin Flight Training")? Configurable via admin settings UI.
+  - Should inbound sync from Apple Calendar auto-create bookings for unrecognized students, or only match existing students?
+
+pre_mortem:
+  overall_risk_level: medium
+  critical_failure_modes:
+    - scenario: iCloud rate-limits or blocks CalDAV polling from Netlify IPs
+      likelihood: low
+      impact: high
+      mitigation: Implement exponential backoff on 429/503 responses; reduce poll frequency to 15-30 min if rate-limited; log and alert on consecutive failures
+    - scenario: App-specific password is revoked/expired without admin noticing
+      likelihood: medium
+      impact: high
+      mitigation: Health check on each sync run; store last successful sync time; alert admin via email if sync fails 3 consecutive times; admin settings UI shows connection status
+    - scenario: CalDAV sync function exceeds Netlify 10s timeout for regular functions
+      likelihood: medium
+      impact: medium
+      mitigation: Use Netlify Background Function (15 min limit) for sync; batch operations; early-exit if no changes detected via ctag comparison
+    - scenario: Conflict when instructor edits event in both Apple Calendar and app simultaneously
+      likelihood: low
+      impact: medium
+      mitigation: App-wins conflict resolution policy; last_synced_at + etag comparison; if conflict detected, keep app version and overwrite iCloud; log conflicts for admin review
+    - scenario: VEVENT parsing fails on non-standard calendar entries (all-day events, recurring events)
+      likelihood: medium
+      impact: low
+      mitigation: Skip non-matching events (no DTSTART/DTEND pair or all-day); only sync events with UID matching *@merlinflight.com pattern for inbound; log skipped events
+  assumptions:
+    - Instructor has an Apple ID with 2FA enabled and can generate app-specific passwords
+    - Single instructor means single CalDAV account (no multi-user calendar coordination)
+    - Netlify Scheduled Functions support cron syntax and Background Functions are available on the current plan
+    - tsdav v2.1.8 supports iCloud CalDAV discovery and CRUD as documented
+    - Student emails in profiles table are accurate for email notification delivery
+
+implementation_specification:
+  code_structure: |
+    New files:
+    - lib/caldav.ts — CalDAV client wrapper (connect, push, pull, delete, sync)
+    - app/api/admin/caldav/settings/route.ts — Save/retrieve CalDAV credentials
+    - app/api/admin/caldav/test/route.ts — Test CalDAV connection
+    - app/api/admin/caldav/sync/route.ts — Manual sync trigger
+    - app/api/admin/caldav/push/route.ts — Push single event
+    - netlify/functions/caldav-sync.ts — Scheduled sync function (every 10 min)
+    - app/dashboard/page.tsx — Student weekly lesson dashboard
+    - app/admin/calendar/page.tsx — Admin CalDAV settings UI
+
+    Modified files:
+    - supabase/SETUP.sql — Add columns to slots/bookings, add caldav_settings table
+    - lib/supabase.ts — Add TypeScript interfaces for new tables/columns
+    - lib/resend.ts — Add lessonScheduled email template
+    - app/api/admin/bookings/manual/route.ts — Add CalDAV push + email after booking creation
+    - app/components/AdminBookingPlanner.tsx — Add syllabus lesson picker dropdown
+
+  affected_areas:
+    - supabase/ — Schema migration for sync columns and caldav_settings table
+    - lib/ — New CalDAV client library, type updates, email template
+    - app/api/admin/ — New CalDAV API routes, updated booking route
+    - app/dashboard/ — New student dashboard page
+    - app/admin/calendar/ — New admin settings page
+    - app/components/ — AdminBookingPlanner syllabus enhancement
+    - netlify/functions/ — New scheduled sync function
+
+  component_details:
+    - component: CalDAV Client Library (lib/caldav.ts)
+      responsibility: |
+        Encapsulate all tsdav interactions. Create DAVClient connection. Push VEVENT to iCloud.
+        Pull changes via syncCalendars(). Delete events. Map Supabase slot data to VEVENT format.
+        Handle ctag/etag change detection. Return structured results for caller error handling.
+      interfaces:
+        - "createCalDAVClient(settings: CalDAVSettings): Promise<DAVClient>"
+        - "pushEventToCalendar(client: DAVClient, calendarUrl: string, slot: Slot, studentName: string): Promise<{etag: string, url: string}>"
+        - "pullEventsFromCalendar(client: DAVClient, calendarUrl: string, syncToken?: string): Promise<{events: CalDAVEvent[], newSyncToken: string}>"
+        - "deleteCalendarEvent(client: DAVClient, eventUrl: string, etag: string): Promise<void>"
+        - "syncCalendar(settings: CalDAVSettings): Promise<SyncResult>"
+
+    - component: CalDAV Settings API (app/api/admin/caldav/*)
+      responsibility: |
+        Admin-only endpoints for managing CalDAV connection. Save credentials encrypted via pgcrypto.
+        Test connection by attempting client.login() + fetchCalendars(). Trigger manual sync.
+        Push individual events after booking creation.
+      interfaces:
+        - "POST /api/admin/caldav/settings — body: {apple_id, app_password, calendar_url?}"
+        - "GET /api/admin/caldav/test — returns {connected: boolean, calendars: string[]}"
+        - "POST /api/admin/caldav/sync — returns {created: number, updated: number, deleted: number, errors: string[]}"
+        - "POST /api/admin/caldav/push — body: {slot_id} — returns {success: boolean, caldav_uid: string}"
+
+    - component: Netlify CalDAV Sync Function (netlify/functions/caldav-sync.ts)
+      responsibility: |
+        Scheduled function running every 10 minutes. Reads caldav_settings from Supabase.
+        Polls iCloud for changes using stored sync_token. Creates/updates/deletes slots and bookings
+        based on calendar changes. Pushes any pending outbound changes. Updates sync metadata.
+        Conflict resolution: app version wins.
+      interfaces:
+        - "Netlify Config export: schedule '*/10 * * * *'"
+        - "Reads/writes: slots, bookings, caldav_settings tables"
+
+    - component: Student Dashboard (app/dashboard/page.tsx)
+      responsibility: |
+        Server-rendered page for logged-in students. Fetches bookings for current/next week with
+        joined syllabus_lessons data. Displays weekly calendar view (Mon-Sun) with day headers.
+        Each lesson card shows date/time, syllabus lesson title, ground topics, flight maneuvers,
+        completion standards, and status (upcoming/today/completed). Navigation for this week/next week.
+        Quick links to full syllabus, progress tracking, bookings page.
+      interfaces:
+        - "Route: /dashboard (protected, student-only)"
+        - "Data: bookings JOIN slots JOIN syllabus_lessons via booking.syllabus_lesson_id"
+
+    - component: Admin CalDAV Settings UI (app/admin/calendar/page.tsx)
+      responsibility: |
+        Admin-only page for configuring iCloud CalDAV connection. Apple ID input, masked
+        app-specific password input. Test connection button with status indicator. Manual sync
+        trigger button. Shows last sync timestamp and sync status. Error display for failed syncs.
+      interfaces:
+        - "Route: /admin/calendar (protected, admin-only)"
+        - "Calls: /api/admin/caldav/settings, /api/admin/caldav/test, /api/admin/caldav/sync"
+
+    - component: Lesson Scheduled Email Template (lib/resend.ts)
+      responsibility: |
+        New email template matching existing Merlin branding (emailWrapper pattern).
+        Shows student name, lesson date/time, syllabus lesson title, ground topics list,
+        flight maneuvers list. Sent when admin creates booking or CalDAV inbound sync creates booking.
+      interfaces:
+        - "lessonScheduled(studentName, lessonTitle, date, time, groundTopics, flightManeuvers): {subject, html}"
+
+    - component: Admin Booking Planner Enhancement (AdminBookingPlanner.tsx)
+      responsibility: |
+        Add optional syllabus lesson picker dropdown to the booking creation form within the
+        existing AdminBookingPlanner component. When creating a booking, the selected syllabus
+        lesson ID is passed to the manual booking API. Dropdown loads syllabus_lessons sorted by
+        lesson_number.
+      interfaces:
+        - "New prop or internal state: selectedSyllabusLessonId"
+        - "Supabase query: syllabus_lessons ordered by lesson_number"
+
+  dependencies:
+    - component: CalDAV Client Library
+      relationship: Used by CalDAV API routes and Netlify sync function
+    - component: CalDAV Settings API
+      relationship: Called by Admin CalDAV Settings UI; uses CalDAV Client Library
+    - component: Netlify CalDAV Sync Function
+      relationship: Uses CalDAV Client Library; reads/writes caldav_settings; reads/writes slots + bookings
+    - component: Student Dashboard
+      relationship: Reads bookings + slots + syllabus_lessons; depends on booking.syllabus_lesson_id FK
+    - component: Admin Booking Planner Enhancement
+      relationship: Posts to /api/admin/bookings/manual with syllabus_lesson_id; triggers CalDAV push + email
+    - component: Lesson Scheduled Email
+      relationship: Called by manual booking API route and Netlify sync function
+
+  integration_points:
+    - Admin manual booking API (/api/admin/bookings/manual) extended to accept syllabus_lesson_id, push to CalDAV, send email
+    - AdminBookingPlanner.tsx sends syllabus_lesson_id in booking creation request body
+    - Netlify caldav-sync function reads caldav_settings table for credentials and sync state
+    - Student dashboard reads bookings joined with syllabus_lessons via syllabus_lesson_id FK
+    - Email template integrated into both manual booking route and sync function
+
+contracts:
+  - from_task: task-1-schema
+    to_task: task-2-caldav-lib
+    interface: slots table has caldav_uid, caldav_etag, sync_status, last_synced_at columns; caldav_settings table exists
+    format: Supabase table schema (SQL DDL)
+
+  - from_task: task-1-schema
+    to_task: task-1-types
+    interface: New columns and tables defined for TypeScript interface generation
+    format: SQL column definitions → TypeScript interfaces
+
+  - from_task: task-1-types
+    to_task: task-2-caldav-lib
+    interface: CalDAVSettings, extended Slot, extended Booking TypeScript types
+    format: TypeScript interfaces exported from lib/supabase.ts
+
+  - from_task: task-2-caldav-lib
+    to_task: task-2-api-routes
+    interface: createCalDAVClient, pushEventToCalendar, pullEventsFromCalendar, deleteCalendarEvent, syncCalendar functions
+    format: TypeScript module exports from lib/caldav.ts
+
+  - from_task: task-2-caldav-lib
+    to_task: task-2-sync-function
+    interface: Same CalDAV library functions
+    format: TypeScript module exports from lib/caldav.ts
+
+  - from_task: task-2-email-template
+    to_task: task-4-integration
+    interface: emailTemplates.lessonScheduled() function
+    format: Function returning {subject: string, html: string}
+
+  - from_task: task-2-api-routes
+    to_task: task-3-admin-settings
+    interface: CalDAV API endpoints (POST settings, GET test, POST sync)
+    format: REST API JSON responses
+
+  - from_task: task-1-schema
+    to_task: task-3-dashboard
+    interface: bookings.syllabus_lesson_id FK to syllabus_lessons; slots sync columns
+    format: Supabase joinable tables
+
+  - from_task: task-1-schema
+    to_task: task-3-booking-planner
+    interface: bookings.syllabus_lesson_id column; syllabus_lessons queryable
+    format: Supabase table columns
+
+  - from_task: task-3-booking-planner
+    to_task: task-4-integration
+    interface: AdminBookingPlanner sends syllabus_lesson_id in booking request body
+    format: JSON body field in POST /api/admin/bookings/manual
+
+tasks:
+  # ===================== WAVE 1: Foundation =====================
+  - id: task-1-schema
+    title: Add CalDAV sync columns and caldav_settings table to database schema
+    description: |
+      Add sync-tracking columns to the existing slots table (caldav_uid TEXT, caldav_etag TEXT,
+      sync_status TEXT with CHECK constraint for synced|pending_push|pending_pull|conflict|error,
+      last_synced_at TIMESTAMPTZ). Add syllabus_lesson_id (UUID FK → syllabus_lessons.id, nullable)
+      to the bookings table. Create new caldav_settings table with id (UUID PK), user_id (FK auth.users),
+      apple_id (TEXT), app_specific_password (TEXT), calendar_url (TEXT), sync_token (TEXT),
+      last_sync_at (TIMESTAMPTZ), is_active (BOOLEAN DEFAULT false). Add RLS policies: only admins
+      can CRUD caldav_settings. Use pgcrypto extension (already enabled) for password encryption
+      via pgp_sym_encrypt/pgp_sym_decrypt with a server-side key.
+
+      Append migration SQL to supabase/SETUP.sql following the existing pattern of
+      CREATE TABLE IF NOT EXISTS with DROP POLICY IF EXISTS guards.
+    wave: 1
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Database schema additions for sync tracking (caldav_uid, caldav_etag, sync_status)"
+      - "Linking bookings to syllabus_lessons for rich lesson display"
+    priority: high
+    status: pending
+    dependencies: []
+    conflicts_with: []
+    context_files:
+      - path: supabase/SETUP.sql
+        description: Full database schema — append new migration at bottom following existing patterns
+      - path: supabase/SEED_SYLLABUS.sql
+        description: Reference for syllabus_lessons table structure and seeded data
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Foundation task — all other tasks depend on schema being in place
+        timestamp: "2026-04-05"
+        estimated_effort: small
+        estimated_files: 1
+        estimated_lines: 60
+        focus_area: supabase/SETUP.sql
+        verification:
+          - Run SQL in Supabase SQL Editor without errors
+          - Verify slots table has new columns via \d slots
+          - Verify bookings table has syllabus_lesson_id column
+          - Verify caldav_settings table exists with correct columns and RLS
+        acceptance_criteria:
+          - slots table has caldav_uid, caldav_etag, sync_status, last_synced_at columns
+          - bookings table has nullable syllabus_lesson_id FK to syllabus_lessons
+          - caldav_settings table exists with all specified columns
+          - RLS policies restrict caldav_settings to admins only
+          - app_specific_password stored encrypted via pgcrypto
+        failure_modes:
+          - scenario: Column addition fails because slots/bookings have existing data with constraints
+            likelihood: low
+            impact: medium
+            mitigation: Use ALTER TABLE ADD COLUMN with defaults and nullable — safe for existing rows
+        tech_stack:
+          - PostgreSQL
+          - Supabase SQL Editor
+        test_coverage: null
+        requires_review: false
+        review_depth: null
+        review_security_sensitive: true
+
+  - id: task-1-types
+    title: Update TypeScript interfaces for new database columns and tables
+    description: |
+      Update lib/supabase.ts to add/extend TypeScript interfaces:
+      - Extend Slot interface: add caldav_uid (string | null), caldav_etag (string | null),
+        sync_status ('synced' | 'pending_push' | 'pending_pull' | 'conflict' | 'error' | null),
+        last_synced_at (string | null)
+      - Extend Booking interface: add syllabus_lesson_id (string | null)
+      - Add new CalDAVSettings interface: id (string), user_id (string), apple_id (string),
+        app_specific_password (string), calendar_url (string), sync_token (string | null),
+        last_sync_at (string | null), is_active (boolean)
+      - Add SyllabusLesson interface if not already present: id, course_id, lesson_number, title,
+        description, stage, ground_topics (string[]), flight_maneuvers (string[]),
+        completion_standards (string | null), order_index, created_by
+    wave: 1
+    agent: gem-implementer
+    prototype: false
+    priority: high
+    status: pending
+    dependencies: []
+    conflicts_with: []
+    context_files:
+      - path: lib/supabase.ts
+        description: Existing TypeScript interfaces for Slot, Booking, Student, Profile — extend these
+      - path: supabase/SETUP.sql
+        description: Reference for exact column types
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Type definitions needed by all downstream TypeScript tasks
+        timestamp: "2026-04-05"
+        estimated_effort: small
+        estimated_files: 1
+        estimated_lines: 40
+        focus_area: lib/supabase.ts
+        verification:
+          - TypeScript compilation passes (no type errors)
+          - New interfaces match database column definitions
+        acceptance_criteria:
+          - Slot interface includes caldav_uid, caldav_etag, sync_status, last_synced_at
+          - Booking interface includes syllabus_lesson_id
+          - CalDAVSettings interface defined with all fields
+          - SyllabusLesson interface defined matching syllabus_lessons table
+        failure_modes:
+          - scenario: Existing code breaks due to new required fields on Slot/Booking
+            likelihood: medium
+            impact: medium
+            mitigation: All new fields must be nullable (string | null) so existing code remains valid
+        tech_stack:
+          - TypeScript
+        test_coverage: null
+        requires_review: false
+        review_depth: null
+        review_security_sensitive: false
+
+  - id: task-1-install-tsdav
+    title: Install tsdav dependency
+    description: |
+      Install tsdav package as a production dependency via npm install tsdav.
+      Verify it appears in package.json dependencies. Confirm TypeScript types are included
+      (tsdav ships native types, no @types package needed).
+    wave: 1
+    agent: gem-implementer
+    prototype: false
+    priority: high
+    status: pending
+    dependencies: []
+    conflicts_with: []
+    context_files:
+      - path: package.json
+        description: Current dependency list — add tsdav here
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: tsdav must be installed before CalDAV library can be built
+        timestamp: "2026-04-05"
+        estimated_effort: small
+        estimated_files: 1
+        estimated_lines: 5
+        focus_area: package.json
+        verification:
+          - tsdav appears in package.json dependencies
+          - npm ls tsdav shows installed version
+        acceptance_criteria:
+          - tsdav is listed in package.json dependencies
+          - Package installs without errors
+        failure_modes:
+          - scenario: tsdav has peer dependency conflicts with existing packages
+            likelihood: low
+            impact: low
+            mitigation: Check npm install output for peer warnings; use --legacy-peer-deps if needed
+        tech_stack:
+          - npm
+          - tsdav
+        test_coverage: null
+        requires_review: false
+        review_depth: null
+        review_security_sensitive: false
+
+  # ===================== WAVE 2: Core Logic =====================
+  - id: task-2-caldav-lib
+    title: Build CalDAV client library (lib/caldav.ts)
+    description: |
+      Create lib/caldav.ts with the following functions using the tsdav library:
+
+      1. createCalDAVClient(settings: CalDAVSettings): Connect to iCloud CalDAV at caldav.icloud.com
+         using Basic auth with apple_id and decrypted app_specific_password. Return initialized DAVClient.
+
+      2. pushEventToCalendar(client, calendarUrl, slot, booking, studentName): Convert slot/booking
+         data to VCALENDAR/VEVENT string. Use UID format: {slot.id}@merlinflight.com (matching existing
+         .ics generation pattern). Set SUMMARY to "Flight Training - {studentName}" or
+         "Discovery Flight - {studentName}". Include DESCRIPTION with booking notes, syllabus lesson
+         title if linked. Use client.createCalendarObject() or updateCalendarObject() based on whether
+         caldav_uid already exists on the slot. Return {etag, url} for storage.
+
+      3. pullEventsFromCalendar(client, calendarUrl, syncToken?): Use client.syncCalendars() or
+         fetchCalendarObjects() with ctag/etag comparison. If syncToken provided, use it for
+         incremental sync. Return array of CalDAV events with UIDs + new syncToken.
+
+      4. deleteCalendarEvent(client, eventUrl, etag): Delete a single event from iCloud calendar
+         using client.deleteCalendarObject() with If-Match etag header.
+
+      5. syncCalendar(settings): Orchestrate full bidirectional sync:
+         a. Connect to iCloud via createCalDAVClient
+         b. Push any slots with sync_status='pending_push'
+         c. Pull changes from iCloud since last sync_token
+         d. For each inbound event: match UID to slot.caldav_uid → update slot times/description
+         e. For unmatched inbound events with merlinflight.com UID: log warning (orphaned)
+         f. For deleted remote events: set slot.sync_status='conflict', do NOT auto-delete
+         g. Update caldav_settings.sync_token and last_sync_at
+         h. Return SyncResult with counts
+
+      Export helper: slotToVEvent(slot, studentName, lessonTitle?) for reuse.
+      Handle errors gracefully with typed error responses (connection, auth, parse, conflict).
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "CalDAV bidirectional sync with Apple Calendar (iCloud) via tsdav"
+      - "Outbound sync (app → Apple Calendar) on booking creation/update"
+    priority: high
+    status: pending
+    dependencies:
+      - task-1-types
+      - task-1-install-tsdav
+    conflicts_with: []
+    context_files:
+      - path: lib/supabase.ts
+        description: TypeScript interfaces for Slot, Booking, CalDAVSettings
+      - path: lib/supabase-admin.ts
+        description: Supabase admin client for server-side DB operations
+      - path: app/api/calendar/booking-ics/route.ts
+        description: Existing VEVENT generation pattern — reuse escapeIcsText, toIcsUtc helpers
+      - path: docs/plan/apple-calendar-sync/research_findings_caldav_sync.yaml
+        description: tsdav API patterns, iCloud connection details, code examples
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Core library that all sync operations depend on
+        timestamp: "2026-04-05"
+        estimated_effort: large
+        estimated_files: 1
+        estimated_lines: 250
+        focus_area: lib/caldav.ts
+        verification:
+          - createCalDAVClient connects to iCloud without error (manual test with real credentials)
+          - pushEventToCalendar creates a visible event in Apple Calendar
+          - pullEventsFromCalendar returns events from the calendar
+          - deleteCalendarEvent removes an event
+          - UID format matches existing convention ({slot.id}@merlinflight.com)
+        acceptance_criteria:
+          - All 5 main functions implemented and exported
+          - VEVENT format matches RFC 5545 (DTSTART, DTEND, UID, SUMMARY, DESCRIPTION)
+          - UID uses slot.id@merlinflight.com pattern
+          - ctag/etag/sync-token used for change detection
+          - Error cases return typed errors (not unhandled throws)
+          - No credentials logged or exposed in error messages
+        failure_modes:
+          - scenario: tsdav API surface differs from documentation or research findings
+            likelihood: low
+            impact: high
+            mitigation: Verify tsdav exports via TypeScript autocomplete; consult tsdav GitHub source; fall back to raw WebDAV XML if needed
+          - scenario: iCloud rejects VEVENT format due to Apple-specific requirements
+            likelihood: medium
+            impact: medium
+            mitigation: Test with minimal VEVENT first; add properties incrementally; reference Apple's CalDAV compliance notes
+        tech_stack:
+          - TypeScript
+          - tsdav
+          - iCalendar RFC 5545
+        test_coverage: null
+        requires_review: true
+        review_depth: full
+        review_security_sensitive: true
+
+  - id: task-2-api-routes
+    title: Create CalDAV admin API routes
+    description: |
+      Create 4 API routes under app/api/admin/caldav/:
+
+      1. POST /api/admin/caldav/settings/route.ts:
+         - Require admin auth (reuse requireAdmin pattern from manual booking route)
+         - Accept body: {apple_id, app_specific_password, calendar_url?}
+         - Upsert into caldav_settings (single row for single instructor)
+         - Encrypt app_specific_password via Supabase RPC call to pgp_sym_encrypt
+         - Return success status
+
+      2. GET /api/admin/caldav/test/route.ts:
+         - Require admin auth
+         - Load caldav_settings from Supabase (decrypt password)
+         - Call createCalDAVClient() then fetchCalendars()
+         - Return {connected: true, calendars: [{name, url}]} or error
+
+      3. POST /api/admin/caldav/sync/route.ts:
+         - Require admin auth
+         - Load caldav_settings, call syncCalendar()
+         - Return SyncResult with counts of created/updated/deleted/errors
+
+      4. POST /api/admin/caldav/push/route.ts:
+         - Require admin auth
+         - Accept body: {slot_id}
+         - Load slot + booking + student data
+         - Push single event via pushEventToCalendar()
+         - Update slot's caldav_uid, caldav_etag, sync_status, last_synced_at
+         - Return {success, caldav_uid}
+
+      All routes follow existing pattern: requireAdmin guard, try/catch, JSON responses.
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Admin settings for CalDAV credentials (Apple ID + app-specific password)"
+    priority: high
+    status: pending
+    dependencies:
+      - task-1-schema
+      - task-2-caldav-lib
+    conflicts_with: []
+    context_files:
+      - path: app/api/admin/bookings/manual/route.ts
+        description: Reference for requireAdmin auth pattern, error handling, response format
+      - path: lib/supabase-admin.ts
+        description: Admin Supabase client for bypassing RLS
+      - path: lib/caldav.ts
+        description: CalDAV library functions to call (created in task-2-caldav-lib)
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: API layer between UI and CalDAV library
+        timestamp: "2026-04-05"
+        estimated_effort: medium
+        estimated_files: 4
+        estimated_lines: 250
+        focus_area: app/api/admin/caldav/
+        verification:
+          - POST /settings saves credentials to caldav_settings table
+          - GET /test returns calendar list when credentials are valid
+          - GET /test returns clear error when credentials are invalid
+          - POST /sync triggers full sync and returns counts
+          - POST /push creates event in Apple Calendar for given slot
+          - All routes reject non-admin users with 401/403
+        acceptance_criteria:
+          - All 4 routes implemented with admin auth guard
+          - Credentials stored encrypted in database
+          - Test endpoint validates connection without side effects
+          - Sync endpoint returns meaningful counts
+          - Push endpoint updates slot sync metadata after success
+          - No credentials in response bodies or error messages
+        failure_modes:
+          - scenario: Supabase pgp_sym_encrypt RPC not available or key management issue
+            likelihood: medium
+            impact: medium
+            mitigation: Fall back to storing password as env var only (ICLOUD_APP_PASSWORD) with DB storing just a reference flag; or use Supabase Vault if available
+        tech_stack:
+          - Next.js API Routes
+          - TypeScript
+          - Supabase
+        test_coverage: null
+        requires_review: true
+        review_depth: standard
+        review_security_sensitive: true
+
+  - id: task-2-sync-function
+    title: Create Netlify scheduled CalDAV sync function
+    description: |
+      Create netlify/functions/caldav-sync.ts as a Netlify Scheduled Function:
+
+      1. Export config with schedule: '*/10 * * * *' (every 10 minutes)
+      2. Create Supabase client with service role key (existing pattern from booking-monitor.ts)
+      3. Load caldav_settings where is_active = true
+      4. If no active settings, exit early
+      5. Call syncCalendar(settings) from lib/caldav.ts
+      6. For inbound new events (not matching any slot caldav_uid):
+         - Parse VEVENT SUMMARY to extract student name
+         - Look up student by name match in profiles table
+         - If found: create slot + booking (confirmed status) with caldav_uid
+         - If not found: create slot only (unassigned), log warning
+      7. For inbound modified events: update slot start_time/end_time/description
+      8. For inbound deleted events: mark slot sync_status='conflict', log for admin review
+      9. Push any slots with sync_status='pending_push' to iCloud
+      10. Update caldav_settings.last_sync_at and sync_token
+      11. Handle errors: log to console, update caldav_settings with error state
+
+      Follow booking-monitor.ts structure for imports, config export, and Supabase client pattern.
+      Keep function lightweight — exit early if ctag hasn't changed.
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Inbound sync (Apple Calendar → app) via 10-min scheduled polling"
+    priority: high
+    status: pending
+    dependencies:
+      - task-1-schema
+      - task-2-caldav-lib
+    conflicts_with: []
+    context_files:
+      - path: netlify/functions/booking-monitor.ts
+        description: Existing Netlify Scheduled Function — use as structural template
+      - path: netlify.toml
+        description: Netlify config — functions directory is netlify/functions
+      - path: lib/caldav.ts
+        description: CalDAV library functions (created in task-2-caldav-lib)
+      - path: lib/supabase-admin.ts
+        description: Supabase admin client pattern
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Scheduled function for inbound sync polling — core of bidirectional sync
+        timestamp: "2026-04-05"
+        estimated_effort: medium
+        estimated_files: 1
+        estimated_lines: 150
+        focus_area: netlify/functions/caldav-sync.ts
+        verification:
+          - Function deploys to Netlify without errors
+          - Runs on 10-minute schedule
+          - Detects new events added in Apple Calendar
+          - Detects modified events in Apple Calendar
+          - Detects deleted events in Apple Calendar
+          - Creates slots/bookings for new inbound events
+          - Exits early when no changes detected (ctag unchanged)
+        acceptance_criteria:
+          - Config exports schedule '*/10 * * * *'
+          - Reads caldav_settings for active connections
+          - Pulls inbound changes and creates/updates slots accordingly
+          - Pushes outbound pending changes
+          - Updates sync_token and last_sync_at after each run
+          - Handles auth failures gracefully (logs error, doesn't crash)
+        failure_modes:
+          - scenario: Function times out on large calendar sync
+            likelihood: medium
+            impact: medium
+            mitigation: Early exit on ctag match; limit batch size; consider Netlify Background Function if sync consistently exceeds 10s
+        tech_stack:
+          - Netlify Functions
+          - TypeScript
+          - tsdav
+          - Supabase
+        test_coverage: null
+        requires_review: true
+        review_depth: standard
+        review_security_sensitive: true
+        environment: production
+        requires_approval: false
+        devops_security_sensitive: true
+
+  - id: task-2-email-template
+    title: Add lessonScheduled email template to Resend
+    description: |
+      Add a new lessonScheduled template to emailTemplates in lib/resend.ts:
+
+      emailTemplates.lessonScheduled(studentName, lessonTitle, date, time, groundTopics, flightManeuvers)
+
+      Template should:
+      - Use existing emailWrapper() for Merlin branding consistency
+      - Show greeting with student name
+      - Display lesson date and time prominently
+      - If syllabus lesson linked: show lesson title, ground topics as bullet list,
+        flight maneuvers as bullet list
+      - If no syllabus lesson: show generic "Flight Training Session" with date/time only
+      - Include "View Dashboard" CTA button linking to /dashboard
+      - Return {subject: "Your Flight Lesson is Scheduled — {date}", html: string}
+
+      Follow the exact HTML/inline-CSS patterns of existing templates (welcome, flightReminder,
+      lessonEvaluation) for brand consistency.
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Email notification to student when lesson is scheduled"
+    priority: medium
+    status: pending
+    dependencies:
+      - task-1-types
+    conflicts_with: []
+    context_files:
+      - path: lib/resend.ts
+        description: Existing email templates — match branding, use emailWrapper, follow HTML patterns
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Email template needed by integration tasks but can be built independently
+        timestamp: "2026-04-05"
+        estimated_effort: small
+        estimated_files: 1
+        estimated_lines: 80
+        focus_area: lib/resend.ts
+        verification:
+          - Template renders correctly in email client preview
+          - Ground topics and flight maneuvers display as formatted lists
+          - Subject line includes formatted date
+          - CTA button links to /dashboard
+          - Matches visual style of existing Merlin email templates
+        acceptance_criteria:
+          - lessonScheduled function added to emailTemplates export
+          - Uses emailWrapper for consistent branding
+          - Displays lesson title, date/time, ground topics, flight maneuvers
+          - Gracefully handles missing syllabus data (no lesson linked)
+          - Returns {subject, html} matching existing template pattern
+        failure_modes:
+          - scenario: HTML rendering differences across email clients
+            likelihood: low
+            impact: low
+            mitigation: Use inline styles only (already the pattern); avoid flexbox in email body
+        tech_stack:
+          - TypeScript
+          - HTML email (inline CSS)
+          - Resend
+        test_coverage: null
+        requires_review: false
+        review_depth: null
+        review_security_sensitive: false
+
+  # ===================== WAVE 3: UI Components =====================
+  - id: task-3-dashboard
+    title: Build student weekly lesson dashboard page
+    description: |
+      Create app/dashboard/page.tsx as a server component (or client component with data fetching):
+
+      1. Auth: Get current user session via Supabase. Redirect to /login if not authenticated.
+      2. Data fetching:
+         - Query bookings for current user where status IN ('confirmed', 'completed')
+         - Join slots on booking.slot_id for start_time, end_time
+         - Join syllabus_lessons on booking.syllabus_lesson_id for title, ground_topics,
+           flight_maneuvers, completion_standards, stage
+         - Filter to current week (Mon-Sun) by default
+      3. UI layout:
+         - Page title: "Your Flight Schedule"
+         - Week navigation: "← Previous" | "This Week (Mon Apr 6 – Sun Apr 12)" | "Next →"
+         - Day sections: Monday through Sunday headers
+         - Lesson cards under each day:
+           - Time: "9:00 AM – 11:00 AM"
+           - Status badge: "Today" (gold), "Upcoming" (blue), "Completed" (green)
+           - Syllabus lesson title (if linked): "Lesson 5: Slow Flight & Stalls"
+           - Ground Topics section (expandable or inline): bullet list from ground_topics JSONB
+           - Flight Maneuvers section: bullet list from flight_maneuvers JSONB
+           - Completion Standards (if linked): text block
+         - Empty day: "No lessons scheduled"
+         - Empty week: "No lessons this week. Check your booking page for availability."
+      4. Quick links section:
+         - "View Full Syllabus" → /documents (or appropriate syllabus route)
+         - "My Progress" → /progress
+         - "Book a Lesson" → /schedule
+      5. Responsive: mobile-first with Tailwind classes
+
+      Use existing dashboard layout (app/dashboard/layout.tsx already exists with noindex metadata).
+      Follow Tailwind styling patterns from lesson-scheduling/page.tsx.
+    wave: 3
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "New student /dashboard page with weekly lesson view linked to syllabus_lessons"
+    priority: high
+    status: pending
+    dependencies:
+      - task-1-schema
+      - task-1-types
+    conflicts_with: []
+    context_files:
+      - path: app/dashboard/layout.tsx
+        description: Existing dashboard layout — page.tsx will render within this
+      - path: app/lesson-scheduling/page.tsx
+        description: Existing student-facing page — reference for Supabase queries, Tailwind patterns, auth flow
+      - path: lib/supabase.ts
+        description: Supabase client + TypeScript interfaces
+      - path: supabase/SEED_SYLLABUS.sql
+        description: Sample syllabus data for understanding ground_topics/flight_maneuvers JSONB structure
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Primary student-facing feature — shows weekly lessons with syllabus data
+        timestamp: "2026-04-05"
+        estimated_effort: medium
+        estimated_files: 1
+        estimated_lines: 300
+        focus_area: app/dashboard/page.tsx
+        verification:
+          - Page renders for authenticated student
+          - Redirects unauthenticated users to /login
+          - Displays correct lessons for the selected week
+          - Syllabus data (ground topics, maneuvers, standards) displays correctly for linked lessons
+          - Week navigation works (previous/next)
+          - Empty states display correctly
+          - Responsive on mobile
+        acceptance_criteria:
+          - Authenticated students see their weekly lessons
+          - Each lesson shows date/time, status, and syllabus details when linked
+          - Week navigation (previous/this/next) works correctly
+          - Ground topics and flight maneuvers render as readable lists
+          - Empty day and empty week states handled
+          - Quick links to syllabus, progress, and booking present
+          - Page is responsive (mobile and desktop)
+        failure_modes:
+          - scenario: Supabase join query fails due to RLS policy on syllabus_lessons requiring enrollment
+            likelihood: medium
+            impact: high
+            mitigation: Query syllabus_lessons separately after getting booking data (avoid complex join that may hit RLS); or use Supabase admin client for server component
+        tech_stack:
+          - Next.js
+          - React
+          - TypeScript
+          - Tailwind CSS
+          - Supabase
+        test_coverage: null
+        requires_review: false
+        review_depth: null
+        review_security_sensitive: false
+
+  - id: task-3-admin-settings
+    title: Build admin CalDAV settings UI page
+    description: |
+      Create app/admin/calendar/page.tsx as a client component:
+
+      1. Auth: Verify admin status (redirect if not admin)
+      2. Settings form:
+         - Apple ID input (email field)
+         - App-specific password input (password field, masked)
+         - Calendar URL input (optional — auto-discovered if omitted)
+         - Save button → POST /api/admin/caldav/settings
+      3. Connection status section:
+         - "Test Connection" button → GET /api/admin/caldav/test
+         - Shows green checkmark + calendar list on success
+         - Shows red X + error message on failure
+      4. Sync controls:
+         - "Sync Now" button → POST /api/admin/caldav/sync
+         - Shows sync results (created/updated/deleted counts)
+         - Loading spinner during sync
+      5. Status display:
+         - Last sync timestamp (from caldav_settings.last_sync_at)
+         - Active/inactive toggle
+         - Connection health indicator
+
+      Load existing settings on mount (if saved). Use existing admin page styling patterns.
+      Include helper text explaining app-specific passwords (link to Apple support page).
+    wave: 3
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Admin settings for CalDAV credentials (Apple ID + app-specific password)"
+    priority: medium
+    status: pending
+    dependencies:
+      - task-2-api-routes
+    conflicts_with: []
+    context_files:
+      - path: app/admin/page.tsx
+        description: Existing admin page — reference for auth pattern, layout, styling
+      - path: app/admin/layout.tsx
+        description: Admin layout wrapper
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Admin-facing UI for managing CalDAV connection
+        timestamp: "2026-04-05"
+        estimated_effort: medium
+        estimated_files: 1
+        estimated_lines: 250
+        focus_area: app/admin/calendar/page.tsx
+        verification:
+          - Page accessible only to admin users
+          - Can save Apple ID and app-specific password
+          - Test connection shows success/failure clearly
+          - Sync Now triggers sync and shows results
+          - Last sync timestamp displays correctly
+          - Password field is masked
+        acceptance_criteria:
+          - Admin can input and save CalDAV credentials
+          - Test connection validates credentials and shows available calendars
+          - Manual sync trigger works and shows result counts
+          - Last sync time displayed
+          - Password is masked in UI and not returned in API responses
+          - Non-admin users cannot access page
+        failure_modes:
+          - scenario: Admin forgets to generate app-specific password and uses Apple ID password
+            likelihood: medium
+            impact: medium
+            mitigation: Add helper text with link to Apple's app-specific password page; validate auth error on test and show specific guidance
+        tech_stack:
+          - Next.js
+          - React
+          - TypeScript
+          - Tailwind CSS
+        test_coverage: null
+        requires_review: false
+        review_depth: null
+        review_security_sensitive: false
+
+  - id: task-3-booking-planner
+    title: Add syllabus lesson picker to AdminBookingPlanner
+    description: |
+      Modify app/components/AdminBookingPlanner.tsx to add an optional syllabus lesson dropdown:
+
+      1. Add state: selectedSyllabusLessonId (string | null, default null)
+      2. On component mount or when needed: fetch syllabus_lessons from Supabase
+         - Query: .from('syllabus_lessons').select('id, lesson_number, title, stage').order('lesson_number')
+         - Load into a state array
+      3. Add dropdown to the booking creation form (below student picker, above price):
+         - Label: "Link to Syllabus Lesson (optional)"
+         - Default option: "— No lesson linked —"
+         - Options: "Lesson {lesson_number}: {title}" grouped by stage if desired
+      4. Include selectedSyllabusLessonId in the POST body to /api/admin/bookings/manual
+         - Add to the fetch body: syllabus_lesson_id: selectedSyllabusLessonId || null
+      5. Reset selectedSyllabusLessonId after successful booking creation
+
+      Minimal changes to existing component — add dropdown and pass the value.
+      Do NOT restructure or refactor existing AdminBookingPlanner code.
+    wave: 3
+    agent: gem-implementer
+    prototype: false
+    priority: medium
+    status: pending
+    dependencies:
+      - task-1-schema
+      - task-1-types
+    conflicts_with: []
+    context_files:
+      - path: app/components/AdminBookingPlanner.tsx
+        description: Existing booking planner component (~350 lines) — add dropdown to booking form
+      - path: lib/supabase.ts
+        description: Supabase client for querying syllabus_lessons
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Enables linking bookings to syllabus lessons at creation time
+        timestamp: "2026-04-05"
+        estimated_effort: small
+        estimated_files: 1
+        estimated_lines: 50
+        focus_area: app/components/AdminBookingPlanner.tsx
+        verification:
+          - Dropdown appears in booking creation form
+          - Syllabus lessons load and display options correctly
+          - Selected lesson ID is sent in POST body
+          - "No lesson linked" option works (sends null)
+          - Existing booking creation flow unaffected when no lesson selected
+        acceptance_criteria:
+          - Optional syllabus lesson dropdown added to booking form
+          - Lessons sorted by lesson_number
+          - Selected lesson ID passed to POST /api/admin/bookings/manual
+          - Existing booking flow works unchanged when no lesson selected
+          - Dropdown resets after successful booking
+        failure_modes:
+          - scenario: RLS policy prevents admin from reading syllabus_lessons
+            likelihood: low
+            impact: medium
+            mitigation: Admin RLS policy on syllabus_lessons allows ALL for admins — verified in SETUP.sql
+        tech_stack:
+          - React
+          - TypeScript
+          - Tailwind CSS
+          - Supabase
+        test_coverage: null
+        requires_review: false
+        review_depth: null
+        review_security_sensitive: false
+
+  # ===================== WAVE 4: Integration Wiring =====================
+  - id: task-4-integration
+    title: Wire booking creation to CalDAV push + email notification
+    description: |
+      Modify app/api/admin/bookings/manual/route.ts to add post-booking actions:
+
+      1. Accept new optional field in request body: syllabus_lesson_id (string | null)
+      2. When creating the booking, include syllabus_lesson_id in the insert
+      3. After successful booking creation, trigger CalDAV push:
+         - Load caldav_settings (is_active = true)
+         - If active: call pushEventToCalendar() from lib/caldav.ts
+         - Update slot with caldav_uid, caldav_etag, sync_status='synced', last_synced_at
+         - If CalDAV push fails: set sync_status='pending_push', log error (don't fail the booking)
+      4. After successful booking creation, send email notification:
+         - Load student profile (full_name, email) via user_id
+         - If syllabus_lesson_id: load syllabus_lessons row for title, ground_topics, flight_maneuvers
+         - Call resend.emails.send() with emailTemplates.lessonScheduled()
+         - From: "Merlin Flight Training <noreply@merlinflighttraining.com>" (or existing from address)
+         - If email fails: log error (don't fail the booking)
+      5. Return existing response shape plus optional warnings for CalDAV/email failures
+
+      CalDAV push and email are fire-and-forget side effects — booking creation must NOT
+      fail if either service is down. Log warnings but return success.
+    wave: 4
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Outbound sync (app → Apple Calendar) on booking creation/update"
+      - "Email notification to student when lesson is scheduled"
+    priority: high
+    status: pending
+    dependencies:
+      - task-2-caldav-lib
+      - task-2-api-routes
+      - task-2-email-template
+      - task-3-booking-planner
+    conflicts_with: []
+    context_files:
+      - path: app/api/admin/bookings/manual/route.ts
+        description: Existing manual booking API — modify to add CalDAV push + email after booking creation
+      - path: lib/caldav.ts
+        description: CalDAV library for pushEventToCalendar
+      - path: lib/resend.ts
+        description: Email templates including new lessonScheduled
+      - path: lib/supabase-admin.ts
+        description: Admin Supabase client for reading caldav_settings and student data
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Integration task wiring all components together at the booking creation point
+        timestamp: "2026-04-05"
+        estimated_effort: medium
+        estimated_files: 1
+        estimated_lines: 80
+        focus_area: app/api/admin/bookings/manual/route.ts
+        verification:
+          - Booking creation still works when CalDAV is not configured
+          - Booking creation still works when CalDAV push fails
+          - Booking creation still works when email send fails
+          - CalDAV event appears in Apple Calendar after booking creation
+          - Student receives email with lesson details after booking creation
+          - syllabus_lesson_id stored on booking when provided
+          - syllabus_lesson_id is null when not provided (backward compatible)
+        acceptance_criteria:
+          - Manual booking API accepts optional syllabus_lesson_id
+          - Successful booking triggers CalDAV push (if settings active)
+          - Successful booking triggers email to student
+          - CalDAV/email failures don't break booking creation
+          - CalDAV push updates slot sync metadata
+          - Email includes syllabus details when lesson linked
+          - Backward compatible — existing clients work without syllabus_lesson_id
+        failure_modes:
+          - scenario: CalDAV push timeout delays booking API response
+            likelihood: medium
+            impact: medium
+            mitigation: Set timeout on CalDAV operations (5s max); consider making push async via database flag + next sync cycle
+          - scenario: Student has no email in profile
+            likelihood: low
+            impact: low
+            mitigation: Check for email before attempting send; skip email with warning in response
+        tech_stack:
+          - Next.js API Routes
+          - TypeScript
+          - tsdav
+          - Resend
+          - Supabase
+        test_coverage: null
+        requires_review: true
+        review_depth: standard
+        review_security_sensitive: false
+
+  - id: task-4-sync-email
+    title: Add email notification to CalDAV inbound sync
+    description: |
+      Modify netlify/functions/caldav-sync.ts to send email when inbound sync creates a new booking:
+
+      1. After creating a new booking from an inbound CalDAV event (in the sync function):
+         - Load the student's profile (full_name, email) via the matched user_id
+         - If syllabus_lesson_id was assigned: load syllabus_lessons data
+         - Import resend client and emailTemplates from lib/resend.ts
+         - Call resend.emails.send() with lessonScheduled template
+      2. Only send email for NEW bookings (not updates or deletes)
+      3. If email fails: log warning, continue sync (don't abort)
+      4. Add brief comment documenting the email trigger point
+
+      Minimal change — add email send call after the booking creation block in the sync function.
+    wave: 4
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - "Email notification to student when lesson is scheduled"
+    priority: medium
+    status: pending
+    dependencies:
+      - task-2-sync-function
+      - task-2-email-template
+    conflicts_with:
+      - task-2-sync-function
+    context_files:
+      - path: netlify/functions/caldav-sync.ts
+        description: Sync function to modify — add email after new booking creation
+      - path: lib/resend.ts
+        description: Email client and lessonScheduled template
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Ensures students are notified when lessons are scheduled via Apple Calendar
+        timestamp: "2026-04-05"
+        estimated_effort: small
+        estimated_files: 1
+        estimated_lines: 30
+        focus_area: netlify/functions/caldav-sync.ts
+        verification:
+          - Student receives email when inbound sync creates a new booking
+          - No email sent for updated or deleted events
+          - Sync continues even if email fails
+        acceptance_criteria:
+          - Email sent to student when new booking created from CalDAV inbound sync
+          - Email not sent for booking updates or deletions
+          - Email failure does not abort sync
+        failure_modes:
+          - scenario: Resend rate limit exceeded during batch sync creating many bookings
+            likelihood: low
+            impact: low
+            mitigation: Add small delay between emails if creating multiple bookings in one sync cycle
+        tech_stack:
+          - TypeScript
+          - Resend
+          - Netlify Functions
+        test_coverage: null
+        requires_review: false
+        review_depth: null
+        review_security_sensitive: false
+
+  - id: task-4-review
+    title: Security and integration review of CalDAV sync system
+    description: |
+      Review all CalDAV-related code for security and correctness:
+
+      1. Credential handling: Verify app-specific password is encrypted at rest, never logged,
+         never returned in API responses, and only decrypted in server-side contexts.
+      2. Input validation: Verify inbound CalDAV event data is sanitized before Supabase insertion
+         (no SQL injection via VEVENT fields, no XSS via stored descriptions).
+      3. Auth: Verify all admin API routes properly check admin status.
+      4. RLS: Verify caldav_settings table RLS restricts to admin only.
+      5. Error handling: Verify CalDAV/email failures don't break core booking flow.
+      6. Race conditions: Check for potential issues with concurrent sync runs.
+      7. Data integrity: Verify UID mapping is consistent and bidirectional sync doesn't create duplicates.
+      8. Netlify function security: Verify sync function can't be triggered by external HTTP requests.
+    wave: 4
+    agent: gem-reviewer
+    prototype: false
+    priority: high
+    status: pending
+    dependencies:
+      - task-2-caldav-lib
+      - task-2-api-routes
+      - task-2-sync-function
+      - task-4-integration
+      - task-4-sync-email
+    conflicts_with: []
+    context_files:
+      - path: lib/caldav.ts
+        description: CalDAV client library — check credential handling, input sanitization
+      - path: app/api/admin/caldav/settings/route.ts
+        description: Settings API — check encryption, auth, response sanitization
+      - path: netlify/functions/caldav-sync.ts
+        description: Sync function — check input validation, error handling
+      - path: app/api/admin/bookings/manual/route.ts
+        description: Modified booking API — check integration doesn't break existing flow
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: Security review required for credential handling and external service integration
+        timestamp: "2026-04-05"
+        estimated_effort: medium
+        estimated_files: 6
+        estimated_lines: 0
+        focus_area: Security and integration correctness
+        verification:
+          - No credentials in logs, responses, or client-side code
+          - All admin routes have proper auth guards
+          - Input from CalDAV is validated and sanitized
+          - Core booking flow works when CalDAV is disabled/broken
+        acceptance_criteria:
+          - Credentials encrypted at rest and never exposed
+          - All API routes require admin authentication
+          - Inbound CalDAV data sanitized before database insertion
+          - No race conditions in concurrent sync operations
+          - Booking creation resilient to CalDAV/email service failures
+        failure_modes:
+          - scenario: Review discovers a critical security issue requiring rework
+            likelihood: low
+            impact: high
+            mitigation: Fix immediately; reviewer can file specific task for implementer
+        requires_review: false
+        review_depth: full
+        review_security_sensitive: true
+
+planning_pass: 1
+planning_history:
+  - pass: 1
+    reason: Initial plan creation based on PRD, research findings, and codebase analysis
+    timestamp: "2026-04-05"

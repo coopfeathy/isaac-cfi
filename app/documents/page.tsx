@@ -3,7 +3,7 @@
 import { useState } from "react"
 import LearningHubLayout from "@/app/components/LearningHubLayout"
 
-const SYLLABUS_PDF = "/The Total Private Pilot Syllabus.pdf"
+const SYLLABUS_PDF = "/The%20Total%20Private%20Pilot%20Syllabus.pdf"
 
 export default function DocumentsPage() {
   const [viewerOpen, setViewerOpen] = useState(false)
@@ -48,8 +48,9 @@ export default function DocumentsPage() {
               overflow: "hidden",
             }}
           >
-            <iframe
-              src={`${SYLLABUS_PDF}#toolbar=0&navpanes=0&scrollbar=0`}
+            <embed
+              src={`${SYLLABUS_PDF}#toolbar=0&navpanes=0&scrollbar=0&page=1`}
+              type="application/pdf"
               style={{
                 width: "100%",
                 height: "100%",
@@ -58,8 +59,9 @@ export default function DocumentsPage() {
               }}
               title="Syllabus Preview"
             />
-            {/* Overlay so the card click works */}
+            {/* Clickable overlay */}
             <div
+              onClick={() => setViewerOpen(true)}
               style={{
                 position: "absolute",
                 inset: 0,
@@ -68,6 +70,7 @@ export default function DocumentsPage() {
                 justifyContent: "center",
                 background: "rgba(0,0,0,0)",
                 transition: "background 0.2s",
+                cursor: "pointer",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = "rgba(0,0,0,0.05)"
@@ -218,8 +221,9 @@ export default function DocumentsPage() {
 
           {/* PDF Embed */}
           <div style={{ flex: 1 }}>
-            <iframe
+            <embed
               src={SYLLABUS_PDF}
+              type="application/pdf"
               style={{
                 width: "100%",
                 height: "100%",
