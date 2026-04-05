@@ -438,7 +438,7 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
                 ))}
               </select>
             </label>
-          )
+          )}
 
           <div className="grid md:grid-cols-2 gap-3">
             <label className="text-sm text-darkText font-semibold">
