@@ -1879,6 +1879,73 @@ CREATE POLICY "Instructors update lesson completions"
   WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_instructor = true));
 
 -- ============================================================
+-- CalDAV Sync: Add sync columns to slots table
+-- ============================================================
+
+ALTER TABLE slots ADD COLUMN IF NOT EXISTS caldav_uid TEXT;
+ALTER TABLE slots ADD COLUMN IF NOT EXISTS caldav_etag TEXT;
+ALTER TABLE slots ADD COLUMN IF NOT EXISTS sync_status TEXT CHECK (sync_status IN ('synced', 'pending_push', 'pending_pull', 'pending_delete', 'conflict', 'error'));
+ALTER TABLE slots ADD COLUMN IF NOT EXISTS last_synced_at TIMESTAMPTZ;
+
+-- ============================================================
+-- CalDAV Sync: Indexes for sync lookups
+-- ============================================================
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_slots_caldav_uid ON slots(caldav_uid) WHERE caldav_uid IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_slots_sync_status ON slots(sync_status) WHERE sync_status IS NOT NULL AND sync_status != 'synced';
+
+-- ============================================================
+-- Bookings: Add syllabus_lesson_id FK
+-- ============================================================
+
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS syllabus_lesson_id UUID REFERENCES syllabus_lessons(id) ON DELETE SET NULL;
+
+-- ============================================================
+-- RLS: Students view syllabus lessons via bookings
+-- ============================================================
+
+DROP POLICY IF EXISTS "Students view syllabus lessons via bookings" ON syllabus_lessons;
+CREATE POLICY "Students view syllabus lessons via bookings"
+  ON syllabus_lessons FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM bookings 
+    WHERE bookings.syllabus_lesson_id = syllabus_lessons.id 
+    AND bookings.user_id = auth.uid()
+  ));
+
+-- ============================================================
+-- CalDAV Settings table
+-- Note: iCloud app-specific password stored as env var
+-- (ICLOUD_APP_PASSWORD), NOT in the database.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS caldav_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  apple_id TEXT NOT NULL,
+  calendar_url TEXT,
+  sync_token TEXT,
+  last_sync_at TIMESTAMPTZ,
+  sync_in_progress BOOLEAN DEFAULT false,
+  last_sync_started_at TIMESTAMPTZ,
+  is_active BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE caldav_settings ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================
+-- RLS: Admins manage caldav_settings
+-- ============================================================
+
+DROP POLICY IF EXISTS "Admins manage caldav settings" ON caldav_settings;
+CREATE POLICY "Admins manage caldav settings"
+  ON caldav_settings FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+-- ============================================================
 -- DONE
 -- All tables, RLS policies, and indexes are created.
 -- ============================================================

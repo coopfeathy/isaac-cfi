@@ -1,0 +1,647 @@
+plan_id: pilot-store-feasibility
+objective: "Assess the startup costs, ongoing costs, difficulties, risks, and viable alternatives for adding a pilot supply store to the Merlin Flight Training website"
+focus_area: pilot_store_costs_risks_alternatives
+created_at: "2026-04-05"
+created_by: gem-researcher
+status: completed
+
+tldr: |
+  - A full pilot supply store requires $3,000–$12,000+ upfront (inventory, photography, shipping supplies, licenses) and competes directly with Amazon, Sporty's, and PilotMall who have massive selection, volume pricing, and fast shipping — a one-person flight school cannot compete on any of those axes.
+  - The existing Next.js/Stripe/Supabase stack already has a working items table, admin CRUD, product sync from Stripe, and Checkout Sessions — building a basic storefront into the existing app is the lowest-cost technical option (~40–80 dev hours), but the business model itself is the risk, not the technology.
+  - The recommended path (with highest ROI and lowest risk) is a tiered approach: (1) affiliate links to Sporty's/Amazon for all general pilot supplies, (2) print-on-demand for Merlin-branded merchandise, and (3) curated "Student Starter Kits" sold at a modest markup as a convenience service — this requires near-zero inventory, no warehouse, and no product liability.
+  - NY sales tax compliance (8.625% in Nassau County) is required for any physical product sales regardless of model. Affiliate-only avoids this entirely.
+  - Every hour spent packing boxes and managing returns is an hour not spent instructing at $65/hr — the opportunity cost dominates the economics.
+
+research_metadata:
+  methodology: "Hybrid retrieval: semantic_search of codebase for existing e-commerce/payments infrastructure, grep_search for items/products/billing patterns, read_file for Stripe integration details, fetch_webpage for competitor pricing (PilotMall, Shopify, Snipcart), domain knowledge synthesis for business/regulatory analysis"
+  scope: "Full codebase scan of payment infrastructure, competitor analysis (PilotMall, Sporty's, Amazon), platform pricing research (Shopify, Snipcart, native Stripe), NY regulatory and tax requirements, alternative business model evaluation"
+  confidence: high
+  coverage: 90
+  decision_blockers: 2
+  research_blockers: 0
+
+# ============================================================
+# SECTION 1: STARTUP COSTS BREAKDOWN
+# ============================================================
+
+startup_costs:
+  initial_inventory:
+    minimum_viable_stock:
+      description: "Bare minimum curated selection targeting PPL students at FRG"
+      categories:
+        - category: "Headsets (student-grade: Rugged Air RA200, Faro G2)"
+          units: 3-5
+          cost_per_unit: "$80–$150 wholesale"
+          total: "$400–$750"
+          note: "Headsets are high-value but slow-moving; 1 sale/month would be optimistic for a single-school operation"
+        - category: "Kneeboards (ASA, RAM)"
+          units: 5-10
+          cost_per_unit: "$15–$30 wholesale"
+          total: "$75–$300"
+        - category: "Logbooks (ASA, Jeppesen)"
+          units: 10-20
+          cost_per_unit: "$5–$10 wholesale"
+          total: "$50–$200"
+        - category: "Plotters, E6B flight computers"
+          units: 5-10
+          cost_per_unit: "$8–$20 wholesale"
+          total: "$40–$200"
+        - category: "Fuel testers, flashlights, accessories"
+          units: 10-20
+          cost_per_unit: "$5–$15 wholesale"
+          total: "$50–$300"
+        - category: "Sectional charts, FAR/AIM"
+          units: 5-10
+          cost_per_unit: "$5–$15 wholesale"
+          total: "$25–$150"
+        - category: "Flight bags (entry level)"
+          units: 3-5
+          cost_per_unit: "$30–$60 wholesale"
+          total: "$90–$300"
+      total_range: "$730–$2,200"
+      note: "Most distributor accounts (Aircraft Spruce, Sporty's wholesale) require minimum opening orders of $500–$2,000. Markups on pilot supplies are typically 30–50% from wholesale to MSRP, but online competitors routinely sell at or below MSRP."
+
+    expanded_stock:
+      description: "If including higher-value items (ANR headsets, avionics accessories, ForeFlight mounts)"
+      total_range: "$5,000–$12,000+"
+      risk: "Deadstock risk increases significantly with high-value items; a single unsold Bose A30 ($1,299 retail) ties up ~$900+ in capital"
+
+  ecommerce_platform_costs:
+    option_a_native_nextjs_stripe:
+      description: "Build product pages, cart, and checkout into existing Next.js app using Stripe Checkout Sessions"
+      upfront_cost: "$0 (no platform fee; dev time only)"
+      monthly_cost: "$0 (already on Netlify plan)"
+      dev_hours_estimate: "40–80 hours"
+      dev_cost_estimate: "$4,000–$12,000 at $100–$150/hr, or $0 if self-built"
+      payment_processing: "2.9% + $0.30 per transaction (existing Stripe account)"
+      existing_infrastructure:
+        - "items table in Supabase with id, name, description, type, rate_cents, is_active"
+        - "AdminItemsPage with full CRUD for billing items"
+        - "Stripe product sync endpoint at /api/admin/billing/sync-products"
+        - "Stripe Checkout Session creation in /api/admin/billing/push-checkout-link"
+        - "Payment Element integration in admin billing and schedule pages"
+        - "Stripe webhook handlers for payment_intent.succeeded and checkout.session.completed"
+      what_would_need_building:
+        - "Public-facing product catalog pages (product listing, product detail)"
+        - "Shopping cart state management (localStorage or Supabase)"
+        - "Guest checkout flow (current system is admin-initiated or auth-required)"
+        - "Shipping address collection and rate calculation"
+        - "Order management system (order status, tracking, fulfillment)"
+        - "Inventory quantity tracking (current items table has no quantity field)"
+        - "Image/gallery management for products"
+        - "Search and filtering for product catalog"
+
+    option_b_shopify_starter:
+      description: "Shopify Starter plan — one-page store with buy buttons embeddable in existing site"
+      upfront_cost: "$0"
+      monthly_cost: "$5/mo ($60/yr)"
+      payment_processing: "5% + $0.30 online (significantly higher than existing Stripe 2.9%)"
+      pros:
+        - "Instant inventory management, tax calculation, shipping label printing"
+        - "No development required for store functionality"
+        - "Built-in abandoned cart recovery"
+      cons:
+        - "5% + 30¢ card rate is nearly double current Stripe rate"
+        - "One-page store only — limited branding/UX"
+        - "Embeddable buy buttons feel disconnected from main site"
+        - "Two separate systems to manage (Supabase for training, Shopify for store)"
+
+    option_c_shopify_basic:
+      description: "Shopify Basic plan — full-featured online store"
+      upfront_cost: "$0"
+      monthly_cost: "$29/mo ($348/yr) or $39/mo month-to-month"
+      payment_processing: "2.9% + $0.30 (same as current Stripe rate, using Shopify Payments)"
+      pros:
+        - "Full-featured e-commerce with themes, SEO, marketing"
+        - "Automated sales tax via Shopify Tax"
+        - "Up to 87% off shipping labels"
+        - "Built-in inventory management"
+      cons:
+        - "Running two entirely separate web platforms"
+        - "Brand/UX inconsistency between Next.js training site and Shopify store"
+        - "If using third-party payment gateway instead of Shopify Payments: +2% transaction fee on top"
+        - "Monthly cost adds up even in zero-revenue months"
+
+    option_d_snipcart:
+      description: "Snipcart cart overlay on existing Next.js site — adds shopping cart to any HTML page"
+      upfront_cost: "$0"
+      monthly_cost: "$20/mo minimum (or 2% of sales if sales > $1,000/mo)"
+      payment_processing: "2% Snipcart fee + payment gateway fees (Stripe 2.9% + $0.30)"
+      total_effective_rate: "~4.9% + $0.30 per transaction"
+      pros:
+        - "Drops into existing site with minimal dev work (10–20 hours)"
+        - "Inventory management, tax (TaxJar/TaxCloud integration), shipping built in"
+        - "Custom email templates, abandoned cart recovery"
+      cons:
+        - "Stacking fees: Snipcart 2% + Stripe 2.9% = 4.9% effective rate"
+        - "$20/mo floor even with zero sales"
+        - "Cart UI is an overlay — may feel foreign on the site"
+
+  product_photography_and_listings:
+    description: "Creating product pages with images and descriptions"
+    diy_cost: "$50–$200 (lightbox, smartphone setup)"
+    professional_cost: "$500–$2,000 for 20–50 products"
+    note: "For standard pilot supplies, manufacturer stock photos are often available from distributors and can be used with permission. This significantly reduces photography costs."
+
+  shipping_supplies:
+    description: "Boxes, bubble mailers, tape, labels, scale"
+    initial_cost: "$100–$300"
+    pirate_ship_or_stamps_com: "$0 monthly fee; discounted USPS/UPS rates via Pirate Ship"
+
+  business_licenses_permits_ny:
+    ny_sales_tax_certificate_of_authority:
+      description: "Required to collect NY sales tax on tangible goods"
+      cost: "$0 (free to register with NY Department of Taxation and Finance, Form DTF-17)"
+      processing_time: "7–10 business days"
+    nassau_county_general_business_license:
+      description: "Town of Hempstead or Farmingdale may require a general business license"
+      cost: "$25–$100 depending on municipality"
+    ny_llc_or_dba:
+      description: "If operating under a different business name or structure for the store"
+      cost: "$200 (NY LLC filing fee) or $25–$50 (DBA/assumed name filing)"
+      note: "If Merlin Flight Training already has a business entity, an additional entity may not be needed"
+
+  insurance:
+    product_liability_insurance:
+      description: "Covers claims if a product sold causes injury (e.g., defective headset, flashlight failure in flight)"
+      estimated_annual_premium: "$300–$800/yr for small retail with <$100K revenue"
+      note: "Aviation products carry elevated perceived risk. Some insurers may classify aviation supplies as higher-risk even though most items are generic consumer goods. Check if existing business insurance covers retail sales."
+    general_liability_rider:
+      description: "Many existing flight school policies exclude retail operations; may need endorsement"
+      estimated_cost: "$100–$300/yr additional rider"
+
+  storage_warehouse:
+    description: "Space for inventory — for minimum viable stock"
+    option_a: "Corner of existing office/hangar at FRG — $0 additional if space permits"
+    option_b: "Small storage unit (5x5) — $75–$150/mo in Farmingdale area"
+    recommendation: "Start with on-site storage for minimum inventory; a 3–4 shelf rack handles the minimum viable product list"
+
+  total_startup_range:
+    low_end: "$1,500–$3,000 (minimal inventory, DIY photography, native Stripe build, no extra storage)"
+    mid_range: "$5,000–$8,000 (moderate inventory, basic professional setup, Shopify Basic)"
+    high_end: "$12,000–$20,000+ (expanded inventory including high-value items, professional photography, full storefront dev)"
+
+# ============================================================
+# SECTION 2: ONGOING COSTS
+# ============================================================
+
+ongoing_costs:
+  inventory_replenishment:
+    description: "Restocking sold items and adding new products"
+    estimated_monthly: "$200–$1,000 depending on sales volume"
+    cash_flow_note: "Capital is tied up 30–90 days between purchase and sale; minimum reorder quantities from distributors may force over-ordering"
+
+  shipping_costs:
+    average_per_order: "$5–$15 USPS Priority/First Class for typical pilot supplies"
+    options:
+      - "Pass to customer (standard practice): $0 to business"
+      - "Free shipping over threshold (e.g., $100+): reduces margin by 5–15%"
+      - "Flat rate shipping: $6.99 flat absorbs variance"
+    shipping_time_vs_amazon: "Amazon Prime delivers next day; USPS Priority is 2–3 days. Customers will compare."
+
+  payment_processing:
+    current_stripe_rate: "2.9% + $0.30 per transaction (already paying this)"
+    if_shopify: "2.9% + $0.30 (Basic with Shopify Payments) or up to 5% + $0.30 (Starter)"
+    if_snipcart: "4.9% + $0.30 effective (Snipcart 2% + Stripe 2.9%)"
+    chargeback_risk: "$15 per dispute on Stripe; physical goods have higher chargeback rates than services"
+
+  sales_tax_compliance:
+    ny_state_rate: "4% state"
+    nassau_county_rate: "4.25% county + 0.375% MCTD surcharge = 4.625% local on top of state"
+    total_combined_rate: "8.625% in Nassau County (Republic Airport FRG location)"
+    filing_frequency: "Quarterly for small businesses (under $300K annually); monthly if over $300K"
+    accounting_complexity:
+      - "Must track taxable vs non-taxable items (most pilot supplies are taxable tangible goods)"
+      - "Digital products (e-books, apps) may have different tax treatment"
+      - "Shipping charges are taxable in NY if item is taxable"
+      - "Economic nexus: NY has $500K sales + 100 transactions threshold for out-of-state sellers — not relevant unless selling nationally at scale"
+    estimated_time: "2–4 hours per quarter for filing; software (TaxJar) costs $19+/mo"
+    professional_cpa_cost: "$200–$500/quarter for sales tax filing if outsourced"
+
+  accounting_complexity:
+    description: "New revenue stream means additional bookkeeping"
+    inventory_accounting: "FIFO/LIFO tracking for COGS, separate from service revenue"
+    sales_tax_remittance: "Quarterly NY filing"
+    estimated_additional_accounting_cost: "$100–$300/month or $1,200–$3,600/year"
+
+  time_investment:
+    description: "Most critical ongoing cost for a solo flight instructor"
+    order_fulfillment: "15–30 min per order (pick, pack, label, ship)"
+    customer_service: "1–3 hours/week (questions, issues, returns)"
+    inventory_management: "2–4 hours/week (reordering, receiving, pricing)"
+    product_listing_updates: "1–2 hours/week (new products, price changes)"
+    estimated_weekly_total: "5–12 hours/week"
+    opportunity_cost: "At $65/hr instruction rate, 5–12 hours/week = $325–$780/week = $16,900–$40,560/year in lost instruction revenue potential"
+    critical_note: "This is the single most important cost consideration. Flight instruction time is the highest-value activity for this business."
+
+  returns_and_customer_service:
+    return_rate: "5–15% for online retail (industry average)"
+    costs_per_return: "$5–$15 (return shipping label + restocking time)"
+    electronics_return_rate: "Higher for headsets — often 10–20% due to fit/comfort issues"
+    return_policy_requirement: "NY requires clear return policy disclosure; 30-day return policy is standard"
+
+# ============================================================
+# SECTION 3: MAJOR DIFFICULTIES
+# ============================================================
+
+major_difficulties:
+  competition_analysis:
+    amazon:
+      advantages: "Next-day Prime shipping, vast selection, trust/reviews, competitive pricing, easy returns"
+      example: "ASA kneeboard: $18.95 on Amazon with free Prime shipping"
+      a_small_school_cannot_compete_on: "price, selection, shipping speed, return convenience"
+    sportys:
+      advantages: "Trusted aviation brand since 1961, huge selection (5,000+ products), student pilot kits, free shipping over $50, educational content"
+      student_pilot_kit_price: "~$250–$400 bundled"
+      affiliate_program: "Sporty's has historically offered affiliate/wholesale programs for flight schools"
+    pilotmall:
+      advantages: "Running on Shopify (full e-commerce stack), free shipping on $100+, 30-day returns, 25+ years in business, same-day shipping if ordered by 3 PM ET"
+      pricing_examples:
+        - "David Clark H10-13S: $379.95 (sale)"
+        - "Bose A30: $1,299.00"
+        - "PilotMall house-brand ANR headset: $399.00"
+      note: "PilotMall also has sub-brands (Aeroplane Apparel Company, High Flying Models, Pilot Toys) — they've vertically integrated"
+    aircraft_spruce:
+      advantages: "Massive parts/supplies catalog, established wholesale accounts, same-day shipping"
+
+    key_insight: |
+      A solo flight instructor at a single airport cannot compete with these retailers on price, selection, or shipping speed. The ONLY competitive advantage is: (1) personal recommendation/trust from the instructor, (2) immediate availability at the airport for students, and (3) curation — "your instructor picked these specific items for YOUR training."
+
+  inventory_management_for_solo_operator:
+    challenges:
+      - "No time for weekly inventory counts alongside full flight schedule"
+      - "Risk of stockouts on popular items during peak training season (spring/summer)"
+      - "Manual tracking error-prone without automated system"
+      - "Minimum order quantities from distributors may force 6–12 month supply purchases"
+
+  ny_sales_tax_compliance:
+    challenges:
+      - "8.625% combined rate must be collected on all tangible goods"
+      - "Quarterly filing required even with minimal sales"
+      - "Shipping charges are taxable in NY"
+      - "Penalty for late filing: 10% of tax due + 1% per month interest"
+      - "If selling online to other NY addresses, rate varies by destination county"
+
+  supplier_distributor_requirements:
+    typical_requirements:
+      - "Business license/resale certificate (NY Certificate of Authority)"
+      - "Minimum opening order: $500–$2,000 (Aircraft Spruce, ASA)"
+      - "Net 30 payment terms often require credit check or prepayment on first orders"
+      - "Some brands (Bose, David Clark, Lightspeed) have Minimum Advertised Price (MAP) policies — cannot undercut online pricing"
+    note: "MAP policies mean you literally cannot compete on price with Amazon or Sporty's — you're selling the exact same product at the exact same price with slower shipping"
+
+  cash_flow:
+    challenge: "Inventory ties up cash that could be earning interest or funding flight operations"
+    example: "Stocking 3 headsets at $100 wholesale each = $300 sitting on a shelf potentially for months"
+    working_capital_requirement: "$1,000–$5,000 permanently tied up in inventory"
+
+  product_liability:
+    challenge: "If a sold product is defective and causes an incident during flight, the retailer could face liability claims even though they didn't manufacture the product"
+    mitigation: "Product liability insurance, selling only from reputable manufacturers with their own warranties"
+
+  shipping_speed_expectations:
+    challenge: "Amazon has conditioned consumers to expect 1–2 day delivery. A solo operator shipping from an airport office cannot match this."
+    reality: "Best case is same-day ship if order before noon → 2–3 day USPS Priority delivery = 3–4 day total vs Amazon's 1 day"
+
+# ============================================================
+# SECTION 4: RISK ASSESSMENT
+# ============================================================
+
+risk_assessment:
+  deadstock_risk:
+    severity: medium-high
+    description: "Unsold inventory loses value over time"
+    specific_risks:
+      - "FAR/AIM and sectional charts are date-expiring — unsold copies become worthless"
+      - "Technology accessories become obsolete (iPad mounts, older model accessories)"
+      - "Fashion/apparel items may not move in a small market"
+    mitigation: "Start with only consumables and essentials; avoid high-value single-SKU items"
+
+  seasonal_fluctuations:
+    severity: medium
+    description: "Aviation training peaks in spring/summer, slows in winter"
+    impact: "Store revenue would follow same seasonal pattern as training"
+    winter_risk: "November–February inventory sitting unsold; still paying storage and insurance"
+
+  core_business_distraction:
+    severity: high
+    description: "Most critical risk — every minute managing inventory, packing, shipping, or handling returns is a minute not spent instructing, marketing flights, or building the training business"
+    quantified_impact: "If store consumes 8 hours/week at $65/hr lost instruction revenue = $27,040/year opportunity cost"
+    comparison: "Even a highly profitable small store might net $3,000–$8,000/year profit — far less than the instruction time sacrificed to run it"
+
+  reputation_risk:
+    severity: medium
+    description: "A bad product experience (delayed shipping, defective item, difficult return) reflects on the flight training brand"
+    note: "Students trust their flight instructor. A bad retail experience can erode trust in the training relationship."
+
+  financial_risk:
+    severity: medium
+    description: "Initial investment of $3,000–$12,000 may take 12–24 months to recoup at realistic sales volumes"
+    break_even_analysis:
+      average_order_value: "$50 (estimated for student supplies)"
+      average_margin: "30% after COGS"
+      gross_profit_per_order: "$15"
+      orders_to_break_even_on_5k_investment: "333 orders"
+      at_5_orders_per_week: "~15 months to break even (not counting labor)"
+      at_2_orders_per_week: "~3 years to break even (not counting labor)"
+
+# ============================================================
+# SECTION 5: ALTERNATIVE MODELS (LOWER RISK)
+# ============================================================
+
+alternative_models:
+  affiliate_marketing:
+    description: "Recommend products on the Merlin site with affiliate links to Amazon, Sporty's, PilotMall"
+    startup_cost: "$0"
+    ongoing_cost: "$0"
+    revenue_model:
+      amazon_associates: "1–4% commission (most pilot supplies fall in 'Tools & Home Improvement' at ~3%)"
+      sportys_affiliate: "Sporty's has offered flight school partner programs — typically 5–10% referral fee"
+      pilotmall_affiliate: "PilotMall lists an affiliate program at affiliates.pilotmall.com"
+    estimated_annual_revenue: "$200–$2,000/yr depending on traffic and student volume"
+    pros:
+      - "Zero inventory risk"
+      - "Zero time fulfilling orders"
+      - "No sales tax obligation (affiliate is not the seller)"
+      - "No product liability"
+      - "No returns to handle"
+      - "Students still get trusted instructor recommendations"
+    cons:
+      - "Very low commission rates"
+      - "No control over pricing or availability"
+      - "Amazon cookie window is only 24 hours"
+    implementation_effort: "5–10 hours to create a curated 'Recommended Gear' page with affiliate links"
+
+  print_on_demand_branded_merch:
+    description: "Sell Merlin Flight Training branded merchandise (t-shirts, hats, mugs, stickers) via print-on-demand services like Printful, Printify, or Gooten"
+    startup_cost: "$0–$200 (design costs; free if DIY with Canva)"
+    ongoing_cost: "$0 platform fee (Printful charges per item at order time)"
+    revenue_model:
+      t_shirt_cost: "$12–$18 base cost"
+      t_shirt_retail: "$25–$35"
+      margin: "$7–$17 per shirt"
+      hat_cost: "$15–$22"
+      hat_retail: "$28–$38"
+    pros:
+      - "Zero inventory — items printed and shipped on demand"
+      - "No packing/shipping — fulfillment handled by print provider"
+      - "Builds brand identity and community"
+      - "Students WANT school swag after solo and checkride milestones"
+      - "Can integrate directly into Next.js site via Printful API"
+    cons:
+      - "Per-item cost is higher than bulk ordering"
+      - "3–7 day production time plus shipping"
+      - "Quality control is indirect"
+      - "Still need to collect NY sales tax on shipped-to-NY orders"
+    implementation_effort: "15–25 hours (design 5–10 products, set up Printful, build product pages)"
+    special_opportunity: "Solo flight celebration t-shirt, checkride pass merch — emotional purchase moments with high conversion"
+
+  curated_student_kits:
+    description: "Sell pre-assembled 'Student Pilot Starter Kits' only — no full store, just 2–3 kit options"
+    startup_cost: "$500–$1,500 (stock 5–10 kits)"
+    ongoing_cost: "Restock as sold — minimal carrying cost"
+    kit_examples:
+      - name: "Essentials Kit"
+        contents: "Logbook, kneeboard, E6B, plotter, fuel tester, pen set"
+        wholesale_cost: "$40–$60"
+        retail_price: "$89–$99"
+        margin: "$29–$59"
+      - name: "Premium Kit"
+        contents: "Everything in Essentials + student headset + flight bag"
+        wholesale_cost: "$130–$200"
+        retail_price: "$249–$299"
+        margin: "$49–$169"
+    pros:
+      - "Curated by the instructor = premium positioning"
+      - "Simple inventory management (2–3 SKUs vs. 50+)"
+      - "High perceived value — convenience premium justified"
+      - "Natural upsell during enrollment/first lesson"
+      - "Can sell in-person at the airport (no shipping needed)"
+    cons:
+      - "Limited revenue ceiling"
+      - "Still requires some inventory and sales tax compliance"
+      - "Assembling kits takes time"
+    implementation_effort: "10–15 hours (source kit contents, create 2–3 product pages, set up Stripe Checkout)"
+    recommended: true
+
+  dropshipping:
+    description: "List products on site, forward orders to supplier who ships directly to customer"
+    startup_cost: "$0–$500 (platform/app costs)"
+    ongoing_cost: "Platform fees + per-order margins are thin"
+    typical_margin: "10–25% (lower than stocking inventory)"
+    pros:
+      - "No inventory to manage"
+      - "No shipping to handle"
+      - "Wide product selection possible"
+    cons:
+      - "Very thin margins (10–25%)"
+      - "No quality control — you're the face but not in control"
+      - "Shipping times can be long and unpredictable"
+      - "Still responsible for customer service and returns coordination"
+      - "Most aviation distributors do NOT offer dropship programs to small retailers"
+      - "Still triggers NY sales tax collection obligation"
+    viability: "Low — aviation supply distributors are not set up for dropshipping to individual consumers via small retailers"
+
+  white_label_partner_page:
+    description: "Partner with an existing pilot store (Sporty's, PilotMall) for a co-branded page"
+    startup_cost: "$0"
+    ongoing_cost: "$0"
+    revenue_model: "Negotiated referral commission, likely 5–15%"
+    pros:
+      - "Full product catalog without any inventory"
+      - "Professional shopping experience"
+      - "No fulfillment responsibility"
+    cons:
+      - "Requires negotiating partnership (may not be available)"
+      - "Low commission rates"
+      - "No brand control over the shopping experience"
+    viability: "Medium — Sporty's and PilotMall both list affiliate/partner programs; a white-label flight school page is a reasonable ask"
+
+# ============================================================
+# SECTION 6: BUILD VS BUY FOR E-COMMERCE
+# ============================================================
+
+build_vs_buy:
+  option_1_native_nextjs_stripe:
+    approach: "Add product catalog + cart + Stripe Checkout to existing Next.js app"
+    existing_assets_reusable:
+      - "items table (needs: quantity, images[], weight_oz, shipping_required fields)"
+      - "Admin items CRUD page"
+      - "Stripe product sync"
+      - "Stripe Checkout Session creation logic"
+      - "Stripe webhook payment handling"
+      - "Supabase auth and RLS infrastructure"
+    new_development_required:
+      - "Public product catalog pages (listing + detail)"
+      - "Shopping cart (client-side state or Supabase cart table)"
+      - "Guest checkout flow"
+      - "Shipping address collection + rate calculation"
+      - "Order model (orders table, order_items, fulfillment status)"
+      - "Order confirmation emails via Resend (existing)"
+      - "Admin order management page"
+      - "Inventory decrement on purchase"
+      - "Basic product image gallery"
+    estimated_dev_hours: "40–80 hours"
+    estimated_cost: "$4,000–$12,000 (outsourced) | $0 (self-built)"
+    total_monthly_cost: "$0 (no additional platform fees)"
+    payment_rate: "2.9% + $0.30 (existing Stripe)"
+    pros:
+      - "Lowest ongoing cost (no additional platform fees)"
+      - "Fully integrated UX — same site, same auth, same design"
+      - "Leverages existing Stripe and Supabase infrastructure"
+      - "Complete control over every aspect"
+    cons:
+      - "Highest upfront dev effort"
+      - "Must build shipping, tax, inventory from scratch"
+      - "Must self-maintain all e-commerce features"
+      - "No built-in abandoned cart recovery, SEO tools, etc."
+
+  option_2_shopify_starter:
+    approach: "Shopify Starter ($5/mo) with Buy Button embedded in Next.js site"
+    estimated_dev_hours: "5–10 hours (embed buy buttons)"
+    estimated_cost: "$0–$500 (minimal dev)"
+    total_monthly_cost: "$5/mo"
+    payment_rate: "5% + $0.30 (Starter plan online rate)"
+    effective_rate_on_50_order: "$2.80 (5.6%) — significantly higher than Stripe"
+    pros:
+      - "Fastest to launch"
+      - "Shopify handles inventory, tax, shipping"
+      - "Minimal development"
+    cons:
+      - "5% payment rate is nearly double current Stripe rate"
+      - "Disconnected UX (Shopify checkout popup/redirect)"
+      - "Two separate systems to manage"
+
+  option_3_shopify_basic:
+    approach: "Shopify Basic ($29/mo) — full standalone store at store.merlinflighttraining.com"
+    estimated_dev_hours: "10–20 hours (theme customization, product setup)"
+    estimated_cost: "$0–$1,000"
+    total_monthly_cost: "$29/mo ($348/yr)"
+    payment_rate: "2.9% + $0.30 (with Shopify Payments)"
+    pros:
+      - "Full-featured e-commerce platform"
+      - "Built-in sales tax automation"
+      - "Shipping label discounts (up to 87% off)"
+      - "Abandoned cart recovery, SEO, analytics"
+    cons:
+      - "Two separate websites to maintain"
+      - "Brand inconsistency between training site and store"
+      - "$348/yr even in months with zero sales"
+
+  option_4_snipcart:
+    approach: "Snipcart JS overlay on existing Next.js product pages"
+    estimated_dev_hours: "10–20 hours"
+    estimated_cost: "$0–$500"
+    total_monthly_cost: "$20/mo minimum (or 2% of sales)"
+    payment_rate: "2% Snipcart + 2.9% Stripe = 4.9% + $0.30"
+    pros:
+      - "Integrates into existing site design"
+      - "Built-in inventory, tax (TaxJar), shipping"
+      - "Moderate development effort"
+    cons:
+      - "Stacked fees eat into already-thin margins"
+      - "$240/yr minimum even with zero sales"
+      - "Snipcart is a smaller company — platform risk"
+
+  recommendation_matrix:
+    if_selling_under_10_products: "Native Next.js + Stripe (simplest, cheapest, existing infrastructure)"
+    if_selling_10_to_50_products: "Snipcart (balance of features vs. integration)"
+    if_selling_50_plus_products: "Shopify Basic (full e-commerce features justify the cost)"
+    if_only_branded_merch: "Printful API + basic Next.js pages (zero inventory, direct integration)"
+    if_affiliate_only: "Static gear recommendation page with affiliate links (5–10 hours, $0 cost)"
+
+# ============================================================
+# SECTION 7: RECOMMENDATION
+# ============================================================
+
+recommendation:
+  summary: "Do NOT build a full pilot supply store. Instead, pursue a three-tier approach that maximizes revenue while minimizing risk, inventory, and time investment."
+
+  tier_1_immediate:
+    name: "Curated Gear Guide with Affiliate Links"
+    what: "Create a 'Recommended Gear' page on merlinflighttraining.com with Isaac's personal picks for each stage of training, linked to Amazon/Sporty's/PilotMall via affiliate programs"
+    cost: "$0"
+    time_to_build: "5–10 hours"
+    time_to_maintain: "1 hour/month"
+    expected_revenue: "$200–$2,000/year"
+    risk: "None"
+    why: "Establishes the instructor as a trusted advisor, generates passive income, requires zero inventory or fulfillment"
+
+  tier_2_short_term:
+    name: "Branded Merch via Print-on-Demand"
+    what: "Sell Merlin Flight Training branded t-shirts, hats, stickers via Printful integrated into the Next.js site. Create special edition designs for solo flights and checkride passes."
+    cost: "$0–$200 upfront (design)"
+    time_to_build: "15–25 hours"
+    time_to_maintain: "1–2 hours/month"
+    expected_revenue: "$500–$3,000/year"
+    risk: "Minimal — no unsold inventory"
+    why: "High emotional value purchases (milestone merch), builds brand, zero inventory risk, Printful handles fulfillment"
+
+  tier_3_if_demand_proven:
+    name: "In-Person Student Starter Kits"
+    what: "Stock 5–10 pre-assembled kits at the airport to sell directly to new students during enrollment. NOT sold online — sold in person only to avoid shipping, returns, and complex e-commerce."
+    cost: "$500–$1,500 upfront"
+    time_to_build: "5–10 hours (source and assemble kits)"
+    time_to_maintain: "1–2 hours/month (restock as sold)"
+    expected_revenue: "$1,000–$5,000/year (at ~5 students/month converting)"
+    risk: "Low — small inventory, in-person sales, natural upsell"
+    why: "Convenience premium justified (student buys during first lesson), no shipping needed, instructor-curated premium, simple to manage"
+    sales_tax_note: "In-person sales in Nassau County require collecting 8.625% sales tax; quarterly filing"
+
+  what_not_to_do:
+    - "Do NOT stock aviation headsets ($100–$1,300 each) — too capital-intensive, too slow-moving, cannot compete with Sporty's/Amazon on price or shipping"
+    - "Do NOT build a full e-commerce store with 50+ SKUs — the time to manage it exceeds the revenue it generates for a solo operator"
+    - "Do NOT use Shopify Starter — the 5% payment rate destroys margins on already-thin pilot supply markups"
+    - "Do NOT try to compete on price with Amazon, Sporty's, or PilotMall — you will lose every time"
+
+  total_recommended_investment: "$200–$1,700"
+  total_recommended_dev_time: "25–45 hours"
+  estimated_combined_annual_revenue: "$1,700–$10,000"
+  risk_level: "Very low"
+  impact_on_core_business: "Minimal — 2–4 hours/month ongoing"
+
+# ============================================================
+# OPEN QUESTIONS AND GAPS
+# ============================================================
+
+open_questions:
+  - question: "Does Merlin Flight Training's existing business insurance cover retail product sales, or does it need a separate rider?"
+    context: "Product liability exposure from selling aviation equipment used in flight"
+    type: decision_blocker
+    affects: ["tier_3_student_kits", "any_physical_product_sales"]
+
+  - question: "Does Isaac already have a NY Certificate of Authority (sales tax permit), or would one need to be obtained?"
+    context: "Required for any tangible goods sold in NY, even in-person kits"
+    type: decision_blocker
+    affects: ["tier_3_student_kits", "any_physical_product_sales"]
+
+  - question: "What is the actual student throughput — how many new students per month could realistically purchase a starter kit?"
+    context: "Revenue projections for in-person kit sales depend on student enrollment rate"
+    type: research
+    affects: ["tier_3_student_kits"]
+
+  - question: "Has Isaac been approached by distributors or manufacturers for wholesale accounts, or would these need to be established from scratch?"
+    context: "Wholesale account setup time and minimum order requirements affect tier 3 viability"
+    type: nice_to_know
+    affects: ["tier_3_student_kits"]
+
+  - question: "What is the current monthly unique visitor count on merlinflighttraining.com?"
+    context: "Affiliate revenue projections depend on traffic volume; low traffic = negligible affiliate income"
+    type: research
+    affects: ["tier_1_affiliate_links"]
+
+gaps:
+  - area: "Sporty's flight school partner program details"
+    description: "Sporty's website returned 404 during research; unable to confirm current affiliate commission rates and partner program terms. Historical data suggests 5–10% but needs direct verification."
+    impact: nice_to_know
+    affects: ["tier_1_affiliate_links"]
+
+  - area: "Specific distributor wholesale pricing"
+    description: "Exact wholesale pricing from ASA, Aircraft Spruce, and other distributors requires account setup; margin estimates are based on industry-standard 30–50% MSRP-to-wholesale ratios"
+    impact: research_blocker
+    affects: ["tier_3_student_kits"]
+
+  - area: "Print-on-demand integration complexity with Next.js"
+    description: "Printful API integration with Next.js App Router not specifically verified; may use Printful's Shopify integration as alternative if API route is complex"
+    impact: nice_to_know
+    affects: ["tier_2_branded_merch"]

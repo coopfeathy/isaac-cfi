@@ -1,0 +1,653 @@
+plan_id: pilot-store-profitability
+objective: "Research viability and economics of a pilot supply store for Merlin Flight Training at Republic Airport (FRG)"
+focus_area: pilot_store_retail_economics
+created_at: "2026-04-05"
+created_by: gem-researcher
+status: completed
+
+tldr: |
+  - Sporty's Dealer Program offers 30-40% off retail on non-headset products (courses, bags, E6Bs, logbooks, apparel)—but headsets, GPS, and ADS-B receivers are EXCLUDED from dealer discounts, eliminating margins on the highest-dollar student purchase ($1,000-$1,300).
+  - Realistic annual store revenue for 20-50 students/year: $4,000-$18,000 gross profit (best case), representing 0.5-2% of total flight school revenue—a supplemental income stream, not a business pillar.
+  - The highest-ROI path is a Sporty's Dealer enrollment kit (course + bag + E6B + plotter + logbook ≈ $210 dealer cost, sell for $400-$450) plus Merlin-branded merchandise (60-70% margins on custom hats/shirts). Avoid inventory-heavy models.
+  - Affiliate/referral links for headsets and iPads (4-8% commission) are essentially free money with zero inventory risk and should be implemented regardless of whether a physical store is pursued.
+  - PilotMall.com has an affiliate program (commission-based, no inventory); Sporty's explicitly prohibits dealers from selling online—all dealer sales must be in-person at the airport.
+
+research_metadata:
+  methodology: "Hybrid retrieval: fetch_webpage on Sportys.com, PilotMall.com, MyPilotStore.com for current retail pricing; Sporty's dealer program page and Flight School Advantage program for wholesale/dealer terms; competitive analysis across 3 major retailers; PRD.yaml review for existing business context"
+  scope: "Aviation retail pricing across all student pilot product categories, flight school retail models, dealer/affiliate programs, margin analysis"
+  confidence: high
+  coverage: 85
+  decision_blockers: 2
+  research_blockers: 1
+
+# =============================================================================
+# SECTION 1: AVIATION PRODUCT PRICING & MARGINS
+# =============================================================================
+
+aviation_product_pricing:
+  headsets:
+    tier_student_passive:
+      - product: "David Clark H10-13S Stereo (Passive)"
+        retail_price: "$422.80"
+        typical_sale_price: "$379.95"
+        sources: "PilotMall, MyPilotStore"
+        notes: "Most popular student headset. Industry-standard passive."
+      - product: "PilotMall Next Gen Sound Silencer ANR"
+        retail_price: "$495.00"
+        typical_sale_price: "$399.00"
+        sources: "PilotMall (house brand)"
+        notes: "PilotMall private label ANR. Good margin for PilotMall, not available wholesale to dealers."
+    tier_mid_anr:
+      - product: "Lightspeed Zulu 3"
+        retail_price: "$949.00"
+        typical_sale_price: "$849.00"
+        sources: "Sportys, MyPilotStore"
+        notes: "Currently $100 off at multiple retailers. Very popular mid-range ANR."
+      - product: "David Clark ONE-X ANR w/ Bluetooth"
+        retail_price: "$1,020.00"
+        typical_sale_price: "$1,020.00"
+        sources: "MyPilotStore, PilotMall"
+    tier_premium_anr:
+      - product: "Bose A30 ANR w/ Bluetooth"
+        retail_price: "$1,299.00"
+        typical_sale_price: "$1,299.00"
+        sources: "All major retailers"
+        notes: "Price-protected. No discounts. #1 premium headset."
+      - product: "Bose ProFlight Series 2"
+        retail_price: "$1,099.00"
+        typical_sale_price: "$1,099.00"
+        sources: "All major retailers"
+    margin_reality: |
+      CRITICAL FINDING: Sporty's Dealer Program explicitly EXCLUDES headsets from 
+      Lightspeed, Bose, David Clark, Clarity Aloft, and Telex from dealer discounts.
+      These manufacturers enforce MAP (Minimum Advertised Price) policies.
+      Typical dealer margin on brand-name headsets: 0-5% (essentially break-even).
+      This means the single largest student purchase ($1,000-$1,300) generates 
+      almost zero profit for a flight school store.
+
+  flight_computers_and_plotters:
+    - product: "ASA CX-3 Electronic E6B"
+      retail_price: "$149.95"
+      sale_price: "$127.99-$129.95"
+      estimated_dealer_cost: "$90 (40% off retail)"
+      estimated_margin: "30-40%"
+      notes: "Best-selling electronic E6B. Sporty's dealer example shows 40% off on their E6B."
+    - product: "Sporty's Electronic E6B"
+      retail_price: "$99.95"
+      dealer_price: "$47.97 (confirmed 40% off)"
+      estimated_margin: "52% at full retail resale"
+      notes: "Sporty's house brand. Best margin opportunity in this category."
+    - product: "ASA Color E6B (Metal)"
+      retail_price: "$52.95"
+      sale_price: "$43.95"
+      estimated_dealer_cost: "$32"
+      estimated_margin: "25-40%"
+    - product: "Jeppesen Metal E6B (CSG)"
+      retail_price: "$41.96"
+      sale_price: "$38.49"
+    - product: "ASA Paper E6B"
+      retail_price: "$15.95"
+      sale_price: "$13.99"
+      notes: "Very low absolute dollar margin."
+    - product: "ASA Rotating Plotter"
+      retail_price: "$14.95"
+      sale_price: "$13.49"
+    - product: "ASA Ultimate Rotating Plotter"
+      retail_price: "$16.95"
+      sale_price: "$14.99"
+    - product: "Sporty's Forever Sectional Plotter"
+      retail_price: "$6.95"
+    category_summary: |
+      Plotters and paper E6Bs are high-margin percentage (30-50%) but very low 
+      absolute dollars ($3-$8 profit per unit). Electronic E6Bs are better: 
+      $30-$50 profit per unit via Sporty's dealer.
+
+  books_and_training:
+    - product: "Sporty's Learn to Fly Course (Private Pilot Ground School)"
+      retail_price: "$299.00"
+      dealer_price: "$179.40 (confirmed 40% off)"
+      margin: "$119.60 per student (40%)"
+      notes: "HIGHEST MARGIN OPPORTUNITY. Every student needs ground school. Captive audience."
+    - product: "Sporty's Instrument Rating Course"
+      retail_price: "$299.00"
+      estimated_dealer_price: "$179.40 (40% off)"
+      notes: "For students continuing to instrument rating."
+    - product: "Sporty's Pilot Training+ Membership"
+      retail_price: "$60.00/year"
+      notes: "Access to all courses + free shipping. Recurring revenue potential."
+    - product: "FAR/AIM 2026 (ASA)"
+      retail_price: "$24.95-$29.95"
+      sale_price: "$19.95-$22.95"
+      estimated_dealer_cost: "$15-$18"
+      notes: "Updated annually—forces repeat purchases."
+    - product: "AFH + PHAK Combo (Sporty's)"
+      retail_price: "$29.95"
+      notes: "FAA textbooks. Free PDF versions available; physical copies still sell."
+    - product: "Everything Explained for the Professional Pilot"
+      retail_price: "$59.95"
+      sale_price: "$49.95"
+    - product: "The Killing Zone"
+      retail_price: "$29.95"
+    - product: "VFR Sectional Chart"
+      retail_price: "$9.00"
+      notes: "Updated every 56 days. Recurring purchase but very low margin."
+    - product: "Terminal Area Chart"
+      retail_price: "$6.20"
+    - product: "Airport/Facility Directory (Chart Supplement)"
+      retail_price: "$8.00"
+    - product: "Sporty's Deluxe Learn to Fly Course Kit"
+      retail_price: "$499.00"
+      notes: "Bundle: course + supplies. Premium enrollment package option."
+    category_summary: |
+      Ground school courses are BY FAR the best margin opportunity: $120 profit per 
+      student at 40% dealer discount. Every single student needs one. Books have 
+      moderate margins (20-40%) but low absolute dollars. Charts are recurring but 
+      pennies of profit. ForeFlight ($240/year) is subscription-only direct from 
+      ForeFlight—no dealer margin available.
+
+  flight_bags:
+    - product: "ASA AirClassics Flight Bag Gen 3"
+      retail_price: "$89.95"
+      sale_price: "$79.99"
+      estimated_dealer_cost: "$54"
+      estimated_margin: "30-40%"
+    - product: "ASA AirClassics Flight Bag Pro"
+      retail_price: "$129.95"
+      sale_price: "$99.99"
+    - product: "ASA AirClassics Pilot Backpack"
+      retail_price: "$119.95"
+      sale_price: "$98.99"
+    - product: "Sporty's Crosswind Bag"
+      retail_price: "$59.95"
+      dealer_price: "$35.97 (confirmed 40% off)"
+      margin: "$24 per unit (40%)"
+    - product: "Aerocoast Pro Crew I"
+      retail_price: "$209.95"
+      sale_price: "$174.95"
+    - product: "David Clark Headset Bag"
+      retail_price: "$26.95"
+    category_summary: |
+      Flight bags have decent margins (30-40%) and are a near-universal student 
+      purchase. The Sporty's Crosswind Bag at $36 dealer cost / ~$60 retail gives 
+      $24 profit per sale. However, many students already own suitable backpacks 
+      and may skip this purchase.
+
+  kneeboards:
+    - product: "Flyboys Reversible Kneeboard"
+      retail_price: "$54.95"
+      sale_price: "$44.99"
+    - product: "Battleboard Tech Edition (iPad)"
+      retail_price: "$89.95"
+      sale_price: "From $79.99"
+    - product: "Flight Outfitters iPad Flight Desk"
+      retail_price: "$99.95"
+      sale_price: "$89.96"
+    - product: "MyGoFlight Skyfolio Mini"
+      retail_price: "$219.00"
+      sale_price: "$199.00"
+    category_summary: |
+      Kneeboards sell well but are a one-time purchase. iPad kneeboards ($80-$200) 
+      have better absolute margins than traditional clip kneeboards. Most students 
+      buy one at training start.
+
+  apparel_and_merchandise:
+    branded_merch:
+      - product: "Aviation T-shirts (Aeroplane Apparel)"
+        retail_price: "$29.99-$35.00"
+        notes: "Generic aviation brands. Hard to compete here."
+      - product: "Trucker hats (Richardson 112, aviation branded)"
+        retail_price: "$34.99"
+      - product: "Hoodies"
+        retail_price: "$49.99"
+      - product: "Pilot shirts (Cirrus by A Cut Above)"
+        retail_price: "$47.65"
+        sale_price: "$38.85"
+    custom_merlin_merch_opportunity: |
+      HIGHEST MARGIN CATEGORY: Custom Merlin Flight Training branded merchandise.
+      - Custom embroidered hats: cost $8-$12 each (bulk), sell for $25-$35 = 60-70% margin
+      - Custom t-shirts: cost $6-$10 each (bulk), sell for $20-$30 = 60-70% margin
+      - Custom hoodies: cost $15-$25 each, sell for $45-$55 = 55-65% margin
+      - Custom patches/stickers: cost $1-$3 each, sell for $5-$10 = 70-80% margin
+      Students LOVE school-branded gear. It's also free marketing when they wear it.
+      No competition from online retailers—exclusive product.
+
+  ipad_accessories:
+    - product: "RAM Mount iPad Suction Cup (various)"
+      retail_price: "$80-$150"
+      notes: "High demand. Most students need an iPad mount."
+    - product: "iPad cases (rugged aviation)"
+      retail_price: "$30-$60"
+    - product: "USB chargers (cigarette lighter adapter)"
+      retail_price: "$20-$40"
+    category_summary: |
+      iPad accessories are frequently needed but heavily competed by Amazon. 
+      Margins are thin unless bundled. RAM Mounts has MAP policies.
+
+  other_supplies:
+    - product: "Logbooks (Jeppesen Professional)"
+      retail_price: "$39.96"
+      sale_price: "$34.95"
+      estimated_dealer_cost: "$25"
+    - product: "Sporty's Pilot Logbook"
+      retail_price: "$10.00"
+      dealer_price: "$7.00 (confirmed 30% off)"
+    - product: "Instant IFR Training Glasses"
+      retail_price: "$17.95"
+    - product: "BLOCKALLS IFR View Limiting Device"
+      retail_price: "$26.95"
+      sale_price: "$22.49"
+    - product: "Fuel tester"
+      retail_price: "$5-$15"
+    - product: "Checklist (Cessna 172)"
+      retail_price: "$35.00"
+
+# =============================================================================
+# SECTION 2: FLIGHT SCHOOL STORE MODELS
+# =============================================================================
+
+flight_school_store_models:
+  sportys_dealer_program:
+    name: "Sporty's Dealer Program"
+    eligible: "Flight schools, FBOs, independent CFIs"
+    cost_to_join: "Free, no hidden fees"
+    discount_structure:
+      confirmed_40_percent_off:
+        - "Online ground school courses ($299 → $179.40)"
+        - "E6B flight computers ($79.95 → $47.97)"
+        - "Flight bags ($59.95 → $35.97)"
+      confirmed_30_percent_off:
+        - "Logbooks ($10 → $7)"
+        - "Aerowear apparel ($59.99 → $41.99)"
+      excluded_from_discounts:
+        - "Lightspeed headsets"
+        - "Bose headsets"
+        - "David Clark headsets"
+        - "Clarity Aloft headsets"
+        - "Telex headsets"
+        - "Garmin GPS units"
+        - "ADS-B receivers (Appareo, Garmin, ForeFlight Sentry)"
+        - "Ray-Ban sunglasses"
+    key_restrictions:
+      - "Must purchase minimum 2 of an item for dealer pricing"
+      - "CANNOT sell products online—all sales must be in-person at airport location"
+      - "Cannot reproduce copyrighted materials"
+      - "Must not sell obsolete FAA charts"
+      - "60-day return policy on unsold merchandise"
+    additional_benefits:
+      - "Exclusive marketing materials for website and physical store"
+      - "CFI Portal: instructor tools, course tracking, ground lesson planning"
+      - "Free Part 141 consultation services"
+      - "Training Course Outlines (TCOs) available"
+      - "Flight Schedule Pro integration for course sales and progress tracking"
+      - "Listing on Flight Training Central's Flight School Directory"
+    assessment: |
+      BEST OPTION for Merlin. The 40% discount on courses alone could generate 
+      $120/student × 20-50 students = $2,400-$6,000/year in profit from ground 
+      school sales. Add bags, E6Bs, plotters, logbooks and the total grows. 
+      The inability to sell online is not a limitation for Merlin—students are 
+      physically at the school.
+
+  pilotmall_affiliate_program:
+    name: "PilotMall.com Affiliate Program"
+    platform: "UpPromote (Shopify-based)"
+    model: "Commission on referred sales"
+    inventory_required: false
+    notes: |
+      PilotMall has a third-party affiliate program. Typical aviation affiliate 
+      commissions are 4-8% of sale price. No inventory risk. Can be used for 
+      online referrals. Good complement to Sporty's dealer for items Sporty's 
+      doesn't discount (headsets).
+
+  model_comparison:
+    inventory_based_dealer:
+      pros:
+        - "Immediate product availability for students"
+        - "Higher margins (30-40% on eligible items)"
+        - "Students perceive value in one-stop shopping"
+        - "Can create branded enrollment kits"
+      cons:
+        - "Upfront capital for inventory ($2,000-$5,000 initial)"
+        - "Storage space needed at airport"
+        - "Risk of unsold/obsolete inventory (charts expire every 56 days)"
+        - "Time managing inventory, orders, returns"
+        - "Cannot sell online (Sporty's restriction)"
+    dropship_model:
+      pros:
+        - "Zero inventory risk"
+        - "No storage needed"
+        - "No upfront capital"
+      cons:
+        - "Lower margins (4-8% affiliate vs 30-40% dealer)"
+        - "Shipping delays (students can't walk away with product)"
+        - "Less perceived value"
+        - "Limited product selection control"
+    affiliate_referral_model:
+      pros:
+        - "Zero risk, zero inventory, zero capital"
+        - "Passive income from website links"
+        - "Works for products excluded from dealer discounts (headsets)"
+        - "Can promote on website, emails, student onboarding materials"
+      cons:
+        - "Lowest margins (4-8%)"
+        - "No control over pricing or availability"
+        - "Attribution tracking can be unreliable"
+        - "Amazon affiliate may offer only 1-4% on electronics"
+    hybrid_recommended: |
+      RECOMMENDED: Hybrid model combining:
+      1. Sporty's Dealer for enrollment kit items (courses, bags, E6Bs, plotters, logbooks)
+      2. Custom Merlin-branded merchandise (highest margins, exclusive)
+      3. Affiliate links for high-ticket items students buy anyway (headsets, iPads, ForeFlight)
+      This minimizes inventory risk while maximizing margins on captive-audience purchases.
+
+# =============================================================================
+# SECTION 3: REVENUE PROJECTIONS
+# =============================================================================
+
+revenue_projections:
+  assumptions:
+    students_per_year_low: 20
+    students_per_year_high: 50
+    existing_student_equipment_spend: "$3,013"
+    flight_training_revenue_per_student: "$12,000-$18,000 (60-80 hrs at $250/hr combined rate)"
+    total_annual_training_revenue: "$240,000-$900,000"
+
+  scenario_conservative:
+    name: "Affiliate Only (Zero Risk)"
+    description: "Affiliate links on website, in onboarding emails, and student portal for headsets, iPads, and accessories"
+    assumptions:
+      - "Amazon affiliate: 1-4% on electronics"
+      - "PilotMall affiliate: 4-8%"
+      - "50% of students click through and purchase via affiliate links"
+      - "Average purchase per student via affiliate: $1,500 (headset + iPad)"
+    annual_revenue_low: "$150 (20 students × $1,500 × 50% × 1%)"
+    annual_revenue_high: "$3,000 (50 students × $1,500 × 50% × 8%)"
+    gross_profit: "$150-$3,000"
+    startup_cost: "$0"
+    effort: "Minimal—set up links once, include in onboarding materials"
+    verdict: "Free money. Do this regardless of other models."
+
+  scenario_moderate:
+    name: "Sporty's Dealer Enrollment Kit + Merch"
+    description: "Sell curated student start-up kit plus Merlin-branded merchandise"
+    enrollment_kit_contents:
+      - item: "Sporty's Learn to Fly Course"
+        dealer_cost: "$179.40"
+        sell_price: "$269.00"
+        margin: "$89.60"
+      - item: "Sporty's Electronic E6B"
+        dealer_cost: "$47.97"
+        sell_price: "$89.95"
+        margin: "$41.98"
+      - item: "Sporty's Crosswind Flight Bag"
+        dealer_cost: "$35.97"
+        sell_price: "$55.00"
+        margin: "$19.03"
+      - item: "Sporty's Pilot Logbook"
+        dealer_cost: "$7.00"
+        sell_price: "$10.00"
+        margin: "$3.00"
+      - item: "ASA Plotter"
+        estimated_dealer_cost: "$9.00"
+        sell_price: "$14.95"
+        margin: "$5.95"
+    enrollment_kit_total:
+      dealer_cost: "~$280"
+      sell_price: "~$440"
+      margin_per_kit: "~$160"
+    merch_sales:
+      - item: "Merlin branded hat"
+        cost: "$10"
+        sell_price: "$30"
+        margin: "$20"
+        estimated_annual_units: "30-75"
+      - item: "Merlin branded t-shirt"
+        cost: "$8"
+        sell_price: "$25"
+        margin: "$17"
+        estimated_annual_units: "25-60"
+      - item: "Merlin branded stickers/patches"
+        cost: "$2"
+        sell_price: "$5"
+        margin: "$3"
+        estimated_annual_units: "50-150"
+    annual_revenue_breakdown:
+      enrollment_kits: "$3,200-$8,000 profit (20-50 students × $160)"
+      branded_merch: "$1,000-$3,000 profit"
+      affiliate_links: "$150-$3,000 profit"
+      additional_supplies: "$500-$1,500 profit (charts, books, misc)"
+    annual_gross_profit_range: "$4,850-$15,500"
+    startup_cost: "$2,000-$4,000 (initial inventory of 10-15 kits + merch order)"
+    effort: "Moderate—manage inventory, fulfill orders, reorder quarterly"
+    verdict: "Best risk/reward ratio. Covers startup costs within first year."
+
+  scenario_aggressive:
+    name: "Full Pilot Shop (Physical + Online store page)"
+    description: "Comprehensive inventory of all pilot supply categories"
+    risks:
+      - "High inventory capital ($10,000-$25,000)"
+      - "Complex inventory management"
+      - "Competing with Sporty's, PilotMall, Amazon on price"
+      - "Sporty's prohibits online dealer sales"
+      - "Storage space at Republic Airport"
+      - "Headsets have near-zero dealer margin"
+    annual_gross_profit_range: "$8,000-$18,000"
+    startup_cost: "$10,000-$25,000"
+    payback_period: "1.5-3 years"
+    verdict: |
+      NOT RECOMMENDED for a school with 20-50 students/year. The additional 
+      revenue vs. the moderate scenario does not justify the capital, complexity, 
+      and risk. You'd be competing with established retailers who have scale 
+      advantages and can price lower.
+
+  revenue_as_percentage_of_business:
+    industry_benchmark: "Retail typically represents 2-5% of total flight school revenue for small schools"
+    merlin_estimated: "0.5-2% of total revenue (training revenue dominates at $250/hr combined rate)"
+    context: |
+      Flight training at $250/hr combined rate ($65 instruction + $185 aircraft) 
+      means each student generating $12,000-$18,000 in training revenue. 
+      The $160 enrollment kit profit is ~1% of a student's training spend. 
+      Retail is a supplemental revenue stream, not a primary business driver.
+
+# =============================================================================
+# SECTION 4: HIGHEST-MARGIN PRODUCT CATEGORIES (RANKED)
+# =============================================================================
+
+margin_ranking:
+  - rank: 1
+    category: "Custom branded merchandise (Merlin hats, shirts, stickers)"
+    margin_percent: "60-80%"
+    absolute_margin: "$3-$20 per item"
+    volume_potential: "Medium-High (students, friends, family, discovery flight customers)"
+    notes: "No price competition. Exclusive product. Also serves as marketing."
+
+  - rank: 2
+    category: "Online ground school courses (via Sporty's Dealer)"
+    margin_percent: "40%"
+    absolute_margin: "$120 per student"
+    volume_potential: "High (every student needs one)"
+    notes: "Highest absolute dollar margin on a per-student basis. 100% attach rate."
+
+  - rank: 3
+    category: "Flight bags (Sporty's Dealer)"
+    margin_percent: "30-40%"
+    absolute_margin: "$19-$40 per bag"
+    volume_potential: "Medium (70-80% of students buy one)"
+    notes: "Good attachment to enrollment kit."
+
+  - rank: 4
+    category: "Electronic E6B flight computers (Sporty's Dealer)"
+    margin_percent: "40-52%"
+    absolute_margin: "$30-$42 per unit"
+    volume_potential: "Medium (most students buy one)"
+    notes: "Required for written exam prep and training."
+
+  - rank: 5
+    category: "Books and study materials"
+    margin_percent: "20-40%"
+    absolute_margin: "$3-$15 per item"
+    volume_potential: "Medium"
+    notes: "Multiple books per student, but low absolute dollars."
+
+  - rank: 6
+    category: "Kneeboards"
+    margin_percent: "25-35%"
+    absolute_margin: "$10-$30 per unit"
+    volume_potential: "Medium (one-time purchase)"
+
+  - rank: 7
+    category: "Plotters, logbooks, checklists, misc supplies"
+    margin_percent: "30-50%"
+    absolute_margin: "$3-$8 per item"
+    volume_potential: "Low-Medium"
+    notes: "High margin % but very low absolute dollars."
+
+  - rank: 8
+    category: "Headsets (affiliate only)"
+    margin_percent: "1-8% (affiliate commission)"
+    absolute_margin: "$10-$100 per headset"
+    volume_potential: "High (every student buys one)"
+    notes: "Cannot profit from dealer—excluded from discounts. Affiliate is only option."
+
+# =============================================================================
+# SECTION 5: RECURRING REVENUE OPPORTUNITIES
+# =============================================================================
+
+recurring_revenue:
+  - opportunity: "FAR/AIM book (updated annually)"
+    frequency: "Annual"
+    revenue_per_student: "$5-$10 profit"
+    notes: "Student pilots and certificated pilots should have current edition."
+
+  - opportunity: "VFR charts and chart supplements"
+    frequency: "Every 56 days"
+    revenue_per_student: "$1-$3 per cycle"
+    notes: "Most students use ForeFlight digital charts instead—declining demand."
+
+  - opportunity: "ForeFlight subscriptions (referral)"
+    frequency: "Annual ($240/year)"
+    revenue_per_referral: "Unclear—ForeFlight does not have a public affiliate program"
+    notes: "Check if ForeFlight offers flight school referral commissions."
+
+  - opportunity: "Merlin branded merchandise reorders"
+    frequency: "Ongoing"
+    notes: "Students buy merch after solo, after checkride, as gifts. Discovery flight customers too."
+
+  - opportunity: "Replacement supplies (logbook pages, batteries, mic muffs)"
+    frequency: "Occasional"
+    revenue_per_student: "$5-$15/year"
+
+# =============================================================================
+# SECTION 6: COMPETITIVE LANDSCAPE
+# =============================================================================
+
+competitive_landscape:
+  online_retailers:
+    - name: "Sporty's (sportys.com)"
+      location: "Batavia, OH"
+      strengths: "62+ year brand, 200K+ course users, free shipping on $100+, own airport"
+      model: "Direct retail + dealer program for flight schools"
+      dealer_program: "30-40% off, free to join, in-person sales only"
+      relevance: "Best wholesale partner for Merlin"
+
+    - name: "PilotMall.com"
+      location: "Cartersville, GA"
+      strengths: "Large Shopify store, own brands (Aeroplane Apparel, High Flying Models), free shipping $100+"
+      model: "Direct retail + affiliate program"
+      affiliate_program: "UpPromote-based commission program"
+      relevance: "Good affiliate partner for items not available via Sporty's dealer"
+
+    - name: "MyPilotStore.com"
+      location: "Arizona"
+      strengths: "Since 1997, 110% price guarantee, large selection"
+      model: "Direct retail"
+      relevance: "Price benchmark competitor—offers group/quantity pricing"
+
+    - name: "Amazon"
+      strengths: "Fast shipping, broad selection, Prime loyalty"
+      weakness: "No aviation expertise, often gray market for aviation-specific items"
+      relevance: "Primary price competitor. Amazon affiliate commissions are only 1-4% on electronics."
+
+  local_competitors:
+    notes: |
+      Republic Airport (FRG) is a busy GA airport in Farmingdale, Long Island, NY.
+      Other flight schools and FBOs at FRG may have their own supply arrangements.
+      Research needed: Do any other FRG-based schools sell pilot supplies?
+      Proximity to NYC metro area means students have easy access to online 
+      ordering with fast shipping—reduces urgency of in-person store.
+
+# =============================================================================
+# SECTION 7: IMPLEMENTATION CONSIDERATIONS FOR MERLIN
+# =============================================================================
+
+implementation_considerations:
+  existing_infrastructure:
+    - "Stripe payment processing already in place"
+    - "Supabase database for student/billing records"
+    - "Student portal being built (per PRD.yaml)"
+    - "Block account system handles prepaid balances"
+    - "Cash payment system exists (CASH-PAYMENT-FEATURE.txt)"
+
+  integration_with_existing_app:
+    - "Student portal could display recommended equipment list with affiliate links"
+    - "Onboarding flow could include enrollment kit purchase option"
+    - "Stripe already handles payments—adding product purchases is straightforward"
+    - "Block account balance could potentially be used for store purchases"
+
+  physical_store_requirements:
+    - "Display area needed at Republic Airport (FRG)"
+    - "Storage for inventory (enrollment kits, merch)"
+    - "Insurance consideration for retail inventory"
+    - "POS terminal or use existing Stripe for card payments"
+
+  online_store_options:
+    note: "Sporty's PROHIBITS dealers from selling online to customers"
+    alternatives:
+      - "Equipment recommendation page with affiliate links (allowed)"
+      - "Online enrollment kit purchase as part of student onboarding (internal, not public retail)"
+      - "Merlin-branded merch can be sold online (not Sporty's product, no restriction)"
+
+# =============================================================================
+# OPEN QUESTIONS & GAPS
+# =============================================================================
+
+open_questions:
+  - question: "What is the exact Sporty's dealer discount on all product categories?"
+    context: "We confirmed 40% on courses, E6Bs, bags and 30% on logbooks, apparel. Full catalog pricing requires dealer account access."
+    type: decision_blocker
+    affects: ["revenue-projections", "enrollment-kit-pricing"]
+
+  - question: "Do other flight schools at Republic Airport (FRG) sell pilot supplies?"
+    context: "Local competition would impact demand and pricing strategy."
+    type: decision_blocker
+    affects: ["pricing-strategy", "product-selection"]
+
+  - question: "How much physical space is available at Merlin's FRG location for retail display/storage?"
+    context: "Determines whether physical store is feasible or if it's online-only plus enrollment kits."
+    type: research
+    affects: ["store-model"]
+
+  - question: "Does ForeFlight offer a flight school referral or affiliate program?"
+    context: "Every student spends $240/year on ForeFlight. Even a 5% referral fee would be $12/student/year."
+    type: research
+    affects: ["affiliate-revenue"]
+
+  - question: "What is the minimum order for custom Merlin-branded merchandise?"
+    context: "Need to determine MOQ and per-unit cost for hats, shirts, stickers from suppliers like CustomInk, Printful, or local embroidery shops."
+    type: research
+    affects: ["startup-costs", "merch-margins"]
+
+gaps:
+  - area: "Exact wholesale/distributor pricing for ASA and Jeppesen products"
+    description: "We have Sporty's dealer pricing for Sporty's-branded items but not direct wholesale from ASA, Jeppesen, or flight bag manufacturers."
+    impact: research_blocker
+    affects: ["margin-analysis"]
+
+  - area: "Flight school industry retail benchmarks"
+    description: "No reliable public data on what percentage of revenue small flight schools (20-50 students) generate from retail. 2-5% is an informed estimate, not a verified benchmark."
+    impact: nice_to_know
+    affects: ["revenue-projections"]
+
+  - area: "Sporty's Flight Schedule Pro integration details"
+    description: "Sporty's mentions FSP integration for course sales tracking. Merlin uses a custom app, not FSP. Would need to verify if Sporty's offers API access or if course tracking is FSP-only."
+    impact: nice_to_know
+    affects: ["integration-with-existing-app"]

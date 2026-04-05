@@ -3,10 +3,25 @@
 import { useState } from "react"
 import LearningHubLayout from "@/app/components/LearningHubLayout"
 
-const SYLLABUS_PDF = "/The%20Total%20Private%20Pilot%20Syllabus.pdf"
+const DOCUMENTS = [
+  {
+    id: "syllabus",
+    src: "/The%20Total%20Private%20Pilot%20Syllabus.pdf",
+    title: "Private Pilot Syllabus",
+    description: "FAA Part 61 — 32 lessons across Pre-Solo, Cross-Country & Checkride Prep",
+    downloadName: "Private-Pilot-Syllabus.pdf",
+  },
+  {
+    id: "onboarding",
+    src: "/Student%20Onboarding-%20Merlin%20Flight%20Training.pdf",
+    title: "Student Onboarding",
+    description: "Everything you need to know before starting flight training",
+    downloadName: "Student-Onboarding-Merlin-Flight-Training.pdf",
+  },
+]
 
 export default function DocumentsPage() {
-  const [viewerOpen, setViewerOpen] = useState(false)
+  const [viewerDoc, setViewerDoc] = useState<typeof DOCUMENTS[number] | null>(null)
 
   return (
     <LearningHubLayout
@@ -16,10 +31,11 @@ export default function DocumentsPage() {
       headerVariant="schedule"
       stats={[]}
     >
-      {/* Syllabus Card */}
-      <div style={{ maxWidth: "600px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "24px", maxWidth: "900px" }}>
+      {DOCUMENTS.map((doc) => (
+      <div key={doc.id} style={{ maxWidth: "600px" }}>
         <div
-          onClick={() => setViewerOpen(true)}
+          onClick={() => setViewerDoc(doc)}
           style={{
             backgroundColor: "white",
             border: "1px solid #E5E7EB",
@@ -49,7 +65,7 @@ export default function DocumentsPage() {
             }}
           >
             <embed
-              src={`${SYLLABUS_PDF}#toolbar=0&navpanes=0&scrollbar=0&page=1`}
+              src={`${doc.src}#toolbar=0&navpanes=0&scrollbar=0&page=1`}
               type="application/pdf"
               style={{
                 width: "100%",
@@ -61,7 +77,7 @@ export default function DocumentsPage() {
             />
             {/* Clickable overlay */}
             <div
-              onClick={() => setViewerOpen(true)}
+              onClick={() => setViewerDoc(doc)}
               style={{
                 position: "absolute",
                 inset: 0,
@@ -108,10 +124,10 @@ export default function DocumentsPage() {
               </svg>
               <div>
                 <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#111827" }}>
-                  Private Pilot Syllabus
+                  {doc.title}
                 </h3>
                 <p style={{ margin: "2px 0 0 0", fontSize: "13px", color: "#6B7280" }}>
-                  FAA Part 61 — 32 lessons across Pre-Solo, Cross-Country &amp; Checkride Prep
+                  {doc.description}
                 </p>
               </div>
             </div>
@@ -121,8 +137,8 @@ export default function DocumentsPage() {
         {/* Download Button */}
         <div style={{ marginTop: "16px" }}>
           <a
-            href={SYLLABUS_PDF}
-            download="Private-Pilot-Syllabus.pdf"
+            href={doc.src}
+            download={doc.downloadName}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -148,13 +164,15 @@ export default function DocumentsPage() {
               <path d="M7 10L12 15L17 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M12 15V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            Download Syllabus PDF
+            Download PDF
           </a>
         </div>
       </div>
+      ))}
+      </div>
 
       {/* Full-screen PDF Viewer Modal */}
-      {viewerOpen && (
+      {viewerDoc && (
         <div
           style={{
             position: "fixed",
@@ -176,11 +194,11 @@ export default function DocumentsPage() {
               color: "white",
             }}
           >
-            <span style={{ fontSize: "15px", fontWeight: 600 }}>Private Pilot Syllabus</span>
+            <span style={{ fontSize: "15px", fontWeight: 600 }}>{viewerDoc.title}</span>
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <a
-                href={SYLLABUS_PDF}
-                download="Private-Pilot-Syllabus.pdf"
+                href={viewerDoc.src}
+                download={viewerDoc.downloadName}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -202,7 +220,7 @@ export default function DocumentsPage() {
                 Download
               </a>
               <button
-                onClick={() => setViewerOpen(false)}
+                onClick={() => setViewerDoc(null)}
                 style={{
                   background: "none",
                   border: "1px solid #4B5563",
@@ -222,7 +240,7 @@ export default function DocumentsPage() {
           {/* PDF Embed */}
           <div style={{ flex: 1 }}>
             <embed
-              src={SYLLABUS_PDF}
+              src={viewerDoc.src}
               type="application/pdf"
               style={{
                 width: "100%",

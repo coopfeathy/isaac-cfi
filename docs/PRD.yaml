@@ -35,6 +35,15 @@ user_stories:
   - as_a: Student
     i_want: Receive an email when a lesson is scheduled for me
     so_that: I never miss a booking notification
+  - as_a: "New student pilot"
+    i_want: "A curated starter package with everything I need for flight training"
+    so_that: "I don't have to research and buy 10+ items separately from different stores"
+  - as_a: "Flight school owner"
+    i_want: "A low-effort store with affiliate links and print-on-demand merch"
+    so_that: "I earn supplemental revenue without inventory management or shipping logistics"
+  - as_a: "Aviation enthusiast / student"
+    i_want: "Branded Merlin merch (hats, shirts, patches)"
+    so_that: "I can show my flight school pride and support my training community"
 
 scope:
   in_scope:
@@ -62,6 +71,12 @@ scope:
     - Admin settings for CalDAV credentials (Apple ID + app-specific password)
     - Database schema additions for sync tracking (caldav_uid, caldav_etag, sync_status)
     - Linking bookings to syllabus_lessons for rich lesson display
+    - "Store landing page with starter packages, merch, and affiliate gear sections"
+    - "Three starter package tiers (Cadet $249, Aviator $749, Captain's $1,549+)"
+    - "Branded merchandise section with print-on-demand integration links"
+    - "Affiliate links section for headsets, iPads, ForeFlight, and training materials"
+    - "Stripe checkout for starter packages"
+    - "SEO-optimized store page"
   out_of_scope:
     - Changing existing Stripe Connect payout split logic
     - Modifying admin dashboard
@@ -73,6 +88,10 @@ scope:
     - Payment discount for block accounts (same rates, prepaid convenience only)
     - Stripe Connect splits on block account purchases (goes 100% to Isaac's account)
     - Developer commission on block account purchases
+    - "Full e-commerce platform with cart/inventory management"
+    - "Physical inventory warehousing"
+    - "Direct headset sales (affiliate only due to MAP pricing)"
+    - "Shopify or third-party platform integration"
 
 acceptance_criteria:
   - criterion: Student can purchase a block account with preset amounts via Stripe
@@ -95,6 +114,14 @@ acceptance_criteria:
     verification: Logged-in student cannot see marketing nav, homepage, pricing, FAQ — only portal
   - criterion: 24-hour cancellation window enforced
     verification: Cancellation within 24 hours blocked or flagged, cancellation outside 24 hours triggers backup
+  - criterion: "Store page accessible at /store with navigation link"
+    verification: "Visit /store, verify hero section, 3 package tiers, merch section, affiliate links"
+  - criterion: "Starter packages display accurate pricing and contents"
+    verification: "Compare displayed items/prices against approved tier lists"
+  - criterion: "Affiliate links open external sites in new tabs"
+    verification: "Click each affiliate link, verify opens correct product page in new tab"
+  - criterion: "Page matches Merlin brand design (black/gold, responsive)"
+    verification: "Visual review on mobile and desktop"
 
 needs_clarification: []  # All questions resolved
 
@@ -149,6 +176,9 @@ features:
   - name: Lesson Scheduling Email Notification
     overview: Resend email to student when instructor creates or confirms a lesson booking, showing syllabus details
     status: planned
+  - name: "Merlin Flight Training Store"
+    overview: "Hybrid pilot store with starter packages, branded merch (print-on-demand), and affiliate links for aviation gear. Zero inventory model."
+    status: in_progress
 
 state_machines:
   - name: Appointment Request
@@ -321,3 +351,5 @@ decisions:
 changes:
   - version: "1.1.0"
     change: Added Apple Calendar bidirectional sync feature, student dashboard, and lesson scheduling email notifications
+  - version: "1.2.0"
+    change: Added Merlin Flight Training Store feature with starter packages, print-on-demand merch, and affiliate links

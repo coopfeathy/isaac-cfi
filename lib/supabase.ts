@@ -41,6 +41,10 @@ export interface Slot {
   created_at: string
   is_booked: boolean
   description: string | null
+  caldav_uid: string | null
+  caldav_etag: string | null
+  sync_status: 'synced' | 'pending_push' | 'pending_pull' | 'pending_delete' | 'conflict' | 'error' | null
+  last_synced_at: string | null
 }
 
 export interface Booking {
@@ -51,6 +55,7 @@ export interface Booking {
   stripe_session_id: string | null
   created_at: string
   notes: string | null
+  syllabus_lesson_id: string | null
 }
 
 export interface Post {
@@ -64,6 +69,34 @@ export interface Post {
   published_at: string | null
   created_at: string
   updated_at: string
+}
+
+export interface CalDAVSettings {
+  id: string
+  user_id: string
+  apple_id: string
+  calendar_url: string | null
+  sync_token: string | null
+  last_sync_at: string | null
+  sync_in_progress: boolean
+  last_sync_started_at: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface SyllabusLesson {
+  id: string
+  course_id: string
+  lesson_number: number
+  title: string
+  description: string | null
+  stage: string
+  ground_topics: string[]
+  flight_maneuvers: string[]
+  completion_standards: string | null
+  order_index: number
+  created_by: string
 }
 
 // CRM Types

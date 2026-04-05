@@ -164,4 +164,46 @@ export const emailTemplates = {
       <p style="margin-top: 24px; color: ${brand.mutedText}; font-size: 13px; text-align: center;">Thank you for flying at Merlin Flight Training.</p>
     `),
   }),
+
+  // Lesson scheduled notification
+  lessonScheduled: (payload: {
+    studentName: string
+    lessonTitle?: string | null
+    date: string
+    time: string
+    groundTopics?: string[] | null
+    flightManeuvers?: string[] | null
+  }) => ({
+    subject: `Your Flight Lesson is Scheduled — ${payload.date}`,
+    html: emailWrapper(`
+      <h1 style="color: ${brand.dark}; margin: 0 0 8px 0; font-size: 24px;">Lesson Scheduled</h1>
+      <div style="width: 40px; height: 3px; background: ${brand.gold}; margin-bottom: 20px;"></div>
+      <p>Hi ${payload.studentName},</p>
+      <p>A flight lesson has been scheduled for you:</p>
+      <div style="background: ${brand.lightBg}; border-left: 4px solid ${brand.gold}; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 20px 0;">
+        <p style="margin: 0;"><strong>Date:</strong> ${payload.date}</p>
+        <p style="margin: 10px 0 0 0;"><strong>Time:</strong> ${payload.time}</p>
+        ${payload.lessonTitle ? `<p style="margin: 10px 0 0 0;"><strong>Lesson:</strong> ${payload.lessonTitle}</p>` : ''}
+      </div>
+      ${payload.groundTopics && payload.groundTopics.length > 0 ? `
+      <div style="margin: 24px 0;">
+        <h3 style="margin: 0 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: ${brand.dark}; border-bottom: 2px solid ${brand.gold}; padding-bottom: 6px; display: inline-block;">Ground Topics to Review</h3>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; line-height: 1.8;">
+          ${payload.groundTopics.map(topic => `<li>${topic}</li>`).join('')}
+        </ul>
+      </div>` : ''}
+      ${payload.flightManeuvers && payload.flightManeuvers.length > 0 ? `
+      <div style="margin: 24px 0;">
+        <h3 style="margin: 0 0 8px 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: ${brand.dark}; border-bottom: 2px solid ${brand.gold}; padding-bottom: 6px; display: inline-block;">Flight Maneuvers</h3>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px; line-height: 1.8;">
+          ${payload.flightManeuvers.map(maneuver => `<li>${maneuver}</li>`).join('')}
+        </ul>
+      </div>` : ''}
+      <div style="margin-top: 28px; text-align: center;">
+        <a href="https://isaac-cfi.netlify.app/dashboard" style="display: inline-block; background: ${brand.gold}; color: ${brand.dark}; font-weight: 700; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-size: 14px;">View Your Dashboard</a>
+      </div>
+      <p style="margin-top: 20px;">Please arrive 15 minutes early for your pre-flight briefing.</p>
+      <p>Blue skies,<br/>Merlin Flight Training</p>
+    `),
+  }),
 }

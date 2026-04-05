@@ -1,0 +1,878 @@
+plan_id: starter-package-design
+objective: "Research flight training starter package design, pricing strategy, headset tiers, essential items, branded merchandise, and logistics for Merlin Flight Training"
+focus_area: starter_package_pricing
+created_at: "2026-04-05"
+created_by: gem-researcher
+status: completed
+
+tldr: |
+  - Merlin currently lists $3,013 in student equipment (headset $1,099, iPad $499, ForeFlight $240, checkride $1,000, written $175) — this bundle only includes premium-tier items and exam fees, missing many essentials students actually need day-to-day
+  - Aviation headsets span $100–$1,299 across 3 clear tiers: Budget PNR ($100–$200), Mid-Range PNR/entry ANR ($300–$750), Premium ANR ($849–$1,299) — huge margin opportunity by offering tiered bundles instead of assuming all students buy $1,099 headsets
+  - Essential student items beyond headset/iPad/ForeFlight include: kneeboard ($25–$50), logbook ($10–$20), E6-B flight computer ($25–$45), plotter ($10–$15), FAR/AIM ($20–$30), flashlight ($15–$30), fuel tester ($15), flight bag ($35–$329) — most have 40–60% markup potential
+  - Branded merchandise via print-on-demand (Printful) requires zero inventory: t-shirts cost ~$13–$15 (sell $28–$35), trucker hats ~$15–$18 (sell $30–$35), stickers ~$2–$4 (sell $5–$8) — ideal for a small school with no warehouse
+  - Three recommended package tiers: Essentials (~$350–$400 retail), Standard (~$850–$950 retail), Premium (~$1,500–$1,600 retail) — bundling creates perceived value, locks students into the Merlin ecosystem, and generates 30–45% gross margins
+
+research_metadata:
+  methodology: "Hybrid retrieval: semantic_search + grep_search on codebase for existing pricing/equipment data, fetch_webpage for PilotMall headset guide, student essentials guide, flight bag essentials, MyPilotStore pricing, Printful print-on-demand catalog. Sequential analysis of competitor product listings and pricing."
+  scope: "Broad — covered headset market (all tiers), student pilot essential items (ranked), branded merchandise suppliers and economics, and package tier design with margin analysis. Cross-referenced with Merlin's existing pricing page and training-options page."
+  confidence: high
+  coverage: 85
+  decision_blockers: 2
+  research_blockers: 0
+
+# =============================================================================
+# SECTION 1: CURRENT MERLIN STATE
+# =============================================================================
+current_merlin_equipment_bundle:
+  source_file: app/training-options/page.tsx
+  current_items:
+    - item: Headset
+      price: 1099
+      notes: "Priced at premium tier — likely assumes Bose A30 ($1,299) or Lightspeed Zulu 4 ($1,099). Most students don't need this on day one."
+    - item: iPad
+      price: 499
+      notes: "Standard iPad pricing. Students could use existing iPads or buy refurbished."
+    - item: ForeFlight subscription
+      price: 240
+      notes: "ForeFlight Basic Plus annual subscription. Required for modern EFB use."
+    - item: Private Pilot Checkride
+      price: 1000
+      notes: "DPE examiner fee. Not equipment — this is an exam cost paid at end of training."
+    - item: Written Exam
+      price: 175
+      notes: "FAA Knowledge Test fee. Also not equipment — paid mid-training."
+  current_total: 3013
+  observations:
+    - "Bundle mixes equipment purchases with deferred exam fees — misleading as a 'starter' cost"
+    - "No tiered options — students see $3,013 and may feel intimidated"
+    - "Missing many day-to-day training essentials (kneeboard, logbook, flight computer, etc.)"
+    - "No branded Merlin merchandise included"
+    - "Headset is single-tier premium pricing — no budget or mid-range options offered"
+
+# =============================================================================
+# SECTION 2: COMPETITOR FLIGHT SCHOOL STARTER KITS
+# =============================================================================
+competitor_starter_kits:
+  industry_overview: |
+    Flight schools typically handle equipment in one of three ways:
+    1. Required purchase list — student buys items independently (most Part 61 schools)
+    2. Bundled kits — school sells pre-assembled kits at a slight markup or discount (larger Part 141 schools)
+    3. Included with enrollment — equipment cost baked into tuition (expensive collegiate programs)
+    
+    Major aviation retailers (Sporty's, PilotMall, ASA, Gleim, Jeppesen) sell pre-packaged student pilot kits ranging from $150–$400 for study materials only (no headset/iPad).
+
+  available_student_kits:
+    - provider: "Gleim Private Pilot Kit"
+      contents: "Software with practice exams, books, plotter, E6-B flight computer, carry bag"
+      price_range: "$150–$200"
+      notes: "Study materials only. No headset, no electronics."
+
+    - provider: "ASA Student Pilot Kit"
+      contents: "VFR Maneuvering handbook, private pilot oral exam guide, flight planning sheets, supplementary materials"
+      price_range: "$100–$150"
+      notes: "Bare bones study kit. Needs bag, headset, everything else."
+
+    - provider: "Jeppesen Private Pilot Kit"
+      contents: "Textbook, workbook, FAR/AIM, plotter, flight computer, flight bag, study guide"
+      price_range: "$200–$350"
+      notes: "More comprehensive but still no electronics or headset."
+
+    - provider: "King Schools Complete Private Pilot Kit"
+      contents: "Video ground school course, test prep, logbook, plotter, E6-B"
+      price_range: "$250–$400"
+      notes: "Includes ground school course access, which is a high-value differentiator."
+
+  competitor_school_approaches:
+    - type: "Part 61 independent instructors (like Merlin)"
+      typical_approach: "Provide a recommended equipment list. Students buy their own. Instructor may lend a spare headset for first few flights."
+      opportunity: "Merlin can differentiate by offering curated, ready-to-go packages that save students the research and shopping hassle."
+
+    - type: "Part 141 flight academies"
+      typical_approach: "Often have a pilot shop on-site. May require specific kits. Some include basic materials in enrollment fee."
+      opportunity: "Merlin can't match the on-site shop experience but CAN offer same convenience via e-commerce + bundled pricing."
+
+    - type: "Large FBO-attached schools"
+      typical_approach: "Partner with Sporty's/MyPilotStore for student discounts. Some have affiliate links."
+      opportunity: "Merlin could earn affiliate income AND sell direct, capturing both referral fees and direct margin."
+
+# =============================================================================
+# SECTION 3: HEADSET TIER STRATEGY
+# =============================================================================
+headset_tiers:
+  anr_vs_pnr_summary:
+    passive_noise_reduction:
+      how_it_works: "Physical barrier — thick ear cup padding and firm clamping force seal out sound"
+      effective_on: "High-frequency noise (wind hiss)"
+      typical_NRR: "20–26 dB"
+      pros:
+        - "No batteries needed"
+        - "Simple, reliable — nothing to turn on"
+        - "Cheaper ($100–$400)"
+        - "Extremely durable (David Clarks last 20+ years)"
+      cons:
+        - "Must clamp tightly for good seal — uncomfortable after 2–3 hours"
+        - "Poor at blocking low-frequency engine drone"
+        - "Heavier (16–18 oz typically)"
+        - "Seal broken by glasses or long hair"
+
+    active_noise_reduction:
+      how_it_works: "Electronics generate anti-noise signal to cancel incoming sound waves, especially low-frequency engine drone"
+      effective_on: "Low-frequency noise (engine/propeller drone) — the main fatigue-causing noise"
+      typical_NRR: "23 dB passive + 30+ dB with ANR active"
+      pros:
+        - "Dramatically reduces cockpit fatigue"
+        - "Lighter clamping force needed (more comfortable)"
+        - "Better communication clarity"
+        - "Bluetooth for music/phone/ForeFlight audio"
+      cons:
+        - "Requires batteries (AA or rechargeable)"
+        - "More expensive ($500–$1,300)"
+        - "More complex — potential electronic failure points"
+        - "Slightly heavier due to electronics (offset by lighter clamp)"
+
+    student_recommendation: |
+      For training flights (1–2 hours), a good PNR headset is perfectly adequate.
+      Many students earn their PPL with passive headsets and upgrade later.
+      ANR becomes more valuable for cross-country flights (2+ hours) and post-PPL flying.
+      Isaac's blog already notes: "You do not need a headset to start your instruction, I (and most instructors) have a spare that you can use."
+
+  budget_tier:
+    price_range: "$100–$200"
+    type: "PNR (Passive)"
+    target_student: "Budget-conscious, unsure about commitment, first-time flyers"
+    recommended_models:
+      - name: "Faro G2 PNR"
+        retail_price: 169
+        wholesale_estimate: 110
+        NRR: "26 dB"
+        weight: "~16 oz"
+        warranty: "3 years"
+        features: "Dual volume controls, audio input for music, silicone-gel ear cushions"
+        verdict: "Best overall budget pick — 26dB NRR on par with David Clark at half the price"
+
+      - name: "Pilot USA PA-1169T"
+        retail_price: 150
+        wholesale_estimate: 95
+        NRR: "~22 dB"
+        weight: "Light"
+        warranty: "1 year"
+        features: "Noise-canceling electret mic, volume control, lightweight"
+        verdict: "True starter headset — affordable, gets the job done for short training flights"
+
+      - name: "PilotMall Sound Silencer"
+        retail_price: 159
+        wholesale_estimate: 100
+        NRR: "~24 dB"
+        weight: "~17 oz"
+        warranty: "1 year"
+        features: "Cushioned ear seals, adjustable headband"
+        verdict: "House-brand value option — sweet spot between ultra-cheap and mid-range"
+
+      - name: "ASA AirClassics HS-1A"
+        retail_price: 120
+        wholesale_estimate: 75
+        NRR: "~22 dB"
+        weight: "~16 oz"
+        warranty: "1 year"
+        features: "Electret flex noise-canceling boom mic, gold-plated plugs, adjustable headband"
+        verdict: "Cheapest recognizable brand option — fine for initial training"
+
+  mid_tier:
+    price_range: "$300–$750"
+    type: "PNR (premium) or entry-level ANR"
+    target_student: "Committed to training, wants comfort, willing to invest"
+    recommended_models:
+      - name: "David Clark H10-13.4"
+        retail_price: 370
+        wholesale_estimate: 260
+        type: "PNR"
+        NRR: "23–24 dB"
+        weight: "18 oz"
+        warranty: "Lifetime-ish (DC legendary support)"
+        features: "Gel ear seals, double-foam headpad, built like a tank"
+        verdict: "Industry gold standard. Every CFI knows it. Virtually indestructible. THE mid-range pick."
+
+      - name: "David Clark H10-30"
+        retail_price: 319
+        wholesale_estimate: 220
+        type: "PNR"
+        NRR: "~22 dB"
+        weight: "~19 oz"
+        warranty: "Similar to H10-13.4"
+        features: "Older sibling of H10-13.4, slightly heavier, nearly indestructible"
+        verdict: "Flight school workhorse. Perfect for students who are rough on gear."
+
+      - name: "Pilot USA Pro Max (Passive) with Bluetooth"
+        retail_price: 269
+        wholesale_estimate: 175
+        type: "PNR + Bluetooth"
+        NRR: "~22 dB"
+        features: "Passive noise reduction with Bluetooth module for phone/iPad pairing"
+        verdict: "Interesting budget-ANR-alternative: Bluetooth without ANR costs. Good for ForeFlight audio."
+
+      - name: "Lightspeed Sierra"
+        retail_price: 749
+        wholesale_estimate: 560
+        type: "ANR"
+        NRR: "~28 dB with ANR"
+        weight: "~16 oz"
+        warranty: "5 years"
+        features: "ANR, Bluetooth audio, Lightspeed quality at mid-range price"
+        verdict: "Entry-level premium ANR. Lightspeed quality. Best mid-range ANR option."
+
+  premium_tier:
+    price_range: "$849–$1,299"
+    type: "ANR (top-tier)"
+    target_student: "Serious aviators, career-track, long-term investment buyers"
+    recommended_models:
+      - name: "Lightspeed Zulu 3"
+        retail_price: 849
+        street_sale_price: 849
+        original_msrp: 949
+        wholesale_estimate: 640
+        type: "ANR"
+        NRR: "30+ dB with ANR"
+        weight: "13.9 oz"
+        warranty: "7 years (industry-leading)"
+        features: "Stainless steel/magnesium, Bluetooth, Kevlar cables, 15% less clamping, glasses-friendly"
+        verdict: "Best value in premium ANR. 90% of Bose A30 experience at $450 less. 7-year warranty."
+
+      - name: "David Clark ONE-X"
+        retail_price: 995
+        wholesale_estimate: 740
+        type: "ANR"
+        weight: "~15 oz"
+        warranty: "5 years"
+        features: "ANR, Bluetooth, DC brand durability + styling"
+        verdict: "For DC loyalists who want ANR. Excellent build quality."
+
+      - name: "Lightspeed Zulu 4"
+        retail_price: 1099
+        wholesale_estimate: 825
+        type: "ANR"
+        warranty: "7 years"
+        features: "Latest Lightspeed flagship, builds on Zulu 3 legacy"
+        verdict: "Newest model, direct competitor to Bose A30 at similar price."
+
+      - name: "Bose A30"
+        retail_price: 1299
+        wholesale_estimate: 975
+        type: "ANR"
+        NRR: "30+ dB with ANR, 3 selectable modes (High/Med/Low)"
+        weight: "14.2 oz"
+        warranty: "5 years"
+        features: "Best-in-class ANR, tap-to-talk, Bluetooth, auto-shutoff, 45hr battery life, TSO-C139a certified"
+        verdict: "The absolute best aviation headset available. Price reflects it. Best for career-track students."
+
+      - name: "Lightspeed Delta Zulu"
+        retail_price: 1299
+        wholesale_estimate: 975
+        type: "ANR"
+        features: "Built-in carbon monoxide detector, personalized hearing profile via app, cockpit audio recording"
+        verdict: "Safety-focused premium. CO detection is genuine differentiator. Same price as Bose A30."
+
+# =============================================================================
+# SECTION 4: ESSENTIAL STUDENT PILOT ITEMS (RANKED BY NECESSITY)
+# =============================================================================
+essential_items:
+  must_haves:
+    - item: "Aviation Headset"
+      price_range: "$120–$1,299"
+      best_budget: "Faro G2 PNR — $169"
+      best_value: "David Clark H10-13.4 — $370"
+      best_premium: "Lightspeed Zulu 3 — $849"
+      margin_opportunity: "HIGH — 25–40% markup on wholesale, especially on budget/mid models"
+      notes: "Students can borrow instructor's spare initially, but should buy within first 5–10 flights"
+
+    - item: "iPad (with EFB app)"
+      price_range: "$329–$599"
+      best_option: "iPad 10th gen Wi-Fi 64GB — $349 (or refurbished $279)"
+      margin_opportunity: "LOW — Apple products have thin margins (5–8%). Better to earn ForeFlight affiliate commission."
+      notes: "Many students already own an iPad. Offer as an add-on, not default inclusion."
+
+    - item: "ForeFlight Subscription"
+      price_range: "$120–$240/yr"
+      best_option: "ForeFlight Basic Plus — $240/yr"
+      margin_opportunity: "MEDIUM — ForeFlight has a flight school partnership program with referral fees"
+      notes: "Essential for modern flight training. $120/yr Basic plan is sufficient for PPL students."
+
+    - item: "Pilot Logbook"
+      price_range: "$10–$25"
+      best_budget: "ASA Standard Pilot Logbook — $10"
+      best_option: "ASA Standard Pilot Logbook Navy — $15"
+      wholesale_cost: "$6–$10"
+      margin_opportunity: "HIGH — 50–60% margin. Small dollar amount but zero risk."
+      notes: "REQUIRED. Every student needs this from flight 1."
+
+    - item: "Kneeboard"
+      price_range: "$20–$50"
+      best_budget: "ASA VFR Tri-Fold Kneeboard — $25"
+      best_option: "Battleboard Kneeboard Tech Edition (iPad holder) — $45"
+      wholesale_cost: "$12–$28"
+      margin_opportunity: "HIGH — 45–55% margin"
+      notes: "Essential for organizing charts, notes, and holding iPad in cockpit. Especially important for solo flights."
+
+    - item: "E6-B Flight Computer"
+      price_range: "$15–$45"
+      best_budget: "Plastic E6-B — $15"
+      best_option: "ASA Color E6-B Aluminum — $44 (street ~$35)"
+      wholesale_cost: "$8–$22"
+      margin_opportunity: "HIGH — 50–60% margin"
+      notes: "Required for ground school, written exam, and oral exam. Aluminum lasts forever."
+
+    - item: "Plotter"
+      price_range: "$8–$15"
+      best_option: "ASA Rotating Plotter — $12"
+      wholesale_cost: "$5–$7"
+      margin_opportunity: "HIGH — 55–65% margin"
+      notes: "Required for cross-country flight planning on sectional charts."
+
+  highly_recommended:
+    - item: "FAR/AIM Book (current year)"
+      price_range: "$20–$30"
+      best_option: "2026 FAR/AIM Book (ASA) — $23"
+      wholesale_cost: "$12–$15"
+      margin_opportunity: "MEDIUM — 40–50% margin, but must be replaced annually"
+      notes: "Essential reference. Digital versions exist in ForeFlight but physical book required for studying."
+
+    - item: "Flashlight (red/white LED)"
+      price_range: "$12–$30"
+      best_budget: "Mini MagLite 2AA Combo Pack — $15"
+      best_option: "Coast V2 White/Red LED — $22"
+      wholesale_cost: "$7–$14"
+      margin_opportunity: "HIGH — 50% margin"
+      notes: "Required for night flying. Red light preserves night vision."
+
+    - item: "Fuel Tester (GATS Jar)"
+      price_range: "$12–$18"
+      best_option: "Aviation Specialties GATS Jar — $15"
+      wholesale_cost: "$7–$9"
+      margin_opportunity: "HIGH — 50–60% margin"
+      notes: "Used during every preflight inspection. Environmentally friendly fuel return."
+
+    - item: "Pilot's Handbook of Aeronautical Knowledge (PHAK)"
+      price_range: "$20–$30"
+      best_option: "FAA PHAK — $26 (or free PDF from FAA)"
+      wholesale_cost: "$12–$16"
+      margin_opportunity: "MEDIUM — 40% margin"
+      notes: "Core study reference for written and oral exam."
+
+    - item: "Airplane Flying Handbook"
+      price_range: "$20–$30"
+      best_option: "FAA AFH — $26"
+      wholesale_cost: "$12–$16"
+      margin_opportunity: "MEDIUM — 40% margin"
+      notes: "Covers all maneuvers a pilot needs to know."
+
+    - item: "ACS (Airman Certification Standards)"
+      price_range: "$8–$12"
+      best_option: "FAA ACS Private Pilot Airplane — $10"
+      wholesale_cost: "$5–$6"
+      margin_opportunity: "HIGH — 50% margin"
+      notes: "The rubric for the checkride. Essential study tool."
+
+    - item: "Flight Bag"
+      price_range: "$30–$329"
+      best_budget: "Headset & Everyday Canvas Bag — $34"
+      best_value: "ASA AirClassics Pilot Backpack — $60"
+      best_premium: "MyGoFlight PLC Pro — $329"
+      wholesale_cost: "$18–$200"
+      margin_opportunity: "HIGH on budget bags (50%+), LOW on premium brand bags (20–30%)"
+      notes: "Students need something from day 1 to carry gear. Backpack style popular with younger students."
+
+  nice_to_haves:
+    - item: "Quality Pen (Fisher Space Pen)"
+      price_range: "$15–$30"
+      margin_opportunity: "HIGH — 50%+"
+      notes: "Works in all conditions. Military version popular."
+
+    - item: "iPad Yoke/Suction Mount"
+      price_range: "$25–$60"
+      margin_opportunity: "MEDIUM — 35–45%"
+      notes: "Keeps iPad visible during flight without holding it."
+
+    - item: "Sunglasses (aviation-grade)"
+      price_range: "$30–$250"
+      margin_opportunity: "MEDIUM — highly variable"
+      notes: "Important for eye protection. Randolph Engineering are the gold standard ($200+)."
+
+    - item: "Handheld Radio (backup)"
+      price_range: "$150–$350"
+      margin_opportunity: "LOW — specialized equipment, thin margins"
+      notes: "Not essential for students. Nice for peace of mind on solo flights."
+
+    - item: "Spare Batteries + Charging Cables"
+      price_range: "$10–$25"
+      margin_opportunity: "LOW — commodity items"
+      notes: "Practical addition to any kit."
+
+# =============================================================================
+# SECTION 5: BRANDED MERCHANDISE OPPORTUNITY
+# =============================================================================
+branded_merchandise:
+  merch_types_for_flight_schools:
+    high_performers:
+      - type: "Trucker/Baseball Hats"
+        why: "Pilots LOVE hats. Worn daily. Visible brand advertising. Aviation culture is hat-heavy."
+        cost_pod: "$14–$18 (Printful embroidered trucker cap)"
+        cost_bulk: "$8–$12 per unit (72+ qty, Richardson 112 or similar, embroidered)"
+        retail_price: "$28–$35"
+        margin_pod: "48–55%"
+        margin_bulk: "60–72%"
+
+      - type: "T-Shirts"
+        why: "Universal appeal. Good for first solo celebrations, gift shop, and events."
+        cost_pod: "$13–$16 (Printful Cotton Heritage or Bella+Canvas)"
+        cost_bulk: "$7–$10 per unit (48+ qty, Bella+Canvas 3001 or Next Level 6210)"
+        retail_price: "$25–$35"
+        margin_pod: "45–55%"
+        margin_bulk: "65–72%"
+
+      - type: "Stickers"
+        why: "Cheapest merch item. Students love putting them on flight bags, iPads, water bottles. Great giveaway."
+        cost_pod: "$2–$4 (Printful kiss-cut stickers)"
+        cost_bulk: "$0.50–$1.50 per unit (100+ qty, StickerMule or StickerGiant)"
+        retail_price: "$3–$8"
+        margin_pod: "25–60%"
+        margin_bulk: "70–85%"
+        notes: "Include one free sticker in every package — brand impressions for pennies."
+
+      - type: "Water Bottles / Tumblers"
+        why: "Pilots need hydration. Metal water bottle recommended for cockpit. High perceived value."
+        cost_pod: "$12–$18"
+        cost_bulk: "$6–$10 per unit (48+ qty)"
+        retail_price: "$22–$35"
+        margin_pod: "40–55%"
+        margin_bulk: "65–75%"
+
+    moderate_performers:
+      - type: "Hoodies / Crew Neck Sweatshirts"
+        why: "Great for cooler months. Higher price point = higher dollar margin."
+        cost_pod: "$28–$35"
+        cost_bulk: "$15–$22 per unit (36+ qty)"
+        retail_price: "$50–$65"
+        margin_pod: "40–50%"
+        margin_bulk: "55–70%"
+
+      - type: "Tote Bags / Canvas Bags"
+        why: "Practical for carrying books/supplies. Walking billboard."
+        cost_pod: "$10–$15"
+        cost_bulk: "$5–$8"
+        retail_price: "$18–$25"
+        margin_pod: "40–55%"
+        margin_bulk: "65–75%"
+
+      - type: "Keychains / Remove Before Flight Tags"
+        why: "Aviation-specific. Remove Before Flight tags are iconic. Low cost impulse buy."
+        cost_bulk: "$1–$3 per unit (custom embroidered, 100+ qty)"
+        retail_price: "$8–$12"
+        margin_bulk: "70–85%"
+        notes: "Custom 'MERLIN FLIGHT TRAINING' Remove Before Flight tag would be great brand piece."
+
+    niche:
+      - type: "Aviation Coffee Mugs"
+        cost_pod: "$8–$12"
+        retail_price: "$15–$22"
+      - type: "Headset Bag (branded)"
+        cost_bulk: "$8–$12"
+        retail_price: "$25–$35"
+        notes: "Include branded headset bag with headset purchases"
+
+  recommended_suppliers:
+    print_on_demand:
+      - name: "Printful"
+        pros: "Largest POD selection. Ships from US/EU. Shopify/Stripe integration. No minimum orders."
+        cons: "Higher per-unit cost vs bulk. 2–5 day production time."
+        best_for: "Testing designs, low-volume items, avoiding inventory risk"
+        url: "printful.com"
+
+      - name: "Printify"
+        pros: "Multiple print providers (price competition). Good quality options."
+        cons: "Quality varies by provider. Slightly less polished than Printful."
+        best_for: "Price comparison, alternative to Printful"
+
+    bulk_suppliers:
+      - name: "StickerMule"
+        best_for: "Stickers, labels, magnets"
+        notes: "Frequent sales (often 50%+ off). Fast shipping. Excellent quality."
+
+      - name: "CustomInk"
+        best_for: "Bulk t-shirts, hoodies, hats"
+        notes: "Good for orders of 12+ items. Fair pricing, reliable quality."
+
+      - name: "SS Activewear / SanMar"
+        best_for: "Blank apparel wholesale (then screen print locally)"
+        notes: "Cheapest blank pricing if using a local screen printer."
+
+      - name: "Richardson (direct or via distributors)"
+        best_for: "Trucker hats (Richardson 112 is THE standard)"
+        notes: "Most POD services use Richardson blanks anyway."
+
+  strategy_recommendation: |
+    Start with Printful (POD) for initial testing — zero inventory risk, ships automatically.
+    Once best-selling designs are identified (likely: hat + t-shirt + sticker pack), 
+    order those top 3 in bulk for better margins.
+    
+    Suggested initial Merlin merch line:
+    1. "Merlin Flight Training" embroidered trucker hat (black/gold to match brand)
+    2. "Merlin Flight Training" t-shirt with wings/propeller logo
+    3. "Merlin Flight Training" sticker pack (3–5 designs: logo, FRG airport, wings, humorous aviation)
+    4. "Remove Before Flight" keychain with Merlin branding
+    5. Branded metal water bottle (practical + visible in cockpit)
+
+# =============================================================================
+# SECTION 6: STARTER PACKAGE TIER DESIGN
+# =============================================================================
+starter_package_tiers:
+  tier_1_essentials:
+    name: "Cadet Package"
+    tagline: "Everything you need for your first flight"
+    target: "Budget-conscious students, discovery-flight graduates, unsure about commitment level"
+    contents:
+      - item: "Faro G2 PNR Headset"
+        retail_value: 169
+        estimated_cost: 110
+      - item: "ASA Standard Pilot Logbook"
+        retail_value: 15
+        estimated_cost: 8
+      - item: "ASA VFR Tri-Fold Kneeboard"
+        retail_value: 25
+        estimated_cost: 14
+      - item: "Plastic E6-B Flight Computer"
+        retail_value: 15
+        estimated_cost: 7
+      - item: "ASA Rotating Plotter"
+        retail_value: 12
+        estimated_cost: 6
+      - item: "Notepad + Fisher Space Pen"
+        retail_value: 20
+        estimated_cost: 10
+      - item: "Merlin Flight Training Sticker Pack"
+        retail_value: 8
+        estimated_cost: 3
+      - item: "Merlin branded canvas carrying bag or tote"
+        retail_value: 25
+        estimated_cost: 10
+    total_retail_value: 289
+    total_estimated_cost: 168
+    suggested_bundle_price: 249
+    bundle_savings_displayed: 40
+    gross_margin_dollars: 81
+    gross_margin_percent: 32.5
+    notes: |
+      Value proposition: "Save $40 vs buying separately + get free Merlin gear"
+      Does NOT include iPad, ForeFlight, or exam fees — keeps price accessible.
+      Student can add headset upgrade or iPad separately.
+
+  tier_2_standard:
+    name: "Aviator Package"
+    tagline: "The complete student pilot starter kit"
+    target: "Committed students, most popular recommended option"
+    contents:
+      - item: "David Clark H10-13.4 Headset"
+        retail_value: 370
+        estimated_cost: 260
+      - item: "ForeFlight Basic Plus Subscription (1 year)"
+        retail_value: 240
+        estimated_cost: 200
+        notes: "ForeFlight flight school partnership may reduce this"
+      - item: "ASA Standard Pilot Logbook"
+        retail_value: 15
+        estimated_cost: 8
+      - item: "Battleboard Kneeboard (iPad compatible)"
+        retail_value: 45
+        estimated_cost: 28
+      - item: "ASA Color E6-B Aluminum Flight Computer"
+        retail_value: 44
+        estimated_cost: 22
+      - item: "ASA Rotating Plotter"
+        retail_value: 12
+        estimated_cost: 6
+      - item: "2026 FAR/AIM Book"
+        retail_value: 23
+        estimated_cost: 12
+      - item: "ACS Private Pilot Airplane"
+        retail_value: 10
+        estimated_cost: 5
+      - item: "Coast V2 Red/White LED Flashlight"
+        retail_value: 22
+        estimated_cost: 12
+      - item: "GATS Jar Fuel Tester"
+        retail_value: 15
+        estimated_cost: 8
+      - item: "Merlin Flight Training Trucker Hat"
+        retail_value: 30
+        estimated_cost: 10
+      - item: "Merlin Flight Training Sticker Pack"
+        retail_value: 8
+        estimated_cost: 3
+      - item: "Merlin branded headset bag"
+        retail_value: 25
+        estimated_cost: 10
+    total_retail_value: 859
+    total_estimated_cost: 584
+    suggested_bundle_price: 749
+    bundle_savings_displayed: 110
+    gross_margin_dollars: 165
+    gross_margin_percent: 22.0
+    notes: |
+      Value proposition: "Save $110 vs buying separately + get $63 in free Merlin gear"
+      This is the recommended default for new PPL students.
+      Does NOT include iPad (students often already have one) or exam fees.
+      Consider offering "Add iPad for $349" as an upsell.
+
+  tier_3_premium:
+    name: "Captain's Package"
+    tagline: "The ultimate flight training investment — everything you need from day one through checkride"
+    target: "Well-funded students, career-track, 'buy once cry once' mentality"
+    contents:
+      - item: "Lightspeed Zulu 3 ANR Headset"
+        retail_value: 849
+        estimated_cost: 640
+      - item: "iPad 10th Gen (64GB Wi-Fi)"
+        retail_value: 349
+        estimated_cost: 320
+        notes: "Apple Education pricing or refurbished"
+      - item: "ForeFlight Basic Plus Subscription (1 year)"
+        retail_value: 240
+        estimated_cost: 200
+      - item: "ASA Standard Pilot Logbook"
+        retail_value: 15
+        estimated_cost: 8
+      - item: "Battleboard Kneeboard (iPad compatible)"
+        retail_value: 45
+        estimated_cost: 28
+      - item: "ASA Color E6-B Aluminum Flight Computer"
+        retail_value: 44
+        estimated_cost: 22
+      - item: "ASA Rotating Plotter"
+        retail_value: 12
+        estimated_cost: 6
+      - item: "2026 FAR/AIM Book"
+        retail_value: 23
+        estimated_cost: 12
+      - item: "ACS Private Pilot Airplane"
+        retail_value: 10
+        estimated_cost: 5
+      - item: "Pilot's Handbook of Aeronautical Knowledge"
+        retail_value: 26
+        estimated_cost: 14
+      - item: "Airplane Flying Handbook"
+        retail_value: 26
+        estimated_cost: 14
+      - item: "Coast V2 Red/White LED Flashlight"
+        retail_value: 22
+        estimated_cost: 12
+      - item: "GATS Jar Fuel Tester"
+        retail_value: 15
+        estimated_cost: 8
+      - item: "Fisher Space Pen + Notepad"
+        retail_value: 20
+        estimated_cost: 10
+      - item: "Merlin Flight Training Trucker Hat"
+        retail_value: 30
+        estimated_cost: 10
+      - item: "Merlin Flight Training T-Shirt"
+        retail_value: 30
+        estimated_cost: 12
+      - item: "Merlin Flight Training Sticker Pack"
+        retail_value: 8
+        estimated_cost: 3
+      - item: "Merlin branded headset bag"
+        retail_value: 25
+        estimated_cost: 10
+      - item: "Remove Before Flight Keychain (Merlin branded)"
+        retail_value: 10
+        estimated_cost: 2
+    total_retail_value: 1849
+    total_estimated_cost: 1336
+    suggested_bundle_price: 1549
+    bundle_savings_displayed: 300
+    gross_margin_dollars: 213
+    gross_margin_percent: 13.7
+    notes: |
+      Value proposition: "Save $300 vs buying separately + $103 in Merlin exclusive gear"
+      iPad thin margin drags overall margin down — consider offering iPad as optional add-on instead.
+      Alternative: Price at $1,199 WITHOUT iPad (margin jumps to ~20%) and offer iPad add-on for $329.
+      This is the "walk in with everything you need" package.
+
+  bundle_discount_strategy:
+    approach: "Anchor high, discount the bundle"
+    tactics:
+      - "Always show 'retail value' crossed out next to bundle price"
+      - "Bundle savings should feel significant: 10–15% off total retail value"
+      - "Include branded merch items as 'FREE with this package' — feels like bonus"
+      - "Offer 5% additional discount if purchased within 48 hours of discovery flight booking"
+      - "Consider 'First student of the month gets free upgrade to next tier' promotion"
+
+  pricing_page_integration:
+    current_state: "Single $3,013 equipment bundle line in training-options/page.tsx"
+    recommendation: |
+      Replace single equipment bundle with tiered package selector.
+      Remove checkride ($1,000) and written exam ($175) from the 'equipment bundle' — 
+      these are exam fees paid later, not startup equipment.
+      Show 3 tiers side-by-side (like SaaS pricing pages).
+      Highlight "Aviator Package" as "Most Popular" / recommended.
+      Add "Build Your Own" option for students who want à la carte.
+
+  exam_fees_note: |
+    The current $3,013 bundle includes $1,175 in exam fees (checkride $1,000 + written $175).
+    These should be separated from the equipment packages because:
+    1. Exam fees are paid 6–12 months into training, not at the start
+    2. Checkride fees vary by DPE and may change
+    3. Written exam can be taken at various times
+    4. Mixing deferred costs with startup costs inflates the perceived initial investment
+    
+    Show exam fees in a separate "Additional Costs During Training" section.
+
+# =============================================================================
+# SECTION 7: LOGISTICS
+# =============================================================================
+logistics:
+  dropshipping_vs_inventory:
+    recommendation: "Hybrid approach"
+    details:
+      dropshipping:
+        use_for: "Headsets, iPads, specialized aviation equipment"
+        why: "High unit cost items tie up too much capital. Headset models change. Returns are complex."
+        sources: "PilotMall affiliate program, MyPilotStore dealer account, Amazon affiliate for iPads"
+        pros:
+          - "Zero inventory risk"
+          - "No upfront capital requirement"
+          - "Always current models"
+        cons:
+          - "Lower margins (affiliate commission 5–15% vs wholesale markup 25–40%)"
+          - "No control over shipping speed"
+          - "Can't do custom unboxing experience"
+
+      stocked_inventory:
+        use_for: "Small supplies (logbooks, plotters, E6-Bs, fuel testers, pens, flashlights), branded merchandise"
+        why: "Low cost per unit, high margin, easy to store, rarely obsolete"
+        storage: "Can fit in a closet or small shelf at Republic Airport (FRG)"
+        estimated_initial_investment: "$500–$1,500 for initial stock of supplies + merch"
+        pros:
+          - "Immediate delivery (hand to student at lesson)"
+          - "Custom packaging/unboxing experience"
+          - "Higher margins"
+          - "Create a 'starter kit' box for that premium feel"
+        cons:
+          - "Small capital outlay"
+          - "Need to track inventory"
+          - "Some items expire annually (FAR/AIM)"
+
+      print_on_demand:
+        use_for: "All branded merchandise (hats, shirts, stickers, bags)"
+        why: "Zero inventory. Ships direct to customer. Test designs risk-free."
+        notes: "Once volume justifies it (>50 units/month of a single item), switch that item to bulk ordering."
+
+  shipping_considerations:
+    local_pickup: "PREFERRED — students come to the airport for lessons. Hand them the kit in person."
+    shipping_option: "Offer USPS Priority Mail for non-local students or online-only orders"
+    estimated_shipping_costs:
+      small_kit: "$8–$12 (USPS Priority flat rate medium box)"
+      full_kit_with_headset: "$15–$20 (USPS Priority large flat rate box)"
+    headset_shipping: "If dropshipped from supplier, shipping is typically free on orders $100+ from PilotMall/MyPilotStore"
+
+  return_policy_considerations:
+    headsets:
+      policy: "30-day return if unopened/unused. Defective units handled through manufacturer warranty."
+      notes: |
+        Headsets are personal protective equipment — hygiene concerns with returns.
+        Most aviation retailers accept returns only if sealed/unused.
+        Defective headsets go through manufacturer (Bose 5yr, Lightspeed 7yr, DC lifetime-ish).
+        If selling through affiliate/dropship, the supplier handles returns.
+    electronics:
+      policy: "iPads follow Apple's 14-day return policy. ForeFlight subscriptions are non-refundable."
+      notes: "Point students to Apple/ForeFlight directly for returns."
+    supplies:
+      policy: "Consumable supplies (logbooks, books, plotters) — no returns once used."
+      notes: "Low cost items. Easier to just replace if defective."
+    branded_merch:
+      policy: "Exchange for size issues. No returns on custom printed items."
+      notes: "Standard POD/custom merch policy. Printful handles defective items."
+
+# =============================================================================
+# SECTION 8: MARGIN ANALYSIS SUMMARY
+# =============================================================================
+margin_analysis:
+  highest_margin_items:
+    - item: "Stickers"
+      margin: "70–85%"
+    - item: "Remove Before Flight Keychains"
+      margin: "70–85%"
+    - item: "Logbooks"
+      margin: "50–60%"
+    - item: "E6-B Flight Computers"
+      margin: "50–60%"
+    - item: "Plotters"
+      margin: "55–65%"
+    - item: "Fuel Testers"
+      margin: "50–60%"
+    - item: "Branded Hats (bulk)"
+      margin: "60–72%"
+    - item: "Branded T-Shirts (bulk)"
+      margin: "65–72%"
+
+  lowest_margin_items:
+    - item: "iPads"
+      margin: "5–8%"
+    - item: "Premium Headsets (Bose A30, Zulu 3)"
+      margin: "15–25%"
+    - item: "ForeFlight Subscriptions"
+      margin: "10–15% (affiliate commission)"
+
+  strategy_insight: |
+    The highest-margin items are the small supplies and branded merch — exactly 
+    the items that should be INCLUDED in every package to pad margins.
+    
+    The lowest-margin items (iPad, premium headsets) should be offered as 
+    optional add-ons or through affiliate links, not as default package inclusions.
+    
+    Key insight: The current $3,013 bundle is dominated by the two lowest-margin 
+    categories (headset + iPad) plus non-equipment exam fees. Restructuring into 
+    tiered packages with many small high-margin items dramatically improves economics.
+
+# =============================================================================
+# OPEN QUESTIONS & GAPS
+# =============================================================================
+open_questions:
+  - question: "Does Merlin want to apply for dealer/wholesale accounts with headset manufacturers (David Clark, Lightspeed, Bose)?"
+    context: "Wholesale pricing requires dealer agreements, minimum order quantities, and sometimes proof of retail presence. As a flight school, Merlin may qualify for edu/dealer pricing."
+    type: decision_blocker
+    affects: ["package-pricing", "inventory-strategy"]
+
+  - question: "Does Merlin want to sell packages via the existing website (Stripe checkout) or through a separate storefront (Shopify)?"
+    context: "Current site has Stripe integration and an items/billing system. A Shopify storefront would integrate better with Printful POD but adds another platform to manage. Stripe checkout on existing site is simpler but less e-commerce-friendly."
+    type: decision_blocker
+    affects: ["implementation-approach", "merch-fulfillment"]
+
+  - question: "What is Merlin's current branding package (logo files, brand colors, fonts)?"
+    context: "Branded merch requires high-resolution logo files. Site uses 'golden' color theme. Need source files for print production."
+    type: research
+    affects: ["merch-design"]
+
+  - question: "Is there physical space at Republic Airport (FRG) to store a small inventory of supplies?"
+    context: "Hybrid approach assumes some local storage for handing kits to students at lessons."
+    type: research
+    affects: ["logistics-model"]
+
+  - question: "Does ForeFlight offer a flight school partnership or referral program?"
+    context: "ForeFlight historically has had flight school partnerships with bulk subscription discounts or referral commissions."
+    type: research
+    affects: ["package-pricing", "foreflight-sourcing"]
+
+gaps:
+  - area: "Exact wholesale pricing"
+    description: "Wholesale costs are estimated based on typical distributor markups. Actual costs depend on dealer agreements Merlin would need to establish."
+    impact: research_blocker
+    affects: ["margin-calculations"]
+
+  - area: "ForeFlight partnership terms"
+    description: "Did not find current ForeFlight flight school partnership details. Terms may vary."
+    impact: nice_to_know
+    affects: ["tier-2-pricing"]
+
+  - area: "Local competitor pricing at FRG"
+    description: "Did not research what other flight schools at Republic Airport specifically charge or include. FRG competitors include Mid Island Air Service, National Aviation Academy, etc."
+    impact: nice_to_know
+    affects: ["competitive-positioning"]

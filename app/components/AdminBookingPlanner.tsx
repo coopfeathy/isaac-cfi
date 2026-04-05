@@ -88,6 +88,8 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
   const [slotDescription, setSlotDescription] = useState('')
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
+  const [syllabusLessons, setSyllabusLessons] = useState<{ id: string; lesson_number: number; title: string; stage: string }[]>([])
+  const [selectedSyllabusLessonId, setSelectedSyllabusLessonId] = useState('')
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -140,6 +142,21 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
     }
 
     void fetchStudents()
+  }, [])
+
+  useEffect(() => {
+    const fetchSyllabusLessons = async () => {
+      const { data, error } = await supabase
+        .from('syllabus_lessons')
+        .select('id, lesson_number, title, stage')
+        .order('lesson_number', { ascending: true })
+
+      if (!error && data) {
+        setSyllabusLessons(data)
+      }
+    }
+
+    void fetchSyllabusLessons()
   }, [])
 
   const weekDays = useMemo(() => {
@@ -243,6 +260,7 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
           type: slotType,
           price,
           description: slotDescription.trim() || null,
+          syllabusLessonId: selectedSyllabusLessonId || null,
         }),
       })
 
@@ -254,6 +272,7 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
       setStatusMessage('Flight slot + booking created successfully.')
       setSelectedStart(null)
       setSelectedEnd(null)
+      setSelectedSyllabusLessonId('')
       if (onCreated) {
         await onCreated()
       }
@@ -392,6 +411,7 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
                   if (nextType === 'tour') {
                     setSlotPrice('29900')
                     setSlotDescription('Discovery Flight')
+                    setSelectedSyllabusLessonId('')
                   }
                 }}
                 className="mt-1 w-full rounded border border-gray-300 px-3 py-2"
@@ -401,6 +421,24 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
               </select>
             </label>
           </div>
+
+          {slotType === 'training' && (
+            <label className="text-sm text-darkText font-semibold">
+              Syllabus Lesson (optional)
+              <select
+                value={selectedSyllabusLessonId}
+                onChange={(event) => setSelectedSyllabusLessonId(event.target.value)}
+                className="mt-1 w-full rounded border border-gray-300 px-3 py-2"
+              >
+                <option value="">— No lesson linked —</option>
+                {syllabusLessons.map((lesson) => (
+                  <option key={lesson.id} value={lesson.id}>
+                    #{lesson.lesson_number} — {lesson.title} ({lesson.stage})
+                  </option>
+                ))}
+              </select>
+            </label>
+          )
 
           <div className="grid md:grid-cols-2 gap-3">
             <label className="text-sm text-darkText font-semibold">
