@@ -23,6 +23,18 @@ user_stories:
   - as_a: Admin
     i_want: Deduct from a student's block balance based on actual Hobbs time after a flight
     so_that: Billing is accurate to real flight time, not estimates
+  - as_a: Flight instructor
+    i_want: Schedule students on my Apple Calendar and have it automatically appear in their dashboard
+    so_that: I can use my preferred calendar tool and students stay informed about upcoming lessons
+  - as_a: Student
+    i_want: See my upcoming week's lessons with syllabus details (ground topics, flight maneuvers) on my dashboard
+    so_that: I know what to prepare for each lesson and can study ahead
+  - as_a: Flight instructor
+    i_want: Changes I make in Apple Calendar (reschedule, cancel) to sync back to the app
+    so_that: I have a single source of truth without manual data entry
+  - as_a: Student
+    i_want: Receive an email when a lesson is scheduled for me
+    so_that: I never miss a booking notification
 
 scope:
   in_scope:
@@ -42,6 +54,14 @@ scope:
     - Admin bulk hour purchase form (hours, cost/hr, date, notes)
     - Low bulk hours alert (SMS/email when below 10 hours remaining)
     - Auto-deduct from bulk hour pool when student flight balance deducted
+    - CalDAV bidirectional sync with Apple Calendar (iCloud) via tsdav
+    - Outbound sync (app → Apple Calendar) on booking creation/update
+    - Inbound sync (Apple Calendar → app) via 10-min scheduled polling
+    - New student /dashboard page with weekly lesson view linked to syllabus_lessons
+    - Email notification to student when lesson is scheduled
+    - Admin settings for CalDAV credentials (Apple ID + app-specific password)
+    - Database schema additions for sync tracking (caldav_uid, caldav_etag, sync_status)
+    - Linking bookings to syllabus_lessons for rich lesson display
   out_of_scope:
     - Changing existing Stripe Connect payout split logic
     - Modifying admin dashboard
@@ -120,6 +140,15 @@ features:
       Admin CRUD for managing syllabus lessons (create, edit, reorder, delete).
       Seeded with a standard ~35-lesson FAA Part 61 PPL syllabus covering pre-solo through checkride.
     status: planned
+  - name: Apple Calendar Bidirectional Sync
+    overview: CalDAV-based sync via tsdav connecting Supabase bookings to iCloud Calendar with outbound push and inbound 10-min poll
+    status: planned
+  - name: Student Weekly Dashboard
+    overview: New /dashboard page showing upcoming week's lessons linked to syllabus with ground topics, flight maneuvers, and completion standards
+    status: planned
+  - name: Lesson Scheduling Email Notification
+    overview: Resend email to student when instructor creates or confirms a lesson booking, showing syllabus details
+    status: planned
 
 state_machines:
   - name: Appointment Request
@@ -179,6 +208,34 @@ state_machines:
         to: empty
         trigger: student_flight_deduction (hours reach 0)
 
+  - name: CalDAV Sync Status
+    states: [synced, pending_push, pending_pull, conflict, error]
+    transitions:
+      - from: synced
+        to: pending_push
+        trigger: booking created or updated in app
+      - from: pending_push
+        to: synced
+        trigger: CalDAV push succeeds
+      - from: pending_push
+        to: error
+        trigger: CalDAV push fails
+      - from: synced
+        to: pending_pull
+        trigger: CalDAV poll detects change via ctag/etag
+      - from: pending_pull
+        to: synced
+        trigger: Database updated from calendar data
+      - from: pending_pull
+        to: conflict
+        trigger: Both app and calendar modified since last sync
+      - from: conflict
+        to: synced
+        trigger: Conflict resolved (app wins)
+      - from: error
+        to: pending_push
+        trigger: Retry triggered
+
   - name: Block Account Balance
     states: [zero, active, low_balance]
     transitions:
@@ -211,6 +268,16 @@ errors:
     message: This slot is no longer available. You have been removed from the queue.
   - code: ERR_BACKUP_002
     message: Response timeout. The slot has been offered to the next student.
+  - code: ERR_CALDAV_AUTH
+    message: Failed to authenticate with iCloud. Check your Apple ID and app-specific password.
+  - code: ERR_CALDAV_CONNECT
+    message: Unable to connect to iCloud Calendar. Please try again later.
+  - code: ERR_CALDAV_PUSH
+    message: Failed to sync event to Apple Calendar. Will retry automatically.
+  - code: ERR_CALDAV_PULL
+    message: Failed to read events from Apple Calendar. Will retry on next sync cycle.
+  - code: ERR_SYNC_CONFLICT
+    message: Event was modified in both app and calendar. App version preserved.
 
 decisions:
   - decision: Use existing balance_cents field on profiles table for block account balance
@@ -240,4 +307,17 @@ decisions:
   - decision: Cost estimator shows aircraft + instructor only, notes landing fees as additional
     rationale: Landing fee count varies per lesson; showing a note avoids inaccurate estimates
 
-changes: []
+  - decision: Use tsdav library for CalDAV protocol with iCloud
+    rationale: Native TypeScript, 74K weekly downloads, built-in iCloud support, syncCalendars() with ctag/etag change detection
+  - decision: Polling every 10 minutes via Netlify Scheduled Function for inbound sync
+    rationale: iCloud has no webhook support; 10-min acceptable for single-instructor use
+  - decision: Last-write-wins with app preference for sync conflict resolution
+    rationale: True conflicts near-impossible with single instructor; app is the financial source of truth
+  - decision: Add syllabus_lesson_id to bookings for lesson linking
+    rationale: Direct FK relationship enables rich lesson display on student dashboard
+  - decision: New /dashboard page (not enhancing existing /lesson-scheduling)
+    rationale: Clean separation; dedicated dashboard with syllabus integration
+
+changes:
+  - version: "1.1.0"
+    change: Added Apple Calendar bidirectional sync feature, student dashboard, and lesson scheduling email notifications

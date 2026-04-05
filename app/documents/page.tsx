@@ -14,6 +14,7 @@ export default function DocumentsPage() {
       subtitle="Your Private Pilot syllabus — complete training plan from first flight to checkride."
       activeTab="documents"
       headerVariant="schedule"
+      stats={[]}
     >
       {/* Syllabus Card */}
       <div style={{ maxWidth: "600px" }}>
