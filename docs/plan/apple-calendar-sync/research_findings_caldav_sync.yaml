@@ -1,0 +1,643 @@
+plan_id: apple-calendar-sync
+objective: Research the most practical approach for bidirectional Apple Calendar (iCloud) sync from the Merlin Flight Training Next.js/Netlify app
+focus_area: CalDAV protocol, iCloud integration, sync architecture, serverless constraints
+created_at: "2026-04-05"
+created_by: gem-researcher
+status: completed
+
+tldr: |
+  - tsdav (v2.1.8, 74K weekly downloads, native TypeScript) is the clear best library — it has explicit iCloud CalDAV support with syncCalendars() using ctag/etag/sync-token change detection
+  - iCloud CalDAV requires app-specific passwords (no OAuth) via Basic auth to caldav.icloud.com; Apple does NOT expose a public calendar API
+  - Full bidirectional CalDAV sync IS achievable on Netlify using a Scheduled Function (cron every 5-15 min) + a Background Function (up to 15 min execution) for the actual sync work
+  - The RECOMMENDED approach is a hybrid: Supabase as source of truth → push events to iCloud via CalDAV → poll iCloud for external changes on a cron → reconcile via UID mapping
+  - Apple Calendar subscriptions (.ics feeds) are READ-ONLY and cannot be used for bidirectional sync; the Google Calendar bridge adds unnecessary complexity
+
+research_metadata:
+  methodology: "Hybrid retrieval: semantic_search of codebase + grep_search for patterns, fetch_webpage for tsdav docs/npm/GitHub, sabre.io CalDAV protocol guide, Apple support docs, Netlify docs. Sequential analysis of library comparison, protocol constraints, and architecture fit."
+  scope: "Deep examination of CalDAV protocol mechanics, all viable Node.js CalDAV libraries, iCloud-specific auth/endpoints, Netlify serverless constraints, and existing codebase calendar infrastructure"
+  confidence: high
+  coverage: 95
+  decision_blockers: 0
+  research_blockers: 0
+
+files_analyzed:
+  - file: google-calendar.ts
+    path: lib/google-calendar.ts
+    purpose: Legacy Google Calendar integration (DEPRECATED) — shows previous calendar pattern and what was abandoned
+    key_elements:
+      - element: createCalendarEvent
+        type: function
+        location: lib/google-calendar.ts:22
+        description: "DEPRECATED. Used googleapis package with service account auth. Created events with attendees, reminders. Shows the pattern the app previously used for calendar integration."
+    language: TypeScript
+    lines: 100
+
+  - file: booking-ics/route.ts
+    path: app/api/calendar/booking-ics/route.ts
+    purpose: Current .ics file generation endpoint — the ONLY active calendar integration
+    key_elements:
+      - element: GET handler
+        type: function
+        location: app/api/calendar/booking-ics/route.ts:16
+        description: "Generates RFC 5545 VCALENDAR from a slot ID. UID format: {slot.id}@merlinflight.com. Returns downloadable .ics file."
+      - element: escapeIcsText
+        type: function
+        location: app/api/calendar/booking-ics/route.ts:4
+        description: "Escapes backslash, semicolon, comma, newline for iCalendar format"
+      - element: toIcsUtc
+        type: function
+        location: app/api/calendar/booking-ics/route.ts:12
+        description: "Converts JS Date to iCalendar UTC format (YYYYMMDDTHHMMSSZ)"
+    language: TypeScript
+    lines: 80
+
+  - file: booking-monitor.ts
+    path: netlify/functions/booking-monitor.ts
+    purpose: Existing Netlify Scheduled Function pattern — runs every 5 minutes, shows infrastructure pattern for CalDAV sync
+    key_elements:
+      - element: config
+        type: variable
+        location: netlify/functions/booking-monitor.ts:18
+        description: "schedule: '*/5 * * * *' — cron every 5 minutes. Uses @netlify/functions Config type."
+      - element: Supabase client creation
+        type: pattern
+        location: netlify/functions/booking-monitor.ts:2
+        description: "Creates Supabase client directly with createClient (no SSR helpers needed in serverless)"
+    language: TypeScript
+    lines: 30+
+
+  - file: package.json
+    path: package.json
+    purpose: Dependency manifest — confirms googleapis present but deprecated, no CalDAV library yet
+    key_elements:
+      - element: googleapis
+        type: variable
+        location: package.json:26
+        description: "^118.0.0 — still in dependencies but deprecated in codebase"
+      - element: "@netlify/functions"
+        type: variable
+        location: package.json:15
+        description: "^2.0.0 — supports scheduled functions with Config export"
+    language: JSON
+    lines: 53
+
+  - file: netlify.toml
+    path: netlify.toml
+    purpose: Netlify configuration — confirms functions directory, scheduled function comments
+    key_elements:
+      - element: functions directory
+        type: variable
+        location: netlify.toml:9
+        description: "netlify/functions with esbuild bundler"
+      - element: scheduled function comments
+        type: pattern
+        location: netlify.toml:13
+        description: "booking-monitor every 5 min, generate-discovery-slots daily at 07:00 UTC"
+    language: TOML
+    lines: 40
+
+patterns_found:
+  - category: architecture
+    pattern: "Serverless cron via Netlify Scheduled Functions"
+    description: "The app already uses Netlify Scheduled Functions (booking-monitor.ts at */5 * * * *) for periodic background tasks. This is the same infrastructure needed for CalDAV sync polling."
+    examples:
+      - file: booking-monitor.ts
+        location: netlify/functions/booking-monitor.ts:18
+        snippet: "export const config: Config = { schedule: '*/5 * * * *' }"
+    prevalence: common
+
+  - category: architecture
+    pattern: "Supabase admin client in serverless functions"
+    description: "Serverless functions create Supabase clients with createClient() using env vars, bypassing RLS with service role key."
+    examples:
+      - file: booking-monitor.ts
+        location: netlify/functions/booking-monitor.ts:2
+        snippet: "import { createClient } from '@supabase/supabase-js'"
+    prevalence: common
+
+  - category: naming
+    pattern: "UID format: {uuid}@merlinflight.com"
+    description: "iCalendar UIDs use slot ID + @merlinflight.com domain. This is RFC 5545 compliant and can be preserved for CalDAV sync."
+    examples:
+      - file: booking-ics/route.ts
+        location: app/api/calendar/booking-ics/route.ts:38
+        snippet: "const uid = `${slot.id}@merlinflight.com`"
+    prevalence: common
+
+  - category: structure
+    pattern: "Slot-centric data model"
+    description: "All calendar events map to slots table (id, start_time, end_time, type, price, is_booked, description). Bookings reference slots. CalDAV sync should map slot IDs to CalDAV event URIs."
+    examples:
+      - file: booking-ics/route.ts
+        location: app/api/calendar/booking-ics/route.ts:26
+        snippet: ".from('slots').select('id, start_time, end_time, type, description, price')"
+    prevalence: common
+
+related_architecture:
+  components_relevant_to_domain:
+    - component: "Booking ICS Generator"
+      responsibility: "Generate downloadable .ics files from slot data"
+      location: app/api/calendar/booking-ics/route.ts
+      relationship_to_domain: "Will be extended/replaced by CalDAV push — same VCALENDAR generation logic reusable"
+    - component: "Admin Booking Planner"
+      responsibility: "Create manual bookings (slots + bookings) for students"
+      location: app/components/AdminBookingPlanner.tsx
+      relationship_to_domain: "Source of booking creation events that must trigger CalDAV sync"
+    - component: "Booking Monitor"
+      responsibility: "Scheduled function checking booking integrity"
+      location: netlify/functions/booking-monitor.ts
+      relationship_to_domain: "Architectural template for CalDAV sync scheduled function"
+    - component: "Slots & Bookings tables"
+      responsibility: "Core scheduling data"
+      location: supabase/SETUP.sql
+      relationship_to_domain: "Primary data source for calendar events; needs new columns for sync metadata"
+
+  interfaces_used_by_domain:
+    - interface: "Supabase admin client"
+      location: lib/supabase-admin.ts
+      usage_pattern: "Service role key bypasses RLS for serverless function DB access"
+    - interface: "iCalendar VCALENDAR/VEVENT"
+      location: app/api/calendar/booking-ics/route.ts
+      usage_pattern: "RFC 5545 event format — same format used by CalDAV protocol"
+
+  data_flow_involving_domain: |
+    OUTBOUND (App → iCloud):
+    1. Admin creates/updates booking in app (AdminBookingPlanner or API)
+    2. Supabase trigger or post-mutation hook flags slot as needing sync
+    3. CalDAV sync function reads pending changes from Supabase
+    4. tsdav createCalendarObject/updateCalendarObject pushes to iCloud
+    5. Store returned etag + CalDAV URL in Supabase for future updates
+
+    INBOUND (iCloud → App):
+    1. Scheduled function polls iCloud via tsdav syncCalendars (ctag/sync-token)
+    2. Detects new/modified/deleted events
+    3. Matches CalDAV UIDs to Supabase slot IDs
+    4. Creates/updates/soft-deletes corresponding slots in Supabase
+    5. Updates sync metadata (last_synced_at, etag, sync_status)
+
+  key_relationships_to_domain:
+    - from: AdminBookingPlanner
+      to: CalDAV Sync Function
+      relationship: "Booking mutations trigger outbound sync"
+    - from: CalDAV Sync Function
+      to: Supabase slots table
+      relationship: "Reads/writes slot data and sync metadata"
+    - from: CalDAV Sync Function
+      to: iCloud CalDAV (caldav.icloud.com)
+      relationship: "Full CRUD via tsdav library"
+    - from: Netlify Scheduler
+      to: CalDAV Sync Function
+      relationship: "Triggers periodic inbound sync polling"
+
+related_technology_stack:
+  languages_used_in_domain:
+    - TypeScript
+  frameworks_used_in_domain:
+    - name: Next.js 16
+      usage_in_domain: "API routes for on-demand sync triggers, webhook endpoints"
+    - name: Netlify Functions
+      usage_in_domain: "Scheduled functions for cron-based polling, background functions for longer sync operations"
+  libraries_used_in_domain:
+    - name: "tsdav (RECOMMENDED)"
+      purpose_in_domain: |
+        Primary CalDAV client library for iCloud integration.
+        - Version: 2.1.8 (latest, Feb 2026)
+        - Weekly downloads: 74,647
+        - Native TypeScript with built-in types
+        - Supports: WEBDAV, CALDAV, CARDDAV
+        - Auth: Basic (for iCloud), OAuth2 (for Google), Bearer (for Nextcloud)
+        - Key functions: createDAVClient, fetchCalendars, fetchCalendarObjects, 
+          createCalendarObject, updateCalendarObject, deleteCalendarObject, syncCalendars
+        - iCloud-specific: Uses caldav.icloud.com with Basic auth (app-specific password)
+        - Sync: Built-in syncCalendars() with ctag/etag/sync-token change detection
+        - Used by: cal.com (major open-source calendar app)
+        - Bundle: supports both commonjs and esm
+    - name: "dav (ALTERNATIVE — NOT RECOMMENDED)"
+      purpose_in_domain: |
+        Older CalDAV library.
+        - Version: 1.8.0 (last updated 8 YEARS AGO — abandoned)
+        - Weekly downloads: 1,132
+        - Has TypeScript types via @types/dav (separate package)
+        - API is functional but unmaintained
+        - VERDICT: Rejected due to abandonment risk
+    - name: "node-caldav (NOT RECOMMENDED)"
+      purpose_in_domain: |
+        Minimal CalDAV client.
+        - Version: 0.0.1 (12 YEARS OLD, work-in-progress label)
+        - Weekly downloads: 9
+        - Only supports getList and getEvents
+        - VERDICT: Rejected — barely functional, abandoned
+    - name: "@supabase/supabase-js"
+      purpose_in_domain: "Database access for reading/writing slots, bookings, and sync metadata"
+
+related_conventions:
+  naming_patterns_in_domain: "Netlify functions in netlify/functions/ directory, named descriptively (e.g., caldav-sync.ts). Config export for scheduling."
+  structure_of_domain: "Serverless functions pattern: import Config from @netlify/functions, export default handler, export config with schedule"
+  error_handling_in_domain: "Existing functions use try/catch with console.error logging and operational alert emails for critical failures"
+  testing_in_domain: "No test framework currently in codebase"
+  documentation_in_domain: "Comments at top of deprecated files, inline comments for complex logic"
+
+related_dependencies:
+  internal:
+    - component: "slots table"
+      relationship_to_domain: "Primary data source — needs new columns for caldav_url, caldav_etag, last_synced_at"
+      direction: bidirectional
+    - component: "bookings table"
+      relationship_to_domain: "Linked to slots — booking status changes may trigger calendar updates"
+      direction: inbound
+    - component: "Supabase admin client"
+      relationship_to_domain: "Database access for sync operations"
+      direction: outbound
+  external:
+    - name: tsdav
+      purpose_for_domain: "CalDAV protocol operations (CRUD + sync) with iCloud"
+    - name: "iCloud CalDAV API (caldav.icloud.com)"
+      purpose_for_domain: "Remote calendar server"
+    - name: "@netlify/functions"
+      purpose_for_domain: "Scheduled and background function infrastructure"
+
+domain_security_considerations:
+  sensitive_areas:
+    - area: "iCloud app-specific password"
+      location: "Environment variable (ICLOUD_APP_PASSWORD)"
+      concern: "Must be stored as Netlify env var, never committed to code. App-specific passwords bypass 2FA and grant CalDAV access to the entire iCloud calendar. Rotation invalidates all CalDAV connections."
+    - area: "Apple ID"
+      location: "Environment variable (ICLOUD_USERNAME)"
+      concern: "The instructor's personal Apple ID is used for auth. Exposure could lead to unwanted calendar modifications."
+    - area: "CalDAV sync payloads"
+      location: "Network traffic between Netlify function and iCloud"
+      concern: "Contains student names, booking details, phone numbers in VEVENT descriptions. Always transmitted over HTTPS (caldav.icloud.com enforces TLS)."
+  authentication_patterns_in_domain: |
+    iCloud CalDAV uses HTTP Basic Authentication over HTTPS:
+    - Username: Apple ID email address
+    - Password: App-specific password (NOT the Apple ID password)
+    - Generated at: account.apple.com → Sign-In and Security → App-Specific Passwords
+    - Requires 2FA enabled on the Apple Account
+    - Max 25 active app-specific passwords per account
+    - Changing/resetting primary Apple ID password revokes ALL app-specific passwords
+    - Apple does NOT support OAuth for CalDAV (no authorization flow possible)
+  authorization_patterns_in_domain: |
+    - CalDAV sync function uses Supabase service role key (admin access, bypasses RLS)
+    - Only the single instructor's iCloud account is accessed (not students')
+    - Sync function should be invokable only by Netlify scheduler, not by public HTTP
+  data_validation_in_domain: |
+    - Incoming CalDAV events from iCloud must be validated before creating Supabase records
+    - UID format must be verified to prevent injection
+    - Time ranges must be sanity-checked (no negative durations, no events in the far past)
+    - VEVENT data should be sanitized before storing in Supabase
+
+# ============================================================================
+# DETAILED TECHNICAL FINDINGS
+# ============================================================================
+
+approach_analysis:
+  # ----- APPROACH 1: CalDAV via tsdav (RECOMMENDED) -----
+  approach_1_caldav_tsdav:
+    name: "Bidirectional CalDAV sync via tsdav"
+    verdict: RECOMMENDED
+    complexity: medium
+    description: |
+      Use tsdav library to connect directly to iCloud CalDAV server.
+      Push booking events from Supabase → iCloud when created/modified in the app.
+      Poll iCloud → Supabase on a schedule to detect changes made in Apple Calendar.
+    
+    icloud_connection:
+      server_url: "https://caldav.icloud.com"
+      auth_method: "Basic"
+      credential_type: "App-specific password"
+      discovery: "tsdav handles CalDAV discovery automatically (well-known URLs, principal lookup, calendar-home-set)"
+      
+    code_pattern_connect: |
+      import { DAVClient } from 'tsdav';
+      
+      const client = new DAVClient({
+        serverUrl: 'https://caldav.icloud.com',
+        credentials: {
+          username: process.env.ICLOUD_USERNAME!,      // Apple ID email
+          password: process.env.ICLOUD_APP_PASSWORD!,  // App-specific password
+        },
+        authMethod: 'Basic',
+        defaultAccountType: 'caldav',
+      });
+      
+      await client.login();
+      const calendars = await client.fetchCalendars();
+      // Pick the target calendar by displayName or store URL in env var
+      const targetCalendar = calendars.find(c => c.displayName === 'Merlin Flight Training');
+
+    code_pattern_create_event: |
+      import { v4 as uuidv4 } from 'uuid';
+      
+      function slotToICalString(slot: Slot, studentName: string): string {
+        const uid = `${slot.id}@merlinflight.com`;
+        const dtstart = toIcsUtc(new Date(slot.start_time));
+        const dtend = toIcsUtc(new Date(slot.end_time));
+        const dtstamp = toIcsUtc(new Date());
+        const summary = slot.type === 'tour' ? `Discovery Flight - ${studentName}` : `Flight Training - ${studentName}`;
+        const description = slot.description || '';
+        
+        return [
+          'BEGIN:VCALENDAR',
+          'VERSION:2.0',
+          'PRODID:-//Merlin Flight Training//Booking System//EN',
+          'CALSCALE:GREGORIAN',
+          'BEGIN:VEVENT',
+          `UID:${uid}`,
+          `DTSTAMP:${dtstamp}`,
+          `DTSTART:${dtstart}`,
+          `DTEND:${dtend}`,
+          `SUMMARY:${summary}`,
+          `DESCRIPTION:${escapeIcsText(description)}`,
+          'LOCATION:Merlin Flight Training',
+          'STATUS:CONFIRMED',
+          'SEQUENCE:0',
+          'END:VEVENT',
+          'END:VCALENDAR',
+        ].join('\r\n');
+      }
+      
+      const result = await client.createCalendarObject({
+        calendar: targetCalendar,
+        filename: `${slot.id}.ics`,
+        iCalString: slotToICalString(slot, studentName),
+      });
+
+    code_pattern_sync_changes: |
+      // Store previous calendar state in Supabase (calendars with syncToken/ctag)
+      const { data: syncState } = await supabase
+        .from('caldav_sync_state')
+        .select('*')
+        .single();
+      
+      // Build oldCalendars from stored state
+      const oldCalendars = [{
+        ...targetCalendar,
+        syncToken: syncState?.sync_token,
+        ctag: syncState?.ctag,
+        objects: syncState?.known_objects || [],
+      }];
+      
+      const { created, updated, deleted } = await client.syncCalendars({
+        oldCalendars,
+        detailedResult: true,
+      });
+      
+      // Process each category:
+      // - created: new events added in Apple Calendar → create slots in Supabase
+      // - updated: modified events → update corresponding slots
+      // - deleted: removed events → soft-delete or cancel booking
+      
+      // Store new sync state
+      await supabase.from('caldav_sync_state').upsert({
+        id: 'primary',
+        sync_token: updatedCalendar.syncToken,
+        ctag: updatedCalendar.ctag,
+        last_synced_at: new Date().toISOString(),
+      });
+
+    sync_architecture_netlify:
+      outbound_sync: |
+        OPTION A (Immediate push via API route):
+        - After booking creation/update in any API route, call a helper function
+        - Helper creates/updates CalDAV event immediately
+        - Fast feedback, but adds latency to admin booking flow (~500ms-2s)
+        - Failure requires retry logic
+        
+        OPTION B (Batched via scheduled function):
+        - Flag slots as needing sync (sync_status = 'pending') 
+        - Scheduled function picks up pending items and pushes to iCloud
+        - Slightly delayed but more resilient to CalDAV failures
+        - RECOMMENDED for simplicity and resilience
+      
+      inbound_sync: |
+        Netlify Scheduled Function running on cron (every 5-15 minutes):
+        1. Create tsdav DAVClient, login
+        2. Call syncCalendars() with stored sync state
+        3. Process created/updated/deleted events
+        4. Update Supabase accordingly
+        5. Save new sync state
+        
+        IMPORTANT: Netlify Scheduled Functions have 30-second execution limit.
+        For a small calendar (~20-50 events), this is sufficient.
+        If sync takes longer, trigger a Background Function (15-min limit) instead.
+      
+      recommended_cron: "*/10 * * * *"
+      justification: "Every 10 minutes balances freshness with iCloud rate limit courtesy. For a single-instructor school, events change infrequently."
+
+    conflict_resolution:
+      strategy: |
+        LAST-WRITE-WINS with app preference:
+        1. Each slot stores: caldav_etag, caldav_url, last_synced_at, updated_at
+        2. During inbound sync, compare updated_at with last_synced_at
+        3. If slot was modified in app AFTER last sync → app wins (skip inbound change, push outbound)
+        4. If slot was NOT modified in app since last sync → iCloud wins (apply inbound change)
+        5. If both modified → flag as conflict, notify admin via existing email system
+      
+      practical_note: |
+        For a single instructor, true conflicts are extremely rare. The instructor 
+        either uses Apple Calendar or the web app to make a change — rarely both 
+        simultaneously. A simple "most recent change wins" is sufficient.
+
+    uid_mapping:
+      strategy: |
+        - App-created events use UID: {slot_id}@merlinflight.com (already established pattern)
+        - iCloud-created events: extract UID from VEVENT, store in new caldav_uid column on slots
+        - CalDAV object URL stored in caldav_url column on slots
+        - Etag stored in caldav_etag for conditional updates (If-Match header)
+      
+      new_columns_needed:
+        - "caldav_url TEXT — full CalDAV object URL for updates/deletes"
+        - "caldav_etag TEXT — etag for conditional update/delete"
+        - "caldav_uid TEXT — iCalendar UID from VEVENT"
+        - "sync_status TEXT DEFAULT 'synced' — values: synced, pending_push, pending_pull, conflict"
+        - "last_synced_at TIMESTAMPTZ — when this slot was last successfully synced"
+
+    gotchas:
+      - issue: "iCloud CalDAV does not support WebDAV-Sync (RFC 6578) consistently"
+        impact: "tsdav's syncCalendars falls back to ctag/etag comparison — works fine but fetches all etags each time"
+        mitigation: "For <100 events, this is negligible. The etag-only fetch is a lightweight PROPFIND."
+      
+      - issue: "App-specific password rotation"
+        impact: "If the instructor resets their Apple ID password, ALL app-specific passwords are revoked instantly"
+        mitigation: "Monitor CalDAV auth failures, send alert email to admin. Document re-generation process."
+      
+      - issue: "iCloud rate limits (undocumented)"
+        impact: "Apple does not publish CalDAV rate limits. Overly aggressive polling may result in 429 or temporary blocks."
+        mitigation: "10-minute polling interval is conservative. Max ~144 requests/day. Community reports suggest this is well within limits."
+      
+      - issue: "iCalendar roundtrip fidelity"
+        impact: "Apple Calendar may add/modify properties (VALARM, X-APPLE-* extensions). If you PUT the event back, you must preserve these."
+        mitigation: "Always store the full iCalString from the server. When updating, modify only the properties you need and preserve everything else. tsdav returns the full data."
+      
+      - issue: "SEQUENCE numbering"
+        impact: "RFC 5545 requires incrementing SEQUENCE on each update. Some clients use it for conflict detection."
+        mitigation: "Parse existing SEQUENCE from stored iCalString, increment on each outbound update."
+      
+      - issue: "Timezone handling"
+        impact: "Current .ics uses UTC (YYYYMMDDTHHMMSSZ). Apple Calendar may store in local timezone (TZID=America/New_York)."
+        mitigation: "Always normalize to UTC for Supabase storage. tsdav returns raw iCalString — parse DTSTART/DTEND accounting for TZID."
+      
+      - issue: "Netlify Scheduled Function 30-second limit"
+        impact: "If calendar has many events, initial sync may exceed 30 seconds"
+        mitigation: "Use Scheduled Function to TRIGGER a Background Function (15-min limit) for the actual sync work. Scheduled function just invokes the background function via HTTP POST."
+
+  # ----- APPROACH 2: Apple Calendar Subscriptions (.ics feed) -----
+  approach_2_ical_subscription:
+    name: "iCal subscription feed"
+    verdict: "INSUFFICIENT for bidirectional — useful as supplementary feature"
+    description: |
+      Publish a .ics feed URL that Apple Calendar can subscribe to.
+      Apple Calendar polls the URL periodically and displays events.
+    
+    capabilities:
+      - "READ-ONLY: Apple Calendar can display events from the feed"
+      - "Supports VEVENT, VTODO, VFREEBUSY"
+      - "Apple Calendar polls the feed URL (user-configurable interval, minimum ~15 min)"
+    
+    limitations:
+      - "CANNOT push changes back to the server — subscriptions are read-only"
+      - "No way to detect when user modifies/deletes a subscribed event"
+      - "Events appear in a separate 'Subscribed Calendars' section — less integrated feel"
+      - "Polling interval is controlled by Apple Calendar client, not the server"
+      - "Cannot add attendees or send invitations via subscription"
+    
+    useful_for: |
+      Could be offered to STUDENTS as a way to see their bookings in their own calendars.
+      The app already has the .ics generation logic — extending it to a multi-event feed is trivial.
+      Endpoint: GET /api/calendar/feed?student_id={id}&token={secret} → returns full VCALENDAR with all bookings.
+    
+    code_pattern: |
+      // Student calendar subscription endpoint
+      // GET /api/calendar/feed?token={per-student-secret-token}
+      export async function GET(request: NextRequest) {
+        const token = request.nextUrl.searchParams.get('token');
+        const { data: student } = await supabase
+          .from('students')
+          .select('user_id')
+          .eq('calendar_feed_token', token)
+          .single();
+        
+        const { data: bookings } = await supabase
+          .from('bookings')
+          .select('*, slots(*)')
+          .eq('user_id', student.user_id)
+          .in('status', ['confirmed', 'paid']);
+        
+        const events = bookings.map(b => generateVEvent(b.slots));
+        const calendar = wrapInVCalendar(events);
+        
+        return new NextResponse(calendar, {
+          headers: {
+            'Content-Type': 'text/calendar; charset=utf-8',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+          },
+        });
+      }
+
+  # ----- APPROACH 3: Google Calendar as bridge -----
+  approach_3_google_bridge:
+    name: "Google Calendar API as bridge to Apple Calendar"
+    verdict: "NOT RECOMMENDED — adds unnecessary complexity"
+    description: |
+      Use Google Calendar API (already had integration) to manage events.
+      The instructor would subscribe to Google Calendar from Apple Calendar.
+    
+    problems:
+      - "Adds a third system (Google) between app and Apple Calendar"
+      - "Google → Apple Calendar sync is not instant (can take hours)"
+      - "Still doesn't enable true bidirectional sync with Apple Calendar"
+      - "The deprecated Google Calendar code used a service account — this creates events on the service account's calendar, not the instructor's personal Google Calendar"
+      - "Requires maintaining both Google OAuth and iCloud credentials"
+      - "The instructor wants Apple Calendar as PRIMARY — Google is an unwanted intermediary"
+    
+    verdict_detail: "This approach was already tried and abandoned (see lib/google-calendar.ts DEPRECATED comments). Re-introducing it as a bridge adds complexity without solving the core need."
+
+  # ----- APPROACH 4: App as source of truth + .ics export -----
+  approach_4_ics_export:
+    name: "App as source of truth + .ics download"
+    verdict: "CURRENT STATE — insufficient for instructor's needs"
+    description: "The current approach. Admin creates bookings, downloads .ics files manually."
+    problems:
+      - "Requires manual download and import for each booking"
+      - "No automatic calendar updates when bookings change"
+      - "If instructor creates event in Apple Calendar first, must manually create in app too"
+      - "No sync — calendars diverge immediately"
+
+# ============================================================================
+# RECOMMENDED IMPLEMENTATION PLAN
+# ============================================================================
+
+recommended_approach:
+  name: "Bidirectional CalDAV sync via tsdav + Netlify Background Functions"
+  
+  new_dependencies:
+    - package: tsdav
+      version: "^2.1.8"
+      reason: "CalDAV client with native TypeScript, iCloud support, sync capabilities"
+  
+  new_database_objects:
+    table_caldav_sync_state: |
+      CREATE TABLE caldav_sync_state (
+        id TEXT PRIMARY KEY DEFAULT 'primary',
+        calendar_url TEXT NOT NULL,
+        sync_token TEXT,
+        ctag TEXT,
+        last_synced_at TIMESTAMPTZ DEFAULT now(),
+        last_error TEXT,
+        created_at TIMESTAMPTZ DEFAULT now()
+      );
+    
+    alter_slots_table: |
+      ALTER TABLE slots ADD COLUMN caldav_url TEXT;
+      ALTER TABLE slots ADD COLUMN caldav_etag TEXT;
+      ALTER TABLE slots ADD COLUMN caldav_uid TEXT;
+      ALTER TABLE slots ADD COLUMN sync_status TEXT DEFAULT 'synced' 
+        CHECK (sync_status IN ('synced', 'pending_push', 'pending_pull', 'conflict'));
+      ALTER TABLE slots ADD COLUMN last_synced_at TIMESTAMPTZ;
+  
+  new_files:
+    - path: "lib/caldav.ts"
+      purpose: "CalDAV client wrapper — createClient, pushEvent, pullChanges, resolveConflicts"
+    - path: "netlify/functions/caldav-sync.ts"
+      purpose: "Scheduled function (*/10 * * * *) — triggers bidirectional sync"
+    - path: "netlify/functions/caldav-sync-background.ts"
+      purpose: "Background function — does actual sync work (up to 15 min execution)"
+    - path: "app/api/calendar/feed/route.ts"
+      purpose: "Student calendar subscription endpoint (read-only .ics feed)"
+  
+  env_vars_needed:
+    - "ICLOUD_USERNAME — Apple ID email"
+    - "ICLOUD_APP_PASSWORD — App-specific password from account.apple.com"
+    - "ICLOUD_CALENDAR_NAME — Display name of target calendar (e.g., 'Merlin Flight Training')"
+
+open_questions:
+  - question: "Should the instructor use a dedicated calendar within iCloud, or the default calendar?"
+    context: "tsdav can target a specific calendar by displayName. A dedicated 'Merlin Flight Training' calendar keeps personal events separate from booking events."
+    type: nice_to_know
+    affects: ["caldav-sync implementation"]
+  
+  - question: "Should student-created events in Apple Calendar (by the instructor) auto-create bookings with payment status?"
+    context: "When the instructor creates a new event directly in Apple Calendar, the inbound sync will detect it. The question is whether to create a slot+booking automatically or just a slot."
+    type: nice_to_know
+    affects: ["inbound sync logic"]
+  
+  - question: "What should happen to CalDAV events when a booking is canceled (student cancels or admin cancels)?"
+    context: "Options: delete from Apple Calendar, or update STATUS to CANCELLED and keep visible. Deleting is cleaner; keeping with CANCELLED status provides history."
+    type: nice_to_know
+    affects: ["outbound sync logic"]
+
+gaps:
+  - area: "iCloud CalDAV rate limits"
+    description: "Apple does not publish official CalDAV rate limits. Community reports suggest ~1000 requests/day is safe. With 10-min polling (~144 requests/day), this should be fine, but no official documentation exists."
+    impact: nice_to_know
+    affects: ["polling interval configuration"]
+  
+  - area: "iCloud CalDAV WebDAV-Sync support"
+    description: "It's unclear if iCloud fully supports RFC 6578 WebDAV-Sync. tsdav's syncCalendars handles both sync-token and ctag fallback, so this is handled gracefully."
+    impact: nice_to_know
+    affects: ["sync performance at scale"]
+  
+  - area: "Multi-device sync latency"
+    description: "When the instructor modifies an event on their iPhone, iCloud server may take 1-30 seconds to reflect the change. The app's 10-minute polling means changes won't appear for up to ~10 minutes."
+    impact: nice_to_know
+    affects: ["user expectations for sync freshness"]
