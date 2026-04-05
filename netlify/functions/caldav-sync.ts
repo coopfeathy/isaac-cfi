@@ -179,19 +179,33 @@ export default async function handler() {
           }
         } else {
           // New event from calendar — try to match student from summary
-          // Format: "Flight Training - Student Name" or "Flight Training - Student Name | Lesson X: Title"
-          const summaryMatch = event.summary.match(/(?:Flight Training|Discovery Flight)\s*-\s*(.+?)(?:\s*\|.*)?$/)
+          // Supports: "Flight Training with George", "Flight Training - George", "Flight Training George",
+          //           "Discovery Flight with Sam", "Discovery Flight - Sam | Lesson 5: ..."
+          const summaryMatch = event.summary.match(/(?:Flight Training|Discovery Flight)\s*(?:with\s+|-\s*)?(.+?)(?:\s*\|.*)?$/i)
           const studentNameFromCal = summaryMatch?.[1]?.trim()
 
           let matchedUserId: string | null = null
           if (studentNameFromCal) {
-            const { data: matchedProfile } = await supabase
+            // Try exact match first, then partial (first name) match
+            const { data: exactMatch } = await supabase
               .from('profiles')
               .select('id')
               .ilike('full_name', studentNameFromCal)
               .limit(1)
               .single()
-            matchedUserId = matchedProfile?.id ?? null
+
+            if (exactMatch) {
+              matchedUserId = exactMatch.id
+            } else {
+              // Partial match — student name from calendar may be first name only
+              const { data: partialMatch } = await supabase
+                .from('profiles')
+                .select('id')
+                .ilike('full_name', `${studentNameFromCal}%`)
+                .limit(1)
+                .single()
+              matchedUserId = partialMatch?.id ?? null
+            }
           }
 
           // Create slot

@@ -95,8 +95,8 @@ export function slotToVEvent(
 
   let summary =
     slot.type === 'tour'
-      ? `Discovery Flight - ${studentName}`
-      : `Flight Training - ${studentName}`
+      ? `Discovery Flight with ${studentName}`
+      : `Flight Training with ${studentName}`
 
   if (lessonTitle) {
     summary += ` | ${lessonTitle}`

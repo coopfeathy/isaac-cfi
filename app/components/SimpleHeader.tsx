@@ -15,6 +15,7 @@ export default function SimpleHeader() {
     { href: '/aircraft', label: 'Aircraft' },
     { href: '/learn', label: 'Learn' },
     { href: '/pricing', label: 'Pricing' },
+    { href: '/store', label: 'Store' },
     { href: '/faq', label: 'FAQ' },
   ]
 

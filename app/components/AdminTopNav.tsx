@@ -38,6 +38,7 @@ const navSections: NavSection[] = [
     items: [
       { href: '/admin/slots', label: 'Manage Slots', match: ['/admin/slots'] },
       { href: '/admin/bookings', label: 'View Bookings', match: ['/admin/bookings'] },
+      { href: '/admin/calendar', label: 'Calendar Sync', match: ['/admin/calendar'] },
       { href: '/admin/aircraft', label: 'Aircraft Flight Log', match: ['/admin/aircraft'] },
       { href: '/admin/items', label: 'Training Items', match: ['/admin/items'] },
     ],
