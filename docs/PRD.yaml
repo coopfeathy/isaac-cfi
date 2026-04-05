@@ -111,6 +111,15 @@ features:
   - name: Day-Based Availability Notifications
     overview: Students subscribe to specific days of the week for notifications. If any flight slot opens on a subscribed day (not just a specific slot's backup queue), student gets SMS notification.
     status: planned
+  - name: Private Pilot Syllabus
+    overview: >
+      Lesson-by-lesson FAA Part 61 Private Pilot syllabus visible to students.
+      Each syllabus lesson has title, ground topics, flight maneuvers, and completion standards.
+      Full syllabus viewable under a "Documents" tab in the student sidebar.
+      Next uncompleted syllabus lesson shown as a prominent card on the /learn page.
+      Admin CRUD for managing syllabus lessons (create, edit, reorder, delete).
+      Seeded with a standard ~35-lesson FAA Part 61 PPL syllabus covering pre-solo through checkride.
+    status: planned
 
 state_machines:
   - name: Appointment Request

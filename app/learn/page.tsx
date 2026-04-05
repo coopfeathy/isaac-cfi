@@ -14,6 +14,17 @@ interface Course {
   enrollment?: { id: string }
 }
 
+interface SyllabusLesson {
+  id: string
+  lesson_number: number
+  title: string
+  description: string | null
+  stage: string | null
+  ground_topics: string[]
+  flight_maneuvers: string[]
+  completion_standards: string | null
+}
+
 const timelineExpectations = [
   {
     phase: "Phase 1",
@@ -47,6 +58,7 @@ export default function LearnPage() {
   const [courses, setCourses] = useState<Course[]>([])
   const [watchedLessons, setWatchedLessons] = useState(0)
   const [completedLessons, setCompletedLessons] = useState(0)
+  const [nextLesson, setNextLesson] = useState<SyllabusLesson | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -82,6 +94,26 @@ export default function LearnPage() {
         const completed = progressRecords.filter((entry: { percent_watched: number | null }) => (entry.percent_watched || 0) >= 90).length
         setWatchedLessons(watched)
         setCompletedLessons(completed)
+
+        const courseIds = enrolledCourses.map((c: Course) => c.id)
+        if (courseIds.length > 0) {
+          const [lessonsResult, completionsResult] = await Promise.all([
+            supabase
+              .from("syllabus_lessons")
+              .select("id, lesson_number, title, description, stage, ground_topics, flight_maneuvers, completion_standards")
+              .in("course_id", courseIds)
+              .order("order_index", { ascending: true }),
+            supabase
+              .from("student_lesson_completions")
+              .select("syllabus_lesson_id")
+              .eq("student_id", user.id),
+          ])
+
+          const completedIds = new Set((completionsResult.data || []).map((c: any) => c.syllabus_lesson_id))
+          const allLessons = lessonsResult.data || []
+          const next = allLessons.find((l: any) => !completedIds.has(l.id))
+          if (next) setNextLesson(next)
+        }
       } catch (error) {
         console.error("Error loading courses:", error)
       } finally {
@@ -156,6 +188,97 @@ export default function LearnPage() {
           >
             Open Onboarding Tracker
           </Link>
+        </div>
+      )}
+
+      {nextLesson && (
+        <div style={{
+          marginBottom: "24px",
+          background: "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)",
+          border: "1px solid #334155",
+          borderRadius: "12px",
+          padding: "24px",
+          color: "#fff",
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
+            <div style={{ flex: 1, minWidth: "240px" }}>
+              <p style={{
+                margin: "0 0 8px",
+                fontSize: "11px",
+                fontWeight: 700,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                color: "#C59A2A",
+              }}>
+                ✈ Up Next — Lesson {nextLesson.lesson_number}
+              </p>
+              <h3 style={{ margin: "0 0 8px", fontSize: "22px", fontWeight: 800 }}>
+                {nextLesson.title}
+              </h3>
+              {nextLesson.description && (
+                <p style={{ margin: "0 0 16px", color: "#94A3B8", fontSize: "14px", lineHeight: "1.5" }}>
+                  {nextLesson.description}
+                </p>
+              )}
+
+              {nextLesson.ground_topics.length > 0 && (
+                <div style={{ marginBottom: "12px" }}>
+                  <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    Ground Topics
+                  </p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                    {nextLesson.ground_topics.map((topic, i) => (
+                      <span key={i} style={{
+                        display: "inline-block", padding: "4px 10px", borderRadius: "6px",
+                        fontSize: "12px", fontWeight: 600, backgroundColor: "rgba(197,154,42,0.15)",
+                        color: "#C59A2A", border: "1px solid rgba(197,154,42,0.3)",
+                      }}>{topic}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {nextLesson.flight_maneuvers.length > 0 && (
+                <div>
+                  <p style={{ margin: "0 0 6px", fontSize: "11px", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    Flight Maneuvers
+                  </p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                    {nextLesson.flight_maneuvers.map((maneuver, i) => (
+                      <span key={i} style={{
+                        display: "inline-block", padding: "4px 10px", borderRadius: "6px",
+                        fontSize: "12px", fontWeight: 600, backgroundColor: "rgba(59,130,246,0.15)",
+                        color: "#60A5FA", border: "1px solid rgba(59,130,246,0.3)",
+                      }}>{maneuver}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {nextLesson.completion_standards && (
+                <p style={{ marginTop: "14px", marginBottom: 0, fontSize: "13px", color: "#64748B", fontStyle: "italic", lineHeight: "1.5" }}>
+                  Standards: {nextLesson.completion_standards}
+                </p>
+              )}
+            </div>
+
+            <Link
+              href="/documents"
+              style={{
+                display: "inline-block",
+                backgroundColor: "#C59A2A",
+                color: "#fff",
+                padding: "10px 18px",
+                borderRadius: "8px",
+                fontWeight: 700,
+                fontSize: "13px",
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              View Full Syllabus →
+            </Link>
+          </div>
         </div>
       )}
 

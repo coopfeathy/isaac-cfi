@@ -1809,6 +1809,76 @@ CREATE POLICY "Admins can delete debrief images"
   );
 
 -- ============================================================
+-- SYLLABUS LESSONS (lesson-by-lesson flight training syllabus)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS syllabus_lessons (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  course_id UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  lesson_number INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  stage TEXT CHECK (stage IN ('pre-solo', 'solo', 'cross-country', 'checkride-prep')),
+  ground_topics JSONB NOT NULL DEFAULT '[]',
+  flight_maneuvers JSONB NOT NULL DEFAULT '[]',
+  completion_standards TEXT,
+  order_index INTEGER NOT NULL DEFAULT 0,
+  created_by UUID NOT NULL REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE syllabus_lessons ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins manage syllabus lessons" ON syllabus_lessons;
+DROP POLICY IF EXISTS "Enrolled students view syllabus lessons" ON syllabus_lessons;
+
+CREATE POLICY "Admins manage syllabus lessons"
+  ON syllabus_lessons FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+CREATE POLICY "Enrolled students view syllabus lessons"
+  ON syllabus_lessons FOR SELECT
+  USING (EXISTS (SELECT 1 FROM enrollments WHERE enrollments.course_id = syllabus_lessons.course_id AND enrollments.student_id = auth.uid()));
+
+-- ============================================================
+-- STUDENT LESSON COMPLETIONS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS student_lesson_completions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  syllabus_lesson_id UUID NOT NULL REFERENCES syllabus_lessons(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  instructor_id UUID REFERENCES auth.users(id),
+  notes TEXT,
+  UNIQUE(syllabus_lesson_id, student_id)
+);
+
+ALTER TABLE student_lesson_completions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins manage student lesson completions" ON student_lesson_completions;
+DROP POLICY IF EXISTS "Students view own lesson completions" ON student_lesson_completions;
+DROP POLICY IF EXISTS "Instructors insert lesson completions" ON student_lesson_completions;
+DROP POLICY IF EXISTS "Instructors update lesson completions" ON student_lesson_completions;
+
+CREATE POLICY "Admins manage student lesson completions"
+  ON student_lesson_completions FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+CREATE POLICY "Students view own lesson completions"
+  ON student_lesson_completions FOR SELECT USING (student_id = auth.uid());
+
+CREATE POLICY "Instructors insert lesson completions"
+  ON student_lesson_completions FOR INSERT
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_instructor = true));
+
+CREATE POLICY "Instructors update lesson completions"
+  ON student_lesson_completions FOR UPDATE
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_instructor = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_instructor = true));
+
+-- ============================================================
 -- DONE
 -- All tables, RLS policies, and indexes are created.
 -- ============================================================
