@@ -1,4 +1,4 @@
-import type { Config } from '@netlify/functions'
+import type { Config, Handler } from '@netlify/functions'
 import { createClient } from '@supabase/supabase-js'
 import {
   createCalDAVClient,
@@ -21,7 +21,7 @@ function getSupabase() {
   })
 }
 
-export default async function handler() {
+const handler: Handler = async () => {
   const supabase = getSupabase()
 
   // Load active CalDAV settings
@@ -276,6 +276,8 @@ export default async function handler() {
   console.log('CalDAV sync complete:', stats)
   return { statusCode: 200, body: JSON.stringify(stats) }
 }
+
+export { handler }
 
 // Send lesson scheduled email to student for new inbound bookings
 

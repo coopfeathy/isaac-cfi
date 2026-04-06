@@ -92,11 +92,23 @@ export async function GET(request: NextRequest) {
     const auth = await authenticateAdmin(request)
     if (auth.error) return auth.error
 
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get('status')
+    const requestType = searchParams.get('request_type')
+
     const supabaseAdmin = getSupabaseAdmin()
-    const { data, error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('slot_requests')
       .select('*')
-      .order('created_at', { ascending: false })
+
+    if (status) {
+      query = query.eq('status', status)
+    }
+    if (requestType) {
+      query = query.eq('request_type', requestType)
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false })
 
     if (error) throw error
 

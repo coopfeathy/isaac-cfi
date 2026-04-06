@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+
+async function requireAuth(request: NextRequest) {
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader) {
+    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  }
+  const token = authHeader.replace('Bearer ', '')
+  const { data: { user }, error } = await supabase.auth.getUser(token)
+  if (error || !user) {
+    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  }
+  return { user }
+}
 
 function combineDateAndTime(date: string, time: string): Date | null {
   if (!date || !time) return null
@@ -82,67 +96,217 @@ async function sendSlotRequestAlertEmail(payload: {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const fullName = String(body.fullName || '').trim()
-    const email = String(body.email || '').trim().toLowerCase()
-    const phone = String(body.phone || '').trim()
-    const preferredDate = String(body.preferredDate || '').trim()
-    const preferredStartTime = String(body.preferredStartTime || '').trim()
-    const durationMinutes = Number.parseInt(String(body.durationMinutes || '90'), 10)
-    const notes = String(body.notes || '').trim()
-    const userId = body.userId ? String(body.userId) : null
 
-    if (!fullName || !email || !phone || !preferredDate || !preferredStartTime) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    // Detect new format by presence of preferred_start_time (ISO string)
+    const isNewFormat = typeof body.preferred_start_time === 'string'
+
+    if (isNewFormat) {
+      return handleNewFormatRequest(request, body)
     }
 
-    if (!Number.isFinite(durationMinutes) || durationMinutes < 30 || durationMinutes > 180) {
-      return NextResponse.json({ error: 'Invalid duration' }, { status: 400 })
+    return handleLegacyRequest(body)
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to submit slot request' }, { status: 500 })
+  }
+}
+
+async function handleNewFormatRequest(request: NextRequest, body: Record<string, unknown>) {
+  const preferredStart = String(body.preferred_start_time || '')
+  const preferredEnd = String(body.preferred_end_time || '')
+  const requestType = String(body.request_type || 'discovery_flight')
+  const notes = String(body.notes || '').trim()
+
+  if (!preferredStart || !preferredEnd) {
+    return NextResponse.json({ error: 'Missing preferred_start_time or preferred_end_time' }, { status: 400 })
+  }
+
+  const startDate = new Date(preferredStart)
+  const endDate = new Date(preferredEnd)
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return NextResponse.json({ error: 'Invalid date format' }, { status: 400 })
+  }
+
+  const supabaseAdmin = getSupabaseAdmin()
+
+  if (requestType === 'training') {
+    // Training requests require authentication
+    const auth = await requireAuth(request)
+    if ('error' in auth) return auth.error
+
+    // Fetch profile for auto-population
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, email, phone')
+      .eq('id', auth.user.id)
+      .single()
+
+    const fullName = profile?.full_name || ''
+    const email = profile?.email || ''
+    const phone = profile?.phone || ''
+
+    // Duplicate check: pending request overlapping same time window
+    const { data: duplicates } = await supabaseAdmin
+      .from('slot_requests')
+      .select('id')
+      .eq('user_id', auth.user.id)
+      .eq('status', 'pending')
+      .lt('preferred_start_time', endDate.toISOString())
+      .gt('preferred_end_time', startDate.toISOString())
+
+    if (duplicates && duplicates.length > 0) {
+      return NextResponse.json(
+        { error: 'You already have a pending request for this time period.', code: 'ERR_REQ_002' },
+        { status: 409 },
+      )
     }
 
-    const requestedStart = combineDateAndTime(preferredDate, preferredStartTime)
-    if (!requestedStart) {
-      return NextResponse.json({ error: 'Invalid requested date/time' }, { status: 400 })
-    }
-
-    const requestedEnd = new Date(requestedStart.getTime() + durationMinutes * 60 * 1000)
-
-    const supabaseAdmin = getSupabaseAdmin()
     const { data: insertedRequest, error } = await supabaseAdmin
       .from('slot_requests')
-      .insert([
-        {
-          user_id: userId,
-          full_name: fullName,
-          email,
-          phone,
-          preferred_start_time: requestedStart.toISOString(),
-          preferred_end_time: requestedEnd.toISOString(),
-          notes: notes || null,
-          status: 'pending',
-          source: 'schedule_page',
-        },
-      ])
+      .insert([{
+        user_id: auth.user.id,
+        full_name: fullName,
+        email,
+        phone,
+        preferred_start_time: startDate.toISOString(),
+        preferred_end_time: endDate.toISOString(),
+        notes: notes || null,
+        status: 'pending',
+        source: 'student_calendar',
+        request_type: 'training',
+      }])
       .select('id')
       .single()
 
     if (error) throw error
+    return NextResponse.json({ success: true, id: insertedRequest?.id })
+  }
 
-    const alertRecipient = process.env.ALERT_RECIPIENT_EMAIL || process.env.ADMIN_EMAIL || ''
-    if (alertRecipient) {
-      await sendSlotRequestAlertEmail({
-        recipient: alertRecipient,
-        requestId: insertedRequest?.id || null,
-        fullName,
+  // discovery_flight — no auth required but need contact fields
+  const fullName = String(body.full_name || '').trim()
+  const email = String(body.email || '').trim().toLowerCase()
+  const phone = String(body.phone || '').trim()
+  const prospectId = body.prospect_id ? String(body.prospect_id) : null
+
+  if (!fullName || !email || !phone) {
+    return NextResponse.json({ error: 'Missing required fields (full_name, email, phone)' }, { status: 400 })
+  }
+
+  const { data: insertedRequest, error } = await supabaseAdmin
+    .from('slot_requests')
+    .insert([{
+      full_name: fullName,
+      email,
+      phone,
+      preferred_start_time: startDate.toISOString(),
+      preferred_end_time: endDate.toISOString(),
+      notes: notes || null,
+      status: 'pending',
+      source: 'schedule_page',
+      request_type: 'discovery_flight',
+      prospect_id: prospectId,
+    }])
+    .select('id')
+    .single()
+
+  if (error) throw error
+
+  // Send alert email for discovery flights
+  const alertRecipient = process.env.ALERT_RECIPIENT_EMAIL || process.env.ADMIN_EMAIL || ''
+  if (alertRecipient) {
+    await sendSlotRequestAlertEmail({
+      recipient: alertRecipient,
+      requestId: insertedRequest?.id || null,
+      fullName,
+      email,
+      phone,
+      requestedStartIso: startDate.toISOString(),
+      requestedEndIso: endDate.toISOString(),
+      notes,
+    })
+  }
+
+  return NextResponse.json({ success: true, id: insertedRequest?.id })
+}
+
+async function handleLegacyRequest(body: Record<string, unknown>) {
+  const fullName = String(body.fullName || '').trim()
+  const email = String(body.email || '').trim().toLowerCase()
+  const phone = String(body.phone || '').trim()
+  const preferredDate = String(body.preferredDate || '').trim()
+  const preferredStartTime = String(body.preferredStartTime || '').trim()
+  const durationMinutes = Number.parseInt(String(body.durationMinutes || '90'), 10)
+  const notes = String(body.notes || '').trim()
+  const userId = body.userId ? String(body.userId) : null
+
+  if (!fullName || !email || !phone || !preferredDate || !preferredStartTime) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  if (!Number.isFinite(durationMinutes) || durationMinutes < 30 || durationMinutes > 180) {
+    return NextResponse.json({ error: 'Invalid duration' }, { status: 400 })
+  }
+
+  const requestedStart = combineDateAndTime(preferredDate, preferredStartTime)
+  if (!requestedStart) {
+    return NextResponse.json({ error: 'Invalid requested date/time' }, { status: 400 })
+  }
+
+  const requestedEnd = new Date(requestedStart.getTime() + durationMinutes * 60 * 1000)
+
+  const supabaseAdmin = getSupabaseAdmin()
+  const { data: insertedRequest, error } = await supabaseAdmin
+    .from('slot_requests')
+    .insert([
+      {
+        user_id: userId,
+        full_name: fullName,
         email,
         phone,
-        requestedStartIso: requestedStart.toISOString(),
-        requestedEndIso: requestedEnd.toISOString(),
-        notes,
-      })
-    }
+        preferred_start_time: requestedStart.toISOString(),
+        preferred_end_time: requestedEnd.toISOString(),
+        notes: notes || null,
+        status: 'pending',
+        source: 'schedule_page',
+      },
+    ])
+    .select('id')
+    .single()
 
-    return NextResponse.json({ success: true })
+  if (error) throw error
+
+  const alertRecipient = process.env.ALERT_RECIPIENT_EMAIL || process.env.ADMIN_EMAIL || ''
+  if (alertRecipient) {
+    await sendSlotRequestAlertEmail({
+      recipient: alertRecipient,
+      requestId: insertedRequest?.id || null,
+      fullName,
+      email,
+      phone,
+      requestedStartIso: requestedStart.toISOString(),
+      requestedEndIso: requestedEnd.toISOString(),
+      notes,
+    })
+  }
+
+  return NextResponse.json({ success: true })
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const auth = await requireAuth(request)
+    if ('error' in auth) return auth.error
+
+    const supabaseAdmin = getSupabaseAdmin()
+    const { data, error } = await supabaseAdmin
+      .from('slot_requests')
+      .select('*')
+      .eq('user_id', auth.user.id)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+
+    return NextResponse.json({ requests: data || [] })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to submit slot request' }, { status: 500 })
+    return NextResponse.json({ error: error.message || 'Failed to load slot requests' }, { status: 500 })
   }
 }
