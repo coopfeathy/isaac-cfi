@@ -1,0 +1,1644 @@
+plan_id: calendar-rework-2026
+objective: >
+  Replace the manual slot-creation booking model with an instructor availability
+  template + student request/approval workflow. Build student-facing week-view calendar,
+  admin calendar overhaul, discovery flight calendar integration, notification system,
+  and cancellation system. Preserve existing CalDAV sync, Stripe payments, and funnel steps 1-3.
+created_at: "2026-04-05T12:00:00Z"
+created_by: gem-planner
+status: pending_approval
+research_confidence: high
+
+plan_metrics:
+  wave_1_task_count: 5
+  total_dependencies: 48
+  risk_score: medium
+
+tldr: |
+  23 tasks across 4 waves to rework the Merlin Flight Training calendar system.
+  Wave 1 lays the database + type + API foundation (6 tasks).
+  Wave 2 builds the availability engine, notification layer, and all UI components (7 tasks).
+  Wave 3 integrates the admin calendar overhaul, discovery flight picker, and approval workflow (5 tasks).
+  Wave 4 adds notification preferences, cancellation, 24hr reminders, and final cleanup (5 tasks).
+  Key risks: availability engine correctness, concurrent request handling, CalDAV external event
+  subtraction (current pull filters to @merlinflight.com UIDs only — needs expansion), and
+  discovery flight funnel regression.
+
+open_questions:
+  - "CalDAV pullEventsFromCalendar currently filters to @merlinflight.com UIDs only. The availability engine needs ALL iCloud events to subtract external conflicts. Requires a new pull function or modified filter."
+  - "Should the 24-hour reminder be a Netlify Scheduled Function or a Supabase Edge Function (pg_cron)? Plan assumes Netlify scheduled function matching existing cron pattern."
+  - "Stripe payment link — reuse existing Stripe Checkout Session creation or build new dedicated endpoint? Plan assumes extending existing Stripe integration."
+
+pre_mortem:
+  overall_risk_level: medium
+  critical_failure_modes:
+    - scenario: "Availability engine incorrectly computes open blocks — students see wrong times, leading to double-bookings or phantom availability"
+      likelihood: medium
+      impact: critical
+      mitigation: "Unit test engine with deterministic fixtures covering edge cases: overlapping bookings, CalDAV conflicts, overrides that add/remove time, midnight boundary crossings. Add integration test with seeded DB data."
+    - scenario: "Two students request the same time slot simultaneously — both succeed, creating conflicting pending requests"
+      likelihood: medium
+      impact: high
+      mitigation: "Accept concurrent pending requests (this is a request model, not instant booking). Admin sees both, approves one, denies the other. On approval, re-validate availability before creating slot. Use DB-level check constraint or SELECT FOR UPDATE."
+    - scenario: "Discovery flight funnel regression — step 4 replacement breaks data flow from steps 1-3, losing prospect data"
+      likelihood: low
+      impact: high
+      mitigation: "Step 4 replacement reads prospect data from existing session/params. Integration test: complete steps 1-3, verify prospect row exists, then verify step 4 calendar picker loads with correct prospect context."
+    - scenario: "CalDAV push fails silently after approval — event not synced to iCloud, instructor has no visibility"
+      likelihood: medium
+      impact: medium
+      mitigation: "Existing sync_status tracking on slots table catches push failures. Approval flow sets sync_status=pending_push. Background sync retry handles failures. Admin notification on persistent sync failure."
+    - scenario: "RLS policy gaps on new tables expose student data across accounts"
+      likelihood: low
+      impact: critical
+      mitigation: "Wave 1 review task explicitly validates RLS policies on all new tables. slot_requests must restrict student reads to own rows. notification_preferences must restrict to own row."
+    - scenario: "AdminBookingPlanner removal breaks admin page — other tabs or functionality depends on shared state"
+      likelihood: low
+      impact: medium
+      mitigation: "Audit AdminBookingPlanner imports and integration points before removal. Admin page uses tab system — replacement component plugs into same tab slot."
+  assumptions:
+    - "Single instructor system — no multi-instructor scheduling conflicts"
+    - "Existing CalDAV sync (tsdav), Stripe, Twilio, and Resend integrations are stable and working"
+    - "shadcn/ui components available via components.json configuration"
+    - "Supabase service role key available for admin API routes"
+    - "Netlify deploys support scheduled functions for cron tasks"
+    - "Discovery flight funnel steps 1-3 pass prospect data via URL params or session storage"
+    - "Existing backup queue system (sequential SMS notification) works and can be triggered by cancellation"
+
+implementation_specification:
+  code_structure: |
+    Server logic in lib/ (availability.ts, notifications.ts).
+    API routes under app/api/ following Next.js App Router conventions.
+    Calendar UI components under app/components/calendar/ as a cohesive module.
+    Admin-specific components under app/components/admin/.
+    Database migration as standalone SQL file in supabase/.
+    TypeScript types extended in lib/supabase.ts.
+  affected_areas:
+    - "supabase/ — new migration SQL for 3 new tables + slot_requests alterations"
+    - "lib/supabase.ts — new TypeScript interfaces for all new tables"
+    - "lib/ — new availability.ts and notifications.ts modules"
+    - "app/api/admin/ — new availability, override, and slot-request action routes"
+    - "app/api/slot-requests/route.ts — extended for training request type"
+    - "app/components/calendar/ — new directory with all calendar UI components"
+    - "app/components/admin/ — AvailabilityTemplateEditor, OverrideManager"
+    - "app/admin/page.tsx — replace AdminBookingPlanner with new admin calendar"
+    - "app/discovery-flight-pt4/page.tsx — replace thank-you with calendar picker"
+    - "app/components/AdminBookingPlanner.tsx — deprecated/removed"
+  component_details:
+    - component: "lib/availability.ts (Availability Computation Engine)"
+      responsibility: "Compute real-time available time blocks for any date range by subtracting bookings, CalDAV events, and overrides from instructor availability template."
+      interfaces:
+        - "computeAvailability(startDate: Date, endDate: Date, slotDuration: number): Promise<AvailableBlock[]>"
+        - "getWeekAvailability(weekStart: Date, type: 'training' | 'discovery_flight'): Promise<DayAvailability[]>"
+    - component: "lib/notifications.ts (Notification Service)"
+      responsibility: "Centralized notification dispatch for all calendar lifecycle events. Wraps Resend (email) and Twilio (SMS) with type-safe functions per event type. Respects student notification preferences."
+      interfaces:
+        - "notifyRequestSubmitted(request: SlotRequest): Promise<void>"
+        - "notifyRequestApproved(request: SlotRequest, paymentLink: string): Promise<void>"
+        - "notifyRequestDenied(request: SlotRequest, reason?: string): Promise<void>"
+        - "sendReminder(booking: Booking, hoursUntil: number): Promise<void>"
+        - "notifyCancellation(booking: Booking, isLate: boolean): Promise<void>"
+    - component: "app/components/calendar/StudentWeekCalendar.tsx"
+      responsibility: "Responsive week-view calendar for students showing Available, Busy, and My Requests states. Tap-based interactions, no drag. Week navigation."
+      interfaces:
+        - "StudentWeekCalendar: React.FC<{ userId: string }>"
+    - component: "app/components/calendar/AdminWeekCalendar.tsx"
+      responsibility: "Full admin week-view calendar showing all bookings, pending requests with names, availability blocks, and overrides. Integrates quick actions."
+      interfaces:
+        - "AdminWeekCalendar: React.FC<{ onAction: (action: AdminCalendarAction) => void }>"
+    - component: "app/components/calendar/DiscoveryFlightPicker.tsx"
+      responsibility: "Calendar picker for discovery flight step 4 showing available 1.5hr blocks. Creates slot_request with type=discovery_flight."
+      interfaces:
+        - "DiscoveryFlightPicker: React.FC<{ prospectId: string; prospectData: ProspectInfo }>"
+  dependencies:
+    - component: "StudentWeekCalendar"
+      relationship: "Calls lib/availability.ts via API route to get available blocks, calls slot-requests API to submit requests"
+    - component: "AdminWeekCalendar"
+      relationship: "Calls lib/availability.ts via API route, reads slot_requests, calls approve/deny API routes"
+    - component: "DiscoveryFlightPicker"
+      relationship: "Calls lib/availability.ts via API route for 1.5hr blocks, creates slot_request via API"
+    - component: "lib/notifications.ts"
+      relationship: "Imports from lib/resend.ts and lib/twilio.ts"
+    - component: "lib/availability.ts"
+      relationship: "Queries instructor_availability, availability_overrides, slots tables via Supabase. Calls CalDAV pull for external events."
+  integration_points:
+    - "Admin page (app/admin/page.tsx): Replace AdminBookingPlanner import with AdminWeekCalendar in slots tab"
+    - "Discovery flight pt4 (app/discovery-flight-pt4/page.tsx): Replace thank-you content with DiscoveryFlightPicker"
+    - "Stripe: Approval workflow calls existing Stripe Checkout Session creation to generate payment link"
+    - "CalDAV: Approval workflow calls existing pushEventToCalendar from lib/caldav.ts"
+    - "Twilio: Notification service uses existing sendTwilioMessage from lib/twilio.ts"
+    - "Resend: Notification service uses existing resend client from lib/resend.ts"
+
+contracts:
+  - from_task: T01
+    to_task: T03
+    interface: "instructor_availability and availability_overrides tables exist with RLS policies"
+    format: "SQL DDL — tables queryable via Supabase client"
+  - from_task: T01
+    to_task: T04
+    interface: "availability_overrides table exists with RLS policies"
+    format: "SQL DDL — table queryable via Supabase client"
+  - from_task: T01
+    to_task: T05
+    interface: "slot_requests table has request_type and denial_reason columns"
+    format: "SQL ALTER — columns queryable via Supabase client"
+  - from_task: T02
+    to_task: T03
+    interface: "InstructorAvailability TypeScript interface available from lib/supabase.ts"
+    format: "TypeScript interface export"
+  - from_task: T02
+    to_task: T04
+    interface: "AvailabilityOverride TypeScript interface available from lib/supabase.ts"
+    format: "TypeScript interface export"
+  - from_task: T02
+    to_task: T05
+    interface: "Extended SlotRequest TypeScript interface with request_type and denial_reason fields"
+    format: "TypeScript interface export"
+  - from_task: T03
+    to_task: T07
+    interface: "GET /api/admin/availability returns instructor template rows"
+    format: "JSON array of InstructorAvailability objects"
+  - from_task: T04
+    to_task: T07
+    interface: "GET /api/admin/availability/overrides returns override rows for date range"
+    format: "JSON array of AvailabilityOverride objects"
+  - from_task: T05
+    to_task: T12
+    interface: "POST /api/slot-requests accepts training request type"
+    format: "JSON { request_type: 'training', preferred_start_time, preferred_end_time, notes }"
+  - from_task: T05
+    to_task: T17
+    interface: "POST /api/admin/slot-requests/[id]/approve and /deny endpoints"
+    format: "JSON { denial_reason?: string } for deny; empty body for approve"
+  - from_task: T07
+    to_task: T12
+    interface: "getWeekAvailability returns available blocks for student calendar"
+    format: "DayAvailability[] with date, availableBlocks[{start, end}]"
+  - from_task: T07
+    to_task: T14
+    interface: "computeAvailability returns full availability data for admin view"
+    format: "AvailableBlock[] with all metadata (source: template/override)"
+  - from_task: T07
+    to_task: T16
+    interface: "getWeekAvailability returns 1.5hr discovery flight blocks"
+    format: "DayAvailability[] filtered for 1.5hr slot duration"
+  - from_task: T08
+    to_task: T17
+    interface: "notifyRequestApproved and notifyRequestDenied functions callable"
+    format: "Async functions accepting SlotRequest + optional metadata"
+  - from_task: T08
+    to_task: T20
+    interface: "notifyCancellation and sendReminder functions callable"
+    format: "Async functions accepting Booking + context"
+  - from_task: T09
+    to_task: T12
+    interface: "CalendarDayColumn, CalendarTimeBlock, CalendarGrid components exported"
+    format: "React components with props for time ranges, states, onClick handlers"
+  - from_task: T09
+    to_task: T14
+    interface: "Shared calendar components reusable for admin view"
+    format: "React components accepting admin-specific props (student names, action buttons)"
+  - from_task: T14
+    to_task: T15
+    interface: "AdminWeekCalendar renders with action callback hooks"
+    format: "onAction callback receives AdminCalendarAction union type"
+  - from_task: T01
+    to_task: T19
+    interface: "notification_preferences table exists with RLS policies"
+    format: "SQL DDL — table queryable per-user via Supabase client"
+
+tasks:
+  # ============================================================
+  # WAVE 1: Database + Schema + API Foundation
+  # ============================================================
+
+  - id: T01
+    title: "Database migration — new tables and slot_requests extension"
+    description: |
+      Create SQL migration for the calendar rework:
+      1. CREATE TABLE instructor_availability (id, day_of_week, start_time, end_time, is_active, created_at, updated_at)
+      2. CREATE TABLE availability_overrides (id, override_date, start_time, end_time, is_available, reason, created_at)
+      3. CREATE TABLE notification_preferences (id, user_id FK, email_enabled default true, sms_enabled default true, created_at, updated_at)
+      4. ALTER TABLE slot_requests ADD COLUMN request_type TEXT CHECK (request_type IN ('training', 'discovery_flight')) DEFAULT 'discovery_flight'
+      5. ALTER TABLE slot_requests ADD COLUMN denial_reason TEXT
+      6. ALTER TABLE slot_requests ADD COLUMN user_id_student UUID REFERENCES auth.users(id) — for authenticated student requests
+      7. Enable RLS on all new tables. Admin full access. Students read own notification_preferences and own slot_requests.
+      8. Add RLS policy on slot_requests allowing students to SELECT their own rows (WHERE user_id = auth.uid() OR user_id_student = auth.uid())
+      9. Create indexes on instructor_availability(day_of_week), availability_overrides(override_date), slot_requests(request_type, status)
+    wave: 1
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-001
+      - AC-CAL-003
+    priority: high
+    status: pending
+    dependencies: []
+    conflicts_with: []
+    context_files:
+      - path: "supabase/SETUP.sql"
+        description: "Existing schema — reference for table patterns, RLS policy style, and slot_requests current structure"
+      - path: "lib/supabase.ts"
+        description: "Current TypeScript types — verify column naming conventions"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: medium
+        estimated_files: 1
+        estimated_lines: 180
+        focus_area: "supabase/CALENDAR_REWORK_MIGRATION.sql"
+        verification:
+          - "Run migration in Supabase SQL Editor without errors"
+          - "Verify all 3 new tables exist with correct columns and constraints"
+          - "Verify slot_requests has request_type and denial_reason columns"
+          - "Verify RLS policies: admin can CRUD all tables, student can only read own notification_preferences and own slot_requests"
+          - "Verify indexes created on day_of_week, override_date, request_type+status"
+        acceptance_criteria:
+          - "instructor_availability table exists with day_of_week (0-6), start_time (TIME), end_time (TIME), is_active (BOOLEAN) columns"
+          - "availability_overrides table exists with override_date (DATE), start_time (TIME), end_time (TIME), is_available (BOOLEAN), reason (TEXT) columns"
+          - "notification_preferences table exists with user_id (FK), email_enabled (BOOLEAN default true), sms_enabled (BOOLEAN default true)"
+          - "slot_requests.request_type column exists with CHECK constraint and default value"
+          - "slot_requests.denial_reason column exists"
+          - "RLS enabled on all new tables with appropriate policies"
+        failure_modes:
+          - scenario: "Migration conflicts with existing slot_requests data — ALTER TABLE fails"
+            likelihood: low
+            impact: high
+            mitigation: "Use ADD COLUMN IF NOT EXISTS and DEFAULT values to ensure backward compatibility. Test on staging first."
+          - scenario: "RLS policies too restrictive — students cannot read their own slot_requests"
+            likelihood: medium
+            impact: high
+            mitigation: "Add explicit SELECT policy for students on slot_requests using auth.uid() match. Test with student-role JWT."
+        tech_stack:
+          - "PostgreSQL"
+          - "Supabase RLS"
+        test_coverage: null
+        requires_review: true
+        review_depth: full
+        review_security_sensitive: true
+
+  - id: T02
+    title: "TypeScript type definitions for new tables"
+    description: |
+      Add TypeScript interfaces to lib/supabase.ts for all new and modified tables:
+      1. InstructorAvailability interface (id, day_of_week, start_time, end_time, is_active, created_at, updated_at)
+      2. AvailabilityOverride interface (id, override_date, start_time, end_time, is_available, reason, created_at)
+      3. NotificationPreference interface (id, user_id, email_enabled, sms_enabled, created_at, updated_at)
+      4. Extend existing SlotRequest type concept with request_type and denial_reason fields
+      5. Add AvailableBlock type (start: string, end: string, source: 'template' | 'override')
+      6. Add DayAvailability type (date: string, availableBlocks: AvailableBlock[])
+      7. Add AdminCalendarAction union type for admin calendar event callbacks
+    wave: 1
+    agent: gem-implementer
+    prototype: false
+    covers: []
+    priority: high
+    status: pending
+    dependencies: []
+    conflicts_with: []
+    context_files:
+      - path: "lib/supabase.ts"
+        description: "Existing type definitions — follow same patterns (string dates, optional fields with null)"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: small
+        estimated_files: 1
+        estimated_lines: 80
+        focus_area: "lib/supabase.ts"
+        verification:
+          - "TypeScript compilation passes with no errors"
+          - "All new interfaces export correctly"
+          - "SlotRequest type has request_type and denial_reason fields"
+        acceptance_criteria:
+          - "InstructorAvailability, AvailabilityOverride, NotificationPreference interfaces exported"
+          - "AvailableBlock, DayAvailability, AdminCalendarAction types exported"
+          - "All types match DB column names and types from T01 migration"
+        failure_modes:
+          - scenario: "Type naming conflicts with existing exports"
+            likelihood: low
+            impact: low
+            mitigation: "Check existing exports before adding. Use descriptive names."
+        tech_stack:
+          - "TypeScript"
+        test_coverage: null
+        requires_review: false
+        review_depth: null
+        review_security_sensitive: false
+
+  - id: T03
+    title: "Availability template CRUD API routes"
+    description: |
+      Create API routes for managing the instructor weekly availability template:
+      1. GET /api/admin/availability — list all template entries (admin only)
+      2. POST /api/admin/availability — create new template entry (day_of_week, start_time, end_time)
+      3. PATCH /api/admin/availability — update template entry (toggle is_active, change times)
+      4. DELETE /api/admin/availability — delete template entry
+      All routes require admin auth check (is_admin from profiles).
+      Validate: no overlapping entries for same day_of_week, start_time < end_time.
+      Also create a public GET /api/availability?week=YYYY-MM-DD for student/prospect calendar consumption
+      (this returns computed availability, not raw template — delegates to availability engine in T07).
+    wave: 1
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-001
+      - AC-CAL-002
+    priority: high
+    status: pending
+    dependencies:
+      - T01
+      - T02
+    conflicts_with: []
+    context_files:
+      - path: "app/api/admin/caldav/settings/route.ts"
+        description: "Reference for admin API route pattern — auth check, Supabase admin client usage"
+      - path: "app/api/slot-requests/route.ts"
+        description: "Reference for API route structure and validation patterns"
+      - path: "lib/supabase-admin.ts"
+        description: "Admin Supabase client for server-side operations"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: medium
+        estimated_files: 2
+        estimated_lines: 200
+        focus_area: "app/api/admin/availability/route.ts"
+        verification:
+          - "GET returns template entries for authenticated admin"
+          - "POST creates entry, rejects overlapping times, rejects non-admin"
+          - "PATCH toggles is_active, updates times"
+          - "DELETE removes entry, rejects if active bookings exist"
+        acceptance_criteria:
+          - "Admin can create a weekly template entry with day, start_time, end_time"
+          - "Admin can toggle template entries active/inactive"
+          - "Non-admin requests return 403"
+          - "Overlapping same-day entries are rejected with descriptive error"
+        failure_modes:
+          - scenario: "Overlap detection fails for edge cases (adjacent but non-overlapping times treated as overlap)"
+            likelihood: medium
+            impact: medium
+            mitigation: "Use exclusive range comparison: new.start < existing.end AND new.end > existing.start"
+        tech_stack:
+          - "Next.js App Router API Routes"
+          - "Supabase JS Client"
+        test_coverage: null
+        requires_review: false
+        review_depth: null
+        review_security_sensitive: false
+
+  - id: T04
+    title: "Availability override CRUD API routes"
+    description: |
+      Create API routes for date-specific availability overrides:
+      1. GET /api/admin/availability/overrides?start=DATE&end=DATE — list overrides in range
+      2. POST /api/admin/availability/overrides — create override (override_date, start_time, end_time, is_available, reason)
+      3. PATCH /api/admin/availability/overrides — update override
+      4. DELETE /api/admin/availability/overrides — delete override
+      All routes admin-only. Validate: override_date must be in future, no duplicate overrides for same date+time.
+      is_available=false marks time as unavailable (vacation). is_available=true adds extra hours.
+    wave: 1
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-003
+    priority: high
+    status: pending
+    dependencies:
+      - T01
+      - T02
+    conflicts_with: []
+    context_files:
+      - path: "app/api/admin/caldav/settings/route.ts"
+        description: "Admin API route pattern reference"
+      - path: "lib/supabase-admin.ts"
+        description: "Admin Supabase client"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: small
+        estimated_files: 1
+        estimated_lines: 150
+        focus_area: "app/api/admin/availability/overrides/route.ts"
+        verification:
+          - "GET returns overrides for specified date range"
+          - "POST creates override, validates future date"
+          - "PATCH updates override fields"
+          - "DELETE removes override"
+          - "Non-admin requests return 403"
+        acceptance_criteria:
+          - "Admin can create date-specific unavailability override (vacation)"
+          - "Admin can create date-specific extra-availability override (Saturday hours)"
+          - "Override date must be in the future — past dates rejected"
+        failure_modes:
+          - scenario: "Timezone mismatch — override_date interpreted differently across server/client"
+            likelihood: medium
+            impact: medium
+            mitigation: "Store dates as DATE type (no timezone). Client sends local date string, server validates as-is."
+        tech_stack:
+          - "Next.js App Router API Routes"
+          - "Supabase JS Client"
+        test_coverage: null
+        requires_review: false
+        review_depth: null
+        review_security_sensitive: false
+
+  - id: T05
+    title: "Slot requests API extension — training type + approve/deny"
+    description: |
+      Extend the existing slot_requests API and create admin action endpoints:
+      1. Modify app/api/slot-requests/route.ts POST handler to accept request_type field ('training' | 'discovery_flight').
+         For training requests: require authenticated user (auth.uid()), populate user_id_student.
+         Validate: preferred_start and preferred_end within available blocks (server-side check).
+      2. Create POST /api/admin/slot-requests/[id]/approve — admin approves request: updates status to 'approved',
+         creates slot in slots table, sets is_booked=true, triggers CalDAV push, sends payment link.
+      3. Create POST /api/admin/slot-requests/[id]/deny — admin denies request: updates status to 'denied',
+         stores denial_reason, triggers student notification.
+      4. Add GET endpoint for students to list their own pending/approved/denied requests.
+    wave: 1
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-012
+      - AC-CAL-021
+      - AC-CAL-022
+      - AC-CAL-024
+    priority: high
+    status: pending
+    dependencies:
+      - T01
+      - T02
+    conflicts_with:
+      - T17
+    context_files:
+      - path: "app/api/slot-requests/route.ts"
+        description: "Existing slot requests handler — currently discovery-flight only, needs training type support"
+      - path: "lib/caldav.ts"
+        description: "CalDAV push function used on approval"
+      - path: "lib/supabase-admin.ts"
+        description: "Admin client for server-side mutations"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: large
+        estimated_files: 3
+        estimated_lines: 300
+        focus_area: "app/api/slot-requests/ and app/api/admin/slot-requests/"
+        verification:
+          - "POST /api/slot-requests accepts request_type='training' for authenticated students"
+          - "POST /api/slot-requests still works for discovery_flight type (backward compatible)"
+          - "POST /api/admin/slot-requests/[id]/approve creates slot, updates status"
+          - "POST /api/admin/slot-requests/[id]/deny sets denial_reason, updates status"
+          - "Student GET endpoint returns only their own requests"
+          - "Approving a request for an already-booked time returns error ERR_REQ_003"
+        acceptance_criteria:
+          - "Student can submit a training request with preferred time range"
+          - "Admin can approve a request — slot created with is_booked=true"
+          - "Admin can deny a request with optional reason"
+          - "Double-approve for overlapping time is prevented"
+          - "Backward compatibility with existing discovery flight slot request flow"
+        failure_modes:
+          - scenario: "Race condition — admin approves while another booking fills the same time"
+            likelihood: medium
+            impact: high
+            mitigation: "On approval, check for overlapping is_booked slots in a transaction. If conflict found, return ERR_REQ_003 and do not create slot."
+          - scenario: "Breaking change to existing discovery flight flow"
+            likelihood: low
+            impact: high
+            mitigation: "request_type defaults to 'discovery_flight'. Existing POST handler path unchanged for unauthenticated requests."
+        tech_stack:
+          - "Next.js App Router API Routes"
+          - "Supabase JS Client"
+        test_coverage: null
+        requires_review: true
+        review_depth: standard
+        review_security_sensitive: true
+
+  - id: T06
+    title: "Wave 1 integration check"
+    description: |
+      Review all Wave 1 deliverables:
+      1. Verify migration SQL runs cleanly on a fresh Supabase instance
+      2. Verify TypeScript types match DB schema exactly
+      3. Verify all API routes return correct status codes (200/201/400/403/404)
+      4. Verify RLS policies: admin can CRUD, student can read own rows, anonymous gets 403
+      5. Verify slot_requests backward compatibility — existing discovery flight flow unbroken
+      6. Check for SQL injection vectors in API route input handling
+      7. Verify no type export conflicts in lib/supabase.ts
+    wave: 1
+    agent: gem-reviewer
+    prototype: false
+    covers: []
+    priority: high
+    status: pending
+    dependencies:
+      - T01
+      - T02
+      - T03
+      - T04
+      - T05
+    conflicts_with: []
+    context_files:
+      - path: "supabase/SETUP.sql"
+        description: "Original schema for comparison"
+      - path: "lib/supabase.ts"
+        description: "Type definitions to verify"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: small
+        estimated_files: 0
+        estimated_lines: 0
+        focus_area: null
+        verification:
+          - "All Wave 1 tasks pass their individual acceptance criteria"
+          - "No TypeScript compile errors"
+          - "RLS policies tested with admin and student roles"
+        acceptance_criteria:
+          - "All API routes respond correctly to valid and invalid requests"
+          - "RLS policies enforce data isolation between students"
+          - "No regression in existing slot_requests discovery flight flow"
+        failure_modes:
+          - scenario: "Review finds critical RLS gap"
+            likelihood: medium
+            impact: high
+            mitigation: "Flag for immediate fix before Wave 2 begins. RLS fixes are small ALTER POLICY statements."
+        requires_review: true
+        review_depth: full
+        review_security_sensitive: true
+
+  # ============================================================
+  # WAVE 2: Core Engine + UI Components
+  # ============================================================
+
+  - id: T07
+    title: "Availability computation engine"
+    description: |
+      Create lib/availability.ts with the core scheduling logic:
+      1. computeAvailability(startDate, endDate): Queries instructor_availability template,
+         subtracts booked slots (from slots table where is_booked=true within range),
+         subtracts CalDAV external events (requires new pull that fetches ALL iCloud events,
+         not just @merlinflight.com — modify filter in pullEventsFromCalendar or create separate function),
+         applies availability_overrides (is_available=false removes time, is_available=true adds time).
+         Returns AvailableBlock[] array.
+      2. getWeekAvailability(weekStart, type): Wrapper that computes availability for a full week
+         and splits into slot-duration blocks (2hr for training, 1.5hr for discovery_flight).
+         Returns DayAvailability[] array suitable for calendar rendering.
+      3. Internal helpers: mergeTimeRanges, subtractTimeRanges, splitIntoSlots.
+      4. All time arithmetic uses UTC. Display formatting is client-side responsibility.
+      IMPORTANT: Current pullEventsFromCalendar in lib/caldav.ts filters to @merlinflight.com UIDs only.
+      The engine needs ALL events from iCloud to detect external conflicts. Create a new
+      pullAllEventsFromCalendar function that omits the UID filter.
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-004
+    priority: high
+    status: pending
+    dependencies:
+      - T01
+      - T03
+      - T04
+    conflicts_with: []
+    context_files:
+      - path: "lib/caldav.ts"
+        description: "Existing CalDAV integration — pullEventsFromCalendar needs expansion for external events"
+      - path: "lib/supabase.ts"
+        description: "Type definitions for slots, new availability types"
+      - path: "lib/supabase-admin.ts"
+        description: "Admin client for querying template and overrides"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: large
+        estimated_files: 2
+        estimated_lines: 300
+        focus_area: "lib/availability.ts + lib/caldav.ts modification"
+        verification:
+          - "computeAvailability returns correct blocks when template has no conflicts"
+          - "Existing bookings are correctly subtracted from template"
+          - "CalDAV external events are subtracted from template"
+          - "Overrides (both add and remove) applied correctly"
+          - "getWeekAvailability returns 2hr blocks for training, 1.5hr for discovery_flight"
+          - "Edge case: template block exactly matches a booking — returns no availability for that block"
+          - "Edge case: override adds time outside template hours — returned as available"
+        acceptance_criteria:
+          - "Template Mon 8am-4pm with booking 10am-12pm and CalDAV event 2pm-3pm → available: 8am-10am, 12pm-2pm, 3pm-4pm"
+          - "Override marks 3pm-4pm unavailable → only 8am-10am and 12pm-2pm available"
+          - "Override adds Saturday 9am-1pm → Saturday shows available"
+          - "2hr training slots split correctly within available ranges"
+          - "1.5hr discovery flight slots split correctly within available ranges"
+        failure_modes:
+          - scenario: "Time range arithmetic bugs — off-by-one minute errors cause phantom availability or missed slots"
+            likelihood: medium
+            impact: critical
+            mitigation: "Use minute-based integer arithmetic internally (not Date objects). Write unit tests for boundary cases. Test with sub-hour granularity."
+          - scenario: "CalDAV pull for all events returns thousands of events, causing slow computation"
+            likelihood: low
+            impact: medium
+            mitigation: "Filter CalDAV pull to date range of interest (week boundaries). Cache CalDAV data for short TTL (5 minutes)."
+        tech_stack:
+          - "TypeScript"
+          - "Supabase JS Client"
+          - "tsdav"
+        test_coverage: "Unit tests for mergeTimeRanges, subtractTimeRanges, splitIntoSlots helpers"
+
+  - id: T08
+    title: "Notification service layer"
+    description: |
+      Create lib/notifications.ts with centralized notification dispatch:
+      1. notifyRequestSubmitted(request) — email + SMS to admin (always both)
+      2. notifyRequestApproved(request, paymentUrl) — email + SMS to student (respects prefs), email to admin
+      3. notifyRequestDenied(request, reason?) — email to student (+SMS if enabled)
+      4. sendReminder(booking, hoursUntil) — email + SMS to student (respects prefs)
+      5. notifyCancellation(booking, isLate) — email + SMS to student + admin
+      6. Internal helpers: getStudentNotificationPrefs(userId), getAdminContact()
+      Uses existing lib/resend.ts (resend client + emailWrapper brand template) for emails.
+      Uses existing lib/twilio.ts (sendTwilioMessage) for SMS.
+      Each function checks notification_preferences table before sending SMS.
+      Admin always gets both email + SMS regardless of preferences.
+      Email content uses branded emailWrapper template from lib/resend.ts.
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-050
+      - AC-CAL-051
+      - AC-CAL-053
+    priority: high
+    status: pending
+    dependencies:
+      - T01
+      - T02
+    conflicts_with: []
+    context_files:
+      - path: "lib/resend.ts"
+        description: "Existing Resend client + email templates + emailWrapper brand function"
+      - path: "lib/twilio.ts"
+        description: "Existing sendTwilioMessage function"
+      - path: "app/api/slot-requests/route.ts"
+        description: "Existing email sending pattern for slot request alerts"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: medium
+        estimated_files: 1
+        estimated_lines: 250
+        focus_area: "lib/notifications.ts"
+        verification:
+          - "notifyRequestSubmitted sends email + SMS to admin"
+          - "notifyRequestApproved sends email + SMS to student (if SMS enabled), email to admin"
+          - "notifyRequestDenied sends email to student, includes denial_reason"
+          - "sendReminder sends to student respecting preferences"
+          - "notifyCancellation sends to both student and admin"
+          - "SMS suppressed when student has sms_enabled=false"
+          - "Admin always receives both channels"
+        acceptance_criteria:
+          - "All 5 notification functions exported and callable"
+          - "Email content uses Merlin branded template (emailWrapper)"
+          - "Student SMS opt-out respected"
+          - "Admin always receives email + SMS"
+        failure_modes:
+          - scenario: "Resend or Twilio API failure blocks the approval workflow"
+            likelihood: medium
+            impact: high
+            mitigation: "Notifications are fire-and-forget — catch errors, log them, but do not block the approval/denial action. Return success even if notification fails."
+        tech_stack:
+          - "TypeScript"
+          - "Resend"
+          - "Twilio"
+        test_coverage: null
+
+  - id: T09
+    title: "Shared calendar UI primitives"
+    description: |
+      Create reusable calendar components under app/components/calendar/:
+      1. CalendarGrid.tsx — week layout container with time axis (6am-9pm, 30-min rows) and day columns.
+         Responsive: desktop shows 7 columns, mobile shows single day with swipe navigation.
+         Renders time labels on left, day headers on top.
+      2. CalendarDayColumn.tsx — single day column rendering time blocks within the day.
+         Accepts blocks array (start, end, state, label, onClick). Renders blocks at correct vertical positions.
+      3. CalendarTimeBlock.tsx — individual time block with visual state:
+         Available (green), Busy (gray), Pending (yellow/amber), Confirmed (blue), Override (hatched).
+         Accepts onClick handler. Tap-friendly sizing (min 44px touch target on mobile).
+      All components use Tailwind CSS + shadcn/ui design tokens. Mobile-first responsive.
+      These are pure presentational components — no data fetching.
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-013
+      - AC-CAL-017
+    priority: high
+    status: pending
+    dependencies: []
+    conflicts_with: []
+    context_files:
+      - path: "app/components/AdminBookingPlanner.tsx"
+        description: "Existing calendar UI — reference for time grid layout, half-hour row calculations, week navigation pattern"
+      - path: "tailwind.config.ts"
+        description: "Tailwind config for design tokens and custom colors"
+      - path: "components.json"
+        description: "shadcn/ui configuration"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: medium
+        estimated_files: 3
+        estimated_lines: 280
+        focus_area: "app/components/calendar/"
+        verification:
+          - "CalendarGrid renders 7-day layout on desktop, single day on mobile"
+          - "CalendarDayColumn positions blocks at correct vertical offsets"
+          - "CalendarTimeBlock displays all 5 visual states with correct colors"
+          - "Touch targets meet 44px minimum on mobile viewport"
+          - "No horizontal overflow on 375px viewport"
+        acceptance_criteria:
+          - "CalendarGrid, CalendarDayColumn, CalendarTimeBlock components exported"
+          - "Responsive layout: 7-day desktop, 1-day mobile with navigation"
+          - "All visual states rendered with distinct colors per design spec"
+          - "Components accept props for onClick handlers and display data"
+        failure_modes:
+          - scenario: "Vertical positioning math off — blocks render at wrong times"
+            likelihood: medium
+            impact: medium
+            mitigation: "Reuse time-to-pixel calculation from existing AdminBookingPlanner (HALF_HOUR, START_HOUR, ROWS_PER_DAY constants). Extract as shared utility."
+        tech_stack:
+          - "React"
+          - "TypeScript"
+          - "Tailwind CSS"
+          - "shadcn/ui"
+        test_coverage: null
+
+  - id: T10
+    title: "Admin availability template editor UI"
+    description: |
+      Create app/components/admin/AvailabilityTemplateEditor.tsx:
+      1. Displays current weekly template as a list or visual grid (Mon-Sun rows with time ranges).
+      2. Add entry form: select day of week, start time picker, end time picker, submit.
+      3. Toggle active/inactive per entry with visual indicator.
+      4. Delete entry with confirmation.
+      5. Calls template CRUD API routes from T03.
+      6. Success/error toast notifications using shadcn/ui Toast.
+      7. Optimistic UI updates where appropriate.
+      Component is rendered within the admin settings or a dedicated availability tab.
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-001
+      - AC-CAL-002
+    priority: medium
+    status: pending
+    dependencies:
+      - T03
+    conflicts_with:
+      - T15
+    context_files:
+      - path: "app/admin/page.tsx"
+        description: "Admin page with tabs — template editor will be added to a tab"
+      - path: "app/api/admin/availability/route.ts"
+        description: "Template CRUD API routes (from T03)"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: medium
+        estimated_files: 1
+        estimated_lines: 250
+        focus_area: "app/components/admin/AvailabilityTemplateEditor.tsx"
+        verification:
+          - "Can add a new template entry (day + time range)"
+          - "Can toggle entry active/inactive"
+          - "Can delete entry with confirmation"
+          - "Overlapping entry submission shows error"
+          - "UI reflects changes without full page reload"
+        acceptance_criteria:
+          - "Admin can create weekly template entries via the UI"
+          - "Admin can toggle entries active/inactive"
+          - "Admin can delete entries"
+          - "Error handling for invalid inputs"
+        failure_modes:
+          - scenario: "Time picker UX unclear — admin selects invalid time ranges"
+            likelihood: medium
+            impact: low
+            mitigation: "Validate end_time > start_time client-side. Disable end_time options before selected start_time."
+
+  - id: T11
+    title: "Admin availability override manager UI"
+    description: |
+      Create app/components/admin/OverrideManager.tsx:
+      1. Displays existing overrides in a date-sorted list with visual indicators (red for unavailable, green for extra hours).
+      2. Add override form: date picker, start/end time, is_available toggle, reason text field.
+      3. Edit existing override inline.
+      4. Delete override with confirmation.
+      5. Calls override CRUD API routes from T04.
+      6. Past overrides shown as dimmed/archived.
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-003
+    priority: medium
+    status: pending
+    dependencies:
+      - T04
+    conflicts_with:
+      - T15
+    context_files:
+      - path: "app/api/admin/availability/overrides/route.ts"
+        description: "Override CRUD API routes (from T04)"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: medium
+        estimated_files: 1
+        estimated_lines: 220
+        focus_area: "app/components/admin/OverrideManager.tsx"
+        verification:
+          - "Can add a new override (vacation day, extra hours)"
+          - "Override displays with correct visual state (available vs unavailable)"
+          - "Can edit and delete overrides"
+          - "Past overrides shown as archived"
+          - "Date picker rejects past dates"
+        acceptance_criteria:
+          - "Admin can create unavailability overrides (vacations)"
+          - "Admin can create extra-availability overrides (Saturday hours)"
+          - "Override list shows reason and date with visual status"
+        failure_modes:
+          - scenario: "Date picker allows past dates despite validation"
+            likelihood: low
+            impact: low
+            mitigation: "Server-side validation in T04 is the safety net. Client-side is convenience."
+
+  - id: T12
+    title: "Student week-view calendar + booking request form"
+    description: |
+      Create app/components/calendar/StudentWeekCalendar.tsx and BookingRequestForm.tsx:
+      StudentWeekCalendar:
+      1. Fetches availability for current week via GET /api/availability?week=YYYY-MM-DD
+      2. Fetches student's own slot_requests via GET /api/slot-requests/mine
+      3. Renders CalendarGrid with blocks in 3 states: Available (tappable), Busy (non-interactive), My Requests (pending/approved/denied with status color)
+      4. Other students' bookings appear as generic "Unavailable" — no names, no details (privacy per RLS)
+      5. Week navigation (previous/next week arrows, current week indicator)
+      6. Responsive: full week on desktop, single day on mobile
+      BookingRequestForm:
+      1. Opens as modal/sheet when student taps an available block
+      2. Pre-fills time range from tapped block (2hr training slot)
+      3. Optional notes field
+      4. Submit calls POST /api/slot-requests with request_type='training'
+      5. Success → block changes to "Pending" state on calendar
+      6. Error handling for race condition (slot no longer available)
+      Integrate into student lesson-scheduling page or create dedicated /schedule route.
+    wave: 2
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-010
+      - AC-CAL-011
+      - AC-CAL-012
+      - AC-CAL-013
+      - AC-CAL-014
+      - AC-CAL-016
+      - AC-CAL-017
+    priority: high
+    status: pending
+    dependencies:
+      - T05
+      - T07
+      - T09
+    conflicts_with: []
+    context_files:
+      - path: "app/lesson-scheduling/page.tsx"
+        description: "Existing student scheduling page — may integrate calendar here"
+      - path: "app/components/calendar/CalendarGrid.tsx"
+        description: "Shared calendar components from T09"
+      - path: "app/contexts/AuthContext.tsx"
+        description: "Auth context for getting current user"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: large
+        estimated_files: 2
+        estimated_lines: 300
+        focus_area: "app/components/calendar/StudentWeekCalendar.tsx + BookingRequestForm.tsx"
+        verification:
+          - "Calendar shows available, busy, and own-request blocks with correct colors"
+          - "Other students' bookings appear as generic 'Unavailable'"
+          - "Tapping available block opens request form with pre-filled times"
+          - "Submitting request creates slot_request and updates calendar state"
+          - "Week navigation works (forward/back)"
+          - "Calendar renders correctly on 375px viewport (no overflow, tap targets ≥44px)"
+          - "Race condition: submit when slot just booked → shows error, refreshes calendar"
+        acceptance_criteria:
+          - "Student sees 3-state calendar (Available, Busy, My Requests)"
+          - "Student can tap and request a 2-hour training slot"
+          - "No other student names or booking details visible"
+          - "Mobile-responsive with tap-only interactions"
+          - "Week navigation functional"
+        failure_modes:
+          - scenario: "Student requests a slot that becomes unavailable between page load and submission"
+            likelihood: medium
+            impact: medium
+            mitigation: "Server validates availability at submission time per T05. Client shows error toast and refreshes calendar data."
+          - scenario: "Mobile layout breaks on small screens"
+            likelihood: medium
+            impact: medium
+            mitigation: "Mobile shows single-day view from T09 CalendarGrid. Test at 375px during development."
+        tech_stack:
+          - "React"
+          - "TypeScript"
+          - "Tailwind CSS"
+          - "shadcn/ui"
+        test_coverage: null
+
+  - id: T13
+    title: "Wave 2 integration check"
+    description: |
+      Review all Wave 2 deliverables:
+      1. Verify availability engine produces correct output for test scenarios from AC-CAL-004
+      2. Verify notification service functions are callable and handle Resend/Twilio errors gracefully
+      3. Verify shared calendar components render correctly at desktop and mobile breakpoints
+      4. Verify student calendar shows correct 3-state view with privacy protection
+      5. Verify template editor and override manager communicate with API correctly
+      6. Check for XSS in user-submitted notes/reasons passing through notification templates
+      7. Verify CalDAV external event subtraction works (new pullAllEvents function)
+    wave: 2
+    agent: gem-reviewer
+    prototype: false
+    covers: []
+    priority: high
+    status: pending
+    dependencies:
+      - T07
+      - T08
+      - T09
+      - T10
+      - T11
+      - T12
+    conflicts_with: []
+    context_files: []
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: small
+        estimated_files: 0
+        estimated_lines: 0
+        focus_area: null
+        verification:
+          - "Availability engine test scenario from AC-CAL-004 passes"
+          - "Student calendar privacy verified"
+          - "Notification error handling does not throw unhandled exceptions"
+          - "No XSS in notification templates"
+        acceptance_criteria:
+          - "All Wave 2 tasks pass their acceptance criteria"
+          - "No security vulnerabilities in notification content rendering"
+          - "Availability engine handles CalDAV external events"
+        failure_modes:
+          - scenario: "Availability engine fails CalDAV external event test"
+            likelihood: medium
+            impact: high
+            mitigation: "Escalate to T07 for fix — this is the most critical computation in the system"
+        requires_review: true
+        review_depth: full
+        review_security_sensitive: true
+
+  # ============================================================
+  # WAVE 3: Integration + Admin Calendar
+  # ============================================================
+
+  - id: T14
+    title: "Admin calendar core view"
+    description: |
+      Create app/components/calendar/AdminWeekCalendar.tsx:
+      1. Full week view using shared CalendarGrid from T09.
+      2. Displays ALL data layers simultaneously:
+         - Green blocks: available template time (from availability engine)
+         - Blue blocks: confirmed/paid bookings (with student name, lesson type)
+         - Amber blocks: pending requests (with student name, request time)
+         - Gray blocks: unavailable overrides (with reason tooltip)
+         - Hatched blocks: CalDAV external events (personal calendar conflicts)
+      3. Click on pending request block → expands AdminRequestCard with approve/deny buttons.
+      4. Click on available block → opens ManualSlotCreator or BlockTimeForm.
+      5. Week navigation matching student calendar pattern.
+      6. Data fetching: calls availability engine for base layer, fetches bookings and requests via admin API.
+      Does NOT handle the action execution (approve/deny/create) — that's T15.
+    wave: 3
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-040
+      - AC-CAL-043
+    priority: high
+    status: pending
+    dependencies:
+      - T07
+      - T09
+      - T10
+      - T11
+    conflicts_with:
+      - T15
+    context_files:
+      - path: "app/components/AdminBookingPlanner.tsx"
+        description: "Component being replaced — reference for data fetching patterns and admin context"
+      - path: "app/components/calendar/CalendarGrid.tsx"
+        description: "Shared calendar grid from T09"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: large
+        estimated_files: 2
+        estimated_lines: 300
+        focus_area: "app/components/calendar/AdminWeekCalendar.tsx + AdminRequestCard.tsx"
+        verification:
+          - "Admin calendar shows all 5 block types with correct colors and labels"
+          - "Pending requests show student name and requested time"
+          - "Confirmed bookings show student name and type"
+          - "Clicking pending request shows approve/deny card"
+          - "Week navigation works"
+          - "CalDAV sync button present and functional"
+        acceptance_criteria:
+          - "Admin sees all bookings, requests, and availability in one view"
+          - "Pending requests have student names visible"
+          - "Available blocks are clickable for slot creation"
+          - "CalDAV sync integration present"
+        failure_modes:
+          - scenario: "Too many data layers make the calendar visually cluttered"
+            likelihood: medium
+            impact: medium
+            mitigation: "Use distinct color coding + opacity levels. Add filter toggles (show/hide request layer, show/hide CalDAV events)."
+          - scenario: "Admin calendar data fetch is slow due to multiple queries"
+            likelihood: medium
+            impact: medium
+            mitigation: "Combine queries into single API endpoint that returns all admin calendar data for the week. Use React suspense for progressive loading."
+        tech_stack:
+          - "React"
+          - "TypeScript"
+          - "Tailwind CSS"
+          - "shadcn/ui"
+        test_coverage: null
+
+  - id: T15
+    title: "Admin calendar actions + page integration"
+    description: |
+      Create app/components/calendar/AdminQuickActions.tsx and integrate admin calendar into admin page:
+      1. AdminQuickActions: approve/deny request handlers that call T05 approve/deny APIs and trigger T08 notifications.
+      2. ManualSlotCreator: form to create a manual slot from an available time block (calls existing slot creation logic + CalDAV push).
+      3. BlockTimeForm: quick form to create an availability_overrides entry with is_available=false (calls T04 override API).
+      4. Integrate AdminWeekCalendar into app/admin/page.tsx:
+         - Replace AdminBookingPlanner import with AdminWeekCalendar
+         - Wire up AdminQuickActions as onAction callback
+         - Preserve all other admin tabs (bookings, prospects, blog, social, email, settings)
+      5. Remove or deprecate AdminBookingPlanner.tsx import.
+    wave: 3
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-041
+      - AC-CAL-042
+      - AC-CAL-044
+    priority: high
+    status: pending
+    dependencies:
+      - T14
+      - T05
+      - T08
+    conflicts_with:
+      - T10
+      - T11
+    context_files:
+      - path: "app/admin/page.tsx"
+        description: "Admin page — need to replace AdminBookingPlanner integration"
+      - path: "app/components/AdminBookingPlanner.tsx"
+        description: "Component being replaced"
+      - path: "app/components/calendar/AdminWeekCalendar.tsx"
+        description: "New admin calendar from T14"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: medium
+        estimated_files: 3
+        estimated_lines: 250
+        focus_area: "app/components/calendar/AdminQuickActions.tsx + app/admin/page.tsx"
+        verification:
+          - "Approve action: request status → approved, slot created, CalDAV pushed, notification sent"
+          - "Deny action: request status → denied, notification sent with reason"
+          - "Manual slot creation from calendar works"
+          - "Block time creates override entry"
+          - "Admin page renders new calendar in place of AdminBookingPlanner"
+          - "All other admin tabs still functional"
+        acceptance_criteria:
+          - "Admin can approve/deny requests from the calendar"
+          - "Admin can create manual slots from available time"
+          - "Admin can block time ranges"
+          - "AdminBookingPlanner fully replaced in admin page"
+          - "No regression in other admin tabs"
+        failure_modes:
+          - scenario: "Removing AdminBookingPlanner breaks other admin page features"
+            likelihood: low
+            impact: high
+            mitigation: "Audit AdminBookingPlanner for shared state or side effects. The component is tab-isolated in the admin page. Replace import, don't delete file until verified."
+          - scenario: "Approve action partially fails (slot created but CalDAV push fails)"
+            likelihood: medium
+            impact: medium
+            mitigation: "Use try-catch around CalDAV push. Set sync_status=pending_push on failure. Background sync retries. Do not block approval on CalDAV failure."
+        tech_stack:
+          - "React"
+          - "TypeScript"
+          - "Next.js"
+        test_coverage: null
+
+  - id: T16
+    title: "Discovery flight step 4 calendar picker"
+    description: |
+      Replace app/discovery-flight-pt4/page.tsx thank-you content with calendar time picker:
+      1. Read prospect data from steps 1-3 (URL search params or session context — verify how pt1 → pt2 → pt3 → pt4 passes data).
+      2. Show DiscoveryFlightPicker component: week-view calendar with 1.5hr available blocks
+         (uses getWeekAvailability from T07 with type='discovery_flight').
+      3. Prospect taps a time block → confirmation UI with selected time and prospect info summary.
+      4. On confirm: POST /api/slot-requests with request_type='discovery_flight', preferred times, and prospect contact from steps 1-3.
+      5. After submission: show confirmation message ("Your preferred time has been sent! We'll confirm within 24 hours and send you a payment link.")
+      6. Preserve progress bar (4 of 4), back button, and branding from current pt4 page.
+      CRITICAL: Steps 1-3 must NOT be affected. Verify prospect data capture is preserved.
+    wave: 3
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-030
+      - AC-CAL-031
+      - AC-CAL-032
+      - AC-CAL-033
+    priority: high
+    status: pending
+    dependencies:
+      - T07
+      - T09
+    conflicts_with: []
+    context_files:
+      - path: "app/discovery-flight-pt4/page.tsx"
+        description: "Current step 4 — thank you page being replaced"
+      - path: "app/discovery-flight-pt3/page.tsx"
+        description: "Step 3 — check how data flows to step 4"
+      - path: "app/api/discovery-flight-pt3/route.ts"
+        description: "Step 3 API — check what data is stored and how it's passed"
+      - path: "app/api/slot-requests/route.ts"
+        description: "Existing slot request creation — reuse for discovery flight"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: medium
+        estimated_files: 2
+        estimated_lines: 250
+        focus_area: "app/discovery-flight-pt4/page.tsx + app/components/calendar/DiscoveryFlightPicker.tsx"
+        verification:
+          - "Step 4 shows calendar instead of thank-you"
+          - "Available 1.5hr blocks displayed correctly"
+          - "Prospect can select a time and submit"
+          - "slot_requests row created with request_type=discovery_flight"
+          - "Prospect info from steps 1-3 included in request"
+          - "Steps 1-3 still work — prospect data reaches prospects table"
+          - "Back button returns to step 3"
+        acceptance_criteria:
+          - "Step 4 shows week-view with 1.5hr discovery flight time blocks"
+          - "Prospect can pick a time and submit a slot request"
+          - "Request includes prospect contact info from steps 1-3"
+          - "Steps 1-3 data capture fully preserved (no regression)"
+        failure_modes:
+          - scenario: "Data from steps 1-3 lost when navigating to step 4 calendar"
+            likelihood: medium
+            impact: high
+            mitigation: "Investigate step 1-3 data passing mechanism (URL params? localStorage? session?). Ensure calendar picker page reads from same mechanism. Integration test: complete full funnel."
+        tech_stack:
+          - "React"
+          - "TypeScript"
+          - "Next.js"
+        test_coverage: null
+
+  - id: T17
+    title: "Request approval workflow — full lifecycle"
+    description: |
+      Wire up the complete approval lifecycle, connecting admin calendar actions to downstream effects:
+      1. On admin approve (from T15):
+         a. Update slot_requests.status → 'approved' (T05 API)
+         b. Create slot in slots table (start_time, end_time, type, price from config, is_booked=true)
+         c. Create booking row linked to slot and student
+         d. Push CalDAV event to iCloud via pushEventToCalendar (lib/caldav.ts)
+         e. Generate Stripe Checkout Session URL (payment link) — extend/reuse existing Stripe integration
+         f. Call notifyRequestApproved(request, paymentUrl) from T08
+      2. On admin deny (from T15):
+         a. Update slot_requests.status → 'denied', set denial_reason
+         b. Call notifyRequestDenied(request, reason) from T08
+      3. Handle Stripe Checkout completion (webhook already exists — extend to handle new booking flow):
+         a. On checkout.session.completed → update booking.status → 'paid'
+         b. Send payment confirmation email
+      4. Handle discovery flight approval flow: same as training but type='tour', price from discovery flight config.
+    wave: 3
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-020
+      - AC-CAL-021
+      - AC-CAL-022
+      - AC-CAL-023
+    priority: high
+    status: pending
+    dependencies:
+      - T05
+      - T08
+      - T14
+    conflicts_with:
+      - T05
+    context_files:
+      - path: "lib/caldav.ts"
+        description: "pushEventToCalendar function for CalDAV sync on approval"
+      - path: "lib/stripe-connect.ts"
+        description: "Existing Stripe integration — reuse/extend for payment link generation"
+      - path: "app/api/admin/slot-requests/route.ts"
+        description: "Admin slot request management endpoints from T05"
+      - path: "lib/notifications.ts"
+        description: "Notification service from T08"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: large
+        estimated_files: 3
+        estimated_lines: 280
+        focus_area: "Approval flow in slot-requests approve endpoint + Stripe payment link generation"
+        verification:
+          - "Approve triggers: slot created, booking created, CalDAV pushed, payment link sent"
+          - "Deny triggers: status updated, denial_reason stored, student notified"
+          - "Stripe Checkout session created with correct amount and metadata"
+          - "Stripe webhook updates booking status on payment completion"
+          - "CalDAV push failure does not block approval (sync_status=pending_push set)"
+          - "Discovery flight approval creates type='tour' slot"
+        acceptance_criteria:
+          - "Full approve lifecycle: request → slot → booking → CalDAV → payment link → paid"
+          - "Full deny lifecycle: request → denied → student notified with reason"
+          - "Stripe payment link works for both training and discovery flight types"
+          - "CalDAV event appears in iCloud after approval"
+        failure_modes:
+          - scenario: "Stripe Checkout creation fails after slot already created — inconsistent state"
+            likelihood: low
+            impact: high
+            mitigation: "Create slot and booking first, then attempt Stripe + CalDAV. If Stripe fails, booking remains in 'pending' payment state. Admin can re-trigger payment link send."
+          - scenario: "Webhook race condition — payment webhook arrives before approval completes"
+            likelihood: low
+            impact: medium
+            mitigation: "Webhook handler checks booking exists before updating. If not found, retry with backoff or queue."
+        tech_stack:
+          - "Next.js API Routes"
+          - "Stripe Checkout"
+          - "tsdav CalDAV"
+          - "Supabase"
+        test_coverage: null
+
+  - id: T18
+    title: "Wave 3 integration check"
+    description: |
+      Review all Wave 3 deliverables:
+      1. Full approval workflow end-to-end: student requests → admin approves → slot created → CalDAV synced → payment link sent → student pays
+      2. Full denial workflow: student requests → admin denies with reason → student receives notification
+      3. Discovery flight funnel: steps 1-3 → step 4 calendar → prospect picks time → slot_request created → admin approves → payment link → prospect pays
+      4. Admin calendar shows all data layers correctly
+      5. AdminBookingPlanner fully replaced — no dead imports or references
+      6. Verify Stripe amounts are correct for training ($500 for 2hr) vs discovery flight ($249 for 1.5hr)
+      7. Verify CalDAV event content matches booking details
+      8. Check for authorization bypass in admin approve/deny endpoints
+    wave: 3
+    agent: gem-reviewer
+    prototype: false
+    covers: []
+    priority: high
+    status: pending
+    dependencies:
+      - T14
+      - T15
+      - T16
+      - T17
+    conflicts_with: []
+    context_files: []
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: medium
+        estimated_files: 0
+        estimated_lines: 0
+        focus_area: null
+        verification:
+          - "Full approval e2e workflow verified"
+          - "Full discovery flight funnel verified"
+          - "Admin calendar data layers correct"
+          - "No dead AdminBookingPlanner references"
+          - "Stripe amounts correct"
+          - "No authorization bypass in admin endpoints"
+        acceptance_criteria:
+          - "All Wave 3 acceptance criteria pass"
+          - "No security issues in admin action endpoints"
+          - "Discovery flight funnel regression-free"
+        failure_modes:
+          - scenario: "Discovery flight funnel data flow broken"
+            likelihood: medium
+            impact: high
+            mitigation: "Revert pt4 changes, investigate data passing mechanism, fix before re-deploying"
+        requires_review: true
+        review_depth: full
+        review_security_sensitive: true
+
+  # ============================================================
+  # WAVE 4: Notifications + Cancellation + Polish
+  # ============================================================
+
+  - id: T19
+    title: "Student notification preferences API + UI"
+    description: |
+      Add notification preferences management:
+      1. Create GET/PATCH /api/notification-preferences — student reads/updates their own preferences.
+         RLS ensures each student can only access their own row.
+         Auto-create default preferences row on first access.
+      2. Create app/components/NotificationPreferences.tsx — settings form:
+         - Email notifications: always on (disabled toggle, explanation text)
+         - SMS notifications: toggle on/off (default on)
+         - Phone number display for SMS
+      3. Integrate into student dashboard or settings page.
+      4. Notification service (T08) already checks preferences — verify integration.
+    wave: 4
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-030
+      - AC-CAL-052
+    priority: medium
+    status: pending
+    dependencies:
+      - T01
+      - T08
+    conflicts_with: []
+    context_files:
+      - path: "lib/notifications.ts"
+        description: "Notification service that reads preferences"
+      - path: "app/dashboard/page.tsx"
+        description: "Student dashboard — potential integration point for preferences"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: medium
+        estimated_files: 2
+        estimated_lines: 180
+        focus_area: "app/api/notification-preferences/route.ts + app/components/NotificationPreferences.tsx"
+        verification:
+          - "Student can view their notification preferences"
+          - "Student can toggle SMS on/off"
+          - "Email toggle is disabled (always on)"
+          - "Preferences persisted to notification_preferences table"
+          - "Notification service respects updated preferences"
+        acceptance_criteria:
+          - "Student can opt out of SMS notifications"
+          - "Email notifications cannot be disabled"
+          - "Default preferences created automatically (both enabled)"
+          - "Preferences change takes immediate effect on next notification"
+        failure_modes:
+          - scenario: "Race condition — preference updated between notification check and send"
+            likelihood: low
+            impact: low
+            mitigation: "Query preference at send time (already in T08 design). Eventual consistency acceptable."
+
+  - id: T20
+    title: "Cancellation system"
+    description: |
+      Implement the 24-hour cancellation policy and cancellation workflow:
+      1. Create POST /api/bookings/[id]/cancel endpoint:
+         a. Check 24-hour policy: if booking start_time - now > 24 hours → allow freely
+         b. If within 24 hours → return warning flag (is_late: true) + confirmation required
+         c. On confirmed cancellation:
+            - Update booking.status → 'canceled'
+            - Update slot.is_booked → false (free the slot)
+            - Delete CalDAV event from iCloud (deleteCalendarObject from tsdav/lib/caldav.ts)
+            - Call notifyCancellation(booking, isLate) from T08
+            - If late cancellation: create admin flag/notification for review
+            - Trigger backup queue notification (call existing backup queue system)
+      2. Add cancel button to student calendar (in StudentWeekCalendar confirmed bookings).
+      3. Handle edge cases:
+         - Cannot cancel completed bookings (ERR_CANCEL_002)
+         - Cannot cancel already-canceled bookings
+         - Admin can cancel any booking without 24hr restriction
+    wave: 4
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-060
+      - AC-CAL-061
+      - AC-CAL-062
+    priority: high
+    status: pending
+    dependencies:
+      - T05
+      - T07
+      - T08
+      - T12
+    conflicts_with: []
+    context_files:
+      - path: "lib/caldav.ts"
+        description: "CalDAV integration — need deleteCalendarObject or equivalent for removing iCloud events"
+      - path: "lib/notifications.ts"
+        description: "Notification service for cancellation notifications"
+      - path: "app/components/calendar/StudentWeekCalendar.tsx"
+        description: "Student calendar — add cancel button to confirmed bookings"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: large
+        estimated_files: 3
+        estimated_lines: 250
+        focus_area: "app/api/bookings/[id]/cancel/route.ts + StudentWeekCalendar cancel integration"
+        verification:
+          - "Student can cancel booking with 24+ hours notice — slot freed, CalDAV deleted, backup notified"
+          - "Student cancels within 24 hours — warning shown, cancellation flagged"
+          - "Completed/canceled bookings cannot be re-canceled"
+          - "CalDAV event removed from iCloud on cancellation"
+          - "Backup queue notification triggered"
+          - "Admin is notified of late cancellations"
+        acceptance_criteria:
+          - "24-hour cancellation policy enforced (soft-block for late cancellations)"
+          - "Cancellation frees slot and removes CalDAV event"
+          - "Backup queue notified on cancellation"
+          - "Late cancellations flagged for admin review"
+        failure_modes:
+          - scenario: "CalDAV delete fails — event remains in iCloud despite cancellation"
+            likelihood: medium
+            impact: medium
+            mitigation: "Set sync_status=pending_delete on slot. Background sync handles cleanup. Do not block cancellation on CalDAV failure."
+          - scenario: "Backup queue notification chain fails"
+            likelihood: low
+            impact: medium
+            mitigation: "Backup queue is existing system — cancellation triggers it but does not depend on its success. Fire-and-forget."
+        tech_stack:
+          - "Next.js API Routes"
+          - "Supabase"
+          - "tsdav"
+        test_coverage: null
+
+  - id: T21
+    title: "24-hour reminder cron function"
+    description: |
+      Create a scheduled function that sends 24-hour reminders:
+      1. Create Netlify Scheduled Function (or Next.js API route triggered by external cron):
+         netlify/functions/send-reminders.ts — runs daily (or every 4 hours for tighter window)
+      2. Query bookings where:
+         - status = 'paid' or 'confirmed'
+         - start_time is within next 24-28 hours (window to catch all bookings)
+         - No reminder already sent (add reminder_sent boolean to bookings or track in separate table)
+      3. For each booking: call sendReminder(booking, hoursUntil) from T08.
+      4. Mark reminder as sent to prevent duplicates.
+      This covers US-CAL-031.
+    wave: 4
+    agent: gem-implementer
+    prototype: false
+    covers:
+      - AC-CAL-050
+      - AC-CAL-051
+    priority: medium
+    status: pending
+    dependencies:
+      - T08
+    conflicts_with: []
+    context_files:
+      - path: "netlify/functions/"
+        description: "Existing Netlify functions directory"
+      - path: "netlify.toml"
+        description: "Netlify configuration — check for existing scheduled functions"
+      - path: "lib/notifications.ts"
+        description: "Notification service sendReminder function"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: small
+        estimated_files: 2
+        estimated_lines: 100
+        focus_area: "netlify/functions/send-reminders.ts"
+        verification:
+          - "Function runs on schedule"
+          - "Reminders sent for bookings within 24-28 hour window"
+          - "Duplicate reminders prevented"
+          - "Both email and SMS sent (per preferences)"
+          - "No reminders sent for canceled bookings"
+        acceptance_criteria:
+          - "Student receives reminder email 24 hours before lesson"
+          - "Student receives reminder SMS 24 hours before lesson (if SMS enabled)"
+          - "No duplicate reminders for the same booking"
+          - "Canceled bookings do not trigger reminders"
+        failure_modes:
+          - scenario: "Cron function misses execution window — reminders not sent"
+            likelihood: low
+            impact: medium
+            mitigation: "Run function every 4 hours with 24-28hr window. Multiple runs are idempotent due to reminder_sent tracking."
+
+  - id: T22
+    title: "Final integration review + deprecated code cleanup"
+    description: |
+      Comprehensive final review and cleanup:
+      1. End-to-end testing of all 8 PRD features against acceptance criteria
+      2. Verify all AC-CAL-* acceptance criteria from PRD are satisfied
+      3. Remove deprecated AdminBookingPlanner.tsx (or mark with @deprecated + removal date)
+      4. Clean up any unused imports or dead code from refactored files
+      5. Verify no regression in existing features:
+         - CalDAV bidirectional sync still works
+         - Stripe payments still work
+         - Existing booking flow unbroken
+         - Discovery flight steps 1-3 still capture data correctly
+         - RLS policies still protect student data
+      6. Performance check: student calendar loads in <2s on 3G throttle
+      7. Accessibility: calendar keyboard-navigable, screen reader labels present
+      8. Document any configuration changes needed (env vars, Netlify functions)
+    wave: 4
+    agent: gem-reviewer
+    prototype: false
+    covers: []
+    priority: high
+    status: pending
+    dependencies:
+      - T19
+      - T20
+      - T21
+    conflicts_with: []
+    context_files:
+      - path: "docs/plan/calendar-rework/PRD.yaml"
+        description: "Full PRD with all acceptance criteria to verify"
+      - path: "app/components/AdminBookingPlanner.tsx"
+        description: "Deprecated component to remove"
+    planning_pass: 1
+    planning_history:
+      - pass: 1
+        reason: "Initial plan creation"
+        timestamp: "2026-04-05T12:00:00Z"
+        estimated_effort: medium
+        estimated_files: 2
+        estimated_lines: 20
+        focus_area: "Full system verification + AdminBookingPlanner removal"
+        verification:
+          - "All AC-CAL-* acceptance criteria verified"
+          - "No dead code or unused imports"
+          - "No regression in CalDAV, Stripe, or existing booking"
+          - "Student calendar performance acceptable"
+          - "Discovery flight funnel complete e2e"
+        acceptance_criteria:
+          - "All 62 acceptance criteria from PRD verified (AC-CAL-001 through AC-CAL-062)"
+          - "AdminBookingPlanner.tsx removed or deprecated"
+          - "No TypeScript compilation errors"
+          - "No broken imports or references"
+          - "Configuration documentation updated"
+        failure_modes:
+          - scenario: "Acceptance criteria failure discovered late"
+            likelihood: medium
+            impact: medium
+            mitigation: "Track failing criteria, create targeted fix tasks. Most criteria are independently fixable."
+        requires_review: true
+        review_depth: full
+        review_security_sensitive: true
+
+planning_pass: 1
+planning_history:
+  - pass: 1
+    reason: "Initial plan creation from PRD calendar-rework-2026"
+    timestamp: "2026-04-05T12:00:00Z"

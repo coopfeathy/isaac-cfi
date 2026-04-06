@@ -84,55 +84,133 @@ const merchItems = [
 
 const headsets = [
   {
-    name: "Faro G2 ANR",
-    price: "~$250",
-    description: "Best budget ANR headset for students",
+    name: "Bose A30",
+    price: "~$1,299",
+    description: "Best-in-class ANR noise cancellation, Bluetooth, lightweight design",
+    href: "https://amzn.to/4td1tEN",
   },
   {
     name: "David Clark H10-13.4",
     price: "~$350",
-    description: "Industry-standard PNR headset",
+    description: "Industry-standard PNR headset, legendary durability",
+    href: "https://amzn.to/4bSpTwX",
   },
   {
-    name: "Bose A30",
-    price: "~$1,299",
-    description: "Best-in-class noise cancellation",
+    name: "Lightspeed Sierra ANR",
+    price: "~$749",
+    description: "Premium ANR with Bluetooth, great comfort-to-price ratio",
+    href: "https://amzn.to/4sT9myN",
+  },
+  {
+    name: "Lightspeed Zulu 3",
+    price: "~$899",
+    description: "Top-tier ANR headset with Bluetooth and plush ear seals",
+    href: "https://amzn.to/4tpncZC",
   },
 ]
 
 const technology = [
   {
-    name: "iPad (10th gen)",
+    name: "iPad Mini (A17 Pro)",
+    price: "~$499",
+    description: "Compact and powerful — perfect cockpit size for ForeFlight",
+    href: "https://amzn.to/48tl9eS",
+  },
+  {
+    name: "Apple iPad 11-inch",
     price: "~$349",
-    description: "Required for ForeFlight navigation",
+    description: "Great entry-level iPad for ForeFlight navigation",
+    href: "https://amzn.to/4tpabiB",
   },
   {
-    name: "ForeFlight Basic Plus",
-    price: "$240/yr",
-    description: "The #1 flight planning app",
+    name: "iPad Air 11-inch (M4) Cellular",
+    price: "~$709",
+    description: "M4 chip with 5G — stay connected everywhere",
+    href: "https://amzn.to/41bED3X",
   },
   {
-    name: "RAM iPad Mount",
+    name: "iPad Air 13-inch (M4)",
+    price: "~$749",
+    description: "Large display for detailed chart viewing and flight planning",
+    href: "https://amzn.to/4cdiTcV",
+  },
+  {
+    name: "iPad Air 13-inch (M4) Cellular",
+    price: "~$938",
+    description: "Full-size display with 5G for maximum flexibility",
+    href: "https://amzn.to/48hmZiZ",
+  },
+  {
+    name: "RAM iPad Yoke Mount",
     price: "~$50",
-    description: "Secure yoke mount for your iPad",
+    description: "Secure yoke mount — keeps your iPad in view while flying",
+    href: "https://amzn.to/4va2T44",
   },
 ]
 
 const trainingMaterials = [
   {
-    name: "Sporty\u2019s Learn to Fly Course",
-    price: "$249",
-    description: "Complete private pilot ground school",
+    name: "FAR/AIM 2026",
+    price: "~$25",
+    description: "FAA regulations and aeronautical information — updated annually",
+    href: "https://amzn.to/4c40wXJ",
   },
   {
-    name: "FAR/AIM (current)",
-    price: "$22",
-    description: "Federal aviation regulations",
+    name: "Pilot\u2019s Handbook (PHAK)",
+    price: "~$20",
+    description: "FAA-H-8083-25C — the foundational knowledge book for all pilots",
+    href: "https://amzn.to/47I36Bs",
   },
   {
-    name: "ASA Oral Exam Guide",
-    price: "$17",
-    description: "Private pilot oral prep",
+    name: "Airplane Flying Handbook",
+    price: "~$20",
+    description: "FAA-H-8083-3C — maneuvers, procedures, and flight techniques",
+    href: "https://amzn.to/4dOVh0T",
+  },
+  {
+    name: "Private Pilot ACS",
+    price: "~$15",
+    description: "Airman Certification Standards — know exactly what the examiner expects",
+    href: "https://amzn.to/3NX5RZ3",
+  },
+  {
+    name: "Flight Bag",
+    price: "~$45",
+    description: "Wairworthy Ascend — purpose-built pilot bag with smart organization",
+    href: "https://amzn.to/3NX5Jsx",
+  },
+  {
+    name: "Pilot Kneeboard",
+    price: "~$25",
+    description: "Essential for in-flight notes, checklists, and approach plates",
+    href: "https://amzn.to/3O2xW16",
+  },
+]
+
+const studyAids = [
+  {
+    name: "Private Pilot Test Prep 2025–2026",
+    price: "~$20",
+    description: "Practice questions and explanations for the FAA written exam",
+    href: "https://amzn.to/4vdVQrc",
+  },
+  {
+    name: "Private Pilot Flash Cards",
+    price: "~$20",
+    description: "Quick-review cards covering all major knowledge areas",
+    href: "https://amzn.to/4c9LWOs",
+  },
+  {
+    name: "ASA E6B Flight Computer",
+    price: "~$12",
+    description: "Manual flight computer — required for training and the checkride",
+    href: "https://amzn.to/41h7zra",
+  },
+  {
+    name: "Aviation Plotter",
+    price: "~$12",
+    description: "Navigation plotter for cross-country flight planning on charts",
+    href: "https://amzn.to/4vsvYYO",
   },
 ]
 
@@ -467,7 +545,7 @@ export default function StorePage() {
             <h3 className="text-xl sm:text-2xl font-bold text-black mb-6">
               Headsets
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
               {headsets.map((item) => (
                 <GearCard key={item.name} {...item} />
               ))}
@@ -487,12 +565,24 @@ export default function StorePage() {
           </div>
 
           {/* Training Materials */}
-          <div>
+          <div className="mb-12">
             <h3 className="text-xl sm:text-2xl font-bold text-black mb-6">
               Training Materials
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {trainingMaterials.map((item) => (
+                <GearCard key={item.name} {...item} />
+              ))}
+            </div>
+          </div>
+
+          {/* Study Aids */}
+          <div>
+            <h3 className="text-xl sm:text-2xl font-bold text-black mb-6">
+              Study Aids
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+              {studyAids.map((item) => (
                 <GearCard key={item.name} {...item} />
               ))}
             </div>

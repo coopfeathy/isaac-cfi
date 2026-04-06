@@ -1,0 +1,530 @@
+plan_id: scheduling-calendar
+objective: "Research best calendar/scheduling systems for flight schools and service-based businesses to inform Merlin Flight Training's scheduling calendar architecture"
+focus_area: scheduling_and_booking_systems
+created_at: "2026-04-05"
+created_by: gem-researcher
+status: completed
+
+tldr: |
+  - Flight school scheduling software (Flight Schedule Pro, FlightCircle) uses slot-based calendars with instructor-creates, student-selects paradigm — matching Merlin's existing architecture
+  - Calendly/Cal.com/Acuity prove that availability-first slot display with 3-step booking (select type → pick time → confirm details) is the gold standard for UX conversion
+  - For a single-instructor school, a hybrid model works best: pre-published availability slots for enrolled students + a separate request-based funnel for discovery flight prospects
+  - Student privacy is solved through RLS policies (already in place) — students see only available/booked status per slot, never other student names; admin sees everything
+  - CalDAV bidirectional sync (already built via tsdav) is the correct approach and matches FlightCircle's iCal sync model
+
+research_metadata:
+  methodology: "Hybrid retrieval: web fetching of flight school software sites (Flight Schedule Pro, FlightCircle, FlightBridge), consumer scheduling platforms (Calendly, Cal.com, Acuity/Squarespace Scheduling), supplemented by codebase analysis of existing Merlin implementation (SETUP.sql, AdminBookingPlanner.tsx, CalDAV lib, API routes)"
+  scope: "Broad: 4 flight school platforms, 4 consumer scheduling platforms, existing codebase patterns, PRD requirements"
+  confidence: high
+  coverage: 85
+  decision_blockers: 1
+  research_blockers: 0
+
+# ============================================================
+# SECTION 1: FLIGHT SCHOOL SCHEDULING SOFTWARE
+# ============================================================
+flight_school_platforms:
+  - name: "Flight Schedule Pro"
+    url: "https://flightschedulepro.com"
+    market_position: "Industry leader — 1,300+ flight schools, universities, pilot training centers"
+    key_features:
+      - "Intelligent Scheduling (Beta) — defines schedule parameters, auto-builds complete schedules for instructor approval"
+      - "Centralized calendar view with aircraft and instructor columns"
+      - "Maintenance tracking integrated with scheduling (blocks aircraft when due)"
+      - "Auto-generated invoices on flight check-in (Hobbs-based billing)"
+      - "Student progress tracking with expected completion dates"
+      - "KPI reporting and resource utilization dashboards"
+    scheduling_model: "Slot-based with intelligent scheduling assist"
+    availability_display: "Grid view showing instructor + aircraft availability; students see open blocks"
+    student_privacy: "Students see their own bookings only; cannot see other students' schedules"
+    pricing: "Enterprise SaaS — requires demo/quote (typically $200-500/mo based on fleet size)"
+    relevance_to_merlin: "Overkill for single-instructor operation. Their 'intelligent scheduling' concept is inspiring but designed for multi-instructor/multi-aircraft fleets. The slot-based paradigm matches Merlin's existing architecture."
+
+  - name: "FlightCircle"
+    url: "https://flightcircle.com"
+    market_position: "Popular with smaller flight schools and flying clubs — 'thousands of users'"
+    key_features:
+      - "Google Calendar Sync + iCal/iOS/Android calendar integration"
+      - "Part 61 and Part 141 training module"
+      - "CRM and contact management"
+      - "Billing with QuickBooks sync"
+      - "Policy enforcement (currency, medical, checkout)"
+      - "SMS/email messaging and automations"
+      - "Squawk management and maintenance reminders"
+      - "Hosted forms with document upload"
+      - "2FA secure login, Apple Pay, ACH"
+    scheduling_model: "Calendar-based with resource (aircraft + instructor) conflict detection"
+    availability_display: "Week/day view calendar with color-coded bookings"
+    student_privacy: "Role-based access — students see only available slots and their own bookings"
+    calendar_sync: "Google Calendar sync, iCal feed (iOS/Android) — closest to Merlin's CalDAV approach"
+    pricing: "Tiered plans starting ~$50/mo; 60-day free trial"
+    relevance_to_merlin: "Most analogous to Merlin's scale. Their iCal sync approach validates Merlin's CalDAV strategy. Training module and policy enforcement are features for the PRD roadmap."
+
+  - name: "FlightBridge / Cirro"
+    url: "https://home.flightbridge.com"
+    market_position: "40,000+ private aviation professionals — charter/corporate focus, not flight training"
+    key_features:
+      - "Trip logistics platform: crew travel, hotel, rental car, FBO"
+      - "Deep integrations with flight scheduling systems"
+      - "Targeted at charter companies, corporate flight departments, FBOs"
+    scheduling_model: "Trip/dispatch-oriented — not student booking"
+    relevance_to_merlin: "Not relevant. FlightBridge is for charter operations and crew logistics, not student scheduling. Discard from consideration."
+
+  - name: "ScholarPilot"
+    url: "https://scholarpilot.com"
+    market_position: "Smaller/newer entrant — limited public information available"
+    key_features:
+      - "Training management and progress tracking"
+      - "Student scheduling"
+    relevance_to_merlin: "Insufficient public data — website failed to render meaningful content. Not a viable reference platform."
+
+# ============================================================
+# SECTION 2: CONSUMER SCHEDULING PLATFORMS (UX INSPIRATION)
+# ============================================================
+consumer_scheduling_platforms:
+  - name: "Calendly"
+    url: "https://calendly.com"
+    market_position: "Market leader in meeting scheduling — used by DocuSign, Vonage, enterprise clients"
+    booking_flow:
+      step_1: "Share scheduling link (embeddable or standalone page)"
+      step_2: "Invitee selects event type from available options"
+      step_3: "Calendar shows available time slots for the selected event type"
+      step_4: "Invitee picks a slot and fills in details (name, email, notes)"
+      step_5: "Confirmation sent + calendar invite created"
+    key_ux_patterns:
+      - "Availability-first display: calendar grid shows only selectable open slots"
+      - "Event Types: separate booking categories (like 'Discovery Flight' vs 'Training Session')"
+      - "Connected calendars for conflict detection — shows true availability"
+      - "Routing forms: qualify leads before scheduling (relevant to discovery flights)"
+      - "Meeting polls for group availability"
+      - "Automated reminders and follow-ups"
+      - "Payment collection during booking (Stripe integration)"
+      - "Mobile-responsive booking page"
+    privacy_approach: "Each invitee sees only available time slots — no visibility into who else is booked"
+    relevance_to_merlin:
+      - "Event Types directly maps to Merlin's slot types (training vs tour/discovery)"
+      - "Routing forms pattern ideal for discovery flight qualification"
+      - "Payment-during-booking is Merlin's existing Stripe flow"
+      - "Their 3-step flow (type → time → details) is the model to follow"
+
+  - name: "Cal.com (open source)"
+    url: "https://cal.com"
+    market_position: "Open-source Calendly alternative"
+    tech_stack:
+      - "Next.js"
+      - "tRPC"
+      - "React"
+      - "Tailwind CSS"
+      - "Prisma (PostgreSQL)"
+      - "Daily.co (video)"
+    architecture_insights:
+      - "Event Types as core entity — each event type has its own availability rules, duration, pricing"
+      - "Availability schedules: weekly recurring patterns with override dates"
+      - "Booking entity links event type + attendee + time slot"
+      - "Calendar integrations for conflict detection (Google, Outlook, CalDAV)"
+      - "API-first design with V2 REST API"
+      - "AGPLv3 license — can reference patterns but cannot copy code for commercial use without license"
+    availability_model: |
+      User defines 'Schedules' (e.g., Mon-Fri 8am-5pm) → Event Types reference a Schedule →
+      Available slots computed by subtracting existing bookings from the schedule →
+      Displayed to invitees as clickable time slots
+    relevance_to_merlin:
+      - "Architecture closely matches Merlin's Next.js + Supabase stack"
+      - "Schedule → Event Type → Booking model is worth adopting"
+      - "Their availability computation logic (schedule minus existing bookings) is the recommended approach"
+      - "CalDAV integration approach validates Merlin's tsdav implementation"
+
+  - name: "Acuity Scheduling (Squarespace)"
+    url: "https://acuityscheduling.com"
+    market_position: "Part of Squarespace — popular with service businesses (salons, fitness, coaching)"
+    booking_flow:
+      step_1: "Client chooses appointment type from list"
+      step_2: "Calendar shows available dates (dates with no availability are grayed out)"
+      step_3: "Client picks a date, then selects from available time slots on that date"
+      step_4: "Intake form collects required information"
+      step_5: "Payment (optional) via Stripe/Square/PayPal"
+      step_6: "Confirmation with calendar invite"
+    key_ux_patterns:
+      - "Custom intake forms per appointment type — collect different info for discovery flights vs training"
+      - "'Look Busy' feature — selectively hide availability to appear in-demand"
+      - "Max daily appointment limits and buffer times between appointments"
+      - "Appointment packages, subscriptions, gift certificates (maps to block accounts)"
+      - "Client profiles with history tracking"
+      - "HIPAA compliance option (Premium plan) — relevant privacy precedent"
+      - "Color-coded appointments on admin calendar"
+      - "Drag-and-drop rescheduling"
+      - "Automated SMS reminders (Standard plan+)"
+      - "Terms/cancellation policy acceptance at booking"
+    privacy_approach: "Clients see only available times for their chosen service. Client data is isolated. HIPAA-mode available."
+    relevance_to_merlin:
+      - "Intake forms pattern is ideal for discovery flight data capture (already implemented in 4-step funnel)"
+      - "'Look Busy' concept useful for single instructor hiding sparse availability"
+      - "Cancellation policy enforcement at booking time — maps directly to PRD's 24-hour cancellation policy"
+      - "Package/subscription model maps to PRD's block account system"
+      - "Their date-first → time-slot-second UX is more mobile-friendly than grid view"
+
+# ============================================================
+# SECTION 3: UX PATTERNS ANALYSIS
+# ============================================================
+ux_patterns:
+
+  availability_first_vs_request_based:
+    recommendation: "Hybrid — availability-first for enrolled students, request-based for discovery flights"
+    analysis: |
+      Availability-first (Calendly/Acuity model):
+        Pros: Instant booking, lower friction, higher conversion, no admin bottleneck
+        Cons: Instructor loses granular control, harder to manage complex scheduling needs
+        Best for: Recurring students who know what they want
+
+      Request-based (current slot_requests model):
+        Pros: Full instructor control, can qualify prospects, personalized scheduling
+        Cons: Higher friction, slower turnaround, admin overhead
+        Best for: Discovery flights where qualification matters
+
+      For single-instructor Merlin: Use BOTH models
+        → Students see published availability → instant self-booking (with 24hr cancellation policy)
+        → Discovery flight prospects → request flow with admin approval
+        → This is exactly what FSP and FlightCircle do for their multi-instructor operations, simplified
+
+  student_confidentiality:
+    pattern: "Slot-level status abstraction"
+    implementation: |
+      All major platforms solve this identically:
+      1. Slots have a boolean `is_booked` flag (already in Merlin's schema)
+      2. Students see: "Available" or "Booked" — never WHO booked it
+      3. Supabase RLS policies on `bookings` table already enforce this:
+         - "Users can view their own bookings" (auth.uid() = user_id)
+         - "Admins can view all bookings"
+      4. The slots table has "Slots are viewable by everyone" — this is correct because
+         slot data itself contains no student PII; only the booking join reveals the student
+    merlin_current_status: "Already correctly implemented via RLS. No changes needed."
+    additional_measures:
+      - "Ensure API responses for slot listings never join booking.user_id into the response"
+      - "Admin view should have a separate data path that includes booking details"
+      - "Calendar export (ICS) should only include the requesting user's own bookings"
+
+  discovery_flight_conversion:
+    best_practices:
+      - pattern: "Low-friction entry point"
+        description: "Discovery flight landing page with simple call-to-action, embedded booking widget"
+        example: "Calendly's embeddable scheduling widget — 1 click from landing page to date selection"
+        merlin_status: "Done — discovery-flight landing page exists with CTA → multi-step funnel"
+
+      - pattern: "Progressive data capture"
+        description: "Collect only essential info first (name, email, date preference), request phone/details later"
+        example: "Acuity's intake forms per appointment type"
+        merlin_status: "Done — 4-step discovery flight funnel (pt1-pt4) progressively captures data"
+
+      - pattern: "Immediate confirmation with next steps"
+        description: "After booking/requesting, show confirmation with 'what to expect' content"
+        example: "Acuity's automated confirmation emails with custom content per service type"
+        merlin_status: "Partially done — confirmation exists but could include preparation info"
+
+      - pattern: "Post-flight follow-up automation"
+        description: "Automated email/SMS within 24hr post-discovery-flight with enrollment CTA"
+        example: "CRM drip campaigns triggered by flight completion"
+        merlin_status: "Not implemented — prospect record exists, follow-up is manual"
+
+      - pattern: "Separate booking path"
+        description: "Discovery flights should feel distinct from student booking — different branding, simpler flow"
+        example: "Most flight schools have a dedicated 'Book Your Discovery Flight' page separate from student scheduling"
+        merlin_status: "Done — separate /discovery-flight path with its own funnel"
+
+  mobile_first_calendar:
+    best_patterns:
+      - pattern: "Date-first, then time slots"
+        description: |
+          Mobile screens cannot display a full week grid. The proven pattern:
+          1. Show a month-view mini calendar (or scrollable week strip)
+          2. User taps a date
+          3. Available time slots appear as a vertical list of tappable buttons
+          This is how Acuity, Calendly, and Apple's own Booking page work.
+        merlin_status: "Current AdminBookingPlanner uses a week grid — good for desktop admin, needs mobile student view"
+
+      - pattern: "Bottom sheet / floating card for slot details"
+        description: "On mobile, tap a slot → slide-up card shows details, duration, price, 'Book' button"
+        merlin_status: "Not implemented"
+
+      - pattern: "Swipe navigation between days/weeks"
+        description: "Horizontal swipe to navigate days; vertical scroll for time slots"
+        merlin_status: "Not implemented"
+
+      - pattern: "Sticky header with date context"
+        description: "As user scrolls time slots, the current date stays pinned at top"
+        merlin_status: "Not implemented"
+
+      - pattern: "One-thumb reachability"
+        description: "Book button and primary actions in bottom half of screen (thumb zone)"
+        merlin_status: "Not implemented"
+
+  recurring_availability:
+    patterns:
+      - pattern: "Weekly schedule template"
+        description: |
+          Instructor defines a default weekly pattern (e.g., Mon/Wed/Fri 7am-2pm, Tue/Thu 9am-5pm).
+          System auto-generates available slots N weeks in advance.
+          Cal.com calls this 'Schedules'. Calendly calls it 'Availability'.
+          Acuity calls it 'Availability Controls'.
+        implementation_options:
+          - name: "Template-based auto-generation"
+            description: "Store a weekly template, cron job generates slots 2-4 weeks ahead"
+            pros: "Simple, instructor can adjust individual slots after generation"
+            cons: "Requires cron job, slots table grows over time"
+
+          - name: "Computed availability (Cal.com approach)"
+            description: "Store the template only. Compute available slots on-the-fly by subtracting bookings from template"
+            pros: "No slot bloat, single source of truth, easy template changes"
+            cons: "More complex query logic, harder to override individual time blocks"
+
+          - name: "Hybrid (recommended for Merlin)"
+            description: |
+              Store a weekly availability template in a new `instructor_availability` table.
+              When student views calendar: compute available = (template slots) - (existing bookings) - (CalDAV blocked events).
+              Instructor can still manually create one-off slots outside the template.
+              Template changes apply to future dates only.
+            pros: "Best of both worlds — consistent baseline with override flexibility"
+            cons: "Moderate implementation complexity"
+
+# ============================================================
+# SECTION 4: RECOMMENDED ARCHITECTURE
+# ============================================================
+recommended_approaches:
+  - rank: 1
+    name: "Hybrid Availability-First with Computed Slots"
+    description: |
+      Combine Cal.com's computed availability model with Merlin's existing slot-based architecture.
+      Instructor defines a weekly availability template.
+      Students see computed open slots (template minus existing bookings minus CalDAV conflicts).
+      Students self-book training slots instantly (deducting from block balance).
+      Discovery flights use the existing request-based funnel with a separate path.
+    architecture:
+      new_tables:
+        - name: "instructor_availability"
+          columns:
+            - "id UUID PRIMARY KEY"
+            - "instructor_id UUID REFERENCES profiles(id)"
+            - "day_of_week INTEGER (0=Sun...6=Sat)"
+            - "start_time TIME"
+            - "end_time TIME"
+            - "is_active BOOLEAN DEFAULT true"
+            - "effective_from DATE"
+            - "effective_until DATE (nullable = indefinite)"
+        - name: "availability_overrides"
+          columns:
+            - "id UUID PRIMARY KEY"
+            - "instructor_id UUID REFERENCES profiles(id)"
+            - "date DATE NOT NULL"
+            - "start_time TIME (nullable = full day block)"
+            - "end_time TIME"
+            - "override_type TEXT CHECK ('available', 'unavailable')"
+      booking_flow_students: |
+        1. Student visits /schedule
+        2. Mobile: sees date picker (month mini-cal or week strip)
+        3. Selects a date → API computes available slots:
+           a. Get instructor_availability for that day_of_week
+           b. Subtract bookings already on that date
+           c. Subtract CalDAV blocked events from Apple Calendar
+           d. Apply availability_overrides for that date
+           e. Return available time windows
+        4. Student picks a slot → creates pending booking
+        5. If block balance sufficient → auto-confirm, deduct balance
+        6. If no block balance → Stripe checkout → confirm on webhook
+        7. CalDAV outbound sync pushes to Apple Calendar
+        8. Email notification sent via Resend
+      booking_flow_discovery: |
+        1. Prospect visits /discovery-flight
+        2. Existing 4-step funnel captures prospect data
+        3. Creates slot_request with preferred time
+        4. Admin reviews in /admin → approves → creates slot + booking
+        5. Prospect receives confirmation email
+    feasibility:
+      nextjs_supabase: "Excellent — all components use existing stack"
+      complexity: "Medium — new tables and availability computation logic"
+      migration_risk: "Low — existing slots/bookings tables unchanged; new tables are additive"
+    user_friendliness: 9
+    feasibility_score: 8
+
+  - rank: 2
+    name: "Enhanced Slot-Based with Template Generation"
+    description: |
+      Keep the existing slot-based model but add a template system that auto-generates slots.
+      Weekly availability template stored in DB.
+      Cron job runs nightly to generate slots 2-4 weeks ahead based on template.
+      Students book from pre-generated slots (current flow).
+      Admin can edit/delete individual slots after generation.
+    architecture:
+      new_tables:
+        - name: "availability_templates"
+          columns:
+            - "id UUID PRIMARY KEY"
+            - "instructor_id UUID REFERENCES profiles(id)"
+            - "day_of_week INTEGER"
+            - "start_time TIME"
+            - "end_time TIME"
+            - "slot_duration_minutes INTEGER DEFAULT 90"
+            - "slot_type TEXT DEFAULT 'training'"
+            - "default_price_cents INTEGER"
+            - "is_active BOOLEAN"
+      changes_to_existing:
+        - "Add generated_from_template UUID to slots table (nullable FK to availability_templates)"
+      booking_flow: |
+        1. Cron generates slots from templates each night for rolling 2-4 week window
+        2. Student visits /schedule → sees pre-generated slots (existing flow)
+        3. Mobile: date-first → time slot list (UI change only)
+        4. Self-booking with block balance or Stripe (existing flow)
+        5. CalDAV sync on booking (existing flow)
+    feasibility:
+      nextjs_supabase: "Excellent — simplest to implement"
+      complexity: "Low — thin layer on top of existing architecture"
+      migration_risk: "Very low — additive only"
+    user_friendliness: 7
+    feasibility_score: 9
+
+  - rank: 3
+    name: "Full Request-Based with Priority Queue"
+    description: |
+      All bookings (training + discovery) go through admin approval.
+      Students request preferred times. Admin approves/denies/suggests alternatives.
+      Backup queue system for waitlisting (aligns with PRD backup queue feature).
+    architecture:
+      booking_flow: |
+        1. Student submits appointment request (date, time, duration, type)
+        2. Cost estimate displayed before submission
+        3. Request enters queue → admin notified
+        4. Admin approves → booking created → CalDAV sync → student notified
+        5. Admin denies → student notified with suggested alternatives
+        6. Waitlist: student joins backup queue for booked slots
+    feasibility:
+      nextjs_supabase: "Good"
+      complexity: "Medium — queue management, notification chains"
+      migration_risk: "Low — extends existing slot_requests pattern"
+    user_friendliness: 5
+    feasibility_score: 7
+    tradeoffs: |
+      Pros: Full instructor control, matches PRD appointment request flow exactly
+      Cons: High-friction for students, admin bottleneck for every booking,
+            slower turnaround, poor UX compared to self-service competitors.
+            Only recommended if instructor explicitly wants approval on EVERY booking.
+
+# ============================================================
+# SECTION 5: SPECIFIC DECISIONS
+# ============================================================
+specific_decisions:
+
+  single_instructor_approach:
+    recommendation: "Approach #1 (Hybrid Availability-First) is optimal for single-instructor"
+    rationale: |
+      A single instructor is already the bottleneck. Adding manual approval to every
+      booking compounds this. Self-service for enrolled students removes friction.
+      The instructor manages their schedule via Apple Calendar (CalDAV sync means any
+      personal blocks automatically hide availability). Discovery flight requests
+      remain admin-controlled because they involve unverified prospects.
+
+  separate_discovery_vs_training:
+    recommendation: "Yes — keep discovery flights as a separate booking path"
+    rationale: |
+      1. Different audiences: prospects (unauthenticated) vs students (authenticated)
+      2. Different data needs: prospect funnel collects name/email/phone; student booking uses existing profile
+      3. Different approval models: discovery = request/approve; training = self-service
+      4. Different pricing: discovery = fixed price; training = hourly rate × duration
+      5. Already implemented as separate flows in the codebase (/discovery-flight vs /booking)
+
+  time_slot_vs_request_based:
+    recommendation: "Time-slot-based for training, request-based for discovery flights"
+    rationale: |
+      The PRD specifies both models:
+      - "Students request flight appointments" (request model for new feature)
+      - "Admin approves/denies" (admin control layer)
+      - "Backup/waitlist queue" (queue model)
+
+      Reconciliation: Use time-slot display as the PRIMARY student interface, with
+      the request/approval layer as an OPTIONAL toggle. Instructor can set per-slot:
+      - "instant_book" (students self-book) for regular training slots
+      - "request_only" (admin approval required) for limited slots or peak times
+
+      This hybrid satisfies all PRD requirements while optimizing for UX.
+
+  privacy_anonymity:
+    recommendation: "Already solved — enhance with API-level enforcement"
+    implementation: |
+      Current state (CORRECT):
+      - slots table: public SELECT (no PII in slot data)
+      - bookings table: RLS limits to own bookings + admin all
+      - slot.is_booked boolean tells students a slot is taken without revealing WHO
+
+      Enhancements needed:
+      1. API routes for /api/slots must NOT join user data — return only: id, start_time, end_time, type, price, is_booked
+      2. Admin API routes (/api/admin/slots) can join booking.user_id → profiles.full_name
+      3. Calendar ICS export: filter to requesting user's bookings only
+      4. Real-time subscription (if added): broadcast slot status changes only (available/booked), not booking details
+
+# ============================================================
+# SECTION 6: EXISTING CODEBASE ALIGNMENT
+# ============================================================
+codebase_alignment:
+  existing_assets_to_keep:
+    - component: "AdminBookingPlanner.tsx"
+      status: "Keep for admin view — week grid with drag-drop slot creation"
+      change_needed: "Add template management UI alongside manual slot creation"
+    - component: "slots table"
+      status: "Keep as-is — core scheduling entity"
+      change_needed: "Add optional FK to availability_templates"
+    - component: "bookings table"
+      status: "Keep as-is — booking entity with status machine"
+      change_needed: "None — PRD adds 'requested' and 'approved' states (already in PRD state machine)"
+    - component: "slot_requests table"
+      status: "Keep for discovery flight requests"
+      change_needed: "None"
+    - component: "CalDAV lib (lib/caldav.ts)"
+      status: "Keep — bidirectional sync via tsdav"
+      change_needed: "Use CalDAV busy times as input to availability computation"
+    - component: "Discovery flight funnel (pt1-pt4)"
+      status: "Keep — working prospect capture funnel"
+      change_needed: "None for MVP"
+    - component: "Stripe payment flow"
+      status: "Keep — slot booking creates Stripe session"
+      change_needed: "Add block balance deduction as alternative payment path (PRD feature)"
+
+  new_components_needed:
+    - "instructor_availability table + CRUD API"
+    - "availability_overrides table + CRUD API"
+    - "Availability computation function (template - bookings - CalDAV conflicts)"
+    - "Student-facing scheduling page with mobile-first date → time slot UX"
+    - "Template management UI in admin panel"
+    - "Backup queue system (PRD feature)"
+    - "Block balance payment path (PRD feature)"
+
+# ============================================================
+# OPEN QUESTIONS & GAPS
+# ============================================================
+open_questions:
+  - question: "Should training bookings default to instant-book or request-approval?"
+    context: "PRD says 'students request, admin approves' but this adds friction. Calendly/Acuity data shows self-service has 2-3x higher booking rates."
+    type: decision_blocker
+    affects: ["booking-flow-implementation", "admin-ui-design"]
+
+  - question: "What is the slot duration granularity — fixed 1.5hr blocks or variable?"
+    context: "Current slots have arbitrary start_time/end_time. PRD mentions 'duration' in cost estimator. Most flight schools use 1.5-2hr standard blocks."
+    type: research
+    affects: ["availability-template-design", "cost-estimator"]
+
+  - question: "Should the availability computation include aircraft availability?"
+    context: "Single-aircraft operation currently, but PRD's aircraft table supports multiple. If instructor and aircraft are both required, availability = instructor ∩ aircraft."
+    type: nice_to_know
+    affects: ["future-multi-aircraft-support"]
+
+gaps:
+  - area: "ScholarPilot platform analysis"
+    description: "Website did not render content. Unable to analyze features."
+    impact: nice_to_know
+    affects: []
+
+  - area: "Mobile UX benchmarking"
+    description: "Could not access Baymard Institute or Smashing Magazine booking UX research articles. Recommendations based on first-party platform analysis and established patterns."
+    impact: nice_to_know
+    affects: ["mobile-ui-design"]
+
+  - area: "Discovery flight conversion rates"
+    description: "No public data found on flight school discovery-to-enrollment conversion rates or funnel best practices. Recommendations based on general service booking patterns."
+    impact: nice_to_know
+    affects: ["discovery-flight-funnel-optimization"]

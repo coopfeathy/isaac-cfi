@@ -1,0 +1,716 @@
+prd_id: calendar-rework-2026
+version: "1.0.0"
+
+# ============================================================
+# Calendar System Rework — Merlin Flight Training
+# ============================================================
+# Replaces the manual slot-creation model with an instructor
+# availability template + student request/approval workflow.
+# Preserves existing CalDAV sync, Stripe payments, and the
+# 4-step discovery flight funnel.
+# ============================================================
+
+user_stories:
+  # --- Instructor / Admin ---
+  - id: US-CAL-001
+    as_a: Flight instructor
+    i_want: Set a recurring weekly availability template (e.g. Mon/Wed/Fri 8am-4pm)
+    so_that: I don't have to create individual slots for every lesson each week
+
+  - id: US-CAL-002
+    as_a: Flight instructor
+    i_want: Override my template for specific dates (vacations, extra hours, one-off blocks)
+    so_that: My calendar reflects real-world schedule changes without altering the recurring template
+
+  - id: US-CAL-003
+    as_a: Flight instructor
+    i_want: See all bookings, pending requests, and availability blocks on one admin calendar
+    so_that: I have a single view of my entire week
+
+  - id: US-CAL-004
+    as_a: Flight instructor
+    i_want: Approve or deny student booking requests from the admin calendar
+    so_that: I control my schedule while giving students the ability to request times
+
+  - id: US-CAL-005
+    as_a: Flight instructor
+    i_want: Payment to be collected automatically after I approve a request
+    so_that: I don't have to chase students for payment manually
+
+  - id: US-CAL-006
+    as_a: Flight instructor
+    i_want: CalDAV sync to still work after the rework (iCloud bidirectional sync)
+    so_that: I can keep using Apple Calendar as my personal scheduling tool
+
+  - id: US-CAL-007
+    as_a: Flight instructor
+    i_want: To be notified by email and SMS when a student requests a booking
+    so_that: I can respond to requests quickly without constantly checking the admin panel
+
+  - id: US-CAL-008
+    as_a: Flight instructor
+    i_want: To quickly create manual slots or block time directly on the admin calendar
+    so_that: I can handle edge cases that don't fit the template model
+
+  # --- Student ---
+  - id: US-CAL-010
+    as_a: Student
+    i_want: See a week-view calendar showing which time blocks are open vs. busy
+    so_that: I can find available times without back-and-forth with my instructor
+
+  - id: US-CAL-011
+    as_a: Student
+    i_want: Tap an open block and request a 2-hour training lesson
+    so_that: I can book training at times that work for my schedule
+
+  - id: US-CAL-012
+    as_a: Student
+    i_want: See the status of my pending requests on the calendar (pending, approved, denied)
+    so_that: I know where I stand without contacting the instructor
+
+  - id: US-CAL-013
+    as_a: Student
+    i_want: Receive email and SMS notifications when my request is approved or denied
+    so_that: I'm informed promptly and can plan accordingly
+
+  - id: US-CAL-014
+    as_a: Student
+    i_want: Pay for my lesson after the instructor approves my request
+    so_that: I'm not charged for a lesson that might get denied
+
+  - id: US-CAL-015
+    as_a: Student
+    i_want: Cancel a booking with at least 24 hours notice
+    so_that: I can adjust my schedule while respecting the cancellation policy
+
+  - id: US-CAL-016
+    as_a: Student
+    i_want: NOT see other students' names or booking details — just "unavailable"
+    so_that: My privacy and other students' privacy is protected
+
+  - id: US-CAL-017
+    as_a: Student
+    i_want: The calendar to work well on my phone without drag interactions
+    so_that: I can book lessons from anywhere on mobile
+
+  # --- Discovery Flight Prospect ---
+  - id: US-CAL-020
+    as_a: Discovery flight prospect
+    i_want: Pick a preferred time slot from a calendar after completing the discovery flight form
+    so_that: I can choose a convenient time instead of waiting for a callback
+
+  - id: US-CAL-021
+    as_a: Discovery flight prospect
+    i_want: My preferred 1.5-hour time slot to be sent as a request (not instantly booked)
+    so_that: The instructor can review and confirm my booking
+
+  - id: US-CAL-022
+    as_a: Discovery flight prospect
+    i_want: Receive a payment link after the instructor approves my time slot
+    so_that: I only pay once the booking is confirmed
+
+  # --- Notifications ---
+  - id: US-CAL-030
+    as_a: Student
+    i_want: Choose whether I receive SMS notifications or only email
+    so_that: I control how I'm contacted
+
+  - id: US-CAL-031
+    as_a: Student or prospect
+    i_want: Receive a reminder 24 hours before my lesson
+    so_that: I don't forget about my upcoming flight
+
+scope:
+  in_scope:
+    # Database
+    - "New `instructor_availability` table for recurring weekly schedule templates"
+    - "New `availability_overrides` table for date-specific schedule changes"
+    - "New `notification_preferences` table for student email/SMS preferences"
+    - "Extend `slot_requests` table to handle student training requests (not just discovery flights)"
+    - "Add `request_type` column to `slot_requests` (training | discovery_flight)"
+    - "Add `denial_reason` column to `slot_requests`"
+
+    # Availability Engine
+    - "Availability computation: template minus existing bookings minus CalDAV conflicts minus overrides"
+    - "Admin UI to create/edit/delete weekly recurring availability template"
+    - "Admin UI to add/edit/delete date-specific overrides (vacations, extra hours)"
+
+    # Student Calendar
+    - "Student-facing week-view calendar (responsive, mobile-friendly, no drag)"
+    - "Three visual states: Available (open), Busy (booked/blocked), Your Requests (pending/approved)"
+    - "Student tap-to-request flow within available blocks (2hr training slots)"
+    - "Privacy: students see only their own requests; other bookings appear as generic 'unavailable'"
+
+    # Request + Approval Workflow
+    - "Student submits booking request → stored in `slot_requests`"
+    - "Admin notification (email via Resend + SMS via Twilio)"
+    - "Admin approve/deny from admin calendar"
+    - "On approval: slot created, CalDAV synced, student notified, Stripe payment link sent"
+    - "On denial: student notified with optional reason"
+    - "Payment collected via existing Stripe integration after approval"
+
+    # Discovery Flight Integration
+    - "Step 4 of discovery flight funnel becomes calendar slot picker (1.5hr blocks)"
+    - "Prospect selects preferred time → creates `slot_request` with type=discovery_flight"
+    - "Approval flow same as training requests (approve → payment link → pay → confirmed)"
+    - "Preserve existing steps 1-3 of funnel (prospect data to `prospects` table)"
+
+    # Admin Calendar
+    - "Replace AdminBookingPlanner with new admin calendar view"
+    - "Full week view: all bookings, student names, pending requests, availability blocks"
+    - "Quick actions: approve/deny requests, create manual slots, block time"
+    - "Integration with existing CalDAV sync button and settings"
+
+    # Notification System
+    - "Email via Resend: request received, approved, denied, payment link, 24hr reminder"
+    - "SMS via Twilio: request approved, 24hr reminder, cancellation confirmation"
+    - "Student notification preferences (opt out of SMS; email always required)"
+
+    # Cancellation
+    - "24-hour cancellation window enforcement"
+    - "Cancellation triggers: slot freed, backup queue notified, CalDAV updated"
+    - "Late cancellation flagged but not hard-blocked (admin discretion)"
+
+    # Existing Systems Preserved
+    - "CalDAV bidirectional sync with iCloud (tsdav)"
+    - "Stripe payment integration"
+    - "Backup schedule queue + sequential SMS notification"
+    - "RLS policies for student data privacy"
+
+  out_of_scope:
+    - "Multi-instructor support (single instructor system)"
+    - "Per-location calendar filtering (single location)"
+    - "Buffer time between flights"
+    - "Recurring student booking subscriptions (auto-book every week)"
+    - "Real-time WebSocket calendar updates (polling acceptable)"
+    - "Drag-and-drop calendar interactions"
+    - "Student self-service rescheduling (must cancel + re-request)"
+    - "Waitlist/backup queue changes (existing system preserved as-is)"
+    - "Block account / billing portal changes (separate PRD)"
+    - "Stripe Connect split logic changes"
+    - "Native mobile app"
+
+acceptance_criteria:
+  # --- Availability Template ---
+  - id: AC-CAL-001
+    criterion: Admin can create a weekly availability template with day, start_time, end_time
+    verification: Set Mon/Wed/Fri 8am-4pm template, verify rows in `instructor_availability` table, verify student calendar shows those blocks as available
+
+  - id: AC-CAL-002
+    criterion: Admin can toggle individual template entries active/inactive
+    verification: Deactivate Wednesday, verify Wednesday shows no availability on student calendar
+
+  - id: AC-CAL-003
+    criterion: Admin can create date-specific overrides (mark unavailable or add extra hours)
+    verification: Create vacation override for next Monday, verify it appears as unavailable. Add Saturday 9am-1pm override, verify it appears as available.
+
+  - id: AC-CAL-004
+    criterion: Availability computation correctly subtracts bookings, CalDAV events, and overrides from template
+    verification: Template shows Mon 8am-4pm. Existing booking 10am-12pm. CalDAV event 2pm-3pm. Override marks 3pm-4pm unavailable. Verify only 8am-10am and 12pm-2pm show as available.
+
+  # --- Student Calendar ---
+  - id: AC-CAL-010
+    criterion: Student sees a week-view calendar with Available, Busy, and My Requests states
+    verification: Login as student, verify open blocks are green/available, booked blocks are grey/busy, own pending request is yellow/pending, own approved booking is blue/confirmed
+
+  - id: AC-CAL-011
+    criterion: Student cannot see other students' booking details
+    verification: Student A has a booking Mon 10am. Login as Student B. Verify Mon 10am shows as "Unavailable" with no name, no details.
+
+  - id: AC-CAL-012
+    criterion: Student can request a 2-hour training lesson within an available block
+    verification: Student taps available block at 8am on Monday, selects 8am-10am, submits request. Verify `slot_requests` row created with status=pending, request_type=training.
+
+  - id: AC-CAL-013
+    criterion: Student calendar is usable on mobile (375px viewport) without drag interactions
+    verification: Load calendar on 375px-wide viewport. Verify all blocks are tappable, scroll works, no horizontal overflow.
+
+  - id: AC-CAL-014
+    criterion: Student calendar properly navigates between weeks
+    verification: Student can navigate forward and backward through weeks. Current week highlighted. Past weeks show historical data.
+
+  # --- Request + Approval ---
+  - id: AC-CAL-020
+    criterion: Admin receives email and SMS when a student submits a booking request
+    verification: Student requests a slot. Admin receives Resend email within 1 minute with request details and action buttons. Admin receives Twilio SMS with summary and link.
+
+  - id: AC-CAL-021
+    criterion: Admin can approve a request from the admin calendar
+    verification: Admin clicks approve on pending request. Verify: slot_requests.status → approved, new row in slots table, slots.is_booked → true, CalDAV event pushed to iCloud.
+
+  - id: AC-CAL-022
+    criterion: Admin can deny a request with an optional reason
+    verification: Admin clicks deny, enters "Weather forecast is unfavorable". Verify: slot_requests.status → denied, slot_requests.denial_reason populated, student notified.
+
+  - id: AC-CAL-023
+    criterion: Student receives Stripe payment link after approval
+    verification: Admin approves request. Student receives email with Stripe Checkout link. Student pays. Booking status → paid.
+
+  - id: AC-CAL-024
+    criterion: Concurrent requests for overlapping times are handled gracefully
+    verification: Two students request Mon 8am-10am simultaneously. Admin approves first. Second request's time block now shows as unavailable. Admin denies second with reason.
+
+  # --- Discovery Flight Calendar ---
+  - id: AC-CAL-030
+    criterion: Discovery flight step 4 shows a calendar slot picker with 1.5hr blocks
+    verification: Complete steps 1-3 of discovery flight funnel. Step 4 shows week view with available 1.5hr discovery flight time blocks.
+
+  - id: AC-CAL-031
+    criterion: Prospect can select a preferred time and submit a slot request
+    verification: Prospect picks Saturday 10am-11:30am. Verify `slot_requests` row created with request_type=discovery_flight, preferred times, and prospect contact info from steps 1-3.
+
+  - id: AC-CAL-032
+    criterion: Discovery flight approval sends payment link to prospect
+    verification: Admin approves discovery flight request. Prospect receives email with Stripe payment link. Payment completes. Booking confirmed.
+
+  - id: AC-CAL-033
+    criterion: Existing 4-step funnel data capture (steps 1-3) is preserved
+    verification: Steps 1-3 still write to `prospects` table with all existing fields. No regression in prospect data capture.
+
+  # --- Admin Calendar ---
+  - id: AC-CAL-040
+    criterion: Admin calendar displays all bookings, pending requests, and availability blocks in week view
+    verification: Admin sees: green available blocks, red/orange pending requests with student names, blue confirmed bookings with student names, grey overridden-unavailable blocks.
+
+  - id: AC-CAL-041
+    criterion: Admin can create manual slots directly from the calendar
+    verification: Admin clicks on open time, creates a manual 2hr slot. Verify row in slots table. CalDAV event pushed.
+
+  - id: AC-CAL-042
+    criterion: Admin can block time directly from the calendar
+    verification: Admin selects a time range and marks as blocked. Verify `availability_overrides` row created with is_available=false. Student calendar shows as unavailable.
+
+  - id: AC-CAL-043
+    criterion: Admin calendar integrates with existing CalDAV sync button
+    verification: Admin clicks "Sync Now" button. CalDAV pull executes. Calendar refreshes with any iCloud changes.
+
+  - id: AC-CAL-044
+    criterion: AdminBookingPlanner component is fully replaced (no dead code)
+    verification: AdminBookingPlanner component is removed or deprecated. All admin calendar functionality served by new component.
+
+  # --- Notifications ---
+  - id: AC-CAL-050
+    criterion: Email notifications sent via Resend for all booking lifecycle events
+    verification: "Verify emails sent for: request submitted (to admin), request approved (to student), request denied (to student), payment link (to student), 24hr reminder (to student)"
+
+  - id: AC-CAL-051
+    criterion: SMS notifications sent via Twilio for key events
+    verification: "Verify SMS sent for: request approved (to student), 24hr reminder (to student), cancellation confirmation (to student)"
+
+  - id: AC-CAL-052
+    criterion: Student can set notification preferences (opt out of SMS)
+    verification: Student disables SMS in settings. Verify only email sent on next approval. Re-enable SMS, verify both sent.
+
+  - id: AC-CAL-053
+    criterion: SMS opt-out does not affect admin notifications
+    verification: Admin always receives both email and SMS for new requests regardless of student preferences.
+
+  # --- Cancellation ---
+  - id: AC-CAL-060
+    criterion: Student can cancel a booking with 24+ hours notice
+    verification: Student cancels booking 48 hours before. Verify: booking.status → canceled, slot freed, CalDAV event removed, backup queue notified.
+
+  - id: AC-CAL-061
+    criterion: Cancellation within 24 hours is flagged but not hard-blocked
+    verification: Student attempts to cancel 12 hours before. Warning shown. If student confirms, cancellation proceeds but is flagged for admin review.
+
+  - id: AC-CAL-062
+    criterion: Cancellation triggers backup queue notification
+    verification: Student cancels. First person in backup queue receives SMS. 15-min timeout, then next in queue.
+
+needs_clarification: []
+
+features:
+  - id: FT-CAL-001
+    name: Instructor Availability Template System
+    overview: >
+      Recurring weekly schedule template stored in `instructor_availability` table.
+      Each row represents a day+time block (e.g. Monday 08:00-16:00).
+      Admin UI to create, edit, toggle active/inactive, and delete template entries.
+      Date-specific overrides in `availability_overrides` table for vacations,
+      extra hours, or one-off unavailability. Overrides take precedence over template.
+    status: planned
+    tables:
+      - instructor_availability
+      - availability_overrides
+    components:
+      - AdminAvailabilityTemplateEditor
+      - AdminOverrideManager
+
+  - id: FT-CAL-002
+    name: Availability Computation Engine
+    overview: >
+      Server-side function that computes real-time availability for any given week.
+      Algorithm: Start with template for each day → subtract existing bookings →
+      subtract CalDAV-synced external events → apply overrides (add or remove blocks) →
+      return list of available time ranges. Used by both student calendar and
+      discovery flight picker. Respects slot durations (2hr training, 1.5hr discovery).
+    status: planned
+    dependencies:
+      - instructor_availability table
+      - availability_overrides table
+      - slots table (existing bookings)
+      - CalDAV sync data (external calendar events)
+
+  - id: FT-CAL-003
+    name: Student-Facing Week View Calendar
+    overview: >
+      Clean, responsive week-view calendar for authenticated students.
+      Three visual states: Available (open for requests), Busy (booked/blocked),
+      Your Requests (pending/approved/denied). Students see their own request
+      statuses but other students' bookings render as generic "unavailable" blocks.
+      Tap an available block → opens request form with pre-filled time range.
+      Mobile-first: tap-based interactions, no drag-and-drop.
+      Week navigation with forward/back arrows.
+    status: planned
+    components:
+      - StudentWeekCalendar
+      - CalendarDayColumn
+      - CalendarTimeBlock
+      - BookingRequestForm
+
+  - id: FT-CAL-004
+    name: Request + Approval Workflow
+    overview: >
+      Students and prospects request time slots via `slot_requests` table.
+      Extended with `request_type` (training | discovery_flight) and `denial_reason`.
+      On submit: admin notified via email (Resend) + SMS (Twilio).
+      Admin approves/denies from admin calendar.
+      On approval: slot created in `slots` table, CalDAV event pushed to iCloud,
+      student notified, Stripe Checkout payment link sent.
+      On denial: student notified with optional denial reason.
+      Payment collected after approval via Stripe (pay-on-approval model).
+    status: planned
+    tables:
+      - slot_requests (extended)
+    api_routes:
+      - POST /api/slot-requests (extended for training requests)
+      - PATCH /api/admin/slot-requests (approve/deny)
+      - POST /api/admin/slot-requests/[id]/approve
+      - POST /api/admin/slot-requests/[id]/deny
+
+  - id: FT-CAL-005
+    name: Discovery Flight Calendar Integration
+    overview: >
+      Replaces step 4 of the existing discovery flight funnel with a calendar
+      slot picker. Steps 1-3 preserved as-is (prospect data → `prospects` table).
+      Step 4 shows available 1.5hr blocks computed by the availability engine.
+      Prospect picks a time → `slot_request` created with type=discovery_flight
+      and contact info from steps 1-3. Same approval flow as training requests.
+      Admin approves → payment link to prospect → prospect pays → booking confirmed.
+    status: planned
+    preserves:
+      - discovery-flight-pt1 through pt3 pages and API routes
+      - prospects table data capture
+    modifies:
+      - discovery-flight-pt4 page (becomes calendar picker)
+
+  - id: FT-CAL-006
+    name: Admin Calendar Overhaul
+    overview: >
+      Full replacement of AdminBookingPlanner component.
+      New admin week-view calendar showing: all bookings with student names,
+      pending requests with approve/deny buttons, availability template blocks,
+      override blocks, CalDAV-synced external events.
+      Quick actions: approve/deny inline, create manual slot, block time range.
+      Integrates with existing CalDAV sync button and settings page.
+    status: planned
+    replaces:
+      - AdminBookingPlanner.tsx
+    components:
+      - AdminWeekCalendar
+      - AdminRequestCard
+      - AdminQuickActions
+      - ManualSlotCreator
+
+  - id: FT-CAL-007
+    name: Notification System
+    overview: >
+      Unified notification layer for all calendar events.
+      Email via Resend: request received (admin), request approved (student),
+      request denied (student), payment link (student), 24hr reminder (student).
+      SMS via Twilio: request approved (student), 24hr reminder (student),
+      cancellation confirmation (student), new request alert (admin).
+      Student notification preferences stored in `notification_preferences` table.
+      Students can opt out of SMS; email is always required.
+      Admin always receives both email + SMS.
+    status: planned
+    tables:
+      - notification_preferences
+    integrations:
+      - Resend (email)
+      - Twilio (SMS)
+
+  - id: FT-CAL-008
+    name: Cancellation System
+    overview: >
+      24-hour cancellation policy enforcement. Students can cancel bookings
+      with 24+ hours notice without penalty. Cancellations within 24 hours
+      are soft-blocked: warning shown, student can override, cancellation
+      flagged for admin review. On cancellation: booking.status → canceled,
+      slot.is_booked → false (slot freed), CalDAV event deleted from iCloud,
+      backup queue notification chain triggered (existing system).
+      Late cancellation creates a flag visible in admin panel.
+    status: planned
+    integrations:
+      - Backup queue system (existing)
+      - CalDAV sync (existing)
+
+state_machines:
+  - name: Slot Request (extended)
+    states:
+      - pending
+      - approved
+      - denied
+      - expired
+      - canceled
+    transitions:
+      - from: pending
+        to: approved
+        trigger: admin_approve
+        side_effects:
+          - Create slot in `slots` table
+          - Push CalDAV event to iCloud
+          - Send approval email + SMS to requester
+          - Send Stripe payment link to requester
+      - from: pending
+        to: denied
+        trigger: admin_deny
+        side_effects:
+          - Set denial_reason on slot_request
+          - Send denial email to requester
+      - from: pending
+        to: expired
+        trigger: no_admin_action_within_48h (future consideration)
+        side_effects:
+          - Send expiry notification to requester
+      - from: pending
+        to: canceled
+        trigger: requester_cancels
+        side_effects:
+          - Send cancellation confirmation to admin
+      - from: approved
+        to: canceled
+        trigger: student_cancel (24hr+ before)
+        side_effects:
+          - Free slot (is_booked → false)
+          - Delete CalDAV event
+          - Notify backup queue
+          - Send cancellation confirmation
+
+  - name: Booking Payment (post-approval)
+    states:
+      - payment_pending
+      - paid
+      - payment_failed
+      - refunded
+    transitions:
+      - from: payment_pending
+        to: paid
+        trigger: stripe_checkout_completed
+        side_effects:
+          - Update booking.status → paid
+          - Send confirmation email
+      - from: payment_pending
+        to: payment_failed
+        trigger: stripe_checkout_expired_or_failed
+        side_effects:
+          - Notify admin
+          - Optionally re-send payment link
+      - from: paid
+        to: refunded
+        trigger: admin_refund (post-cancellation)
+        side_effects:
+          - Process Stripe refund
+          - Update booking.status
+
+  - name: Availability Override
+    states:
+      - active
+      - expired
+    transitions:
+      - from: active
+        to: expired
+        trigger: override_date_has_passed
+        side_effects:
+          - No action (historical record preserved)
+
+errors:
+  # Availability
+  - code: ERR_AVAIL_001
+    message: "This availability template entry conflicts with an existing entry for the same day and time."
+    trigger: Admin creates overlapping template entry
+    resolution: Merge or adjust the conflicting entries
+
+  - code: ERR_AVAIL_002
+    message: "Cannot delete this template entry — there are approved bookings during this time window."
+    trigger: Admin tries to remove template entry with active bookings
+    resolution: Cancel or reschedule affected bookings first
+
+  - code: ERR_AVAIL_003
+    message: "Override date must be in the future."
+    trigger: Admin tries to create override for a past date
+    resolution: Select a future date
+
+  # Request & Booking
+  - code: ERR_REQ_001
+    message: "This time slot is no longer available. Please choose another time."
+    trigger: Student requests a slot that was booked between page load and submission
+    resolution: Refresh calendar and pick another time
+
+  - code: ERR_REQ_002
+    message: "You already have a pending request for this time period."
+    trigger: Student submits duplicate request for same time
+    resolution: Wait for admin response on existing request
+
+  - code: ERR_REQ_003
+    message: "Cannot approve — this time slot conflicts with another booking."
+    trigger: Admin approves a request but the slot was filled in the meantime
+    resolution: Deny the request or find alternative time
+
+  - code: ERR_REQ_004
+    message: "Request not found or already resolved."
+    trigger: Admin tries to approve/deny an already-resolved request
+    resolution: Refresh admin calendar
+
+  # Cancellation
+  - code: ERR_CANCEL_001
+    message: "This booking is within 24 hours. Are you sure you want to cancel? This will be flagged for instructor review."
+    trigger: Student cancels within 24-hour window
+    resolution: Soft warning — student can proceed, flagged for admin
+
+  - code: ERR_CANCEL_002
+    message: "Cannot cancel — this booking has already been completed."
+    trigger: Student tries to cancel a completed booking
+    resolution: Contact instructor for post-flight issues
+
+  # Calendar / Sync
+  - code: ERR_SYNC_001
+    message: "Failed to sync event to Apple Calendar. Will retry automatically."
+    trigger: CalDAV push fails after approval
+    resolution: Automatic retry on next sync cycle
+
+  - code: ERR_SYNC_002
+    message: "Calendar data could not be loaded. Please refresh the page."
+    trigger: Availability computation fails (DB or CalDAV error)
+    resolution: Client-side refresh
+
+  # Payment
+  - code: ERR_PAY_001
+    message: "Payment link has expired. Please contact your instructor for a new link."
+    trigger: Stripe Checkout session expires (24hr default)
+    resolution: Admin re-sends payment link
+
+  - code: ERR_PAY_002
+    message: "Payment failed. Please check your card details and try again."
+    trigger: Stripe payment declined
+    resolution: Student retries or uses different card
+
+  # Discovery Flight
+  - code: ERR_DF_001
+    message: "Please complete the previous steps before selecting a time."
+    trigger: Prospect tries to access step 4 without completing steps 1-3
+    resolution: Redirect to step 1
+
+decisions:
+  - id: DEC-CAL-001
+    decision: Request + Approval model (not instant booking)
+    rationale: >
+      Single instructor needs schedule control. Prevents overbooking edge cases
+      and allows instructor to vet each booking. Students get time preference
+      while instructor retains authority.
+    alternatives_considered:
+      - "Instant booking: rejected — instructor loses control, harder to handle conflicts"
+      - "Phone/text only: rejected — doesn't scale, no self-service"
+
+  - id: DEC-CAL-002
+    decision: Weekly template + date overrides for availability (not individual slot creation)
+    rationale: >
+      Template eliminates repetitive manual slot creation each week. Override
+      system handles exceptions (vacations, holidays, extra hours) without
+      needing to edit the base template. Matches real-world instructor workflow.
+    alternatives_considered:
+      - "Manual slot creation each week: rejected — current pain point being solved"
+      - "Google Calendar as source of truth: rejected — Google Calendar API deprecated in this project"
+
+  - id: DEC-CAL-003
+    decision: Pay on approval (not on request submission)
+    rationale: >
+      Students should not be charged for requests that might be denied.
+      Reduces refund friction. Stripe Checkout link sent after approval
+      gives students clear confirmation before payment.
+    alternatives_considered:
+      - "Pay on request: rejected — creates refund overhead for denied requests"
+      - "Pay at lesson time: rejected — no-show risk increases"
+
+  - id: DEC-CAL-004
+    decision: 2-hour training slots, 1.5-hour discovery flight slots, no buffer time
+    rationale: >
+      2 hours is standard for a training lesson (briefing + flight + debrief).
+      1.5 hours sufficient for discovery flights (shorter briefing, scenic flight).
+      No buffer needed — single instructor at single location, natural gaps between
+      student arrivals handle transition.
+    alternatives_considered:
+      - "Variable-length slots: rejected — adds UX complexity for minimal benefit"
+      - "15-min buffer: rejected — instructor confirmed not needed"
+
+  - id: DEC-CAL-005
+    decision: Single calendar (no per-location filtering)
+    rationale: >
+      Merlin operates from a single airport (KFDK). Multi-location adds
+      unnecessary complexity. If a second location is added later, this
+      can be extended with a location_id column on availability tables.
+
+  - id: DEC-CAL-006
+    decision: Discovery flight step 4 becomes calendar picker (preserve steps 1-3)
+    rationale: >
+      Steps 1-3 capture essential prospect data (contact, location preference,
+      experience level). Step 4 currently has no interactive slot selection —
+      replacing it with a calendar picker adds self-service while preserving
+      the proven data capture funnel.
+
+  - id: DEC-CAL-007
+    decision: Preserve existing CalDAV bidirectional sync (iCloud via tsdav)
+    rationale: >
+      CalDAV sync is working and instructor relies on Apple Calendar.
+      Rework extends it (new approval events sync to iCloud) but does not
+      replace the underlying tsdav integration or polling mechanism.
+
+  - id: DEC-CAL-008
+    decision: Week view for both student and admin calendars (not month or day)
+    rationale: >
+      Week view provides the right granularity for flight scheduling — enough
+      context to see the full week without overwhelming detail. Day view
+      is too narrow for planning; month view doesn't show time blocks.
+
+  - id: DEC-CAL-009
+    decision: Soft-block late cancellations (warning + flag, not hard-block)
+    rationale: >
+      Hard-blocking cancellations within 24 hours creates a bad student
+      experience (emergencies happen). Soft-blocking with a flag gives
+      the instructor visibility to follow up or enforce consequences
+      at their discretion.
+
+  - id: DEC-CAL-010
+    decision: Replace AdminBookingPlanner (not extend)
+    rationale: >
+      AdminBookingPlanner is built around manual drag-and-drop slot creation,
+      which is the paradigm being replaced. Extending it would require fighting
+      its architecture. Clean replacement with template-aware calendar is cleaner.
+
+  - id: DEC-CAL-011
+    decision: Extend existing `slot_requests` table rather than create new table
+    rationale: >
+      `slot_requests` already has the right shape (preferred times, status,
+      contact info, approval workflow). Adding `request_type` and `denial_reason`
+      columns is less disruptive than a new table. Existing slot request API
+      routes are refactored rather than duplicated.
+
+  - id: DEC-CAL-012
+    decision: Student notification preferences stored per-user (not global toggle)
+    rationale: >
+      Different students have different contact preferences. Per-user SMS
+      opt-out respects individual preferences while keeping email mandatory
+      for critical booking communications.
+
+changes: []

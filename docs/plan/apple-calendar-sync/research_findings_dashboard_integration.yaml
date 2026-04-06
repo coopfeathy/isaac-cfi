@@ -1,0 +1,574 @@
+plan_id: apple-calendar-sync
+objective: "Determine whether Apple Calendar (CalDAV) integrates with the student dashboard and how to confirm it's working"
+focus_area: dashboard_integration
+created_at: "2026-04-05"
+created_by: gem-researcher
+status: completed
+
+tldr: |
+  - Apple Calendar (CalDAV) integration EXISTS and is fully implemented via the `tsdav` library connecting to `caldav.icloud.com`.
+  - The student dashboard at `/dashboard` does NOT directly call CalDAV — it reads from `Supabase bookings+slots` tables, which are kept in sync with Apple Calendar via CalDAV bidirectional sync.
+  - The data flow is: Apple Calendar ↔ CalDAV sync (Netlify cron every 10min) ↔ Supabase `slots` table ↔ Student dashboard (reads `bookings` joined with `slots`).
+  - Three API endpoints exist for CalDAV operations (`/api/admin/caldav/sync`, `/api/admin/caldav/push`, `/api/admin/caldav/test`), plus a Netlify scheduled function for automated polling.
+  - Google Calendar integration is DEPRECATED — left as dead code in `lib/google-calendar.ts` and `app/api/book/route.ts`.
+
+research_metadata:
+  methodology: "Hybrid retrieval — semantic_search + grep_search for caldav/sync/dashboard patterns, read_file for detailed examination of all relevant files, relationship discovery via import tracing"
+  scope: "Full codebase analysis of CalDAV integration, dashboard data flow, API routes, database schema, scheduled functions, and configuration"
+  confidence: high
+  coverage: 95
+  decision_blockers: 0
+  research_blockers: 0
+
+files_analyzed:
+  - file: caldav.ts
+    path: lib/caldav.ts
+    purpose: "Core CalDAV client library — all CalDAV operations (connect, push, pull, delete)"
+    key_elements:
+      - element: createCalDAVClient
+        type: function
+        location: "lib/caldav.ts:133"
+        description: "Creates authenticated DAVClient connecting to caldav.icloud.com using Apple ID + ICLOUD_APP_PASSWORD env var"
+      - element: pushEventToCalendar
+        type: function
+        location: "lib/caldav.ts:183"
+        description: "Creates or updates a VCALENDAR event on iCloud Calendar from a slot. Supports create (new) and update (via existingUrl/etag)"
+      - element: pullEventsFromCalendar
+        type: function
+        location: "lib/caldav.ts:225"
+        description: "Fetches events from iCloud Calendar, optionally using syncToken for incremental sync. Filters to @merlinflight.com UIDs only"
+      - element: deleteCalendarEvent
+        type: function
+        location: "lib/caldav.ts:278"
+        description: "Deletes a CalDAV event by URL and etag"
+      - element: fetchCalendars
+        type: function
+        location: "lib/caldav.ts:164"
+        description: "Lists all calendars on the iCloud account"
+      - element: slotToVEvent
+        type: function
+        location: "lib/caldav.ts:92"
+        description: "Converts a slot + student name into iCalendar VCALENDAR string with UID format {slotId}@merlinflight.com"
+      - element: sanitizeInboundText
+        type: function
+        location: "lib/caldav.ts:80"
+        description: "Strips HTML/script tags from inbound calendar text (XSS protection for pulled events)"
+      - element: scrubCredentials
+        type: function
+        location: "lib/caldav.ts:69"
+        description: "Redacts ICLOUD_APP_PASSWORD from error messages before logging"
+    language: TypeScript
+    lines: 295
+
+  - file: page.tsx (dashboard)
+    path: app/dashboard/page.tsx
+    purpose: "Student dashboard — displays weekly flight schedule from Supabase (NOT directly from CalDAV)"
+    key_elements:
+      - element: DashboardPage
+        type: function
+        location: "app/dashboard/page.tsx:55"
+        description: "Main dashboard component. Fetches bookings from Supabase `bookings` table joined with `slots` for the selected week, grouped by day"
+      - element: fetchData (useEffect)
+        type: function
+        location: "app/dashboard/page.tsx:72"
+        description: "Fetches bookings for current user with status confirmed/paid/completed, filtered by week range via slots.start_time"
+      - element: syllabusMap
+        type: variable
+        location: "app/dashboard/page.tsx:58"
+        description: "Maps syllabus_lesson_id to lesson data (title, ground_topics, flight_maneuvers) for rich lesson display"
+    language: TypeScript
+    lines: 300+
+
+  - file: route.ts (caldav sync API)
+    path: app/api/admin/caldav/sync/route.ts
+    purpose: "Admin-only API for manual bidirectional CalDAV sync — pushes pending_push slots, handles pending_delete, pulls inbound changes"
+    key_elements:
+      - element: POST handler
+        type: function
+        location: "app/api/admin/caldav/sync/route.ts:44"
+        description: "Full sync cycle: push pending, delete pending, pull inbound. Updates slots with caldav_uid/etag/sync_status. Admin auth required."
+    language: TypeScript
+    lines: 200
+
+  - file: route.ts (caldav push API)
+    path: app/api/admin/caldav/push/route.ts
+    purpose: "Admin-only API to push a single slot to Apple Calendar"
+    key_elements:
+      - element: POST handler
+        type: function
+        location: "app/api/admin/caldav/push/route.ts:38"
+        description: "Pushes one slot by slot_id to iCloud Calendar. Updates caldav_uid, caldav_etag, sync_status on success."
+    language: TypeScript
+    lines: 130
+
+  - file: route.ts (caldav test API)
+    path: app/api/admin/caldav/test/route.ts
+    purpose: "Admin-only API to test CalDAV connection and list available calendars"
+    key_elements:
+      - element: GET handler
+        type: function
+        location: "app/api/admin/caldav/test/route.ts:38"
+        description: "Tests iCloud connection, returns { connected: true/false, calendars: [...] }"
+    language: TypeScript
+    lines: 70
+
+  - file: caldav-sync.ts (Netlify scheduled function)
+    path: netlify/functions/caldav-sync.ts
+    purpose: "Scheduled function (every 10 min) for automated bidirectional CalDAV sync — THE primary sync mechanism"
+    key_elements:
+      - element: handler (default export)
+        type: function
+        location: "netlify/functions/caldav-sync.ts:25"
+        description: "Full bidirectional sync with advisory lock, push pending_push, delete pending_delete, pull inbound. Creates new slots+bookings from calendar events. Sends email notifications for new inbound bookings."
+      - element: config.schedule
+        type: variable
+        location: "netlify/functions/caldav-sync.ts:12"
+        description: "Cron expression '*/10 * * * *' — runs every 10 minutes"
+      - element: sendLessonScheduledEmail
+        type: function
+        location: "netlify/functions/caldav-sync.ts:284"
+        description: "Sends Resend email to student when a new booking is created via inbound calendar sync"
+    language: TypeScript
+    lines: 300+
+
+  - file: route.ts (manual booking API)
+    path: app/api/admin/bookings/manual/route.ts
+    purpose: "Admin API for creating bookings — includes fire-and-forget CalDAV push"
+    key_elements:
+      - element: backgroundTasks
+        type: function
+        location: "app/api/admin/bookings/manual/route.ts:122"
+        description: "After booking creation, asynchronously pushes to CalDAV and sends email. Falls back to pending_push on CalDAV failure."
+    language: TypeScript
+    lines: 200
+
+  - file: SETUP.sql (CalDAV schema)
+    path: supabase/SETUP.sql
+    purpose: "Database schema for CalDAV sync — slots columns + caldav_settings table"
+    key_elements:
+      - element: "slots.caldav_uid"
+        type: variable
+        location: "supabase/SETUP.sql:1885"
+        description: "TEXT column storing CalDAV event UID (format: {slotId}@merlinflight.com)"
+      - element: "slots.caldav_etag"
+        type: variable
+        location: "supabase/SETUP.sql:1886"
+        description: "TEXT column storing CalDAV etag for conflict detection"
+      - element: "slots.sync_status"
+        type: variable
+        location: "supabase/SETUP.sql:1887"
+        description: "TEXT column with CHECK constraint: synced, pending_push, pending_pull, pending_delete, conflict, error"
+      - element: "slots.last_synced_at"
+        type: variable
+        location: "supabase/SETUP.sql:1888"
+        description: "TIMESTAMPTZ tracking last successful sync"
+      - element: caldav_settings
+        type: class
+        location: "supabase/SETUP.sql:1922"
+        description: "Table: id, user_id, apple_id, calendar_url, sync_token, last_sync_at, sync_in_progress, last_sync_started_at, is_active. RLS: admin-only."
+    language: SQL
+    lines: 70
+
+  - file: google-calendar.ts
+    path: lib/google-calendar.ts
+    purpose: "DEPRECATED — Legacy Google Calendar integration, not used in current booking flow"
+    key_elements:
+      - element: createCalendarEvent
+        type: function
+        location: "lib/google-calendar.ts:19"
+        description: "DEPRECATED function — replaced by CalDAV/ICS flow"
+    language: TypeScript
+    lines: 85
+
+  - file: route.ts (booking-ics)
+    path: app/api/calendar/booking-ics/route.ts
+    purpose: "Public API endpoint that generates .ics file for a slot (downloadable calendar event)"
+    key_elements:
+      - element: GET handler
+        type: function
+        location: "app/api/calendar/booking-ics/route.ts:13"
+        description: "Generates downloadable .ics file from slot_id — allows students to add events to ANY calendar app"
+    language: TypeScript
+    lines: 75
+
+  - file: caldav.test.ts
+    path: lib/__tests__/caldav.test.ts
+    purpose: "Unit tests for CalDAV library — mocks tsdav, tests all exported functions"
+    key_elements:
+      - element: test suite
+        type: class
+        location: "lib/__tests__/caldav.test.ts:1"
+        description: "Tests slotToVEvent, sanitizeInboundText, createCalDAVClient, pushEventToCalendar, pullEventsFromCalendar, deleteCalendarEvent"
+    language: TypeScript
+    lines: 200+
+
+patterns_found:
+  - category: architecture
+    pattern: "Indirect CalDAV-Dashboard Integration"
+    description: "The student dashboard never calls CalDAV directly. Instead, CalDAV sync writes to Supabase `slots` table, and the dashboard reads from `bookings` joined with `slots`. CalDAV is a background sync layer."
+    examples:
+      - file: app/dashboard/page.tsx
+        location: "line 78-85"
+        snippet: |
+          const { data: bookingData } = await supabase
+            .from("bookings")
+            .select("id, status, syllabus_lesson_id, slots(id, start_time, end_time, type, description)")
+            .eq("user_id", user.id)
+            .in("status", ["confirmed", "paid", "completed"])
+      - file: netlify/functions/caldav-sync.ts
+        location: "line 162-174"
+        snippet: |
+          if (existingSlot.start_time !== calStart || existingSlot.end_time !== calEnd) {
+            await supabase.from('slots').update({ start_time: calStart, end_time: calEnd, ... })
+    prevalence: common
+
+  - category: architecture
+    pattern: "Fire-and-forget CalDAV Push"
+    description: "When admin creates a booking, CalDAV push is asynchronous and non-blocking. If push fails, sync_status is set to 'pending_push' for the scheduled function to retry."
+    examples:
+      - file: app/api/admin/bookings/manual/route.ts
+        location: "line 121-182"
+        snippet: "backgroundTasks runs CalDAV push after booking creation, catches errors and sets pending_push"
+    prevalence: common
+
+  - category: architecture
+    pattern: "Advisory Lock for Scheduled Sync"
+    description: "The Netlify cron function uses sync_in_progress boolean with 15-min stale timeout to prevent concurrent sync runs."
+    examples:
+      - file: netlify/functions/caldav-sync.ts
+        location: "line 40-50"
+        snippet: |
+          const { data: lockResult } = await supabase
+            .from('caldav_settings')
+            .update({ sync_in_progress: true })
+            .eq('id', settings.id)
+            .or(`sync_in_progress.eq.false,last_sync_started_at.lt.${fifteenMinAgo}`)
+    prevalence: occasional
+
+  - category: naming
+    pattern: "UID convention: {slotId}@merlinflight.com"
+    description: "All CalDAV events use UID format {slotId}@merlinflight.com. Pull operations filter events to only process those with this domain suffix."
+    examples:
+      - file: lib/caldav.ts
+        location: "line 97"
+        snippet: "const uid = `${slot.id}@merlinflight.com`"
+      - file: lib/caldav.ts
+        location: "line 252"
+        snippet: "if (!uid || !uid.endsWith('@merlinflight.com')) continue"
+    prevalence: common
+
+  - category: error_handling
+    pattern: "Credential scrubbing in errors"
+    description: "All CalDAV error messages are scrubbed via scrubCredentials() to prevent ICLOUD_APP_PASSWORD leaking in logs."
+    examples:
+      - file: lib/caldav.ts
+        location: "line 69-72"
+        snippet: "return message.replaceAll(password, '***')"
+    prevalence: common
+
+  - category: architecture
+    pattern: "Inbound event creates slot + auto-matches student"
+    description: "When the Netlify cron pulls a new event from Apple Calendar, it parses the student name from the SUMMARY field, matches against profiles table, creates a slot, and auto-creates a booking if matched."
+    examples:
+      - file: netlify/functions/caldav-sync.ts
+        location: "line 192-230"
+        snippet: |
+          const summaryMatch = event.summary.match(/(?:Flight Training|Discovery Flight)\s*(?:with\s+|-\s*)?(.+?)(?:\s*\|.*)?$/i)
+          // ... tries exact then partial profile match
+    prevalence: occasional
+
+related_architecture:
+  components_relevant_to_domain:
+    - component: Student Dashboard
+      responsibility: "Displays weekly flight schedule to authenticated student"
+      location: app/dashboard/page.tsx
+      relationship_to_domain: "domain depends on this — CalDAV sync populates the slots table that the dashboard reads"
+    - component: CalDAV Library
+      responsibility: "All CalDAV protocol operations (connect, CRUD events)"
+      location: lib/caldav.ts
+      relationship_to_domain: "core CalDAV client, used by all API routes and Netlify function"
+    - component: Netlify CalDAV Sync (Cron)
+      responsibility: "Automated 10-minute bidirectional sync"
+      location: netlify/functions/caldav-sync.ts
+      relationship_to_domain: "primary sync mechanism — runs every 10 min, handles push/delete/pull"
+    - component: Admin Manual Booking API
+      responsibility: "Admin creates slot+booking for student"
+      location: app/api/admin/bookings/manual/route.ts
+      relationship_to_domain: "triggers outbound CalDAV push on booking creation"
+    - component: Admin CalDAV Sync API
+      responsibility: "Manual sync trigger for admins"
+      location: app/api/admin/caldav/sync/route.ts
+      relationship_to_domain: "on-demand full sync cycle"
+    - component: Admin CalDAV Test API
+      responsibility: "Tests CalDAV connection"
+      location: app/api/admin/caldav/test/route.ts
+      relationship_to_domain: "connection verification tool"
+    - component: Admin CalDAV Push API
+      responsibility: "Push single slot to Apple Calendar"
+      location: app/api/admin/caldav/push/route.ts
+      relationship_to_domain: "single-event outbound push"
+    - component: Booking ICS Download
+      responsibility: "Generates downloadable .ics file for any slot"
+      location: app/api/calendar/booking-ics/route.ts
+      relationship_to_domain: "supplementary — lets students add events to their own calendars"
+    - component: caldav_settings table
+      responsibility: "Stores Apple ID, calendar URL, sync token, lock state"
+      location: supabase/SETUP.sql
+      relationship_to_domain: "configuration for all CalDAV operations"
+
+  interfaces_used_by_domain:
+    - interface: Supabase slots table (caldav_uid, caldav_etag, sync_status, last_synced_at)
+      location: supabase/SETUP.sql:1882-1895
+      usage_pattern: "CalDAV sync reads/writes these columns to track sync state per slot"
+    - interface: Supabase caldav_settings table
+      location: supabase/SETUP.sql:1922-1946
+      usage_pattern: "All CalDAV operations load settings (apple_id, calendar_url, sync_token, is_active) from this table"
+    - interface: tsdav DAVClient
+      location: "package.json (tsdav ^2.1.8)"
+      usage_pattern: "Used in createCalDAVClient() — the underlying CalDAV protocol library"
+
+  data_flow_involving_domain: |
+    OUTBOUND (App → Apple Calendar):
+    1. Admin creates booking via /api/admin/bookings/manual → slot created in Supabase
+    2. backgroundTasks() calls pushEventToCalendar() via CalDAV to iCloud
+    3. On success: caldav_uid, caldav_etag, sync_status='synced' saved to slot
+    4. On failure: sync_status='pending_push' — picked up by Netlify cron next cycle
+    
+    INBOUND (Apple Calendar → App → Dashboard):
+    1. Netlify cron (every 10 min) calls pullEventsFromCalendar()
+    2. For existing slots: updates start_time/end_time if changed in calendar
+    3. For new events: creates slot + matches student via SUMMARY parsing → creates booking
+    4. Sends email notification to matched student
+    5. Student loads /dashboard → queries `bookings` table joined with `slots` → sees updated data
+    
+    DASHBOARD READ PATH:
+    1. Student visits /dashboard
+    2. useEffect fetches from Supabase: bookings.select("..., slots(...)").eq("user_id", user.id)
+    3. Displays weekly calendar with lesson details from syllabus_lessons
+    4. NO direct CalDAV calls from the dashboard — reads Supabase only
+
+  key_relationships_to_domain:
+    - from: "netlify/functions/caldav-sync.ts"
+      to: "lib/caldav.ts"
+      relationship: imports
+    - from: "app/api/admin/caldav/sync/route.ts"
+      to: "lib/caldav.ts"
+      relationship: imports
+    - from: "app/api/admin/caldav/push/route.ts"
+      to: "lib/caldav.ts"
+      relationship: imports
+    - from: "app/api/admin/caldav/test/route.ts"
+      to: "lib/caldav.ts"
+      relationship: imports
+    - from: "app/api/admin/bookings/manual/route.ts"
+      to: "lib/caldav.ts"
+      relationship: imports
+    - from: "app/dashboard/page.tsx"
+      to: "Supabase bookings+slots"
+      relationship: "reads (indirect dependency on CalDAV sync)"
+
+related_technology_stack:
+  languages_used_in_domain:
+    - TypeScript
+    - SQL
+  frameworks_used_in_domain:
+    - name: Next.js
+      usage_in_domain: "API routes for CalDAV operations (app/api/admin/caldav/*)"
+    - name: Netlify Functions
+      usage_in_domain: "Scheduled function for 10-minute bidirectional sync"
+  libraries_used_in_domain:
+    - name: tsdav (^2.1.8)
+      purpose_in_domain: "CalDAV protocol client — connects to caldav.icloud.com, handles login, CRUD on calendar objects"
+    - name: "@supabase/supabase-js"
+      purpose_in_domain: "Database access — reads/writes slots, bookings, caldav_settings"
+    - name: Resend
+      purpose_in_domain: "Sends email notifications when inbound sync creates new bookings"
+  external_apis_used_in_domain:
+    - name: "iCloud CalDAV (caldav.icloud.com)"
+      integration_point: "lib/caldav.ts:createCalDAVClient() → Basic auth with Apple ID + app-specific password"
+
+related_conventions:
+  naming_patterns_in_domain: "CalDAV UIDs use format {slotId}@merlinflight.com. Sync columns prefixed with caldav_ or sync_."
+  structure_of_domain: "Core library in lib/caldav.ts, API routes in app/api/admin/caldav/*, scheduled function in netlify/functions/caldav-sync.ts"
+  error_handling_in_domain: "All CalDAV errors scrub credentials via scrubCredentials(). Push failures fall back to pending_push for retry. Netlify cron wraps everything in try/catch with advisory lock release in finally."
+  testing_in_domain: "Unit tests in lib/__tests__/caldav.test.ts with full tsdav mock — covers slotToVEvent, sanitizeInboundText, createCalDAVClient, push/pull/delete"
+  documentation_in_domain: "PRD.yaml has full feature spec under 'Apple Calendar Bidirectional Sync'. Plan in docs/plan/apple-calendar-sync/"
+
+related_dependencies:
+  internal:
+    - component: "Supabase slots table"
+      relationship_to_domain: "CalDAV sync reads/writes caldav_uid, caldav_etag, sync_status, last_synced_at"
+      direction: bidirectional
+    - component: "Supabase bookings table"
+      relationship_to_domain: "Inbound sync creates bookings; dashboard reads bookings"
+      direction: bidirectional
+    - component: "Supabase caldav_settings table"
+      relationship_to_domain: "All CalDAV operations load config from this table"
+      direction: inbound
+    - component: "Supabase profiles table"
+      relationship_to_domain: "Inbound sync matches student names against profiles; outbound reads student names"
+      direction: inbound
+    - component: "Supabase syllabus_lessons table"
+      relationship_to_domain: "Dashboard + outbound push reads lesson details for display/event summary"
+      direction: inbound
+  external:
+    - name: tsdav
+      purpose_for_domain: "CalDAV protocol library"
+    - name: "iCloud CalDAV API (caldav.icloud.com)"
+      purpose_for_domain: "Apple Calendar backend"
+    - name: Resend
+      purpose_for_domain: "Email notifications for inbound sync-created bookings"
+
+domain_security_considerations:
+  sensitive_areas:
+    - area: "iCloud App-Specific Password"
+      location: "Environment variable ICLOUD_APP_PASSWORD"
+      concern: "Stored as env var (not in DB) — correct. scrubCredentials() prevents leaking in logs."
+    - area: "Apple ID"
+      location: "caldav_settings.apple_id in Supabase"
+      concern: "Stored in DB with RLS admin-only policy. Acceptable for non-secret identifier."
+    - area: "Inbound text from CalDAV"
+      location: "lib/caldav.ts:sanitizeInboundText()"
+      concern: "Strips <script> and HTML tags, truncates to 1000 chars. Protects against XSS from calendar event data."
+    - area: "Admin-only API routes"
+      location: "app/api/admin/caldav/*/route.ts"
+      concern: "All CalDAV API routes require admin auth via requireAdmin() — checks Bearer token + profiles.is_admin"
+  authentication_patterns_in_domain: "CalDAV: Basic auth with Apple ID + iCloud app-specific password. API routes: Bearer JWT token validated against Supabase auth + admin profile check."
+  authorization_patterns_in_domain: "All CalDAV admin APIs check is_admin via profiles table. caldav_settings table has RLS policy: admin-only for all operations."
+  data_validation_in_domain: "sanitizeInboundText strips HTML/scripts from pulled events. slotToVEvent uses escapeIcsText for outbound data."
+
+testing_patterns:
+  framework: Jest
+  coverage_areas:
+    - "slotToVEvent — correct VCALENDAR generation, UID format, summary text for training/tour types"
+    - "sanitizeInboundText — HTML stripping, script removal, truncation"
+    - "createCalDAVClient — successful login, missing env var, login failure"
+    - "pushEventToCalendar — create and update paths"
+    - "pullEventsFromCalendar — event parsing, UID filtering"
+    - "deleteCalendarEvent — successful deletion"
+  test_organization: "lib/__tests__/caldav.test.ts — single test file with describe blocks per function"
+  mock_patterns:
+    - "jest.mock('tsdav') — full DAVClient mock with mockLogin, mockCreateCalendarObject, etc."
+    - "process.env.ICLOUD_APP_PASSWORD managed in beforeEach/afterEach"
+
+# ============================================================
+# ANSWER TO USER QUESTIONS
+# ============================================================
+
+answers:
+  does_apple_calendar_integrate_with_student_dashboard:
+    answer: "YES — indirectly. Apple Calendar (CalDAV) syncs bidirectionally with the Supabase `slots` table. The student dashboard reads from `bookings` joined with `slots`. When the instructor creates/modifies events in Apple Calendar, the Netlify cron (every 10 min) pulls changes into Supabase, which the dashboard then displays."
+    
+  how_data_flows_to_dashboard: |
+    1. Instructor creates/moves/deletes event in Apple Calendar
+    2. Every 10 minutes, Netlify function `caldav-sync` runs:
+       a. Connects to caldav.icloud.com via tsdav
+       b. Pulls events using sync token for incremental changes
+       c. For existing slots: updates start_time/end_time in Supabase
+       d. For new events: creates slot + auto-matches student from SUMMARY → creates booking
+       e. Sends email to student for new inbound bookings
+    3. Student opens /dashboard:
+       a. Queries Supabase: bookings filtered by user_id + status (confirmed/paid/completed)
+       b. Joins with slots for time/type/description
+       c. Joins with syllabus_lessons for lesson details
+       d. Renders weekly calendar view
+
+  how_to_confirm_it_is_working:
+    step_1_test_connection:
+      description: "Call the CalDAV test endpoint to verify iCloud connectivity"
+      method: "GET /api/admin/caldav/test (with admin Bearer token)"
+      expected: "{ connected: true, calendars: [...] } — should list at least one calendar"
+      what_failure_means: "ICLOUD_APP_PASSWORD is wrong/missing, or apple_id in caldav_settings is incorrect"
+    
+    step_2_verify_database_config:
+      description: "Check caldav_settings table in Supabase"
+      query: "SELECT apple_id, calendar_url, is_active, sync_token, last_sync_at FROM caldav_settings LIMIT 1"
+      expected: "is_active = true, apple_id populated, calendar_url populated, last_sync_at recent (within 10 min)"
+      what_failure_means: "CalDAV settings not configured — admin needs to save Apple ID and select a calendar"
+    
+    step_3_verify_outbound_push:
+      description: "Create a test booking via admin and check it appears in Apple Calendar"
+      method: "POST /api/admin/bookings/manual with a test student + time"
+      then_check:
+        - "Apple Calendar should show the event within seconds"
+        - "Supabase: SELECT caldav_uid, caldav_etag, sync_status FROM slots WHERE id = '<slot_id>' should show sync_status = 'synced'"
+    
+    step_4_verify_inbound_pull:
+      description: "Modify an event in Apple Calendar and wait for sync"
+      steps:
+        - "Move an existing Merlin event to a different time in Apple Calendar"
+        - "Wait up to 10 minutes for Netlify cron to run"
+        - "Check Supabase: SELECT start_time, end_time, last_synced_at FROM slots WHERE caldav_uid IS NOT NULL"
+        - "Verify the slot times match the calendar change"
+        - "Student dashboard should show updated time"
+    
+    step_5_check_netlify_function_logs:
+      description: "Monitor Netlify function logs for caldav-sync execution"
+      where: "Netlify dashboard → Functions → caldav-sync → Logs"
+      expected: "Should see 'CalDAV sync complete: { pushed: N, pulled: N, deleted: N, errors: 0 }' every 10 min"
+      what_failure_means: "If errors > 0, check the specific error messages in logs"
+    
+    step_6_verify_dashboard_shows_data:
+      description: "Log in as a student who has a synced booking"
+      steps:
+        - "Navigate to /dashboard"
+        - "Check the current week — should show the booking with time + lesson details"
+        - "If linked to syllabus_lesson, should show lesson title, ground topics, flight maneuvers"
+    
+    step_7_run_unit_tests:
+      description: "Run the CalDAV unit test suite"
+      command: "npx jest lib/__tests__/caldav.test.ts"
+      expected: "All tests pass — confirms the CalDAV library works correctly in isolation"
+
+  configuration_requirements:
+    environment_variables:
+      - name: ICLOUD_APP_PASSWORD
+        description: "iCloud app-specific password (NOT the Apple ID password). Generated at account.apple.com → Sign-In and Security → App-Specific Passwords."
+        required: true
+        stored_in: "Netlify env vars + any local .env"
+      - name: NEXT_PUBLIC_SUPABASE_URL
+        description: "Supabase project URL — needed by Netlify function"
+        required: true
+      - name: SUPABASE_SERVICE_ROLE_KEY
+        description: "Supabase service role key — needed by Netlify function and admin APIs"
+        required: true
+      - name: RESEND_API_KEY
+        description: "Resend email API key — needed for sending lesson scheduled emails on inbound sync"
+        required: true
+    
+    database_setup:
+      - "caldav_settings table must exist (created by SETUP.sql)"
+      - "slots table must have caldav_uid, caldav_etag, sync_status, last_synced_at columns"
+      - "One row in caldav_settings with: apple_id set, calendar_url set, is_active = true"
+    
+    netlify_setup:
+      - "netlify/functions/caldav-sync.ts must be deployed as a Netlify scheduled function"
+      - "Schedule is '*/10 * * * *' (every 10 minutes) — configured via export const config"
+
+open_questions:
+  - question: "Is the caldav_settings row actually populated in the production Supabase database?"
+    context: "The schema and code exist, but there's no seed data for caldav_settings. This row must be manually created by the admin."
+    type: nice_to_know
+    affects: []
+  - question: "Is the Netlify scheduled function actually deployed and running in production?"
+    context: "The netlify.toml doesn't explicitly list caldav-sync in its comments (only mentions booking-monitor and generate-discovery-slots). The function uses Netlify's export const config pattern which should auto-register, but deployment status should be verified."
+    type: research
+    affects: []
+
+gaps:
+  - area: "No admin UI for CalDAV settings management"
+    description: "The code references caldav_settings but there's no visible admin UI page to configure Apple ID, select calendar, or toggle sync. Settings must be managed via Supabase dashboard or API directly."
+    impact: nice_to_know
+    affects: []
+  - area: "No CalDAV sync status visibility on student dashboard"
+    description: "Students cannot see whether their booking is synced with Apple Calendar. The sync_status column exists on slots but is not displayed in the dashboard UI."
+    impact: nice_to_know
+    affects: []
+  - area: "No retry mechanism for failed pushes beyond pending_push"
+    description: "If a CalDAV push fails, sync_status is set to pending_push and the Netlify cron retries next cycle. But there's no max-retry counter or exponential backoff — a permanently failing push would retry indefinitely every 10 minutes."
+    impact: nice_to_know
+    affects: []
+  - area: "Google Calendar dead code"
+    description: "lib/google-calendar.ts and app/api/book/route.ts still contain deprecated Google Calendar code. Not harmful but adds confusion."
+    impact: nice_to_know
+    affects: []
