@@ -88,24 +88,28 @@ const headsets = [
     price: "~$1,299",
     description: "Best-in-class ANR noise cancellation, Bluetooth, lightweight design",
     href: "https://amzn.to/4td1tEN",
+    image: "https://m.media-amazon.com/images/I/71F3iowq-qL._AC_SX679_.jpg",
   },
   {
     name: "David Clark H10-13.4",
     price: "~$350",
     description: "Industry-standard PNR headset, legendary durability",
     href: "https://amzn.to/4bSpTwX",
+    image: "https://m.media-amazon.com/images/I/51urPwwZ3OL._AC_SX679_.jpg",
   },
   {
     name: "Lightspeed Sierra ANR",
     price: "~$749",
     description: "Premium ANR with Bluetooth, great comfort-to-price ratio",
     href: "https://amzn.to/4sT9myN",
+    image: "https://m.media-amazon.com/images/I/71Lw89xptxL._AC_SY879_.jpg",
   },
   {
     name: "Lightspeed Zulu 3",
     price: "~$899",
     description: "Top-tier ANR headset with Bluetooth and plush ear seals",
     href: "https://amzn.to/4tpncZC",
+    image: "https://m.media-amazon.com/images/I/51uQiklng4L._AC_SX679_.jpg",
   },
 ]
 
@@ -115,36 +119,42 @@ const technology = [
     price: "~$499",
     description: "Compact and powerful — perfect cockpit size for ForeFlight",
     href: "https://amzn.to/48tl9eS",
+    image: "https://m.media-amazon.com/images/I/61-Gx4p9rEL._AC_SX679_.jpg",
   },
   {
     name: "Apple iPad 11-inch",
     price: "~$349",
     description: "Great entry-level iPad for ForeFlight navigation",
     href: "https://amzn.to/4tpabiB",
+    image: "https://m.media-amazon.com/images/I/61+zr8PjwaL._AC_SX679_.jpg",
   },
   {
     name: "iPad Air 11-inch (M4) Cellular",
     price: "~$709",
     description: "M4 chip with 5G — stay connected everywhere",
     href: "https://amzn.to/41bED3X",
+    image: "https://m.media-amazon.com/images/I/71iBSe04h+L._AC_SX679_.jpg",
   },
   {
     name: "iPad Air 13-inch (M4)",
     price: "~$749",
     description: "Large display for detailed chart viewing and flight planning",
     href: "https://amzn.to/4cdiTcV",
+    image: "https://m.media-amazon.com/images/I/71DU8xyt5mL._AC_SX679_.jpg",
   },
   {
     name: "iPad Air 13-inch (M4) Cellular",
     price: "~$938",
     description: "Full-size display with 5G for maximum flexibility",
     href: "https://amzn.to/48hmZiZ",
+    image: "https://m.media-amazon.com/images/I/71Lvw39irML._AC_SX679_.jpg",
   },
   {
     name: "RAM iPad Yoke Mount",
     price: "~$50",
     description: "Secure yoke mount — keeps your iPad in view while flying",
     href: "https://amzn.to/4va2T44",
+    image: "https://m.media-amazon.com/images/I/714Sz4qoHBL._AC_SX679_.jpg",
   },
 ]
 
@@ -154,36 +164,42 @@ const trainingMaterials = [
     price: "~$25",
     description: "FAA regulations and aeronautical information — updated annually",
     href: "https://amzn.to/4c40wXJ",
+    image: "https://m.media-amazon.com/images/I/71t4f8CVuyL._SY522_.jpg",
   },
   {
     name: "Pilot\u2019s Handbook (PHAK)",
     price: "~$20",
     description: "FAA-H-8083-25C — the foundational knowledge book for all pilots",
     href: "https://amzn.to/47I36Bs",
+    image: "https://m.media-amazon.com/images/I/712D8Zf6MML._SY522_.jpg",
   },
   {
     name: "Airplane Flying Handbook",
     price: "~$20",
     description: "FAA-H-8083-3C — maneuvers, procedures, and flight techniques",
     href: "https://amzn.to/4dOVh0T",
+    image: "https://m.media-amazon.com/images/I/71hX7zrFP0L._SY522_.jpg",
   },
   {
     name: "Private Pilot ACS",
     price: "~$15",
     description: "Airman Certification Standards — know exactly what the examiner expects",
     href: "https://amzn.to/3NX5RZ3",
+    image: "https://m.media-amazon.com/images/I/618ZUtsGO1L._SY522_.jpg",
   },
   {
     name: "Flight Bag",
     price: "~$45",
     description: "Wairworthy Ascend — purpose-built pilot bag with smart organization",
     href: "https://amzn.to/3NX5Jsx",
+    image: "https://m.media-amazon.com/images/I/71MQGU5gHJL._AC_SX679_.jpg",
   },
   {
     name: "Pilot Kneeboard",
     price: "~$25",
     description: "Essential for in-flight notes, checklists, and approach plates",
     href: "https://amzn.to/3O2xW16",
+    image: "https://m.media-amazon.com/images/I/71EmDUDpBJL._AC_SX679_.jpg",
   },
 ]
 
@@ -193,24 +209,28 @@ const studyAids = [
     price: "~$20",
     description: "Practice questions and explanations for the FAA written exam",
     href: "https://amzn.to/4vdVQrc",
+    image: "https://m.media-amazon.com/images/I/71bTQwi-znL._SY522_.jpg",
   },
   {
     name: "Private Pilot Flash Cards",
     price: "~$20",
     description: "Quick-review cards covering all major knowledge areas",
     href: "https://amzn.to/4c9LWOs",
+    image: "https://m.media-amazon.com/images/I/814H1MUgcmL._AC_SX679_.jpg",
   },
   {
     name: "ASA E6B Flight Computer",
     price: "~$12",
     description: "Manual flight computer — required for training and the checkride",
     href: "https://amzn.to/41h7zra",
+    image: "https://m.media-amazon.com/images/I/71hJSq9fwCL._AC_SX679_.jpg",
   },
   {
     name: "Aviation Plotter",
     price: "~$12",
     description: "Navigation plotter for cross-country flight planning on charts",
     href: "https://amzn.to/4vsvYYO",
+    image: "https://m.media-amazon.com/images/I/61ZWqLT3j3L._SX522_.jpg",
   },
 ]
 
@@ -236,30 +256,44 @@ function GearCard({
   price,
   description,
   href = "#",
+  image,
 }: {
   name: string
   price: string
   description: string
   href?: string
+  image?: string
 }) {
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:border-golden/40 hover:shadow-md transition-all duration-300">
-      <div className="flex items-start justify-between mb-2">
-        <h4 className="font-semibold text-black text-sm">{name}</h4>
-        <span className="text-golden font-bold text-sm whitespace-nowrap ml-3">
-          {price}
-        </span>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 hover:border-golden/40 hover:shadow-md transition-all duration-300 overflow-hidden">
+      {image && (
+        <div className="aspect-square bg-gray-50 flex items-center justify-center p-4">
+          <img
+            src={image}
+            alt={name}
+            className="object-contain w-full h-full"
+            loading="lazy"
+          />
+        </div>
+      )}
+      <div className="p-6">
+        <div className="flex items-start justify-between mb-2">
+          <h4 className="font-semibold text-black text-sm">{name}</h4>
+          <span className="text-golden font-bold text-sm whitespace-nowrap ml-3">
+            {price}
+          </span>
+        </div>
+        <p className="text-gray-600 text-sm font-light mb-4">{description}</p>
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-golden text-sm font-medium hover:underline"
+          aria-label={`View deal for ${name}`}
+        >
+          View Deal →
+        </a>
       </div>
-      <p className="text-gray-600 text-sm font-light mb-4">{description}</p>
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-golden text-sm font-medium hover:underline"
-        aria-label={`View deal for ${name}`}
-      >
-        View Deal →
-      </a>
     </div>
   )
 }

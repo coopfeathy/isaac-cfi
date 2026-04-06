@@ -24,7 +24,8 @@ jest.mock('@/lib/supabase-admin', () => ({
   }),
 }))
 
-import { POST } from '../route'
+import { POST as _POST } from '../route'
+const POST = _POST as (...args: any[]) => Promise<Response>
 
 // --- Helpers ---
 
@@ -34,7 +35,7 @@ function makeRequest(body?: unknown, headers: Record<string, string> = {}) {
     headers: { authorization: 'Bearer test-token', ...headers },
   }
   if (body) init.body = JSON.stringify(body)
-  return new NextRequest('http://localhost/api/admin/slot-requests/req-1/approve', init)
+  return new NextRequest('http://localhost/api/admin/slot-requests/req-1/approve', init as any)
 }
 
 function mockAdminAuth() {

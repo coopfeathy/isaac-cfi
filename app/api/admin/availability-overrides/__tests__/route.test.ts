@@ -24,14 +24,19 @@ jest.mock('@/lib/supabase-admin', () => ({
   }),
 }))
 
-import { GET, POST, PATCH, DELETE } from '../route'
+import { GET as _GET, POST as _POST, PATCH as _PATCH, DELETE as _DELETE } from '../route'
+type RouteHandler = (...args: any[]) => Promise<Response>
+const GET = _GET as RouteHandler
+const POST = _POST as RouteHandler
+const PATCH = _PATCH as RouteHandler
+const DELETE = _DELETE as RouteHandler
 
 // --- Helpers ---
 
 function makeRequest(method: string, body?: unknown, url = 'http://localhost/api/admin/availability-overrides') {
   const init: RequestInit = { method, headers: { authorization: 'Bearer test-token' } }
   if (body) init.body = JSON.stringify(body)
-  return new NextRequest(url, init)
+  return new NextRequest(url, init as any)
 }
 
 function mockAdminAuth() {

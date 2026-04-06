@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { computeWeekAvailability } from '@/lib/availability-engine'
 
 const WEEK_RE = /^\d{4}-\d{2}-\d{2}$/
 
@@ -30,33 +30,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid date for week parameter' }, { status: 400 })
   }
 
-  const weekEnd = new Date(weekStart)
-  weekEnd.setDate(weekEnd.getDate() + 6)
-  const weekEndStr = weekEnd.toISOString().split('T')[0]
+  const durationParam = request.nextUrl.searchParams.get('duration')
+  const slotDurationMinutes = durationParam ? parseInt(durationParam, 10) : 120
 
-  const db = getSupabaseAdmin()
-
-  const { data: template, error: tErr } = await db
-    .from('instructor_availability')
-    .select('*')
-    .eq('is_active', true)
-    .order('day_of_week')
-    .order('start_time')
-
-  if (tErr) {
-    return NextResponse.json({ error: tErr.message }, { status: 500 })
+  try {
+    const availability = await computeWeekAvailability(week, slotDurationMinutes)
+    return NextResponse.json(availability)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal server error'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
-
-  const { data: overrides, error: oErr } = await db
-    .from('availability_overrides')
-    .select('*')
-    .gte('override_date', week)
-    .lte('override_date', weekEndStr)
-    .order('override_date')
-
-  if (oErr) {
-    return NextResponse.json({ error: oErr.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ template, overrides })
 }

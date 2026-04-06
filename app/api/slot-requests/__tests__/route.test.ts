@@ -27,14 +27,17 @@ jest.mock('@/lib/supabase-admin', () => ({
 // Mock fetch for Resend email
 global.fetch = jest.fn().mockResolvedValue({ ok: true }) as jest.Mock
 
-import { POST, GET } from '../route'
+import { POST as _POST, GET as _GET } from '../route'
+type RouteHandler = (...args: any[]) => Promise<Response>
+const POST = _POST as RouteHandler
+const GET = _GET as RouteHandler
 
 // --- Helpers ---
 
 function makeRequest(method: string, body?: unknown, headers: Record<string, string> = {}) {
   const init: RequestInit = { method, headers: { ...headers } }
   if (body) init.body = JSON.stringify(body)
-  return new NextRequest('http://localhost/api/slot-requests', init)
+  return new NextRequest('http://localhost/api/slot-requests', init as any)
 }
 
 function makeAuthRequest(method: string, body?: unknown) {
