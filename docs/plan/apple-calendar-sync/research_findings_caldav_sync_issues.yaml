@@ -1,0 +1,326 @@
+plan_id: apple-calendar-sync
+objective: Diagnose why CalDAV sync reports 0 pulled and bookings don't appear; locate email notification code for disabling
+focus_area: caldav_sync_issues
+created_at: "2026-04-05"
+created_by: gem-researcher
+status: completed
+
+tldr: |
+  - "0 pulled" root cause: pullEventsFromCalendar (lib/caldav.ts:247) FILTERS OUT any event whose UID does NOT end with `@merlinflight.com`. Events created manually in Apple Calendar have Apple-generated UIDs (e.g. `ABC123-DEF456@apple.com`), so they are silently skipped. Only events originally PUSHED from the app are ever pulled back.
+  - The admin bookings tab (app/admin/page.tsx:2353) queries `bookings` joined with `slots(*)` but does NOT join `profiles` — it displays raw `user_id` UUIDs instead of student names.
+  - The student-facing /bookings page (app/bookings/page.tsx) queries `bookings` filtered by `user_id = current user` — students only see their own bookings.
+  - Email sending code is at netlify/functions/caldav-sync.ts lines 243-245 (call site) and 282-408 (sendLessonScheduledEmail function).
+  - Student matching logic parses the calendar event SUMMARY for patterns like "Flight Training with <name>" and does ilike lookup against profiles.full_name.
+
+research_metadata:
+  methodology: "hybrid retrieval: semantic_search + grep_search + targeted read_file across caldav-sync, caldav lib, admin page, bookings page"
+  scope: "Full examination of CalDAV sync pull logic, admin/bookings rendering, email notification pathway"
+  confidence: high
+  coverage: 95
+  decision_blockers: 0
+  research_blockers: 0
+
+files_analyzed:
+  - file: caldav-sync.ts
+    path: netlify/functions/caldav-sync.ts
+    purpose: Scheduled Netlify function (every 10 min) performing bidirectional CalDAV sync — push pending slots, delete pending, pull inbound changes
+    key_elements:
+      - element: pullEventsFromCalendar call
+        type: function
+        location: "netlify/functions/caldav-sync.ts:140"
+        description: "Calls lib/caldav.ts pullEventsFromCalendar with calendar_url and sync_token from caldav_settings table"
+      - element: Student matching from calendar summary
+        type: pattern
+        location: "netlify/functions/caldav-sync.ts:170-210"
+        description: |
+          Regex: /(?:Flight Training|Discovery Flight)\s*(?:with\s+|-\s*)?(.+?)(?:\s*\|.*)?$/i
+          Extracts student name from SUMMARY field.
+          First tries exact ilike match on profiles.full_name.
+          Falls back to partial prefix match (first name only) via ilike `${name}%`.
+      - element: Slot + booking creation for inbound events
+        type: pattern
+        location: "netlify/functions/caldav-sync.ts:214-252"
+        description: |
+          Creates a slot with type training/tour, price 20000/29900, is_booked based on matched user.
+          If matchedUserId found → also creates a booking row with status 'confirmed' and notes 'Created from Apple Calendar sync'.
+          If no matchedUserId → creates unassigned slot only (logged as unassigned).
+      - element: sendLessonScheduledEmail call site
+        type: function
+        location: "netlify/functions/caldav-sync.ts:243"
+        description: "Called immediately after creating a booking from inbound sync. Sends Resend email to matched student."
+      - element: sendLessonScheduledEmail function definition
+        type: function
+        location: "netlify/functions/caldav-sync.ts:282-408"
+        description: "Looks up profile, auth user email, slot times, optional syllabus lesson. Builds HTML email inline and sends via Resend."
+    language: typescript
+    lines: 408
+
+  - file: caldav.ts
+    path: lib/caldav.ts
+    purpose: CalDAV client library wrapping tsdav — creates client, fetches calendars, pushes/pulls/deletes events
+    key_elements:
+      - element: pullEventsFromCalendar
+        type: function
+        location: "lib/caldav.ts:228-270"
+        description: |
+          Fetches calendar objects using tsdav. If syncToken provided, uses WebDAV sync-collection to get only changed objects.
+          CRITICAL FILTER at line 247: `if (!uid || !uid.endsWith('@merlinflight.com')) continue`
+          This means ONLY events with UIDs ending in @merlinflight.com are returned.
+          Events created manually in Apple Calendar have Apple-generated UIDs and are ALWAYS SKIPPED.
+      - element: slotToVEvent
+        type: function
+        location: "lib/caldav.ts:101-134"
+        description: "Generates ICS VCALENDAR string. Sets UID as `${slot.id}@merlinflight.com` — this is the only UID format the pull filter accepts."
+      - element: syncToken-based fetch
+        type: pattern
+        location: "lib/caldav.ts:234-237"
+        description: |
+          If syncToken exists in DB, passes it to fetchCalendarObjects for incremental sync.
+          If null (first sync), fetches ALL calendar objects — but still filters by @merlinflight.com UID.
+    language: typescript
+    lines: 285
+
+  - file: admin page.tsx
+    path: app/admin/page.tsx
+    purpose: Main admin dashboard with tabs for slots, bookings, prospects, blog, social, email, settings
+    key_elements:
+      - element: fetchData bookings query
+        type: pattern
+        location: "app/admin/page.tsx:383"
+        description: |
+          `supabase.from('bookings').select('*, slots(*)').order('created_at', { ascending: false })`
+          No filter on sync_status, no filter on booking status — fetches ALL bookings.
+          Does NOT join profiles table — no student name resolution.
+      - element: fetchData slots query
+        type: pattern
+        location: "app/admin/page.tsx:382"
+        description: |
+          `supabase.from('slots').select('*').order('start_time', { ascending: true })`
+          No filter on sync_status — fetches ALL slots including CalDAV synced ones.
+      - element: Bookings tab rendering
+        type: pattern
+        location: "app/admin/page.tsx:2352-2435"
+        description: |
+          Renders each booking as a card showing:
+          - Type (Discovery Flight / Flight Training) from slots.type
+          - Raw user_id UUID (NOT student name) — line 2398
+          - Start time, price from joined slot
+          - Notes
+          - Status dropdown (pending/paid/confirmed/completed/canceled)
+          No sync_status column displayed. No student name lookup.
+    language: typescript
+    lines: 3280
+
+  - file: bookings page.tsx (student-facing)
+    path: app/bookings/page.tsx
+    purpose: Student-facing page showing their own bookings
+    key_elements:
+      - element: fetchBookings
+        type: function
+        location: "app/bookings/page.tsx:33-47"
+        description: |
+          `supabase.from('bookings').select('*, slots(*)').eq('user_id', user.id).order('created_at', { ascending: false })`
+          Only shows bookings where user_id matches the logged-in user.
+          This is correct — students see only their own bookings.
+    language: typescript
+    lines: 180
+
+  - file: admin bookings page.tsx
+    path: app/admin/bookings/page.tsx
+    purpose: Route wrapper that renders the admin page forced to bookings tab
+    key_elements:
+      - element: AdminWorkspacePage
+        type: function
+        location: "app/admin/bookings/page.tsx:1-4"
+        description: "Simply renders `<AdminWorkspacePage tab='bookings' />` — all logic is in app/admin/page.tsx"
+    language: typescript
+    lines: 4
+
+patterns_found:
+  - category: architecture
+    pattern: "UID-based event filtering — only merlinflight.com UIDs processed"
+    description: |
+      The pull logic in lib/caldav.ts line 247 enforces that only events originally
+      created by the app (with UIDs matching `*@merlinflight.com`) are pulled back.
+      This is a deliberate design choice for round-trip sync of app-created events,
+      but it completely prevents ingesting events created manually in Apple Calendar.
+    examples:
+      - file: lib/caldav.ts
+        location: "lib/caldav.ts:247"
+        snippet: "if (!uid || !uid.endsWith('@merlinflight.com')) continue"
+    prevalence: common
+
+  - category: architecture
+    pattern: "Sync token incremental sync"
+    description: |
+      When a sync_token exists in caldav_settings, the pull uses WebDAV sync-collection
+      to fetch only CHANGED objects since that token. If all events are unchanged since
+      last sync, this correctly returns 0 objects. On first sync (null token), ALL
+      objects are fetched — but still filtered by the @merlinflight.com UID check.
+    examples:
+      - file: lib/caldav.ts
+        location: "lib/caldav.ts:234-237"
+        snippet: |
+          if (syncToken) {
+            fetchOptions.syncToken = syncToken
+          }
+    prevalence: common
+
+  - category: architecture
+    pattern: "Admin bookings view shows raw UUID not student name"
+    description: |
+      The admin bookings tab queries `bookings` with `slots(*)` join but does NOT
+      join the `profiles` table. It displays `booking.user_id` as a raw UUID string
+      instead of resolving to a human-readable student name.
+    examples:
+      - file: app/admin/page.tsx
+        location: "app/admin/page.tsx:2398"
+        snippet: '{booking.user_id && <p className="text-gray-600">Customer ID: {booking.user_id}</p>}'
+    prevalence: common
+
+  - category: error_handling
+    pattern: "Silent skip of non-matching events"
+    description: |
+      Events that don't match the @merlinflight.com UID filter are silently skipped
+      with no logging. The sync reports "0 pulled" which gives no indication that
+      events were found but filtered out. This makes debugging difficult.
+    examples:
+      - file: lib/caldav.ts
+        location: "lib/caldav.ts:247"
+        snippet: "if (!uid || !uid.endsWith('@merlinflight.com')) continue"
+    prevalence: common
+
+related_architecture:
+  components_relevant_to_domain:
+    - component: caldav-sync Netlify scheduled function
+      responsibility: "Bidirectional sync every 10 min: push pending_push slots, delete pending_delete slots, pull inbound changes"
+      location: netlify/functions/caldav-sync.ts
+      relationship_to_domain: "Core sync engine"
+    - component: caldav library
+      responsibility: "tsdav wrapper for CalDAV operations — login, fetch calendars, push/pull/delete events"
+      location: lib/caldav.ts
+      relationship_to_domain: "Low-level CalDAV operations used by sync function"
+    - component: Admin dashboard bookings tab
+      responsibility: "Display all bookings with status management"
+      location: "app/admin/page.tsx (lines 2352-2435)"
+      relationship_to_domain: "Where admin expects to see synced bookings"
+    - component: Student bookings page
+      responsibility: "Display student's own bookings"
+      location: app/bookings/page.tsx
+      relationship_to_domain: "Where students see their bookings"
+  data_flow_involving_domain: |
+    PUSH flow: slot created in app → slot.sync_status = 'pending_push' → caldav-sync picks it up → pushes to Apple Calendar → updates sync_status to 'synced'
+    PULL flow: caldav-sync polls Apple Calendar → fetches changed objects → filters to @merlinflight.com UIDs only → matches student name from SUMMARY → creates slot + booking in DB
+    The PULL flow breaks for manually-created Apple Calendar events because their UIDs don't match the filter.
+
+open_questions:
+  - question: "Is the intent to support manually-created Apple Calendar events being pulled into the app?"
+    context: |
+      The PRD user story says 'Schedule students on my Apple Calendar and have it automatically appear in their dashboard'.
+      The current UID filter prevents this. The filter was likely added to avoid pulling non-flight-related personal calendar events,
+      but it also blocks the primary instructor workflow of creating events directly in Apple Calendar.
+    type: decision_blocker
+    affects: ["caldav-pull-logic"]
+
+  - question: "Should the admin bookings view resolve user_id to student names?"
+    context: "Currently shows raw UUIDs which are not useful for identifying students"
+    type: nice_to_know
+    affects: ["admin-bookings-display"]
+
+gaps:
+  - area: "No logging of skipped events during pull"
+    description: |
+      When pullEventsFromCalendar skips events due to UID filter, there is no log output.
+      Adding a log like 'Skipping event with non-merlinflight UID: <uid>' would make debugging
+      the '0 pulled' issue immediately obvious.
+    impact: nice_to_know
+    affects: ["caldav-debugging"]
+
+  - area: "caldav_settings.sync_token state unknown"
+    description: |
+      If sync_token is already set from a previous successful sync, the pull will only fetch
+      CHANGED events since that token. If no events changed since the token was set, result is
+      legitimately 0 pulled. Cannot determine from code alone whether sync_token is null or populated.
+    impact: research_blocker
+    affects: ["caldav-pull-diagnosis"]
+
+# ============================================================
+# DIRECT ANSWERS TO USER'S QUESTIONS
+# ============================================================
+
+answers:
+  why_zero_pulled:
+    primary_cause: |
+      **The UID filter in lib/caldav.ts line 247 is the root cause.**
+
+      `if (!uid || !uid.endsWith('@merlinflight.com')) continue`
+
+      Events created manually in Apple Calendar get Apple-generated UIDs like
+      `E621E1F8-C36C-495A-93FC-0C247A3E6E5F@apple.com` — these do NOT end
+      with `@merlinflight.com` and are silently skipped.
+
+      Only events originally PUSHED from the app (which have UIDs like
+      `<slot-uuid>@merlinflight.com`) can ever be pulled back.
+    secondary_cause: |
+      If a sync_token already exists in the caldav_settings table from a prior sync,
+      the pull uses incremental sync (WebDAV sync-collection). If no events have
+      changed since the token was saved, the result is legitimately 0 objects returned
+      by the server — before the UID filter even runs.
+    combined_effect: |
+      The instructor creates events in Apple Calendar → sync runs → fetches objects →
+      UID filter rejects all of them → 0 pulled. OR: sync_token causes server to return
+      0 changed objects → 0 pulled. Either way, nothing gets into the app.
+
+  how_bookings_page_queries_data:
+    student_facing: |
+      app/bookings/page.tsx line 35-42:
+      `supabase.from('bookings').select('*, slots(*)').eq('user_id', user.id)`
+      Shows only the logged-in student's bookings, joined with slots for time/price.
+    admin_facing: |
+      app/admin/page.tsx line 383:
+      `supabase.from('bookings').select('*, slots(*)').order('created_at', { ascending: false })`
+      Shows ALL bookings with joined slot data. No sync_status filter. No profiles join.
+      Bookings WOULD appear here IF they existed in the bookings table.
+
+  admin_bookings_with_student_details:
+    page: "app/admin/page.tsx bookings tab (line 2352-2435) or route /admin/bookings"
+    limitation: |
+      Does NOT show student names — only raw user_id UUIDs (line 2398).
+      The query does not join the profiles table.
+      To show student names, the query would need: `bookings.select('*, slots(*), profiles!bookings_user_id_fkey(full_name)')`
+
+  email_sending_code:
+    call_site:
+      file: netlify/functions/caldav-sync.ts
+      line: 243
+      code: "await sendLessonScheduledEmail(supabase, matchedUserId, newSlot.id)"
+    stats_increment:
+      file: netlify/functions/caldav-sync.ts
+      line: 244
+      code: "stats.emailsSent++"
+    function_definition:
+      file: netlify/functions/caldav-sync.ts
+      lines: "282-408"
+      description: "sendLessonScheduledEmail — fetches profile, auth user email, slot, optional syllabus lesson, builds HTML, sends via Resend"
+    simplest_disable_method: |
+      Comment out the two lines at 243-244:
+        // await sendLessonScheduledEmail(supabase, matchedUserId, newSlot.id)
+        // stats.emailsSent++
+      Or add a feature flag check: `if (process.env.SEND_SYNC_EMAILS !== 'false') { ... }`
+
+  student_matching_logic:
+    location: "netlify/functions/caldav-sync.ts lines 170-210"
+    mechanism: |
+      1. Extracts student name from the calendar event SUMMARY field using regex:
+         /(?:Flight Training|Discovery Flight)\s*(?:with\s+|-\s*)?(.+?)(?:\s*\|.*)?$/i
+
+      2. Supported SUMMARY formats:
+         - "Flight Training with George"
+         - "Flight Training - George"
+         - "Flight Training George"
+         - "Discovery Flight with Sam"
+         - "Discovery Flight - Sam | Lesson 5: ..."
+
+      3. Tries exact ilike match: profiles.full_name ilike 'George'
+      4. Falls back to prefix match: profiles.full_name ilike 'George%'
+      5. If no match found → slot is created but no booking (unassigned slot)

@@ -244,7 +244,7 @@ export async function pullEventsFromCalendar(
     for (const obj of objects) {
       const data: string = obj.data ?? ''
       const uid = extractIcsField(data, 'UID')
-      if (!uid || !uid.endsWith('@merlinflight.com')) continue
+      if (!uid) continue
 
       events.push({
         uid,

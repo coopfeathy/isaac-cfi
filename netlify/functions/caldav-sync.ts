@@ -241,9 +241,9 @@ const handler: Handler = async () => {
 
             stats.pulled++
 
-            // Send email notification for new booking
-            await sendLessonScheduledEmail(supabase, matchedUserId, newSlot.id)
-            stats.emailsSent++
+            // Email notifications disabled per instructor preference
+            // await sendLessonScheduledEmail(supabase, matchedUserId, newSlot.id)
+            // stats.emailsSent++
           } else if (newSlot) {
             stats.pulled++
             console.log(`CalDAV sync: created unassigned slot from calendar event ${event.uid}`)

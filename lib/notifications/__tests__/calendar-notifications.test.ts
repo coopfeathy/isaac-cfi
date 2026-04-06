@@ -3,8 +3,8 @@ import { sendCalendarNotification } from '../calendar-notifications'
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
 const mockSend = jest.fn().mockResolvedValue({ id: 'email-123' })
-jest.mock('resend', () => ({
-  Resend: jest.fn().mockImplementation(() => ({ emails: { send: mockSend } })),
+jest.mock('@/lib/resend', () => ({
+  resend: { emails: { send: (...args: unknown[]) => mockSend(...args) } },
 }))
 
 const mockSendTwilioMessage = jest.fn().mockResolvedValue({ sid: 'sms-123' })
@@ -12,25 +12,17 @@ jest.mock('@/lib/twilio', () => ({
   sendTwilioMessage: (...args: unknown[]) => mockSendTwilioMessage(...args),
 }))
 
+const mockGetUserById = jest.fn().mockResolvedValue({
+  data: { user: { email: 'student@test.com' } },
+  error: null,
+})
+
 const mockFrom = jest.fn()
-const mockSelect = jest.fn()
-const mockSingle = jest.fn()
-const mockEq = jest.fn()
 
 jest.mock('@/lib/supabase-admin', () => ({
   getSupabaseAdmin: () => ({
-    from: (...args: unknown[]) => {
-      mockFrom(...args)
-      return { select: mockSelect }
-    },
-    auth: {
-      admin: {
-        getUserById: jest.fn().mockResolvedValue({
-          data: { user: { email: 'student@test.com' } },
-          error: null,
-        }),
-      },
-    },
+    from: (...args: unknown[]) => mockFrom(...args),
+    auth: { admin: { getUserById: (...args: unknown[]) => mockGetUserById(...args) } },
   }),
 }))
 
@@ -49,15 +41,6 @@ beforeAll(() => {
 beforeEach(() => {
   jest.clearAllMocks()
 
-  // Default chain: profiles table lookup returns student data
-  mockSelect.mockReturnValue({ eq: mockEq })
-  mockEq.mockReturnValue({ single: mockSingle })
-  mockSingle.mockResolvedValue({
-    data: { full_name: 'Test Student', phone: '+15559876543' },
-    error: null,
-  })
-
-  // Override for notification_preferences table
   mockFrom.mockImplementation((table: string) => {
     if (table === 'notification_preferences') {
       return {
@@ -72,7 +55,16 @@ beforeEach(() => {
       }
     }
     // profiles table
-    return { select: mockSelect }
+    return {
+      select: jest.fn().mockReturnValue({
+        eq: jest.fn().mockReturnValue({
+          single: jest.fn().mockResolvedValue({
+            data: { full_name: 'Test Student', phone: '+15559876543' },
+            error: null,
+          }),
+        }),
+      }),
+    }
   })
 })
 
@@ -151,7 +143,16 @@ describe('sendCalendarNotification', () => {
             }),
           }
         }
-        return { select: mockSelect }
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: { full_name: 'Test Student', phone: '+15559876543' },
+                error: null,
+              }),
+            }),
+          }),
+        }
       })
 
       const result = await sendCalendarNotification({
@@ -378,7 +379,16 @@ describe('sendCalendarNotification', () => {
             }),
           }
         }
-        return { select: mockSelect }
+        return {
+          select: jest.fn().mockReturnValue({
+            eq: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: { full_name: 'Test Student', phone: '+15559876543' },
+                error: null,
+              }),
+            }),
+          }),
+        }
       })
 
       const result = await sendCalendarNotification({
