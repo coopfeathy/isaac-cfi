@@ -5,7 +5,7 @@ import type React from "react"
 import { AuthProvider } from "./contexts/AuthContext"
 import type { Metadata, Viewport } from "next"
 export const metadata: Metadata = {
-  metadataBase: new URL("https://merlinflight.com"),
+  metadataBase: new URL("https://merlinflighttraining.com"),
   title: "Merlin Flight Training | Flight School Near NYC – Republic Airport FRG",
   description: "FAA-certified flight training at Republic Airport (FRG), Farmingdale, NY. Private pilot, instrument rating, commercial certifications & discovery flights. Serving Long Island, NYC & New Jersey. Book today.",
   keywords: [
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://merlinflight.com",
+    url: "https://merlinflighttraining.com",
     siteName: "Merlin Flight Training",
     title: "Merlin Flight Training | Flight School Near NYC – Republic Airport",
     description: "FAA-certified flight training at Republic Airport (FRG), Farmingdale, NY. Private pilot, instrument rating, commercial certifications & discovery flights serving Long Island, NYC & New Jersey.",
@@ -88,9 +88,13 @@ export default function RootLayout({
     "@type": "LocalBusiness",
     name: "Merlin Flight Training",
     description: "Professional FAA-certified flight training in NYC and New Jersey",
-    url: "https://merlinflight.com",
+    url: "https://merlinflighttraining.com",
     telephone: "+1-929-487-4717",
-    image: "https://merlinflight.com/images/merlin-logo.png",
+    image: "https://merlinflighttraining.com/merlin-logo.png",
+    logo: {
+      "@type": "ImageObject",
+      url: "https://merlinflighttraining.com/merlin-logo.png",
+    },
     address: {
       "@type": "PostalAddress",
       streetAddress: "208 NY-109",
