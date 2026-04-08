@@ -1,7 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth'
+import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import type { CreateOverrideInput } from '@/lib/types/calendar'
+
+async function requireAdmin(request: NextRequest) {
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader) {
+    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  }
+
+  const token = authHeader.replace('Bearer ', '')
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(token)
+
+  if (authError || !user) {
+    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single()
+
+  if (!profile?.is_admin) {
+    return { error: NextResponse.json({ error: 'Admin access required' }, { status: 403 }) }
+  }
+
+  return { user }
+}
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const TIME_RE = /^\d{2}:\d{2}$/
