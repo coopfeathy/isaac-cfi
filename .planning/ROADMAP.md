@@ -45,9 +45,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Decompose `app/admin/page.tsx` monolith into lazy-loaded tab components (ADMIN-08)
-- [ ] 02-02-PLAN.md — Migrate unique `/manage` functionality into `/admin`, add redirects, retire `/manage` zone (ADMIN-01, ADMIN-06, ADMIN-07)
-- [ ] 02-03-PLAN.md — Wire admin prospect pipeline view with status updates (ADMIN-02, ADMIN-03, ADMIN-09)
+- [x] 02-01-PLAN.md — Decompose `app/admin/page.tsx` monolith into lazy-loaded tab components (ADMIN-08)
+- [x] 02-02-PLAN.md — Migrate unique `/manage` functionality into `/admin`, add redirects, retire `/manage` zone (ADMIN-01, ADMIN-06, ADMIN-07)
+- [x] 02-03-PLAN.md — Wire admin prospect pipeline view with status updates (ADMIN-02, ADMIN-03, ADMIN-09)
 **UI hint**: yes
 
 ### Phase 3: CFI Portal
