@@ -8,7 +8,7 @@ function LoginForm() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-  const { signIn, user, loading: authLoading } = useAuth()
+  const { signIn, user, loading: authLoading, isAdmin, isCFI } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const error = searchParams?.get('error')
@@ -19,14 +19,19 @@ function LoginForm() {
     if (saved) setEmail(saved)
   }, [])
 
-  // If magic link sign-in completes on this page, continue to selected destination.
+  // If magic link sign-in completes on this page, route by role.
   useEffect(() => {
     if (!authLoading && user) {
-      const destination = localStorage.getItem('post_login_destination') || '/schedule'
       localStorage.removeItem('post_login_destination')
-      router.replace(destination)
+      if (isAdmin) {
+        router.replace('/admin')
+      } else if (isCFI) {
+        router.replace('/cfi')
+      } else {
+        router.replace('/schedule')
+      }
     }
-  }, [authLoading, user, router])
+  }, [authLoading, user, isAdmin, isCFI, router])
 
   const sendMagicLink = async (destination: '/schedule' | '/onboarding' = '/schedule') => {
     setLoading(true)
