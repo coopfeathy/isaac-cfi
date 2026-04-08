@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import ManageSidebar from '../components/ManageSidebar'
 
 export default async function ManageLayout({
@@ -31,8 +32,9 @@ export default async function ManageLayout({
     redirect('/login')
   }
 
-  // Check admin role (SEC-02)
-  const { data: profile } = await supabase
+  // Check admin role (SEC-02) — use service-role client to bypass RLS on profiles table
+  const supabaseAdmin = getSupabaseAdmin()
+  const { data: profile } = await supabaseAdmin
     .from('profiles')
     .select('is_admin')
     .eq('id', user.id)
