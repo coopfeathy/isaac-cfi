@@ -63,7 +63,7 @@ All text uses Inter. Weights are limited to two: regular (400) and semibold (600
 | Body | 14px | 400 | 1.5 | Table cells, form labels, description text |
 | Label | 12px | 600 | 1.4 | Section eyebrows (uppercase + tracking), badge labels, table column headers |
 | Heading | 20px | 600 | 1.3 | Card titles, section headings within the portal |
-| Display | 30px | 700 | 1.2 | Page-level `<h1>` (e.g., "CFI Workspace") — matches `text-3xl font-bold` in AdminPageShell |
+| Display | 30px | 600 | 1.2 | Page-level `<h1>` (e.g., "CFI Workspace") — `text-3xl font-semibold` |
 
 Note: 12px labels MUST use `uppercase tracking-[0.2em]` to match the eyebrow pattern established in `AdminTopNav` and `AdminPageShell` (`text-xs uppercase tracking-[0.2em]`).
 
@@ -136,6 +136,8 @@ Admin users who also access `/cfi` should see a cross-link "Back to Admin" in th
 - `/cfi/log` — flight hour and endorsement logging (single page, two sections or a tabbed sub-view)
 
 Source: Claude's Discretion (CONTEXT.md) — route segments chosen over tab state for deep-linkability and server component compatibility with `requireCFI()` layout guard.
+
+**Dashboard focal point (`/cfi` landing screen):** The upcoming schedule table is the primary visual anchor. It occupies the main content column and carries the highest visual weight. Quick-action buttons (Log Hours, Log Endorsement) are secondary affordances — they are positioned above the schedule table in the page shell `actions` slot and do not compete with the table for hierarchy. A CFI's first glance lands on "What's coming up?", not on action triggers.
 
 ---
 
