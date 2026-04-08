@@ -12,6 +12,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
@@ -39,7 +40,8 @@ export async function requireAdmin(request: NextRequest) {
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
   }
 
-  const { data: profile, error: profileError } = await supabase
+  const supabaseAdmin = getSupabaseAdmin()
+  const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select('is_admin')
     .eq('id', user.id)
@@ -79,7 +81,8 @@ export async function requireCFI(request: NextRequest) {
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
   }
 
-  const { data: profile, error: profileError } = await supabase
+  const supabaseAdmin = getSupabaseAdmin()
+  const { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select('is_admin, is_instructor')
     .eq('id', user.id)
