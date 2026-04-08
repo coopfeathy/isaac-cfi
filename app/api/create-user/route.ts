@@ -35,18 +35,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create user' }, { status: 400 })
     }
 
-    // Prepare profile data - ensure no undefined values that might cause validation errors
-    const profileData = {
-      id: authData.user.id,
-      ...profile,
+    // Allowlist profile fields to prevent callers from setting arbitrary columns (e.g. is_admin)
+    const allowedProfileFields = ['full_name', 'phone', 'avatar_url']
+    const sanitizedProfile: Record<string, unknown> = {}
+    for (const key of allowedProfileFields) {
+      if (profile && key in profile && profile[key] !== undefined) {
+        sanitizedProfile[key] = profile[key]
+      }
     }
 
-    // Remove any undefined values to prevent "did not match pattern" errors
-    Object.keys(profileData).forEach(key => {
-      if (profileData[key] === undefined) {
-        delete profileData[key]
-      }
-    })
+    // Prepare profile data - ensure no undefined values that might cause validation errors
+    const profileData: Record<string, unknown> = {
+      id: authData.user.id,
+      ...sanitizedProfile,
+    }
 
     // Create profile with admin bypass
     const { error: profileError } = await supabase
