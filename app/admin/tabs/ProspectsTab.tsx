@@ -1,14 +1,32 @@
 'use client'
 
+// Run this in Supabase SQL Editor if lead_stage column does not exist:
+// ALTER TABLE prospects ADD COLUMN IF NOT EXISTS lead_stage text DEFAULT 'new' CHECK (lead_stage IN ('new', 'contacted', 'booked', 'no-show', 'converted'));
+// UPDATE prospects SET lead_stage = 'new' WHERE lead_stage IS NULL;
+
 import { Fragment, useEffect, useState } from 'react'
 import { useAuth } from '@/app/contexts/AuthContext'
 import { supabase } from '@/lib/supabase'
+
+type LeadStage = 'new' | 'contacted' | 'booked' | 'no-show' | 'converted'
+
+const stageColorClass = (stage: string | null | undefined): string => {
+  switch (stage) {
+    case 'new': return 'bg-blue-100 text-blue-800'
+    case 'contacted': return 'bg-yellow-100 text-yellow-800'
+    case 'booked': return 'bg-green-100 text-green-800'
+    case 'no-show': return 'bg-red-100 text-red-800'
+    case 'converted': return 'bg-purple-100 text-purple-800'
+    default: return 'bg-blue-100 text-blue-800'
+  }
+}
 
 export default function ProspectsTab() {
   const { user } = useAuth()
 
   const [prospects, setProspects] = useState<any[]>([])
   const [prospectSource, setProspectSource] = useState<'all' | 'discovery_flight'>('all')
+  const [stageFilter, setStageFilter] = useState<LeadStage | 'all'>('all')
   const [prospectView, setProspectView] = useState<'list' | 'cards'>('cards')
   const [expandedProspectId, setExpandedProspectId] = useState<string | null>(null)
   const [deletingProspectId, setDeletingProspectId] = useState<string | null>(null)
@@ -35,7 +53,7 @@ export default function ProspectsTab() {
     try {
       const { data, error } = await supabase
         .from('prospects')
-        .select('id, email, created_at, source, phone, full_name, interest_level, status, notes, meeting_location, meeting_date, next_follow_up, follow_up_frequency, updated_at')
+        .select('id, email, created_at, source, phone, full_name, interest_level, status, notes, meeting_location, meeting_date, next_follow_up, follow_up_frequency, updated_at, lead_stage')
         .order('next_follow_up', { ascending: true, nullsFirst: false })
 
       if (error) {
@@ -45,6 +63,18 @@ export default function ProspectsTab() {
       }
     } catch (error) {
       console.error('Error fetching prospects:', error)
+    }
+  }
+
+  const handleLeadStageChange = async (prospectId: string, newStage: LeadStage) => {
+    const { error } = await supabase
+      .from('prospects')
+      .update({ lead_stage: newStage })
+      .eq('id', prospectId)
+    if (!error) {
+      setProspects(prev => prev.map(p => p.id === prospectId ? { ...p, lead_stage: newStage } : p))
+    } else {
+      console.error('Error updating lead stage:', error)
     }
   }
 
@@ -107,6 +137,7 @@ export default function ProspectsTab() {
           follow_up_frequency: Number.isFinite(followUpFrequency) && followUpFrequency > 0 ? followUpFrequency : 7,
           notes: prospectForm.notes.trim() || null,
           created_by: user?.id || null,
+          lead_stage: 'new',
         },
       ])
       .select('id')
@@ -247,7 +278,11 @@ export default function ProspectsTab() {
     }
   }
 
-  const filteredProspects = prospects.filter((p) => prospectSource === 'all' || p.source === prospectSource)
+  const filteredProspects = prospects.filter((p) => {
+    const sourceMatch = prospectSource === 'all' || p.source === prospectSource
+    const stageMatch = stageFilter === 'all' || (p.lead_stage || 'new') === stageFilter
+    return sourceMatch && stageMatch
+  })
 
   const formatDateTime = (value?: string | null) => {
     if (!value) return '-'
@@ -382,18 +417,44 @@ export default function ProspectsTab() {
         </form>
       </div>
 
+      {/* Filters row */}
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Source</label>
-          <select
-            value={prospectSource}
-            onChange={(e) => setProspectSource(e.target.value as 'all' | 'discovery_flight')}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-golden focus:border-golden"
-          >
-            <option value="all">All Prospects</option>
-            <option value="discovery_flight">Discovery Flight</option>
-          </select>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Source</label>
+            <select
+              value={prospectSource}
+              onChange={(e) => setProspectSource(e.target.value as 'all' | 'discovery_flight')}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-golden focus:border-golden"
+            >
+              <option value="all">All Prospects</option>
+              <option value="discovery_flight">Discovery Flight</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Stage</label>
+            <div className="flex flex-wrap gap-2">
+              {(['all', 'new', 'contacted', 'booked', 'no-show', 'converted'] as const).map((stage) => (
+                <button
+                  key={stage}
+                  type="button"
+                  onClick={() => setStageFilter(stage)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                    stageFilter === stage
+                      ? stage === 'all'
+                        ? 'bg-gray-800 text-white border-gray-800'
+                        : `${stageColorClass(stage)} border-transparent`
+                      : 'bg-white text-gray-600 border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  {stage === 'all' ? 'All Stages' : stage.charAt(0).toUpperCase() + stage.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
+
         <div>
           <p className="block text-sm font-medium text-gray-700 mb-2">View</p>
           <div className="inline-flex rounded-lg border border-gray-300 bg-white p-1">
@@ -434,19 +495,34 @@ export default function ProspectsTab() {
                   <h3 className="text-lg font-bold text-darkText leading-tight">{prospect.full_name || 'No name'}</h3>
                   <p className="text-sm text-gray-600 mt-1">{prospect.email || 'No email'}</p>
                 </div>
-                <span className={`px-2 py-1 text-xs rounded-full whitespace-nowrap ${
-                  prospect.interest_level === 'hot' ? 'bg-red-100 text-red-800' :
-                  prospect.interest_level === 'warm' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-blue-100 text-blue-800'
-                }`}>
-                  {prospect.interest_level || 'unknown'}
-                </span>
+                {/* Lead stage dropdown — primary status indicator */}
+                <select
+                  value={prospect.lead_stage || 'new'}
+                  onChange={(e) => handleLeadStageChange(prospect.id, e.target.value as LeadStage)}
+                  className={`px-2 py-1 rounded text-xs font-semibold border-0 cursor-pointer ${stageColorClass(prospect.lead_stage)}`}
+                >
+                  <option value="new">New</option>
+                  <option value="contacted">Contacted</option>
+                  <option value="booked">Booked</option>
+                  <option value="no-show">No-Show</option>
+                  <option value="converted">Converted</option>
+                </select>
               </div>
 
               <div className="space-y-2 text-sm text-gray-700">
                 <p><span className="font-semibold text-gray-900">Phone:</span> {prospect.phone || '-'}</p>
                 <p><span className="font-semibold text-gray-900">Source:</span> {prospect.source?.replace('_', ' ') || '-'}</p>
                 <p><span className="font-semibold text-gray-900">Submitted:</span> {new Date(prospect.created_at).toLocaleDateString()}</p>
+                <p>
+                  <span className="font-semibold text-gray-900">Interest:</span>{' '}
+                  <span className={`px-2 py-0.5 text-xs rounded-full ${
+                    prospect.interest_level === 'hot' ? 'bg-red-100 text-red-800' :
+                    prospect.interest_level === 'warm' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-blue-100 text-blue-800'
+                  }`}>
+                    {prospect.interest_level || 'unknown'}
+                  </span>
+                </p>
               </div>
 
               <button
@@ -500,8 +576,9 @@ export default function ProspectsTab() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stage</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interest</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
@@ -513,8 +590,22 @@ export default function ProspectsTab() {
                 {filteredProspects.map((prospect) => (
                   <Fragment key={prospect.id}>
                     <tr key={`${prospect.id}-row`} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{prospect.email}</div></td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {/* Lead stage dropdown — primary status indicator in list view */}
+                        <select
+                          value={prospect.lead_stage || 'new'}
+                          onChange={(e) => handleLeadStageChange(prospect.id, e.target.value as LeadStage)}
+                          className={`px-2 py-1 rounded text-xs font-semibold border-0 cursor-pointer ${stageColorClass(prospect.lead_stage)}`}
+                        >
+                          <option value="new">New</option>
+                          <option value="contacted">Contacted</option>
+                          <option value="booked">Booked</option>
+                          <option value="no-show">No-Show</option>
+                          <option value="converted">Converted</option>
+                        </select>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-900">{prospect.full_name || '-'}</div></td>
+                      <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{prospect.email}</div></td>
                       <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm text-gray-500">{prospect.phone || '-'}</div></td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 text-xs rounded-full ${
@@ -557,7 +648,7 @@ export default function ProspectsTab() {
                     </tr>
                     {expandedProspectId === prospect.id && (
                       <tr key={`${prospect.id}-details`} className="bg-gray-50">
-                        <td colSpan={7} className="px-6 py-4">
+                        <td colSpan={8} className="px-6 py-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-700">
                             <p><span className="font-semibold text-gray-900">Status:</span> {prospect.status || '-'}</p>
                             <p><span className="font-semibold text-gray-900">Meeting Location:</span> {prospect.meeting_location || '-'}</p>
