@@ -2020,6 +2020,20 @@ CREATE POLICY "Students view their own endorsements"
   USING (student_id = auth.uid());
 
 -- ============================================================
+-- Phase 3: Atomic flight hour increment (avoids race condition per T-03-08)
+-- Called by /api/cfi/flight-log POST handler via .rpc()
+-- ============================================================
+CREATE OR REPLACE FUNCTION increment_student_hours(p_student_user_id UUID, p_hours NUMERIC)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE students
+  SET dual_hours = COALESCE(dual_hours, 0) + p_hours,
+      total_hours = COALESCE(total_hours, 0) + p_hours
+  WHERE user_id = p_student_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================
 -- DONE
 -- All tables, RLS policies, and indexes are created.
 -- ============================================================
