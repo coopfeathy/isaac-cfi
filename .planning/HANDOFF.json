@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-04-08T14:45:49.912Z",
+  "phase": null,
+  "phase_name": null,
+  "phase_dir": null,
+  "plan": null,
+  "task": null,
+  "total_tasks": null,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Run /gsd-map-codebase — 4 parallel mapper agents", "status": "done", "commit": "1718b7d"},
+    {"id": 2, "name": "Run /gsd-new-project — questioning, research, requirements, roadmap", "status": "done", "commit": "86646ee"},
+    {"id": 3, "name": "PROJECT.md initialized (brownfield, 57 v1 requirements)", "status": "done", "commit": "fa5054d"},
+    {"id": 4, "name": "config.json created (YOLO, standard, all agents, balanced)", "status": "done", "commit": "b9cabee"},
+    {"id": 5, "name": "4 parallel research agents + synthesis → .planning/research/", "status": "done", "commit": "8b27959"},
+    {"id": 6, "name": "REQUIREMENTS.md — 57 v1 requirements, 6 categories", "status": "done", "commit": "5142315"},
+    {"id": 7, "name": "ROADMAP.md — 6 phases, 20 plans, STATE.md initialized", "status": "done", "commit": "4e298de"}
+  ],
+  "remaining_tasks": [],
+  "blockers": [],
+  "human_actions_pending": [],
+  "decisions": [
+    {"decision": "Booking is free — no payment required to schedule a lesson", "rationale": "Isaac's explicit preference: students shouldn't need to pay to book", "phase": null},
+    {"decision": "Cancellation fee: $50 charged to card on file, or added to next invoice if no card", "rationale": "Isaac's stated policy", "phase": null},
+    {"decision": "Billing model: manual invoice (CFI marks complete → admin sends invoice → student pays)", "rationale": "Isaac chose manual over autopay; autopay deferred to v2", "phase": null},
+    {"decision": "profiles.is_instructor already exists — use two booleans (is_admin, is_instructor), not a role enum", "rationale": "Column exists in SETUP.sql; no migration needed; backward-compatible", "phase": null},
+    {"decision": "Phase 5 (Stripe upgrade) must be fully isolated — never concurrent with feature work", "rationale": "12 files, breaking changes, live payment system", "phase": null}
+  ],
+  "uncommitted_files": [],
+  "next_action": "Run /gsd-plan-phase 1 to plan Phase 1: Security Hardening (4 plans: lib/auth.ts + middleware.ts, /manage auth guards, API route hardening, legacy /booking/ retirement)",
+  "context_notes": "Project initialization complete. Isaac is a solo CFI at Republic Airport (FRG), Long Island. Long-term vision: Merlin Flight Training runs autonomously → expand into a cargo aviation company (Cessna Caravans). The career pipeline narrative ('train here, get hired here → become cargo pilot') is the primary public-side differentiator. The codebase is production, handling real students and payments. Phase 1 is a hard prerequisite for everything: lib/auth.ts extraction is the literal code dependency for Phase 3's requireCFI(). Stripe webhook dual-endpoint audit must happen during Phase 4 before Phase 5."
+}
