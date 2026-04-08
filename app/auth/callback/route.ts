@@ -38,13 +38,29 @@ export async function GET(request: Request) {
       )
       
       const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-      
+
       if (exchangeError) {
         console.error('Error exchanging code for session:', exchangeError)
         return NextResponse.redirect(new URL('/login?error=exchange_failed', requestUrl.origin))
       }
 
-      // Redirect to schedule page after successful authentication
+      // Role-based post-login routing
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin, is_instructor')
+          .eq('id', user.id)
+          .single()
+
+        if (profile?.is_admin) {
+          return NextResponse.redirect(new URL('/admin', requestUrl.origin))
+        }
+        if (profile?.is_instructor) {
+          return NextResponse.redirect(new URL('/cfi', requestUrl.origin))
+        }
+      }
+
       return NextResponse.redirect(new URL('/schedule', requestUrl.origin))
     } catch (err) {
       console.error('Unexpected error in auth callback:', err)
