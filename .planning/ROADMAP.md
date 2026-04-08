@@ -36,7 +36,7 @@ Plans:
 ### Phase 2: Admin Consolidation
 **Goal**: One unified `/admin` zone covers all operations; `/manage` is fully retired; the monolith is decomposed into lazy-loaded tabs
 **Depends on**: Phase 1
-**Requirements**: ADMIN-01, ADMIN-02, ADMIN-03, ADMIN-04, ADMIN-05, ADMIN-06, ADMIN-07, ADMIN-08, ADMIN-09
+**Requirements**: ADMIN-01, ADMIN-02, ADMIN-03, ADMIN-06, ADMIN-07, ADMIN-08, ADMIN-09
 **Success Criteria** (what must be TRUE):
   1. Navigating to any `/manage/*` URL redirects to the equivalent `/admin` page (no dead links)
   2. The admin dashboard loads in under 2 seconds — only the active tab's data fetches on mount
@@ -47,7 +47,7 @@ Plans:
 Plans:
 - [ ] 02-01-PLAN.md — Decompose `app/admin/page.tsx` monolith into lazy-loaded tab components (ADMIN-08)
 - [ ] 02-02-PLAN.md — Migrate unique `/manage` functionality into `/admin`, add redirects, retire `/manage` zone (ADMIN-01, ADMIN-06, ADMIN-07)
-- [ ] 02-03-PLAN.md — Wire admin prospect pipeline view with status updates (ADMIN-02, ADMIN-03, ADMIN-04, ADMIN-05, ADMIN-09)
+- [ ] 02-03-PLAN.md — Wire admin prospect pipeline view with status updates (ADMIN-02, ADMIN-03, ADMIN-09)
 **UI hint**: yes
 
 ### Phase 3: CFI Portal
@@ -71,7 +71,7 @@ Plans:
 **Goal**: A student can book a lesson, cancel it, receive a $50 cancellation fee charge, view their invoice, and pay it — all without Isaac touching anything
 **Depends on**: Phase 1
 **Note**: Runs in parallel with Phase 3. Stripe webhook dual-endpoint audit (STRIPE-01) must be completed during this phase, before Phase 5 begins.
-**Requirements**: BOOK-01, BOOK-02, BOOK-03, BOOK-04, BOOK-05, BOOK-06, BOOK-07, BOOK-08, STU-01, STU-02, STU-03, STU-04, STU-05, STU-06, STU-07, BILL-01, BILL-02, BILL-03, BILL-04, BILL-05, BILL-06
+**Requirements**: ADMIN-04, ADMIN-05, BOOK-01, BOOK-02, BOOK-03, BOOK-04, BOOK-05, BOOK-06, BOOK-07, BOOK-08, STU-01, STU-02, STU-03, STU-04, STU-05, STU-06, STU-07, BILL-01, BILL-02, BILL-03, BILL-04, BILL-05, BILL-06
 **Success Criteria** (what must be TRUE):
   1. A student can view available slots and request a booking from their portal with no payment upfront
   2. Cancelling a booked lesson charges $50 to the card on file immediately via Stripe; if no card exists, the fee is flagged on the student account for the next invoice
@@ -85,7 +85,7 @@ Plans:
 - [ ] 04-01: Slot viewing and lesson booking flow — no-payment request, approval email (BOOK-01, BOOK-02, BOOK-03, BOOK-08)
 - [ ] 04-02: Cancellation flow — Supabase RPC for atomic slot+booking update, $50 Stripe charge or flagged-fee path (BOOK-04, BOOK-05, BOOK-06, BOOK-07, BILL-04)
 - [ ] 04-03: Student portal auth hardening and self-service views — booking history, hours, documents, payment method save (STU-01, STU-02, STU-03, STU-05, STU-06, STU-07)
-- [ ] 04-04: Invoice generation and payment flow — admin one-click invoice, Stripe invoice email, student pay-without-login link, webhook idempotency (BILL-01, BILL-02, BILL-03, BILL-05, BILL-06)
+- [ ] 04-04: Invoice generation and payment flow — admin one-click invoice, Stripe invoice email, student pay-without-login link, webhook idempotency; admin cancellation fee visibility (ADMIN-04, ADMIN-05, BILL-01, BILL-02, BILL-03, BILL-05, BILL-06)
 - [ ] 04-05: Stripe webhook dual-endpoint audit — confirm single active endpoint before Phase 5 begins; also: student invoice view in portal (STRIPE-01, STU-04)
 **UI hint**: yes
 
