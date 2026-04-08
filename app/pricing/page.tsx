@@ -66,6 +66,34 @@ export default function PricingPage() {
           </div>
         </section>
 
+        {/* Discovery Flight CTA Section */}
+        <section className="py-12 sm:py-16 bg-golden">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div>
+                <p className="text-black/60 font-semibold text-sm uppercase tracking-widest mb-1">Start Here</p>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black mb-2">Discovery Flight</h2>
+                <p className="text-black/70 text-base sm:text-lg max-w-xl">
+                  Your first hour in the air. No experience needed — Isaac handles everything. See Manhattan from above and decide if flying is for you.
+                </p>
+              </div>
+              <div className="flex flex-col items-start md:items-end gap-4 flex-shrink-0">
+                <div className="text-left md:text-right">
+                  <p className="text-black/60 text-sm font-medium">Starting at</p>
+                  <p className="text-4xl sm:text-5xl font-bold text-black">$265</p>
+                  <p className="text-black/60 text-sm">~90 min · Republic Airport (FRG)</p>
+                </div>
+                <Link
+                  href="/discovery-flight-funnel"
+                  className="px-8 py-3 bg-black text-white font-semibold rounded-lg hover:bg-gray-900 transition-colors text-base whitespace-nowrap"
+                >
+                  Book Now →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Aircraft Pricing Section */}
         <section className="py-16 sm:py-20 md:py-24 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">

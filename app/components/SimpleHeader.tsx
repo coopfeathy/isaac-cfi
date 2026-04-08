@@ -94,6 +94,23 @@ export default function SimpleHeader() {
                 </Link>
               </li>
             ))}
+            <li>
+              <Link
+                href="/discovery-flight-funnel"
+                style={{
+                  backgroundColor: '#FFBF00',
+                  color: '#000',
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  display: 'inline-block',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                ✈ Book Discovery Flight
+              </Link>
+            </li>
             {user ? (
               <>
                 {isAdmin && (
@@ -107,13 +124,13 @@ export default function SimpleHeader() {
                   {user.email}
                 </li>
                 <li>
-                  <button 
+                  <button
                     onClick={handleSignOut}
-                    style={{ 
-                      backgroundColor: '#EF4444', 
-                      color: '#fff', 
-                      padding: '10px 30px', 
-                      borderRadius: '8px', 
+                    style={{
+                      backgroundColor: '#EF4444',
+                      color: '#fff',
+                      padding: '10px 30px',
+                      borderRadius: '8px',
                       fontWeight: 600,
                       border: 'none',
                       cursor: 'pointer'
@@ -125,13 +142,13 @@ export default function SimpleHeader() {
               </>
             ) : (
               <li>
-                <Link 
-                  href="/login" 
-                  style={{ 
-                    backgroundColor: '#000', 
-                    color: '#fff', 
-                    padding: '10px 30px', 
-                    borderRadius: '8px', 
+                <Link
+                  href="/login"
+                  style={{
+                    backgroundColor: '#000',
+                    color: '#fff',
+                    padding: '10px 30px',
+                    borderRadius: '8px',
                     fontWeight: 600,
                     textDecoration: 'none',
                     display: 'inline-block'
@@ -163,12 +180,12 @@ export default function SimpleHeader() {
             }}>
               {primaryNavLinks.map((link) => (
                 <li key={link.href}>
-                  <Link 
-                    href={link.href} 
+                  <Link
+                    href={link.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    style={{ 
-                      color: '#374151', 
-                      fontWeight: 500, 
+                    style={{
+                      color: '#374151',
+                      fontWeight: 500,
                       textDecoration: 'none',
                       display: 'block',
                       padding: '14px 16px',
@@ -179,6 +196,24 @@ export default function SimpleHeader() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link
+                  href="/discovery-flight-funnel"
+                  onClick={() => setMobileMenuOpen(false)}
+                  style={{
+                    backgroundColor: '#FFBF00',
+                    color: '#000',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    display: 'block',
+                    padding: '14px 16px',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                  }}
+                >
+                  ✈ Book Discovery Flight
+                </Link>
+              </li>
               {user ? (
                 <>
                   {isAdmin && (

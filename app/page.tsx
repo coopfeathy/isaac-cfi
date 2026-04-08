@@ -84,16 +84,31 @@ export default function Home() {
             </div>
             <div className="text-white leading-none">Flight Training</div>
           </h1>
-          <p className="text-base sm:text-lg md:text-xl mb-16 sm:mb-20 md:mb-24 text-gray-300 max-w-3xl mx-auto font-light leading-relaxed px-4">
-            FAA-Certified Instructors, Breathtaking flight memories, and Professional Flight Training with Merlin Flight Training
+          <p className="text-base sm:text-lg md:text-xl mb-8 sm:mb-10 text-gray-300 max-w-3xl mx-auto font-light leading-relaxed px-4">
+            Become a pilot from the skies over Manhattan. Personalized 1-on-1 instruction with Isaac at Republic Airport, Farmingdale, NY.
           </p>
-          <div className="flex justify-center">
+          {/* Social proof badge */}
+          <div className="flex justify-center mb-8 sm:mb-10">
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-5 py-2 text-white text-sm font-medium">
+              <span className="text-golden">★★★★★</span>
+              <span>5.0 Rating on Google</span>
+              <span className="w-px h-4 bg-white/30" />
+              <span className="text-gray-300">Republic Airport, FRG</span>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
               href="/discovery-flight-funnel"
-              className="group px-8 sm:px-10 py-3 sm:py-4 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-golden/50 text-base sm:text-lg relative overflow-hidden text-center"
+              className="group px-8 sm:px-10 py-3 sm:py-4 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-golden/50 text-base sm:text-lg relative overflow-hidden text-center w-full sm:w-auto"
             >
-              <span className="relative z-10">Apply Now</span>
+              <span className="relative z-10">Book Your Discovery Flight</span>
               <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-golden opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            </Link>
+            <Link
+              href="/pricing"
+              className="px-8 sm:px-10 py-3 sm:py-4 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-semibold rounded-lg hover:bg-white/20 transition-all duration-300 text-base sm:text-lg text-center w-full sm:w-auto"
+            >
+              View Training & Pricing
             </Link>
           </div>
         </div>
@@ -287,26 +302,68 @@ export default function Home() {
           </div>
 
           <div className="bg-white p-8 sm:p-10 md:p-12 rounded-3xl shadow-xl border border-gray-200">
-            <div className="mb-8 pb-8 border-b border-gray-200">
-              <h3 className="text-2xl sm:text-3xl font-bold text-black mb-2">Isaac Prestwich</h3>
-              <p className="text-golden font-semibold text-lg sm:text-xl mb-1">Merlin Flight Training Owner</p>
-              <p className="text-gray-600 font-medium">Certified Flight Instructor</p>
-              <p className="text-gray-500 text-sm sm:text-base">Idaho, New York, New Jersey Based</p>
+            <div className="flex flex-col md:flex-row md:items-start gap-8 mb-8 pb-8 border-b border-gray-200">
+              <div className="flex-1">
+                <h3 className="text-2xl sm:text-3xl font-bold text-black mb-2">Isaac Prestwich</h3>
+                <p className="text-golden font-semibold text-lg sm:text-xl mb-1">Certified Flight Instructor (CFI)</p>
+                <p className="text-gray-600 font-medium">Owner, Merlin Flight Training</p>
+                <p className="text-gray-500 text-sm sm:text-base mt-1">Republic Airport (FRG) · Farmingdale, NY</p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <div className="bg-golden/10 border border-golden/20 rounded-xl px-4 py-3 text-center min-w-[90px]">
+                  <p className="text-golden font-bold text-xl">CFI</p>
+                  <p className="text-gray-600 text-xs mt-1">Certified</p>
+                </div>
+                <div className="bg-golden/10 border border-golden/20 rounded-xl px-4 py-3 text-center min-w-[90px]">
+                  <p className="text-golden font-bold text-xl">FAA</p>
+                  <p className="text-gray-600 text-xs mt-1">Approved</p>
+                </div>
+                <div className="bg-golden/10 border border-golden/20 rounded-xl px-4 py-3 text-center min-w-[90px]">
+                  <p className="text-golden font-bold text-xl">1-on-1</p>
+                  <p className="text-gray-600 text-xs mt-1">Only</p>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-6 text-gray-700 leading-relaxed font-light">
+            <div className="space-y-6 text-gray-700 leading-relaxed font-light mb-8">
               <p className="text-base sm:text-lg">
-                My name is Isaac Prestwich and I'm the creator of Merlin Flight Training. Instructing new pilots is a passion of mine—I love to see them start and develop into fully grown pilots.
-              </p>
-              <p className="text-base sm:text-lg">
-                My teaching method has been proven to generate results. Whether you're a seasoned pilot or just interested in learning to fly, I will be able to challenge you to become a better pilot.
+                My name is Isaac Prestwich and I'm the creator of Merlin Flight Training. I started my training in October 2022 and was taught by an instructor who now flies for the airlines. That mentorship shaped my safety-first philosophy, which I bring to every single lesson.
               </p>
               <p className="text-base sm:text-lg">
-                Your search for the next flight instructor ends here. View my services page to see all that I offer, and if you would like to see something new or have a question, feel free to contact me.
+                I train in <strong className="text-black font-semibold">your aircraft or mine</strong>—making personalized instruction accessible whether you own a plane or prefer to rent. My teaching method challenges every student to be not just a licensed pilot, but a <em>safer</em> one.
               </p>
-              <p className="text-base sm:text-lg font-medium text-black">
-                Don't wait to start working towards your goals. The best day to start is today.
-              </p>
+            </div>
+
+            {/* Why Isaac bullets */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              {[
+                { icon: '✈', text: 'Personalized 1-on-1 instruction — no group classes' },
+                { icon: '🛡', text: 'Safety-first philosophy: IMSAFE, weather briefing, FAR/AIM' },
+                { icon: '🔄', text: 'Train in your aircraft or Merlin\'s — total flexibility' },
+                { icon: '📍', text: 'Based at Republic Airport (FRG), Farmingdale, NY' },
+                { icon: '⚡', text: 'Fast-track or flexible pacing — you set the timeline' },
+                { icon: '🎯', text: 'From Discovery Flight to Commercial — all levels' },
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <span className="text-xl mt-0.5">{item.icon}</span>
+                  <span className="text-gray-700 text-sm sm:text-base font-light">{item.text}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link
+                href="/discovery-flight-funnel"
+                className="flex-1 px-6 py-4 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300 text-center"
+              >
+                Book Your Discovery Flight
+              </Link>
+              <Link
+                href="/schedule"
+                className="flex-1 px-6 py-4 border-2 border-black text-black font-semibold rounded-lg hover:border-golden hover:text-golden transition-all duration-300 text-center"
+              >
+                Check Availability
+              </Link>
             </div>
           </div>
         </div>
