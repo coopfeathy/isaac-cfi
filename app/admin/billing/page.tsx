@@ -776,7 +776,7 @@ export default function AdminBillingPage() {
         <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">{statusMessage}</div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-[360px_minmax(0,1fr)]">
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-bold text-darkText">Student Balances</h2>
           <p className="mt-1 text-sm text-slate-500">Stripe invoice balance per student</p>
@@ -817,7 +817,7 @@ export default function AdminBillingPage() {
             <p className="mt-4 text-sm text-slate-500">Select a student to start a checkout.</p>
           ) : (
             <>
-              <div className="mt-5 grid gap-4 md:grid-cols-[1fr_100px_auto]">
+              <div className="mt-5 grid gap-4 grid-cols-1 sm:grid-cols-[1fr_auto] lg:grid-cols-[1fr_100px_auto]">
                 <label className="grid gap-1 text-sm font-medium text-slate-700">
                   Student
                   <input
@@ -848,7 +848,7 @@ export default function AdminBillingPage() {
 
               <div className="mt-5 space-y-3">
                 {checkoutLines.map((line, index) => (
-                  <div key={`${index}-${line.itemId}`} className="grid gap-2 md:grid-cols-[minmax(0,1fr)_120px_96px]">
+                  <div key={`${index}-${line.itemId}`} className="grid gap-2 grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,1fr)_120px_96px]">
                     <select
                       value={line.itemId}
                       onChange={(event) =>
@@ -1095,7 +1095,7 @@ export default function AdminBillingPage() {
                     </div>
 
                     <div className="mb-4">
-                      <div className="grid gap-3 md:grid-cols-[160px_minmax(0,1fr)]">
+                      <div className="grid gap-3 grid-cols-1 sm:grid-cols-[auto_minmax(0,1fr)]">
                         <input
                           type="number"
                           min={0.01}
@@ -1306,7 +1306,8 @@ export default function AdminBillingPage() {
             ) : payoutRules.length === 0 ? (
               <p className="text-sm text-slate-500">No payout rules configured.</p>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="w-full">
+                <div className="hidden md:block overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-500">
@@ -1415,6 +1416,52 @@ export default function AdminBillingPage() {
                 <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50 p-3 text-xs text-slate-500">
                   <p><strong>bps</strong> = basis points (platform fee). 600 bps = 6% kept by platform, 94% sent to connected account.</p>
                   <p className="mt-1">Rules match by specificity: item-specific rules override general fallbacks. Lower priority number = higher precedence at same specificity.</p>
+                </div>
+                </div>
+
+                <div className="md:hidden space-y-3">
+                  {payoutRules.map((rule) => (
+                    <div key={rule.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <div className="mb-3 flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-darkText">{rule.name || "—"}</p>
+                          <p className="text-xs text-slate-500 mt-1">{rule.itemName || (rule.itemId ? rule.itemId.slice(0, 8) : "All items")}</p>
+                        </div>
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold flex-shrink-0 ${rule.isActive ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                          {rule.isActive ? "On" : "Off"}
+                        </span>
+                      </div>
+                      <div className="space-y-1 text-xs text-slate-600 mb-3">
+                        <p><strong>Destination:</strong> {formatAccountLabel(rule.destinationAccount)}</p>
+                        <p><strong>Fee:</strong> {rule.feeMode === 'bps' ? `${rule.feeBps ?? 0} bps (${((rule.feeBps ?? 0) / 100).toFixed(1)}%)` : `${rule.feeCents ?? 0}¢`}</p>
+                        <p><strong>Priority:</strong> {rule.priority ?? "—"}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingRuleId(rule.id)
+                            setEditingRuleField(String(rule.feeMode === 'bps' ? (rule.feeBps ?? 0) : (rule.feeCents ?? 0)))
+                          }}
+                          className="flex-1 rounded border border-indigo-200 bg-indigo-50 px-2 py-1.5 text-xs font-semibold text-indigo-700"
+                        >
+                          Edit Fee
+                        </button>
+                        <button
+                          type="button"
+                          disabled={savingRuleId === rule.id}
+                          onClick={() => void updatePayoutRule(rule.id, { isActive: !rule.isActive })}
+                          className={`flex-1 rounded border px-2 py-1.5 text-xs font-semibold disabled:opacity-60 ${
+                            rule.isActive
+                              ? "border-rose-200 bg-rose-50 text-rose-700"
+                              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          }`}
+                        >
+                          {rule.isActive ? "Disable" : "Enable"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
