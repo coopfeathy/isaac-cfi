@@ -35,7 +35,7 @@ Stripe invoices are NOT currently used anywhere in the codebase. The current bil
 | BOOK-08 | Discovery flight booking confirms without admin approval | `type = 'tour'` slots auto-confirm; `type = 'training'` slots go to `pending_approval` |
 | STU-01 | Student can view full booking history | `/dashboard/bookings` — expand existing `bookings` query to include all statuses |
 | STU-02 | Student can view logged flight hours and milestones | `students` table has `total_hours`, `dual_hours`, etc.; `syllabus_progress` table for milestones |
-| STU-03 | Student can access training documents | Existing `/documents` page — needs server-side auth guard added |
+| STU-03 | Student can access training documents | `student_endorsements` table — endorsements and certificates |
 | STU-04 | Student can view outstanding invoices and pay via Stripe | Fetch `stripe.invoices.list({ customer: stripe_customer_id, status: 'open' })` in student portal |
 | STU-05 | Student can save a payment method on file (Setup Intent) | `stripe.setupIntents.create({ customer })` + webhook `setup_intent.succeeded` |
 | STU-06 | Student can access Stripe Billing Portal | `stripe.billingPortal.sessions.create({ customer, return_url })` |
@@ -102,6 +102,10 @@ app/
 │       └── billing/
 │           └── invoice/
 │               └── route.ts             # POST: create + send invoice after lesson complete
+│       └── bookings/
+│           └── [id]/
+│               └── approve/
+│                   └── route.ts         # POST: approve pending_approval booking
 ├── dashboard/
 │   ├── layout.tsx                        # Server component guard (REPLACES client-only guard)
 │   └── page.tsx                          # Keep existing, widen booking history
@@ -326,6 +330,7 @@ Not applicable — Phase 4 adds new routes and tables. No existing runtime state
 
 **Missing with no fallback:**
 - Stripe Billing Portal requires the customer to have a Stripe customer ID (`stripe_customer_id` in `students` table). Students who were never charged don't have one. The Setup Intent flow (STU-05) creates the customer if needed — STU-05 must run before STU-06 is available to that student.
+- Stripe Billing Portal requires dashboard configuration (Settings -> Billing -> Customer portal) before `billingPortal.sessions.create()` will work. Documented as `user_setup` in Plan 03.
 
 **STRIPE-01 blocker:** The dual webhook endpoint issue must be audited during plan 04-05. Two endpoints exist: `netlify/functions/stripe-webhook.ts` (older, handles basic `payment_intent.succeeded` and `checkout.session.completed`) and `app/api/stripe-webhook/route.ts` (current, handles same events plus `charge.refunded`, `payment_intent.payment_failed`, and full idempotency via `stripe_webhook_events`). The App Router route is authoritative. The Netlify function must be confirmed inactive in the Stripe dashboard before Phase 5 begins.
 
@@ -494,11 +499,9 @@ CREATE INDEX IF NOT EXISTS idx_cancellation_fee_flags_student
 | Item | Type | Required By | Action |
 |------|------|-------------|--------|
 | `cancellation_fee_flags` table | New table | BOOK-06, ADMIN-05 | Migration in plan 04-02 |
-| `bookings.status` enum | Possible new value `pending_approval` | BOOK-02 | Migration OR discriminator-based approach |
+| `bookings.status` enum | New value `pending_approval` | BOOK-02 | Migration in plan 04-01 (decision: add enum value, not reuse `pending`) |
 | `bookings.stripe_invoice_id` | New column | BILL-01, BILL-05 | Migration in plan 04-04 |
 | `students.stripe_customer_id` | Already exists | STU-05, STU-06 | No change needed |
-
-**Open schema decision:** Whether to add `pending_approval` to `bookings.status` enum or repurpose `pending` with NULL `stripe_session_id` as discriminator. Both work. The migration approach (`pending_approval`) is cleaner and avoids webhook handler fragility. This decision affects plan 04-01 and 04-02.
 
 ---
 
@@ -554,27 +557,23 @@ CREATE INDEX IF NOT EXISTS idx_cancellation_fee_flags_student
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **`pending_approval` vs reusing `pending` as booking status**
+1. **`pending_approval` vs reusing `pending` as booking status** — RESOLVED
    - What we know: `pending` currently means "awaiting Stripe payment." New flow is "awaiting admin approval (no payment)."
-   - What's unclear: Whether the webhook handler needs to distinguish between the two, or whether `stripe_session_id IS NULL` is a reliable discriminator.
-   - Recommendation: Add `pending_approval` to the enum. Cleaner, explicit, no webhook fragility. Migration cost is low.
+   - **Decision:** Add `pending_approval` to the enum via migration. Cleaner, explicit, no webhook fragility. Migration cost is low. Implemented in Plan 01 Task 1 (`20260408_phase4_booking_status.sql`).
 
-2. **Discovery flight (`type = 'tour'`) auto-confirm behavior**
+2. **Discovery flight (`type = 'tour'`) auto-confirm behavior** — RESOLVED
    - What we know: BOOK-08 says discovery flights confirm without admin approval when a slot is available.
-   - What's unclear: Should the student still be required to log in, or can discovery flights be booked without an account? BOOK-02 says "after logging in."
-   - Recommendation: Require login for all bookings (BOOK-02 is the governing requirement). BOOK-08 means auto-status-confirmed, not anonymous booking.
+   - **Decision:** Require login for all bookings (BOOK-02 is the governing requirement). BOOK-08 means auto-status-confirmed, not anonymous booking. Implemented in Plan 01 Task 2 — `type === 'tour'` bookings get `status: 'confirmed'` immediately.
 
-3. **Stripe Billing Portal configuration**
+3. **Stripe Billing Portal configuration** — RESOLVED
    - What we know: Billing Portal must be configured in the Stripe dashboard (which payment methods are allowed, which features are shown).
-   - What's unclear: Whether Isaac's Stripe account already has a portal configuration. If not, it must be created before STU-06 can work.
-   - Recommendation: Plan 04-03 should include a note to verify portal configuration in Stripe dashboard before testing STU-06.
+   - **Decision:** Isaac must configure the Billing Portal in the Stripe dashboard before STU-06 can be tested. Added as `user_setup` prerequisite in Plan 03 frontmatter. Steps: Stripe Dashboard -> Settings -> Billing -> Customer portal -> Enable features (payment method management, invoice history). Without this, `billingPortal.sessions.create()` will return a 400 error.
 
-4. **`invoice.paid` vs `payment_intent.succeeded` for invoice payments**
-   - What we know: When a student pays a Stripe Invoice, both `invoice.paid` AND `payment_intent.succeeded` fire. The existing `payment_intent.succeeded` handler looks for `bookingId` in metadata — which the invoice payment won't have in the same place.
-   - What's unclear: Whether to put `bookingId` in the Invoice metadata (so `payment_intent.succeeded` can still process it) or rely exclusively on `invoice.paid`.
-   - Recommendation: Put `bookingId` in Invoice metadata AND add a dedicated `invoice.paid` handler. Belt-and-suspenders, both are idempotent.
+4. **`invoice.paid` vs `payment_intent.succeeded` for invoice payments** — RESOLVED
+   - What we know: When a student pays a Stripe Invoice, both `invoice.paid` AND `payment_intent.succeeded` fire.
+   - **Decision:** Use `invoice.paid` as the dedicated handler for invoice payments. Put `bookingId` in Invoice metadata so the `invoice.paid` handler can find it. The existing `payment_intent.succeeded` handler will not process invoice payments (it looks for `bookingId` in PaymentIntent metadata, which invoice-generated PIs don't have). Implemented in Plan 04 Task 1.
 
 ---
 
