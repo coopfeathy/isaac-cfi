@@ -57,7 +57,16 @@ export default function ProspectsTab() {
         .order('next_follow_up', { ascending: true, nullsFirst: false })
 
       if (error) {
-        console.error('Error fetching prospects:', error)
+        // lead_stage column may not exist yet — fall back without it
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('prospects')
+          .select('id, email, created_at, source, phone, full_name, interest_level, status, notes, meeting_location, meeting_date, next_follow_up, follow_up_frequency, updated_at')
+          .order('next_follow_up', { ascending: true, nullsFirst: false })
+        if (!fallbackError && fallbackData) {
+          setProspects(fallbackData)
+        } else {
+          console.error('Error fetching prospects:', fallbackError)
+        }
       } else if (data) {
         setProspects(data)
       }

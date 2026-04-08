@@ -121,7 +121,7 @@ export default function SimpleHeader() {
                     </Link>
                   </li>
                 )}
-                <li style={{ position: 'relative' }}
+                <li style={{ position: 'relative', paddingBottom: '8px' }}
                   onMouseEnter={() => setUserMenuOpen(true)}
                   onMouseLeave={() => setUserMenuOpen(false)}
                 >
@@ -133,7 +133,7 @@ export default function SimpleHeader() {
                       position: 'absolute',
                       top: '100%',
                       right: 0,
-                      marginTop: '6px',
+                      marginTop: '0',
                       backgroundColor: '#fff',
                       border: '1px solid #E9D7A5',
                       borderRadius: '8px',
