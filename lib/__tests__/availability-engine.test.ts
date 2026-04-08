@@ -253,11 +253,40 @@ describe('computeAvailabilityFromData', () => {
 describe('Multi-CFI availability union (D-11)', () => {
   it('unions availability templates from multiple CFIs for the same day', () => {
     // Two CFIs with different time ranges on Monday should both appear
+    // CFI A: 08:00-12:00 EDT, CFI B: 14:00-18:00 EDT
     const templates = [
-      { day_of_week: 1, start_time: '08:00:00', end_time: '12:00:00', is_active: true },
-      { day_of_week: 1, start_time: '14:00:00', end_time: '18:00:00', is_active: true },
+      { day_of_week: 1, start_time: '08:00:00', end_time: '12:00:00' },
+      { day_of_week: 1, start_time: '14:00:00', end_time: '18:00:00' },
     ]
-    // computeAvailabilityFromData should produce slots covering both ranges
-    expect(true).toBe(false) // RED — will be completed in Task 3
+    const result = computeAvailabilityFromData(WEEK_START, templates, [], [])
+
+    // Both time ranges should appear as separate slots for Monday
+    expect(result).toHaveLength(2)
+    const dates = result.map((s: AvailableSlot) => s.date)
+    expect(dates).toEqual(['2025-06-16', '2025-06-16'])
+
+    // First slot: 08:00-12:00 EDT = 12:00-16:00 UTC
+    const slot1 = result[0]
+    expect(slot1.start).toBe('2025-06-16T12:00:00.000Z')
+    expect(slot1.end).toBe('2025-06-16T16:00:00.000Z')
+
+    // Second slot: 14:00-18:00 EDT = 18:00-22:00 UTC
+    const slot2 = result[1]
+    expect(slot2.start).toBe('2025-06-16T18:00:00.000Z')
+    expect(slot2.end).toBe('2025-06-16T22:00:00.000Z')
+  })
+
+  it('engine query does not filter by instructor_id — all CFI templates unioned naturally', () => {
+    // Verify computeAvailabilityFromData accepts rows from multiple CFIs without filtering
+    // Simulating rows that would come from different instructor_ids in the DB
+    const templates = [
+      { day_of_week: 2, start_time: '09:00:00', end_time: '13:00:00' }, // CFI A (Tuesday)
+      { day_of_week: 2, start_time: '15:00:00', end_time: '17:00:00' }, // CFI B (Tuesday)
+    ]
+    const result = computeAvailabilityFromData(WEEK_START, templates, [], [])
+
+    // Both ranges for Tuesday should appear
+    const tuesdaySlots = result.filter((s: AvailableSlot) => s.date === '2025-06-17')
+    expect(tuesdaySlots).toHaveLength(2)
   })
 })
