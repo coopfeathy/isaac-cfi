@@ -89,12 +89,12 @@ export async function POST(request: NextRequest) {
 
   const slotDays = rawWeekdays
     .split(',')
-    .map((d) => parseInt(d.trim(), 10))
-    .filter((d) => !isNaN(d) && d >= 0 && d <= 6)
+    .map((d: string) => parseInt(d.trim(), 10))
+    .filter((d: number) => !isNaN(d) && d >= 0 && d <= 6)
 
   const slotTimes = rawTimes
     .split(',')
-    .map((t) => {
+    .map((t: string) => {
       const parts = t.trim().split(':').map(Number)
       return { hour: parts[0] ?? 10, minute: parts[1] ?? 0 }
     })
