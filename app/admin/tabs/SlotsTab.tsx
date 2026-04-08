@@ -77,6 +77,19 @@ export default function SlotsTab() {
   const [slotEndDateFilter, setSlotEndDateFilter] = useState('')
   const [generatingSlots, setGeneratingSlots] = useState(false)
   const [generateSlotsResult, setGenerateSlotsResult] = useState<string | null>(null)
+
+  // Discovery flight schedule config (ADMIN-07)
+  const [scheduleConfig, setScheduleConfig] = useState({
+    active_weekdays: '0,6',
+    template_times: '10:00,14:00',
+    duration_minutes: 90,
+    price_cents: 25000,
+    generation_days_ahead: 30,
+    min_days_out: 1,
+  })
+  const [showScheduleConfig, setShowScheduleConfig] = useState(false)
+  const [savingConfig, setSavingConfig] = useState(false)
+  const [configMessage, setConfigMessage] = useState<string | null>(null)
   const [showAddSlot, setShowAddSlot] = useState(false)
   const [editingSlotId, setEditingSlotId] = useState<string | null>(null)
   const [newSlot, setNewSlot] = useState({
@@ -92,6 +105,7 @@ export default function SlotsTab() {
   useEffect(() => {
     fetchData()
     fetchSlotRequests()
+    fetchScheduleConfig()
   }, [])
 
   useEffect(() => {
@@ -176,6 +190,46 @@ export default function SlotsTab() {
       setSlotRequests(result.requests || [])
     } catch (error) {
       console.error('Error fetching slot requests:', error)
+    }
+  }
+
+  const fetchScheduleConfig = async () => {
+    try {
+      const { data } = await supabase
+        .from('discovery_slot_config')
+        .select('*')
+        .limit(1)
+        .single()
+      if (data) {
+        setScheduleConfig({
+          active_weekdays: data.active_weekdays,
+          template_times: data.template_times,
+          duration_minutes: data.duration_minutes,
+          price_cents: data.price_cents,
+          generation_days_ahead: data.generation_days_ahead,
+          min_days_out: data.min_days_out,
+        })
+      }
+    } catch {
+      // Table may not exist yet — silently fall back to defaults
+    }
+  }
+
+  const handleSaveScheduleConfig = async () => {
+    setSavingConfig(true)
+    setConfigMessage(null)
+    try {
+      const { error } = await supabase
+        .from('discovery_slot_config')
+        .upsert({
+          ...scheduleConfig,
+          updated_at: new Date().toISOString(),
+        })
+      setConfigMessage(error ? error.message : 'Schedule saved successfully')
+    } catch (err: any) {
+      setConfigMessage(err.message || 'Failed to save schedule')
+    } finally {
+      setSavingConfig(false)
     }
   }
 
@@ -835,6 +889,170 @@ export default function SlotsTab() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Discovery Flight Schedule Config (ADMIN-07) */}
+      <div className="bg-white rounded-lg shadow-md mb-6">
+        <button
+          onClick={() => setShowScheduleConfig(!showScheduleConfig)}
+          className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-50 rounded-lg transition-colors"
+        >
+          <div>
+            <h3 className="text-lg font-bold text-darkText">Discovery Flight Schedule</h3>
+            <p className="text-sm text-gray-500 mt-0.5">Configure auto-generation schedule: active days, times, duration, price</p>
+          </div>
+          <span className="text-gray-400 text-xl">{showScheduleConfig ? '▲' : '▼'}</span>
+        </button>
+
+        {showScheduleConfig && (
+          <div className="px-6 pb-6 border-t border-gray-100">
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Active Days */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Active Days of Week</label>
+                <div className="flex flex-wrap gap-3">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => {
+                    const activeSet = scheduleConfig.active_weekdays
+                      .split(',')
+                      .map(d => parseInt(d.trim(), 10))
+                      .filter(d => !isNaN(d))
+                    const isActive = activeSet.includes(idx)
+                    return (
+                      <label key={day} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isActive}
+                          onChange={() => {
+                            const next = isActive
+                              ? activeSet.filter(d => d !== idx)
+                              : [...activeSet, idx].sort((a, b) => a - b)
+                            setScheduleConfig({ ...scheduleConfig, active_weekdays: next.join(',') })
+                          }}
+                          className="w-4 h-4 accent-golden"
+                        />
+                        <span className="text-sm font-medium text-gray-700">{day}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Slot Times */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Slot Times (Eastern)</label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {scheduleConfig.template_times.split(',').map((t, i) => (
+                    <div key={i} className="flex items-center gap-1 bg-gray-100 rounded px-2 py-1">
+                      <input
+                        type="time"
+                        value={t.trim()}
+                        onChange={(e) => {
+                          const times = scheduleConfig.template_times.split(',').map(x => x.trim())
+                          times[i] = e.target.value
+                          setScheduleConfig({ ...scheduleConfig, template_times: times.join(',') })
+                        }}
+                        className="text-sm border-none bg-transparent focus:outline-none"
+                      />
+                      <button
+                        onClick={() => {
+                          const times = scheduleConfig.template_times.split(',').map(x => x.trim()).filter((_, idx) => idx !== i)
+                          setScheduleConfig({ ...scheduleConfig, template_times: times.join(',') })
+                        }}
+                        className="text-red-500 hover:text-red-700 text-xs font-bold ml-1"
+                      >✕</button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => {
+                      const times = scheduleConfig.template_times ? scheduleConfig.template_times.split(',').map(x => x.trim()) : []
+                      times.push('10:00')
+                      setScheduleConfig({ ...scheduleConfig, template_times: times.join(',') })
+                    }}
+                    className="px-3 py-1 border border-dashed border-gray-400 text-gray-500 text-sm rounded hover:border-golden hover:text-golden"
+                  >+ Add Time</button>
+                </div>
+              </div>
+
+              {/* Duration */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Duration (minutes)</label>
+                <input
+                  type="number"
+                  min="15"
+                  max="480"
+                  value={scheduleConfig.duration_minutes}
+                  onChange={(e) => setScheduleConfig({ ...scheduleConfig, duration_minutes: parseInt(e.target.value, 10) || 90 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-golden focus:border-transparent"
+                />
+              </div>
+
+              {/* Price */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Price ($)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={(scheduleConfig.price_cents / 100).toFixed(2)}
+                  onChange={(e) => setScheduleConfig({ ...scheduleConfig, price_cents: Math.round(parseFloat(e.target.value) * 100) || 0 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-golden focus:border-transparent"
+                />
+              </div>
+
+              {/* Days Ahead */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Generate Days Ahead</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="365"
+                  value={scheduleConfig.generation_days_ahead}
+                  onChange={(e) => setScheduleConfig({ ...scheduleConfig, generation_days_ahead: parseInt(e.target.value, 10) || 30 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-golden focus:border-transparent"
+                />
+              </div>
+
+              {/* Min Days Out */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Min Days Out</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="30"
+                  value={scheduleConfig.min_days_out}
+                  onChange={(e) => setScheduleConfig({ ...scheduleConfig, min_days_out: parseInt(e.target.value, 10) || 1 })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-golden focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {configMessage && (
+              <div className={`mt-4 px-4 py-3 rounded text-sm font-medium ${
+                configMessage.toLowerCase().includes('error') || configMessage.toLowerCase().includes('failed')
+                  ? 'bg-red-50 text-red-700 border border-red-200'
+                  : 'bg-green-50 text-green-700 border border-green-200'
+              }`}>
+                {configMessage}
+              </div>
+            )}
+
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={handleSaveScheduleConfig}
+                disabled={savingConfig}
+                className="px-6 py-2 bg-golden text-darkText font-bold rounded-lg hover:bg-opacity-90 disabled:opacity-50"
+              >
+                {savingConfig ? 'Saving...' : 'Save Schedule'}
+              </button>
+              <button
+                onClick={() => { setShowScheduleConfig(false); setConfigMessage(null) }}
+                className="px-6 py-2 border border-gray-300 text-gray-600 font-semibold rounded-lg hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
           </div>
         )}
       </div>
