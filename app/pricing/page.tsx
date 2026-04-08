@@ -260,16 +260,16 @@ export default function PricingPage() {
             {/* Training Programs */}
             <div className="mt-12 sm:mt-16">
               <h3 className="text-2xl sm:text-3xl font-bold text-black mb-8 text-center">Training Program Costs</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 sm:gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 sm:gap-8">
                 <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
                   <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Private Pilot</h4>
                   <div className="space-y-2 text-sm text-gray-700">
-                    <p className="flex justify-between"><span>Flight hours</span><span>{privateFlightHours} hrs</span></p>
-                    <p className="flex justify-between"><span>Instruction hours</span><span>{privateInstructionHours} hrs</span></p>
-                    <p className="flex justify-between"><span>Instruction ({privateInstructionHours} x ${instructionRate})</span><span>${(privateInstructionHours * instructionRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Aircraft + 3.5% card fee ({privateFlightHours} x ${formatCurrency(aircraftCardRate)})</span><span>${formatCurrency(privateFlightHours * aircraftCardRate)}</span></p>
-                    <p className="flex justify-between"><span>Aircraft cash ({privateFlightHours} x ${formatCurrency(aircraftRate)})</span><span>${formatCurrency(privateFlightHours * aircraftRate)}</span></p>
-                    <p className="flex justify-between"><span>Equipment + checkride + written</span><span>${privateBundleTotal.toLocaleString()}</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Flight hours</span><span>{privateFlightHours} hrs</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Instruction hours</span><span>{privateInstructionHours} hrs</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Instruction ({privateInstructionHours} x ${instructionRate})</span><span>${(privateInstructionHours * instructionRate).toLocaleString()}</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Aircraft + 3.5% card fee ({privateFlightHours} x ${formatCurrency(aircraftCardRate)})</span><span>${formatCurrency(privateFlightHours * aircraftCardRate)}</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Aircraft cash ({privateFlightHours} x ${formatCurrency(aircraftRate)})</span><span>${formatCurrency(privateFlightHours * aircraftRate)}</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Equipment + checkride + written</span><span>${privateBundleTotal.toLocaleString()}</span></p>
                     <p className="flex justify-between font-semibold border-t border-gray-200 pt-2"><span>Total (Card)</span><span className="text-golden">${privateCardTotal.toLocaleString()}</span></p>
                     <p className="flex justify-between font-semibold"><span>Total (Cash)</span><span className="text-golden">${privateCashTotal.toLocaleString()}</span></p>
                   </div>
@@ -278,12 +278,12 @@ export default function PricingPage() {
                 <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
                   <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Instrument</h4>
                   <div className="space-y-2 text-sm text-gray-700">
-                    <p className="flex justify-between"><span>Flight hours</span><span>{instrumentFlightHours} hrs</span></p>
-                    <p className="flex justify-between"><span>Instruction hours</span><span>{instrumentInstructionHours} hrs</span></p>
-                    <p className="flex justify-between"><span>Instruction ({instrumentInstructionHours} x ${instructionRate})</span><span>${(instrumentInstructionHours * instructionRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Aircraft + 3.5% card fee ({instrumentFlightHours} x ${formatCurrency(aircraftCardRate)})</span><span>${formatCurrency(instrumentFlightHours * aircraftCardRate)}</span></p>
-                    <p className="flex justify-between"><span>Aircraft cash ({instrumentFlightHours} x ${formatCurrency(aircraftRate)})</span><span>${formatCurrency(instrumentFlightHours * aircraftRate)}</span></p>
-                    <p className="flex justify-between"><span>Checkride + written</span><span>${instrumentExamCosts.toLocaleString()}</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Flight hours</span><span>{instrumentFlightHours} hrs</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Instruction hours</span><span>{instrumentInstructionHours} hrs</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Instruction ({instrumentInstructionHours} x ${instructionRate})</span><span>${(instrumentInstructionHours * instructionRate).toLocaleString()}</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Aircraft + 3.5% card fee ({instrumentFlightHours} x ${formatCurrency(aircraftCardRate)})</span><span>${formatCurrency(instrumentFlightHours * aircraftCardRate)}</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Aircraft cash ({instrumentFlightHours} x ${formatCurrency(aircraftRate)})</span><span>${formatCurrency(instrumentFlightHours * aircraftRate)}</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Checkride + written</span><span>${instrumentExamCosts.toLocaleString()}</span></p>
                     <p className="flex justify-between font-semibold border-t border-gray-200 pt-2"><span>Total (Card)</span><span className="text-golden">${instrumentCardTotal.toLocaleString()}</span></p>
                     <p className="flex justify-between font-semibold"><span>Total (Cash)</span><span className="text-golden">${instrumentCashTotal.toLocaleString()}</span></p>
                   </div>
@@ -292,12 +292,12 @@ export default function PricingPage() {
                 <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
                   <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Commercial</h4>
                   <div className="space-y-2 text-sm text-gray-700">
-                    <p className="flex justify-between"><span>Flight hours</span><span>{commercialFlightHours} hrs</span></p>
-                    <p className="flex justify-between"><span>Instruction hours</span><span>{commercialInstructionHours} hrs</span></p>
-                    <p className="flex justify-between"><span>Instruction ({commercialInstructionHours} x ${instructionRate})</span><span>${(commercialInstructionHours * instructionRate).toLocaleString()}</span></p>
-                    <p className="flex justify-between"><span>Aircraft + 3.5% card fee ({commercialFlightHours} x ${formatCurrency(aircraftCardRate)})</span><span>${formatCurrency(commercialFlightHours * aircraftCardRate)}</span></p>
-                    <p className="flex justify-between"><span>Aircraft cash ({commercialFlightHours} x ${formatCurrency(aircraftRate)})</span><span>${formatCurrency(commercialFlightHours * aircraftRate)}</span></p>
-                    <p className="flex justify-between"><span>Checkride + written</span><span>${commercialExamCosts.toLocaleString()}</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Flight hours</span><span>{commercialFlightHours} hrs</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Instruction hours</span><span>{commercialInstructionHours} hrs</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Instruction ({commercialInstructionHours} x ${instructionRate})</span><span>${(commercialInstructionHours * instructionRate).toLocaleString()}</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Aircraft + 3.5% card fee ({commercialFlightHours} x ${formatCurrency(aircraftCardRate)})</span><span>${formatCurrency(commercialFlightHours * aircraftCardRate)}</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Aircraft cash ({commercialFlightHours} x ${formatCurrency(aircraftRate)})</span><span>${formatCurrency(commercialFlightHours * aircraftRate)}</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Checkride + written</span><span>${commercialExamCosts.toLocaleString()}</span></p>
                     <p className="flex justify-between font-semibold border-t border-gray-200 pt-2"><span>Total (Card)</span><span className="text-golden">${commercialCardTotal.toLocaleString()}</span></p>
                     <p className="flex justify-between font-semibold"><span>Total (Cash)</span><span className="text-golden">${commercialCashTotal.toLocaleString()}</span></p>
                   </div>
@@ -306,10 +306,10 @@ export default function PricingPage() {
                 <div className="bg-white p-8 rounded-2xl border border-gray-200 hover:shadow-lg transition-all duration-300">
                   <h4 className="text-lg sm:text-xl font-bold text-black mb-4">Additional Training</h4>
                   <div className="space-y-2 text-sm text-gray-700">
-                    <p className="flex justify-between"><span>Flight instruction</span><span>${instructionRate}/hr</span></p>
-                    <p className="flex justify-between"><span>Ground instruction</span><span>${instructionRate}/hr</span></p>
-                    <p className="flex justify-between"><span>Aircraft + 3.5% card fee</span><span>${formatCurrency(aircraftCardRate)}/hr</span></p>
-                    <p className="flex justify-between"><span>Aircraft (cash)</span><span>${formatCurrency(aircraftRate)}/hr</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Flight instruction</span><span>${instructionRate}/hr</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Ground instruction</span><span>${instructionRate}/hr</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Aircraft + 3.5% card fee</span><span>${formatCurrency(aircraftCardRate)}/hr</span></p>
+                    <p className="flex justify-between gap-2 flex-wrap"><span>Aircraft (cash)</span><span>${formatCurrency(aircraftRate)}/hr</span></p>
                     <p className="pt-2 border-t border-gray-200 text-gray-600">
                       Refresher flights, checkride prep, endorsements, and proficiency work are billed strictly by the hour.
                     </p>

@@ -105,10 +105,10 @@ export default function LocationsMap() {
                 {isActive && (
                   <g>
                     <rect
-                      x={20}
-                      y={-65}
-                      width={280}
-                      height={100}
+                      x={-220}
+                      y={-80}
+                      width={210}
+                      height={90}
                       rx={10}
                       fill="white"
                       stroke="#e5e7eb"
@@ -116,26 +116,26 @@ export default function LocationsMap() {
                       filter="drop-shadow(0 4px 8px rgba(0,0,0,0.2))"
                     />
                     <text
-                      x={38}
-                      y={-35}
-                      fontSize={20}
+                      x={-210}
+                      y={-52}
+                      fontSize={16}
                       fontWeight="bold"
                       fill="#C59A2A"
                     >
                       {airport.name}
                     </text>
                     <text
-                      x={38}
-                      y={-8}
-                      fontSize={17}
+                      x={-210}
+                      y={-28}
+                      fontSize={14}
                       fill="#374151"
                     >
                       {airport.location}
                     </text>
                     <text
-                      x={38}
-                      y={18}
-                      fontSize={15}
+                      x={-210}
+                      y={-6}
+                      fontSize={13}
                       fill="#6b7280"
                     >
                       {airport.aircraft}

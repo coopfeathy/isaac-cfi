@@ -51,7 +51,7 @@ export default function FAQ() {
           <div className="mb-4 inline-block">
             <div className="w-16 sm:w-20 h-1 bg-golden mx-auto rounded-full" />
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white mb-3 tracking-tight">
             Frequently Asked <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Questions</span>
           </h1>
           <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto font-light leading-relaxed">

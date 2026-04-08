@@ -90,9 +90,9 @@ export default function ContactModal({ isOpen, onClose, aircraftName }: ContactM
         }`}
       >
         {isOpen && (
-        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-96 overflow-y-auto">
+        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-black to-gray-900 p-6 flex justify-between items-center">
+          <div className="sticky top-0 bg-gradient-to-r from-black to-gray-900 p-4 sm:p-6 flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-bold text-white">Contact Us</h2>
               {aircraftName && (
@@ -109,7 +109,7 @@ export default function ContactModal({ isOpen, onClose, aircraftName }: ContactM
 
           {/* Form */}
           {!success ? (
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Name *
@@ -193,7 +193,7 @@ export default function ContactModal({ isOpen, onClose, aircraftName }: ContactM
               </div>
             </form>
           ) : (
-            <div className="p-6 text-center">
+            <div className="p-4 sm:p-6 text-center">
               <div className="text-5xl mb-4">✓</div>
               <p className="text-lg font-semibold text-black">Message sent!</p>
               <p className="text-gray-600 text-sm mt-2">We'll get back to you soon.</p>

@@ -75,7 +75,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/50 to-black/60" />
         
         <div className="relative z-10 text-center text-white px-4 sm:px-6 max-w-6xl mx-auto">
-          <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold mb-6 sm:mb-8 tracking-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-8xl font-bold mb-6 sm:mb-8 tracking-tight">
             <div className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent leading-none mb-2">
               <TypingEffect 
                 words={['Merlin', 'Tailored', 'One - on - One', 'Career', 'Private Pilot', 'Instrument Pilot', 'Commercial Pilot']}

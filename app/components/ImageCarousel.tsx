@@ -51,7 +51,7 @@ export default function ImageCarousel({ images, alt, objectPositions }: ImageCar
       {/* Left Arrow */}
       <button
         onClick={goToPrevious}
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/80 text-white p-2 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100"
+        className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/80 text-white p-2 rounded-full transition-all duration-300 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
         aria-label="Previous image"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,7 +62,7 @@ export default function ImageCarousel({ images, alt, objectPositions }: ImageCar
       {/* Right Arrow */}
       <button
         onClick={goToNext}
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/80 text-white p-2 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100"
+        className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/80 text-white p-2 rounded-full transition-all duration-300 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
         aria-label="Next image"
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

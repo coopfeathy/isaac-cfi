@@ -77,11 +77,11 @@ export default function SimpleHeader() {
           </button>
           
           {/* Desktop navigation */}
-          <ul style={{ 
-            display: 'flex', 
-            gap: '30px', 
-            listStyle: 'none', 
-            margin: 0, 
+          <ul style={{
+            display: 'flex',
+            gap: '20px',
+            listStyle: 'none',
+            margin: 0,
             padding: 0,
             alignItems: 'center'
           }}
@@ -291,7 +291,7 @@ export default function SimpleHeader() {
       </nav>
 
       <style jsx>{`
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
           .desktop-nav {
             display: none !important;
           }
@@ -303,7 +303,7 @@ export default function SimpleHeader() {
             background-color: rgba(255, 255, 255, 0.95) !important;
           }
         }
-        @media (min-width: 769px) {
+        @media (min-width: 901px) {
           .mobile-nav {
             display: none !important;
           }

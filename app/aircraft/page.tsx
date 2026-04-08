@@ -96,21 +96,23 @@ export default function AircraftPage() {
               </div>
 
               {/* Carousel Controls */}
-              <div className="flex items-center gap-4 w-full justify-center mb-4">
+              <div className="flex items-center gap-3 w-full justify-center mb-4">
                 <button
                   onClick={prevImage}
-                  className="bg-golden hover:bg-golden/80 text-black px-4 py-2 rounded-lg transition-colors font-semibold"
+                  className="bg-golden hover:bg-golden/80 text-black px-3 py-2 rounded-lg transition-colors font-semibold text-sm sm:text-base min-w-[44px] min-h-[44px]"
                 >
-                  ← Previous
+                  <span className="hidden sm:inline">← Previous</span>
+                  <span className="sm:hidden">←</span>
                 </button>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-gray-400 tabular-nums">
                   {currentImageIndex + 1} / {images.length}
                 </div>
                 <button
                   onClick={nextImage}
-                  className="bg-golden hover:bg-golden/80 text-black px-4 py-2 rounded-lg transition-colors font-semibold"
+                  className="bg-golden hover:bg-golden/80 text-black px-3 py-2 rounded-lg transition-colors font-semibold text-sm sm:text-base min-w-[44px] min-h-[44px]"
                 >
-                  Next →
+                  <span className="hidden sm:inline">Next →</span>
+                  <span className="sm:hidden">→</span>
                 </button>
               </div>
 

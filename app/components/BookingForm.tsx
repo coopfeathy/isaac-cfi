@@ -56,7 +56,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ onSubmit }) => {
   return (
     <motion.form
       onSubmit={handleSubmit}
-      className="max-w-md mx-auto"
+      className="w-full max-w-md mx-auto px-4 sm:px-0"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
