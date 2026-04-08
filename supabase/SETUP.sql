@@ -1946,6 +1946,80 @@ CREATE POLICY "Admins manage caldav settings"
   WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
 
 -- ============================================================
+-- Phase 3: CFI Portal Migrations
+-- ============================================================
+
+-- Phase 3: CFI Portal — instructor_availability ownership
+ALTER TABLE instructor_availability ADD COLUMN IF NOT EXISTS instructor_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+
+-- Backfill: assign existing rows to the primary admin user (per D-08)
+UPDATE instructor_availability SET instructor_id = (SELECT id FROM profiles WHERE is_admin = true ORDER BY created_at ASC LIMIT 1) WHERE instructor_id IS NULL;
+
+-- RLS: CFI can manage their own availability rows
+DROP POLICY IF EXISTS "CFIs can manage their own availability" ON instructor_availability;
+CREATE POLICY "CFIs can manage their own availability"
+  ON instructor_availability FOR ALL
+  USING (
+    instructor_id = auth.uid()
+    AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_instructor = true)
+  )
+  WITH CHECK (
+    instructor_id = auth.uid()
+    AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_instructor = true)
+  );
+
+-- Phase 3: CFI Portal — student-instructor assignment
+ALTER TABLE students ADD COLUMN IF NOT EXISTS instructor_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+
+-- RLS: CFI can view their own students (per D-03)
+DROP POLICY IF EXISTS "CFIs can view their own students" ON students;
+CREATE POLICY "CFIs can view their own students"
+  ON students FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_instructor = true)
+    AND instructor_id = auth.uid()
+  );
+
+-- Phase 3: Allow flight hour logging without a syllabus lesson link
+ALTER TABLE student_lesson_completions ALTER COLUMN syllabus_lesson_id DROP NOT NULL;
+
+-- Phase 3: CFI Portal — endorsement + milestone storage
+CREATE TABLE IF NOT EXISTS student_endorsements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  instructor_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
+  endorsement_type TEXT NOT NULL CHECK (endorsement_type IN (
+    'solo', 'xc_solo', 'night_solo', 'checkride_prep',
+    'instrument_proficiency_check', 'flight_review', 'other'
+  )),
+  endorsed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  notes TEXT
+);
+
+ALTER TABLE student_endorsements ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins manage endorsements" ON student_endorsements;
+DROP POLICY IF EXISTS "CFIs insert endorsements for their students" ON student_endorsements;
+DROP POLICY IF EXISTS "Students view their own endorsements" ON student_endorsements;
+
+CREATE POLICY "Admins manage endorsements"
+  ON student_endorsements FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true))
+  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_admin = true));
+
+CREATE POLICY "CFIs insert endorsements for their students"
+  ON student_endorsements FOR INSERT
+  WITH CHECK (
+    instructor_id = auth.uid()
+    AND EXISTS (SELECT 1 FROM profiles WHERE profiles.id = auth.uid() AND profiles.is_instructor = true)
+    AND EXISTS (SELECT 1 FROM students WHERE students.user_id = student_id AND students.instructor_id = auth.uid())
+  );
+
+CREATE POLICY "Students view their own endorsements"
+  ON student_endorsements FOR SELECT
+  USING (student_id = auth.uid());
+
+-- ============================================================
 -- DONE
 -- All tables, RLS policies, and indexes are created.
 -- ============================================================

@@ -249,3 +249,15 @@ describe('computeAvailabilityFromData', () => {
     expect(result[0].end).toBe('2025-06-16T14:00:00.000Z')   // 10:00 EDT
   })
 })
+
+describe('Multi-CFI availability union (D-11)', () => {
+  it('unions availability templates from multiple CFIs for the same day', () => {
+    // Two CFIs with different time ranges on Monday should both appear
+    const templates = [
+      { day_of_week: 1, start_time: '08:00:00', end_time: '12:00:00', is_active: true },
+      { day_of_week: 1, start_time: '14:00:00', end_time: '18:00:00', is_active: true },
+    ]
+    // computeAvailabilityFromData should produce slots covering both ranges
+    expect(true).toBe(false) // RED — will be completed in Task 3
+  })
+})
