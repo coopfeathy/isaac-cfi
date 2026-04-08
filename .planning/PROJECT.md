@@ -33,13 +33,13 @@ A student can discover, book, pay for, and manage their entire flight training j
 <!-- Current milestone scope -->
 
 **Security & Stability (fix before anything else)**
-- [ ] Fix `/manage/*` routes — add server-side auth guard (currently client-side only, fully bypassable)
-- [ ] Remove `NEXT_PUBLIC_ADMIN_EMAIL` fallback — exposes admin email list to client bundle
-- [ ] Add `requireAdmin()` guard to `api/create-user` — currently open to any caller
-- [ ] Remove all PII-logging `console.log` calls (email, phone in production logs)
-- [ ] Fix contact form silent failure — returns `{ success: true }` when `RESEND_API_KEY` is unset
-- [ ] Retire legacy `/booking/` route — uses dead Netlify function, takes no payment, creates no Supabase record
-- [ ] Extract `requireAdmin()` to `lib/auth.ts` — eliminate copy-paste across 5+ route files
+- [x] Fix `/manage/*` routes — server-side auth guard added via Server Component layout + middleware (Phase 1)
+- [x] Remove `NEXT_PUBLIC_ADMIN_EMAIL` fallback — removed from AuthContext and Netlify dashboard (Phase 1)
+- [x] Add `requireAdmin()` guard to `api/create-user` — gated, PII logs removed (Phase 1)
+- [x] Remove all PII-logging `console.log` calls (email, phone in production logs) — all removed (Phase 1)
+- [x] Fix contact form silent failure — now returns 503 + persists to contact_submissions table (Phase 1)
+- [x] Retire legacy `/booking/` route — redirects to /schedule (Phase 1)
+- [x] Extract `requireAdmin()` to `lib/auth.ts` — canonical guard, all 23 admin routes updated (Phase 1)
 
 **Student Self-Service**
 - [ ] Students can book, reschedule, and cancel their own lessons (no admin approval required for standard lessons)
