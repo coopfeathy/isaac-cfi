@@ -103,7 +103,7 @@ export default function AdminLanding({
           )}
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 mb-6">
           <div className="bg-white border-2 border-golden rounded-lg p-6 hover:shadow-lg transition">
             <div className="flex items-center gap-3 mb-2">
               <Image src="/images/icon-learn.png" alt="Learn" width={60} height={60} />
@@ -159,16 +159,15 @@ export default function AdminLanding({
             </div>
           </div>
 
-          <div className="bg-white border-2 border-gray-200 rounded-lg p-6 hover:shadow-lg transition-all duration-500 md:col-span-2">
-            <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-2xl font-bold text-darkText">Platform Settings</h2>
-            </div>
-            <p className="text-gray-600 mb-3">Manage instructors, administrators, aircraft, users, and platform configuration</p>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/admin?tab=settings" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 transition-colors duration-500 text-center">Platform Settings</Link>
-              <Link href="/admin/students" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">Manage Users</Link>
-              <Link href="/admin/aircraft" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">Aircraft</Link>
-            </div>
+        </div>
+
+        <div className="bg-white border-2 border-gray-200 rounded-lg p-6 mb-8">
+          <h2 className="text-2xl font-bold text-darkText mb-1">Platform Settings</h2>
+          <p className="text-gray-600 mb-4">Manage instructors, administrators, aircraft, users, and platform configuration</p>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin?tab=settings" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">Platform Settings</Link>
+            <Link href="/admin/students" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">Manage Users</Link>
+            <Link href="/admin/aircraft" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">Aircraft</Link>
           </div>
         </div>
 
