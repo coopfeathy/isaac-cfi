@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Build the email content
-    const subject = aircraft 
+    const subject = aircraft
       ? `New Inquiry from ${name} - ${aircraft}`
       : `New Inquiry from ${name}`
 
@@ -32,8 +33,6 @@ New Contact Form Submission
 ============================
 
 Name: ${name}
-Email: ${email}
-Phone: ${phone}
 ${aircraft ? `Regarding: ${aircraft}` : ''}
 
 Message:
@@ -44,15 +43,6 @@ This message was sent from the Merlin Flight Training website contact form.
 Reply directly to this email to respond to the inquiry.
     `.trim()
 
-    // For now, we'll use a simple mailto link approach by returning the data
-    // In production, you'd integrate with SendGrid, Resend, or another email service
-    
-    // Option 1: Use Netlify Forms (if you have Netlify)
-    // Option 2: Use a service like Resend, SendGrid, etc.
-    
-    // For a simple solution, we can use fetch to send to a serverless email service
-    // Here's an example using Resend (you'd need to set up RESEND_API_KEY in env)
-    
     const RESEND_API_KEY = process.env.RESEND_API_KEY
     const TO_EMAIL = process.env.CONTACT_EMAIL || 'merlinflighttraining@gmail.com'
 
@@ -61,7 +51,7 @@ Reply directly to this email to respond to the inquiry.
       const resendResponse = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          Authorization: `Bearer ${RESEND_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -82,30 +72,30 @@ Reply directly to this email to respond to the inquiry.
         )
       }
 
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Email sent successfully' 
+      return NextResponse.json({
+        success: true,
+        message: 'Email sent successfully',
       })
     } else {
-      // Fallback: Log the contact and return success
-      // In production, you should set up proper email sending
-      console.log('=== NEW CONTACT FORM SUBMISSION ===')
-      console.log('To:', TO_EMAIL)
-      console.log('Subject:', subject)
-      console.log('From:', `${name} <${email}>`)
-      console.log('Phone:', phone)
-      console.log('Message:', message)
-      console.log('===================================')
-      
-      // You could also save to Supabase here for tracking
-      
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Contact received - email service not configured, logged to server',
-        note: 'Set RESEND_API_KEY environment variable to enable email sending'
-      })
+      // Fallback: save to DB when email service is unavailable (D-15)
+      try {
+        const supabaseAdmin = getSupabaseAdmin()
+        await supabaseAdmin.from('contact_submissions').insert({
+          name,
+          email,
+          phone: phone || null,
+          message: message || null,
+          subject: subject || null,
+        })
+      } catch (dbError) {
+        // Log without PII — DB fallback itself failed
+        console.error('Failed to save contact submission to database')
+      }
+      return NextResponse.json(
+        { error: 'Email service unavailable' },
+        { status: 503 }
+      )
     }
-
   } catch (error) {
     console.error('Contact form error:', error)
     return NextResponse.json(
