@@ -62,9 +62,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01: Create `/cfi` zone with `requireCFI()` layout guard, schedule view, and availability editor (CFI-01, CFI-02, CFI-03, CFI-07)
-- [ ] 03-02: Student roster view — CFI sees students assigned via `instructor_id` with training status (CFI-04)
-- [ ] 03-03: Flight hour logging and endorsement/milestone recording per student (CFI-05, CFI-06)
+- [ ] 03-01-PLAN.md — Create `/cfi` zone with `requireCFI()` layout guard, schedule view, and availability editor (CFI-01, CFI-02, CFI-03, CFI-07)
+- [ ] 03-02-PLAN.md — Student roster view — CFI sees students assigned via `instructor_id` with training status (CFI-04)
+- [ ] 03-03-PLAN.md — Flight hour logging and endorsement/milestone recording per student (CFI-05, CFI-06)
 **UI hint**: yes
 
 ### Phase 4: Student Self-Service + Billing
