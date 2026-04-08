@@ -1,58 +1,18 @@
 import type { Metadata } from 'next'
-import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
-import { createServerClient } from '@supabase/ssr'
 import CFITopNav from '@/app/components/CFITopNav'
+import CFIGuard from './CFIGuard'
 
 export const metadata: Metadata = {
   title: 'CFI Workspace - Merlin Flight Training',
 }
 
-export default async function CFILayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const cookieStore = await cookies()
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-      },
-    }
-  )
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect('/login')
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_instructor, is_admin')
-    .eq('id', user.id)
-    .single()
-
-  const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase().split(',').map(e => e.trim()) ?? []
-  const isAdmin = profile?.is_admin || adminEmails.includes(user.email?.toLowerCase() ?? '')
-  const isCFI = profile?.is_instructor || isAdmin
-
-  if (!isCFI) {
-    redirect('/dashboard')
-  }
-
+export default function CFILayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-slate-50">
-      <CFITopNav />
-      <main>{children}</main>
-    </div>
+    <CFIGuard>
+      <div className="min-h-screen bg-slate-50">
+        <CFITopNav />
+        <main>{children}</main>
+      </div>
+    </CFIGuard>
   )
 }
