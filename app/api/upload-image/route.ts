@@ -1,70 +1,43 @@
-// NOTE: Requires 'blog-images' public bucket in Supabase Storage.
-// Create via Supabase dashboard or: getSupabaseAdmin().storage.createBucket('blog-images', { public: true })
+import { writeFile } from 'fs/promises'
+import { join } from 'path'
+import { NextRequest } from 'next/server'
 
-import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth'
-import { getSupabaseAdmin } from '@/lib/supabase-admin'
-
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-const MAX_SIZE = 5 * 1024 * 1024 // 5MB
-
-export async function POST(request: NextRequest) {
-  // Auth guard (D-09, SEC-10)
-  const adminCheck = await requireAdmin(request)
-  if ('error' in adminCheck) return adminCheck.error
-
+export async function POST(req: NextRequest) {
   try {
-    const formData = await request.formData()
-    const file = formData.get('file') as File | null
-
+    const formData = await req.formData()
+    const file = formData.get('file') as File
+    
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
-    }
-
-    // MIME type validation (D-10)
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { error: 'Only JPEG, PNG, and WebP images are accepted' },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ error: 'No file provided' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       )
     }
 
-    // Size validation (D-11)
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json(
-        { error: 'File exceeds 5MB limit' },
-        { status: 400 }
-      )
-    }
+    // Create a unique filename
+    const timestamp = Date.now()
+    const filename = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+    
+    // Convert file to buffer
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
 
-    // Upload to Supabase Storage (D-12, D-13)
-    const supabaseAdmin = getSupabaseAdmin()
-    const buffer = Buffer.from(await file.arrayBuffer())
-    const ext = file.name.split('.').pop() || 'jpg'
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    // Save to public/blog-images directory
+    const filePath = join(process.cwd(), 'public', 'blog-images', filename)
+    await writeFile(filePath, buffer)
 
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from('blog-images')
-      .upload(filename, buffer, {
-        upsert: false,
-        cacheControl: '3600',
-        contentType: file.type,
-      })
-
-    if (uploadError) {
-      return NextResponse.json(
-        { error: `Upload failed: ${uploadError.message}` },
-        { status: 500 }
-      )
-    }
-
-    const { data } = supabaseAdmin.storage
-      .from('blog-images')
-      .getPublicUrl(filename)
-
-    return NextResponse.json({ success: true, url: data.publicUrl })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Internal server error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    // Return the public URL
+    const publicUrl = `/blog-images/${filename}`
+    
+    return new Response(
+      JSON.stringify({ success: true, url: publicUrl }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    )
+  } catch (error: any) {
+    console.error('Error uploading image:', error)
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
   }
 }
