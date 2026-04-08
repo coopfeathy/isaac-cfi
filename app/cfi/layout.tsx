@@ -41,7 +41,11 @@ export default async function CFILayout({
     .eq('id', user.id)
     .single()
 
-  if (!profile?.is_instructor && !profile?.is_admin) {
+  const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase().split(',').map(e => e.trim()) ?? []
+  const isAdmin = profile?.is_admin || adminEmails.includes(user.email?.toLowerCase() ?? '')
+  const isCFI = profile?.is_instructor || isAdmin
+
+  if (!isCFI) {
     redirect('/dashboard')
   }
 
