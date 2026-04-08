@@ -641,22 +641,13 @@ const value = { ..., isAdmin, isCFI }
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **`student_lesson_completions.syllabus_lesson_id` nullability**
-   - What we know: Column is `NOT NULL` per SETUP.sql line 1849
-   - What's unclear: Whether D-13 intends to reuse this table (requiring the ALTER) or create a separate `flight_hour_logs` table
-   - Recommendation: Run the ALTER. The table purpose aligns well and avoiding a new table reduces schema sprawl. Confirm with Isaac before executing.
+1. **`student_lesson_completions.syllabus_lesson_id` nullability** — RESOLVED: Plan 03-01 Task 1 uses `ALTER TABLE student_lesson_completions ALTER COLUMN syllabus_lesson_id DROP NOT NULL`. Reuses existing table; no new `flight_hour_logs` table created.
 
-2. **Backfill migration: which admin user owns existing availability rows**
-   - What we know: There is at least one admin (Isaac). Multiple admins may exist.
-   - What's unclear: Isaac's specific `auth.users.id` (not accessible without DB access)
-   - Recommendation: Use `SELECT id FROM profiles WHERE is_admin = true ORDER BY created_at ASC LIMIT 1` in the migration. The plan should note Isaac needs to verify this runs correctly in his Supabase SQL editor.
+2. **Backfill migration: which admin user owns existing availability rows** — RESOLVED: Plan 03-01 Task 1 uses dynamic subquery `SELECT id FROM profiles WHERE is_admin = true ORDER BY created_at ASC LIMIT 1`. Isaac verifies in Supabase SQL editor before executing.
 
-3. **Phase 1 `requireCFI()` API contract**
-   - What we know: Phase 1 must deliver `lib/auth.ts` with `requireCFI()` before Phase 3
-   - What's unclear: Exact function signature (does it take `NextRequest`? Does it work as both a layout guard and an API route helper?)
-   - Recommendation: Phase 3 plans should reference Phase 1's plan for the `requireCFI()` signature. If Phase 1 is not yet complete, the planner should flag Phase 3 plan 03-01 as blocked.
+3. **Phase 1 `requireCFI()` API contract** — RESOLVED: Plan 03-01 Task 2 includes a pre-flight check that reads `lib/auth.ts` before implementing the layout guard. If Phase 1 is not yet merged, the task will stop and surface the blocker. Plans assume the Phase 1 contract from ROADMAP depends_on declaration.
 
 ---
 
