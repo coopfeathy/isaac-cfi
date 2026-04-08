@@ -72,17 +72,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string) => {
     try {
       const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/login`
-      console.log('Attempting sign in for:', email)
-      console.log('Redirect URL:', redirectUrl)
-      
+
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
           emailRedirectTo: redirectUrl,
         },
       })
-
-      console.log('Sign in response:', { data, error })
 
       if (error) {
         console.error('Supabase sign in error:', error)
@@ -101,11 +97,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error
   }
 
-  // Prefer DB-backed admin role, with email fallback for bootstrap scenarios.
-  // Support multiple admin emails separated by commas
-  const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase().split(',').map(e => e.trim()) || []
-  const isAdmin = Boolean(profile?.is_admin) ||
-    (user?.email ? adminEmails.includes(user.email.toLowerCase()) : false)
+  // Admin status is determined solely by the DB-backed is_admin flag (SEC-06)
+  const isAdmin = Boolean(profile?.is_admin)
 
   const value = {
     user,

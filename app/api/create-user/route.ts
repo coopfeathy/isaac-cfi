@@ -1,10 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
-
-// Log environment setup for debugging
-console.log('CREATE-USER API: Initializing...')
-console.log('SUPABASE_URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
-console.log('SERVICE_ROLE_KEY exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
+import { requireAdmin } from '@/lib/auth'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,6 +9,9 @@ const supabase = createClient(
 )
 
 export async function POST(request: NextRequest) {
+  const adminCheck = await requireAdmin(request)
+  if ('error' in adminCheck) return adminCheck.error
+
   try {
     const { email, password, profile } = await request.json()
 
@@ -48,8 +47,6 @@ export async function POST(request: NextRequest) {
         delete profileData[key]
       }
     })
-
-    console.log('Creating profile with data:', profileData)
 
     // Create profile with admin bypass
     const { error: profileError } = await supabase
