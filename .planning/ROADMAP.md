@@ -62,9 +62,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Create `/cfi` zone with `requireCFI()` layout guard, schedule view, and availability editor (CFI-01, CFI-02, CFI-03, CFI-07)
-- [ ] 03-02-PLAN.md — Student roster view — CFI sees students assigned via `instructor_id` with training status (CFI-04)
-- [ ] 03-03-PLAN.md — Flight hour logging and endorsement/milestone recording per student (CFI-05, CFI-06)
+- [x] 03-01-PLAN.md — Create `/cfi` zone with `requireCFI()` layout guard, schedule view, and availability editor (CFI-01, CFI-02, CFI-03, CFI-07)
+- [x] 03-02-PLAN.md — Student roster view — CFI sees students assigned via `instructor_id` with training status (CFI-04)
+- [x] 03-03-PLAN.md — Flight hour logging and endorsement/milestone recording per student (CFI-05, CFI-06)
 **UI hint**: yes
 
 ### Phase 4: Student Self-Service + Billing
@@ -82,11 +82,11 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 04-01: Slot viewing and lesson booking flow — no-payment request, approval email (BOOK-01, BOOK-02, BOOK-03, BOOK-08)
-- [ ] 04-02: Cancellation flow — Supabase RPC for atomic slot+booking update, $50 Stripe charge or flagged-fee path (BOOK-04, BOOK-05, BOOK-06, BOOK-07, BILL-04)
-- [ ] 04-03: Student portal auth hardening and self-service views — booking history, hours, documents, payment method save (STU-01, STU-02, STU-03, STU-05, STU-06, STU-07)
-- [ ] 04-04: Invoice generation and payment flow — admin one-click invoice, Stripe invoice email, student pay-without-login link, webhook idempotency; admin cancellation fee visibility (ADMIN-04, ADMIN-05, BILL-01, BILL-02, BILL-03, BILL-05, BILL-06)
-- [ ] 04-05: Stripe webhook dual-endpoint audit — confirm single active endpoint before Phase 5 begins; also: student invoice view in portal (STRIPE-01, STU-04)
+- [ ] 04-01-PLAN.md — Slot viewing and lesson booking flow: student slots API, booking request API, no-payment schedule page (BOOK-01, BOOK-02, BOOK-03, BOOK-08)
+- [ ] 04-02-PLAN.md — Cancellation flow: Supabase RPC for atomic slot+booking update, $50 Stripe charge or flagged-fee path, ensureStripeCustomer helper (BOOK-04, BOOK-05, BOOK-06, BOOK-07, BILL-04)
+- [ ] 04-03-PLAN.md — Student portal auth hardening and self-service views: server-component layout guards, booking history, hours, documents, Setup Intent, Billing Portal (STU-01, STU-02, STU-03, STU-05, STU-06, STU-07)
+- [ ] 04-04-PLAN.md — Invoice generation and payment flow: admin one-click invoice, Stripe invoice email, invoice.paid webhook handler, admin cancellation fee visibility, billing overview, [BLOCKING] schema push (ADMIN-04, ADMIN-05, BILL-01, BILL-02, BILL-03, BILL-05, BILL-06)
+- [ ] 04-05-PLAN.md — Student invoice view in portal + Stripe webhook dual-endpoint audit (STU-04)
 **UI hint**: yes
 
 ### Phase 5: Stripe SDK Upgrade
