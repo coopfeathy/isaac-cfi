@@ -160,6 +160,19 @@ export default function AdminLanding({
           </div>
         </div>
 
+          <div className="bg-white border-2 border-gray-200 rounded-lg p-6 hover:shadow-lg transition md:col-span-2">
+            <div className="flex items-center gap-3 mb-2">
+              <h2 className="text-2xl font-bold text-darkText">Platform Settings</h2>
+            </div>
+            <p className="text-gray-600 mb-6">Manage instructors, administrators, aircraft, users, and platform configuration</p>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/admin?tab=settings" className="px-4 py-2 bg-golden text-darkText font-bold rounded hover:bg-amber-300 text-center">Platform Settings</Link>
+              <Link href="/admin/students" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">Manage Users</Link>
+              <Link href="/admin/aircraft" className="px-4 py-2 bg-white text-gray-900 border border-gray-300 font-bold rounded hover:bg-gray-50 text-center">Aircraft</Link>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded">
           <h3 className="font-bold text-blue-900 mb-2">Getting Started</h3>
           <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
