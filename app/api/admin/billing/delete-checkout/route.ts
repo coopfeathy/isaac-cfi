@@ -23,6 +23,11 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing paymentIntentId' }, { status: 400 })
     }
 
+    const PI_ID_RE = /^pi_[A-Za-z0-9_]{6,99}$/
+    if (!PI_ID_RE.test(paymentIntentId)) {
+      return NextResponse.json({ error: 'Invalid paymentIntentId format' }, { status: 400 })
+    }
+
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
 
     // Cancel if still pending/requires_payment_method
