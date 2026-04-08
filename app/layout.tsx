@@ -6,9 +6,22 @@ import { AuthProvider } from "./contexts/AuthContext"
 import type { Metadata, Viewport } from "next"
 export const metadata: Metadata = {
   metadataBase: new URL("https://merlinflight.com"),
-  title: "Merlin Flight Training | NYC Pilot Training & Flight Lessons",
-  description: "Professional FAA-certified flight training in NYC and New Jersey. Private pilot, instrument rating, and commercial certifications. Book your discovery flight today.",
-  keywords: ["flight training", "pilot training", "NYC", "New Jersey", "discovery flight", "flight lessons", "FAA certified instructor"],
+  title: "Merlin Flight Training | Flight School Near NYC – Republic Airport FRG",
+  description: "FAA-certified flight training at Republic Airport (FRG), Farmingdale, NY. Private pilot, instrument rating, commercial certifications & discovery flights. Serving Long Island, NYC & New Jersey. Book today.",
+  keywords: [
+    "flight training Long Island",
+    "flight school near NYC",
+    "pilot training Farmingdale NY",
+    "discovery flight Republic Airport",
+    "learn to fly FRG",
+    "private pilot license New York",
+    "CFI Long Island",
+    "flight lessons near me",
+    "FAA certified flight instructor",
+    "instrument rating New York",
+    "commercial pilot training NYC",
+    "flight school Farmingdale",
+  ],
   authors: [{ name: "Merlin Flight Training" }],
   creator: "Merlin Flight Training",
   publisher: "Merlin Flight Training",
@@ -26,8 +39,8 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://merlinflight.com",
     siteName: "Merlin Flight Training",
-    title: "Merlin Flight Training | Professional Pilot Training",
-    description: "FAA-certified flight training with experienced instructors. Private, instrument, and commercial pilot certifications.",
+    title: "Merlin Flight Training | Flight School Near NYC – Republic Airport",
+    description: "FAA-certified flight training at Republic Airport (FRG), Farmingdale, NY. Private pilot, instrument rating, commercial certifications & discovery flights serving Long Island, NYC & New Jersey.",
     images: [
       {
         url: "/images/merlin-og-image.jpg",
@@ -76,7 +89,7 @@ export default function RootLayout({
     name: "Merlin Flight Training",
     description: "Professional FAA-certified flight training in NYC and New Jersey",
     url: "https://merlinflight.com",
-    telephone: "+1-XXX-XXX-XXXX",
+    telephone: "+1-929-487-4717",
     image: "https://merlinflight.com/images/merlin-logo.png",
     address: {
       "@type": "PostalAddress",
@@ -86,15 +99,23 @@ export default function RootLayout({
       postalCode: "11735",
       addressCountry: "US",
     },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: 40.7285,
+      longitude: -73.4134,
+    },
+    openingHoursSpecification: {
+      "@type": "OpeningHoursSpecification",
+      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+      opens: "07:00",
+      closes: "20:00",
+    },
+    priceRange: "$$",
     areaServed: [
-      {
-        "@type": "State",
-        name: "New Jersey",
-      },
-      {
-        "@type": "State",
-        name: "New York",
-      },
+      { "@type": "City", name: "Farmingdale", containedIn: "New York" },
+      { "@type": "City", name: "New York City" },
+      { "@type": "City", name: "Long Island" },
+      { "@type": "City", name: "Newark", containedIn: "New Jersey" },
     ],
     sameAs: [
       "https://www.facebook.com/people/Merlin-Flight-Training/61584960395153",

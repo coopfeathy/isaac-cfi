@@ -34,13 +34,24 @@ export async function generateMetadata({
       description: post.excerpt || post.title,
       url: postUrl,
       type: 'article',
-      authors: ['Merlin Flight Training'],
+      authors: ['Isaac Prestwich – Merlin Flight Training'],
       publishedTime: post.date,
+      siteName: 'Merlin Flight Training',
+      images: [
+        {
+          url: '/images/merlin-og-image.jpg',
+          width: 1200,
+          height: 630,
+          alt: `${post.title} – Merlin Flight Training`,
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: post.title,
       description: post.excerpt || post.title,
+      images: ['/images/merlin-og-image.jpg'],
+      creator: '@merlinflight',
     },
     alternates: {
       canonical: postUrl,
@@ -55,7 +66,37 @@ export default async function BlogPost({ params }: { params: { slug: string } })
     notFound()
   }
 
+  const baseUrl = 'https://merlinflight.com'
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: baseUrl },
+      { '@type': 'ListItem', position: 2, name: 'Blog', item: `${baseUrl}/blog` },
+      { '@type': 'ListItem', position: 3, name: post.title, item: `${baseUrl}/blog/${post.slug}` },
+    ],
+  }
+
+  const articleSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    description: post.excerpt || post.title,
+    author: { '@type': 'Person', name: 'Isaac Prestwich', url: baseUrl },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Merlin Flight Training',
+      logo: { '@type': 'ImageObject', url: `${baseUrl}/merlin-logo.png` },
+    },
+    datePublished: post.date,
+    url: `${baseUrl}/blog/${post.slug}`,
+    image: `${baseUrl}/images/merlin-og-image.jpg`,
+  }
+
   return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <article className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-8">
         <Link
@@ -81,5 +122,6 @@ export default async function BlogPost({ params }: { params: { slug: string } })
         />
       </article>
     </div>
+    </>
   )
 }
