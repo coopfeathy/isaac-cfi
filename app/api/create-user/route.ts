@@ -68,12 +68,7 @@ export async function POST(request: NextRequest) {
       profile: profileData
     })
   } catch (error: any) {
-    console.error('Create user error:', error)
-    console.error('Full error object:', JSON.stringify(error, null, 2))
-    return NextResponse.json({ 
-      error: error.message,
-      details: error.toString(),
-      stack: error.stack
-    }, { status: 500 })
+    console.error('[create-user] Unexpected error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
