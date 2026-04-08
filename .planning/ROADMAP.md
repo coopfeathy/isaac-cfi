@@ -28,10 +28,10 @@ Six phases transform a working but fragile flight school app into a self-operati
 **Plans**: 4 plans
 
 Plans:
-- [ ] 01-01: Extract `requireAdmin()`, `requireCFI()`, `requireUser()` to `lib/auth.ts` and wire up `middleware.ts` (SEC-03, SEC-04)
-- [ ] 01-02: Fix `/manage/*` server-side auth guards and remove `NEXT_PUBLIC_ADMIN_EMAIL` fallback (SEC-01, SEC-02, SEC-06)
-- [ ] 01-03: Lock down API routes — `api/create-user`, `api/upload-image`, contact form 503 behavior, PII log removal (SEC-05, SEC-07, SEC-08, SEC-10)
-- [ ] 01-04: Retire legacy `/booking/` route with redirect to `/schedule` (SEC-09)
+- [ ] 01-01-PLAN.md — Extract requireAdmin(), requireCFI(), requireUser() to lib/auth.ts with TDD + create middleware.ts (SEC-03, SEC-04)
+- [ ] 01-02-PLAN.md — Harden /manage layout, remove NEXT_PUBLIC_ADMIN_EMAIL, guard create-user API, remove PII logs (SEC-01, SEC-02, SEC-05, SEC-06, SEC-07)
+- [ ] 01-03-PLAN.md — Harden upload-image (auth + MIME + size + Storage) and contact form (503 + DB fallback + PII removal) (SEC-07, SEC-08, SEC-10)
+- [ ] 01-04-PLAN.md — Replace 23 inline requireAdmin copies with imports + retire /booking with redirect (SEC-04, SEC-09)
 
 ### Phase 2: Admin Consolidation
 **Goal**: One unified `/admin` zone covers all operations; `/manage` is fully retired; the monolith is decomposed into lazy-loaded tabs
