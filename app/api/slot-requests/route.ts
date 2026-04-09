@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
+import { applyRateLimit } from '@/lib/ratelimit'
 
 async function requireAuth(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
@@ -94,6 +95,9 @@ async function sendSlotRequestAlertEmail(payload: {
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await applyRateLimit(request)
+  if (rateLimitResponse) return rateLimitResponse
+
   try {
     const body = await request.json()
 

@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { AlertCircle } from 'lucide-react'
 
 export default function DiscoveryFlightFunnel() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [isRateLimited, setIsRateLimited] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,6 +28,11 @@ export default function DiscoveryFlightFunnel() {
       })
 
       if (!response.ok) {
+        if (response.status === 429) {
+          setIsRateLimited(true)
+          setIsSubmitting(false)
+          return
+        }
         let errorMessage = 'Failed to save email. Please try again.'
         try {
           const data = await response.json()
@@ -87,6 +94,16 @@ export default function DiscoveryFlightFunnel() {
             {error && (
               <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg">
                 <p className="text-red-300 text-sm">{error}</p>
+              </div>
+            )}
+
+            {isRateLimited && (
+              <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-lg flex gap-3">
+                <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={20} />
+                <div>
+                  <p className="text-base font-bold text-amber-600">Too many requests</p>
+                  <p className="text-base text-gray-600">You&apos;ve submitted too many requests from this connection. Please wait a few minutes and try again.</p>
+                </div>
               </div>
             )}
 

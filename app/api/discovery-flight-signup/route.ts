@@ -2,8 +2,13 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { emailTemplates } from '@/lib/resend'
+import { applyRateLimit } from '@/lib/ratelimit'
 
 export async function POST(request: NextRequest) {
+  const rateLimitResponse = await applyRateLimit(request)
+  if (rateLimitResponse) return rateLimitResponse
+
+
   try {
     let supabase
     try {
