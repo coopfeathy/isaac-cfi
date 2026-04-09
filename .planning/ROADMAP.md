@@ -82,11 +82,11 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Slot viewing and lesson booking flow: student slots API, booking request API, no-payment schedule page (BOOK-01, BOOK-02, BOOK-03, BOOK-08)
-- [ ] 04-02-PLAN.md — Cancellation flow: Supabase RPC for atomic slot+booking update, $50 Stripe charge or flagged-fee path, ensureStripeCustomer helper (BOOK-04, BOOK-05, BOOK-06, BOOK-07, BILL-04)
-- [ ] 04-03-PLAN.md — Student portal auth hardening and self-service views: server-component layout guards, booking history, hours, documents, Setup Intent, Billing Portal (STU-01, STU-02, STU-03, STU-05, STU-06, STU-07)
-- [ ] 04-04-PLAN.md — Invoice generation and payment flow: admin one-click invoice, Stripe invoice email, invoice.paid webhook handler, admin cancellation fee visibility, billing overview, [BLOCKING] schema push (ADMIN-04, ADMIN-05, BILL-01, BILL-02, BILL-03, BILL-05, BILL-06)
-- [ ] 04-05-PLAN.md — Student invoice view in portal + Stripe webhook dual-endpoint audit (STU-04)
+- [x] 04-01-PLAN.md — Slot viewing and lesson booking flow: student slots API, booking request API, no-payment schedule page (BOOK-01, BOOK-02, BOOK-03, BOOK-08)
+- [x] 04-02-PLAN.md — Cancellation flow: Supabase RPC for atomic slot+booking update, $50 Stripe charge or flagged-fee path, ensureStripeCustomer helper (BOOK-04, BOOK-05, BOOK-06, BOOK-07, BILL-04)
+- [x] 04-03-PLAN.md — Student portal auth hardening and self-service views: server-component layout guards, booking history, hours, documents, Setup Intent, Billing Portal (STU-01, STU-02, STU-03, STU-05, STU-06, STU-07)
+- [x] 04-04-PLAN.md — Invoice generation and payment flow: admin one-click invoice, Stripe invoice email, invoice.paid webhook handler, admin cancellation fee visibility, billing overview, [BLOCKING] schema push (ADMIN-04, ADMIN-05, BILL-01, BILL-02, BILL-03, BILL-05, BILL-06)
+- [x] 04-05-PLAN.md — Student invoice view in portal + Stripe webhook dual-endpoint audit (STU-04)
 **UI hint**: yes
 
 ### Phase 5: Stripe SDK Upgrade
@@ -102,8 +102,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: Upgrade `stripe` server package to 17.x, update `apiVersion` across all 12 route files and Netlify functions, fix `req.text()` webhook handler (STRIPE-02, STRIPE-03, STRIPE-04)
-- [ ] 05-02: Upgrade `@stripe/stripe-js` and `@stripe/react-stripe-js` client packages; smoke-test payment flow end-to-end (STRIPE-05)
+- [ ] 05-01-PLAN.md — Delete 3 dead Netlify functions, install stripe@17.7.0, update apiVersion to '2025-02-24.acacia' in all 14 active server files (STRIPE-01, STRIPE-02, STRIPE-03, STRIPE-04)
+- [ ] 05-02-PLAN.md — Upgrade @stripe/stripe-js to 7.x and @stripe/react-stripe-js to 3.x; manual test gate for payment + webhook (STRIPE-05)
 
 ### Phase 6: Lead Nurturing + Career Content
 **Goal**: Discovery flight prospects receive automatic follow-up sequences; admin can manage the pipeline; the site makes the "train here, get hired here" case to every visitor
