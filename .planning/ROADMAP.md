@@ -118,9 +118,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — Prospect persistence and follow-up email sequences: sequence_step migration, day-0 email on signup, day-3/day-7 Netlify scheduled functions (LEAD-01, LEAD-02)
-- [ ] 06-02-PLAN.md — Rate limiting on discovery flight funnel, contact form, and slot request endpoints via Upstash Redis (LEAD-04, LEAD-05)
-- [ ] 06-03-PLAN.md — Career pipeline page and "train here, get hired here" content integration; LEAD-03 gap verification; blog/social regression check (LEAD-03, PUB-01, PUB-02, PUB-03, PUB-04)
+- [x] 06-01-PLAN.md — Prospect persistence and follow-up email sequences: sequence_step migration, day-0 email on signup, day-3/day-7 Netlify scheduled functions (LEAD-01, LEAD-02)
+- [x] 06-02-PLAN.md — Rate limiting on discovery flight funnel, contact form, and slot request endpoints via Upstash Redis (LEAD-04, LEAD-05)
+- [x] 06-03-PLAN.md — Career pipeline page and "train here, get hired here" content integration; LEAD-03 gap verification; blog/social regression check (LEAD-03, PUB-01, PUB-02, PUB-03, PUB-04)
 **UI hint**: yes
 
 ## Progress
