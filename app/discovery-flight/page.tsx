@@ -161,6 +161,13 @@ export default function DiscoveryFlight() {
             <p className="text-lg sm:text-xl text-gray-600 mb-8 max-w-2xl mx-auto font-light">
               Book your discovery flight today and experience the freedom of flight
             </p>
+            <p className="text-base text-gray-700 mt-4 mb-4">
+              Your first flight could be the start of a career.
+              Merlin pilots train here and get hired here.{' '}
+              <Link href="/careers" className="text-golden underline-offset-2 hover:underline">
+                Learn more &rarr;
+              </Link>
+            </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link
                 href="/schedule"
