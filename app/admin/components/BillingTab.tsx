@@ -102,6 +102,9 @@ export default function BillingTab() {
   // ---------------------------------------------------------------------------
 
   const fetchPendingBookings = async () => {
+    // SECURITY: This query runs client-side with the anon key.
+    // The bookings table MUST have an admin-only RLS SELECT policy so that
+    // non-admin authenticated users cannot read other students' bookings.
     const { data, error } = await supabase
       .from('bookings')
       .select('id, status, created_at, slot_id, user_id, slots(start_time, end_time, type, description), profiles!bookings_user_id_fkey(full_name, email)')
@@ -147,6 +150,8 @@ export default function BillingTab() {
   // ---------------------------------------------------------------------------
 
   const fetchCancellationFees = async () => {
+    // SECURITY: This query runs client-side with the anon key.
+    // The cancellation_fee_flags table must have an admin-only RLS SELECT policy.
     const { data, error } = await supabase
       .from('cancellation_fee_flags')
       .select('id, student_id, booking_id, amount_cents, reason, resolved, created_at, students(full_name, email)')
@@ -261,6 +266,9 @@ export default function BillingTab() {
   // ---------------------------------------------------------------------------
 
   const fetchStudentOverviews = async () => {
+    // SECURITY: These queries run client-side with the anon key.
+    // The students table MUST have an admin-only RLS SELECT policy so that
+    // non-admin users cannot enumerate student PII (names, emails, Stripe IDs).
     const { data: students, error } = await supabase
       .from('students')
       .select('id, full_name, email, stripe_customer_id')
