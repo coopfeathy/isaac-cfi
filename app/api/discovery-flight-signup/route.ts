@@ -1,5 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { NextRequest, NextResponse } from 'next/server'
+import { Resend } from 'resend'
+import { emailTemplates } from '@/lib/resend'
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,14 +49,17 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Create new prospect
+      const name = email.split('@')[0]
       const { error: insertError } = await supabase
         .from('prospects')
         .insert([
           {
             email,
-            full_name: email.split('@')[0], // Use email prefix as placeholder name
+            full_name: name,
             source: 'discovery_flight',
+            lead_stage: 'new',
             status: 'active',
+            sequence_step: 0,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           }
@@ -66,6 +71,20 @@ export async function POST(request: NextRequest) {
           { error: insertError.message || 'Failed to save email' },
           { status: 500 }
         )
+      }
+
+      // Day-0 confirmation email — per D-09: email failure must NOT affect response
+      try {
+        const resend = new Resend(process.env.RESEND_API_KEY)
+        await resend.emails.send({
+          from: 'Merlin Flight Training <noreply@merlinflighttraining.com>',
+          to: [email],
+          subject: emailTemplates.prospectWelcome(name).subject,
+          html: emailTemplates.prospectWelcome(name).html,
+        })
+        await supabase.from('prospects').update({ sequence_step: 1 }).eq('email', email)
+      } catch (emailErr) {
+        console.error('Day-0 email failed (prospect saved):', emailErr)
       }
     }
 

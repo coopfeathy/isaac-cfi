@@ -1,18 +1,22 @@
-import { POST } from '../route'
+// Set env vars before any module is imported to prevent module-level guard from throwing
+process.env.RESEND_API_KEY = 'test-resend-key'
+process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321'
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key'
+
 import { NextRequest } from 'next/server'
 
-// Mock Supabase admin
+// Mock Supabase admin — must be before route import
 const mockMaybeSingle = jest.fn()
-const mockSelect = jest.fn(() => ({ eq: mockEq }))
 const mockEq = jest.fn(() => ({ maybeSingle: mockMaybeSingle }))
+const mockSelect = jest.fn(() => ({ eq: mockEq }))
 const mockInsert = jest.fn()
-const mockUpdate = jest.fn()
 const mockUpdateEq = jest.fn()
+const mockUpdateBuilder = jest.fn(() => ({ eq: mockUpdateEq }))
 
 const mockFrom = jest.fn(() => ({
   select: mockSelect,
   insert: mockInsert,
-  update: jest.fn(() => ({ eq: mockUpdateEq })),
+  update: mockUpdateBuilder,
 }))
 
 const mockSupabaseAdmin = { from: mockFrom }
@@ -21,13 +25,33 @@ jest.mock('@/lib/supabase-admin', () => ({
   getSupabaseAdmin: jest.fn(() => mockSupabaseAdmin),
 }))
 
-// Mock Resend
+// Mock the Resend package so module-level instantiation in lib/resend.ts is safe
 const mockEmailsSend = jest.fn()
 jest.mock('resend', () => ({
   Resend: jest.fn().mockImplementation(() => ({
     emails: { send: mockEmailsSend },
   })),
 }))
+
+// Mock lib/resend to bypass module-level RESEND_API_KEY guard and provide templates
+jest.mock('@/lib/resend', () => ({
+  emailTemplates: {
+    prospectWelcome: (name: string) => ({
+      subject: `Your Discovery Flight is Confirmed — What Happens Next`,
+      html: `<p>Hi ${name}</p>`,
+    }),
+    prospectFollowUpDay3: (name: string) => ({
+      subject: `Still thinking about flying, ${name}?`,
+      html: `<p>Hi ${name}</p>`,
+    }),
+    prospectFollowUpDay7: (name: string) => ({
+      subject: `Your flight is waiting, ${name}`,
+      html: `<p>Hi ${name}</p>`,
+    }),
+  },
+}))
+
+import { POST } from '../route'
 
 function makeRequest(body: object) {
   return new NextRequest('http://localhost/api/discovery-flight-signup', {
@@ -58,12 +82,10 @@ describe('POST /api/discovery-flight-signup', () => {
 
       expect(res.status).toBe(200)
       expect(mockEmailsSend).toHaveBeenCalledTimes(1)
-      // Subject must include prospectWelcome subject text
       const sendCall = mockEmailsSend.mock.calls[0][0]
       expect(sendCall.subject).toMatch(/Discovery Flight is Confirmed/i)
       expect(sendCall.to).toContain('test@example.com')
       // sequence_step should be updated to 1
-      const updateCalls = mockFrom.mock.results.flatMap(() => [])
       expect(mockUpdateEq).toHaveBeenCalled()
     })
 
