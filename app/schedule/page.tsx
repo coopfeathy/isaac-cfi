@@ -3,6 +3,12 @@
 import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '@/lib/supabase'
+import type { Slot } from '@/lib/supabase'
+import { loadStripe } from '@stripe/stripe-js'
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -28,17 +34,226 @@ const formatDuration = (mins: number) => {
   return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`
 }
 
-// ─── Slot type ───────────────────────────────────────────────────────────────
+// ─── Payment form (step 2) ───────────────────────────────────────────────────
 
-interface SlotData {
-  id: string
-  start_time: string
-  end_time: string
-  type: string
-  description: string | null
-  price: number
-  is_booked: boolean
-  instructor_id: string | null
+function StripePaymentForm({ totalCents, slotId }: { totalCents: number; slotId: string }) {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [message, setMessage] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!stripe || !elements) return
+    setIsLoading(true)
+    const { error } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/booking/success?slot_id=${slotId}`,
+      },
+    })
+    if (error) setMessage(error.message || 'An unexpected error occurred.')
+    setIsLoading(false)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <PaymentElement />
+      {message && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+          {message}
+        </div>
+      )}
+      <button
+        disabled={isLoading || !stripe || !elements}
+        className="w-full bg-golden text-black font-bold py-4 px-6 rounded-xl hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base"
+      >
+        {isLoading ? 'Processing...' : `Pay $${(totalCents / 100).toFixed(2)}`}
+      </button>
+    </form>
+  )
+}
+
+// ─── Booking Modal ───────────────────────────────────────────────────────────
+
+interface BookingModalProps {
+  slot: Slot
+  userId: string
+  userEmail?: string
+  onClose: () => void
+}
+
+function BookingModal({ slot, userId, userEmail, onClose }: BookingModalProps) {
+  const [step, setStep] = useState<1 | 2>(1)
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [notes, setNotes] = useState('')
+  const [clientSecret, setClientSecret] = useState('')
+  const [subtotalCents, setSubtotalCents] = useState(slot.price)
+  const [processingFeeCents, setProcessingFeeCents] = useState(Math.round(slot.price * 0.035))
+  const [totalCents, setTotalCents] = useState(slot.price + Math.round(slot.price * 0.035))
+  const [loadingPayment, setLoadingPayment] = useState(false)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
+
+  const slotType = slot.type === 'tour' ? 'Discovery Flight' : 'Flight Training'
+  const duration = durationMins(slot.start_time, slot.end_time)
+
+  const appearance = { theme: 'stripe' as const, variables: { colorPrimary: '#FFBF00' } }
+
+  const handleContinueToPayment = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim() || !phone.trim()) return
+    setLoadingPayment(true)
+    setPaymentError(null)
+    try {
+      const res = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: slot.price, slotId: slot.id, userId, email: userEmail, name, phone }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to initialize payment')
+      setClientSecret(data.clientSecret)
+      setSubtotalCents(Number(data.subtotalCents || slot.price))
+      setProcessingFeeCents(Number(data.processingFeeCents || Math.round(slot.price * 0.035)))
+      setTotalCents(Number(data.totalCents || slot.price + Math.round(slot.price * 0.035)))
+      setStep(2)
+    } catch (err) {
+      setPaymentError(err instanceof Error ? err.message : 'Failed to initialize payment. Please try again.')
+    } finally {
+      setLoadingPayment(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto shadow-2xl">
+
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center rounded-t-2xl">
+          <div>
+            <h2 className="text-xl font-bold text-black">
+              {step === 1 ? 'Your Details' : 'Payment'}
+            </h2>
+            <div className="flex items-center gap-2 mt-1">
+              <div className={`w-6 h-1.5 rounded-full ${step >= 1 ? 'bg-golden' : 'bg-gray-200'}`} />
+              <div className={`w-6 h-1.5 rounded-full ${step >= 2 ? 'bg-golden' : 'bg-gray-200'}`} />
+              <span className="text-xs text-gray-500 ml-1">Step {step} of 2</span>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 hover:text-black transition-colors text-xl leading-none">
+            ×
+          </button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {/* Slot summary card — always visible */}
+          <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+            <div className="flex justify-between items-start gap-3">
+              <div>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold mb-2 ${
+                  slot.type === 'tour' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                }`}>
+                  {slot.type === 'tour' ? '✈ Discovery Flight' : '🎓 Training'}
+                </span>
+                <p className="font-semibold text-black">
+                  {slot.description || slotType}
+                </p>
+                <p className="text-sm text-gray-600 mt-0.5">
+                  {formatTime(slot.start_time)} – {formatTime(slot.end_time)}
+                  <span className="text-gray-400 ml-2">· {formatDuration(duration)}</span>
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {formatFullDate(toDateKey(slot.start_time))}
+                </p>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <p className="text-2xl font-bold text-black">${(slot.price / 100).toFixed(2)}</p>
+                <p className="text-xs text-gray-400">+3.5% card fee</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 1: Contact details */}
+          {step === 1 && (
+            <form onSubmit={handleContinueToPayment} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="John Smith"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-golden focus:border-transparent outline-none transition text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number <span className="text-red-500">*</span></label>
+                <input
+                  type="tel"
+                  required
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="(555) 000-0000"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-golden focus:border-transparent outline-none transition text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Notes <span className="text-gray-400 font-normal">(optional)</span></label>
+                <textarea
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  rows={2}
+                  placeholder="Any questions or special requests?"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-golden focus:border-transparent outline-none transition text-sm resize-none"
+                />
+              </div>
+              {paymentError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+                  {paymentError}
+                </div>
+              )}
+              <button
+                type="submit"
+                disabled={loadingPayment || !name.trim() || !phone.trim()}
+                className="w-full bg-black text-white font-bold py-4 px-6 rounded-xl hover:bg-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base"
+              >
+                {loadingPayment ? 'Setting up payment...' : 'Continue to Payment →'}
+              </button>
+              <p className="text-center text-xs text-gray-400">
+                You won't be charged until the next step
+              </p>
+            </form>
+          )}
+
+          {/* Step 2: Stripe payment */}
+          {step === 2 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-sm">
+                <button onClick={() => setStep(1)} className="flex items-center gap-1 text-gray-500 hover:text-black transition-colors font-medium">
+                  ← Back
+                </button>
+                <div className="text-right text-gray-600">
+                  <span>Subtotal ${(subtotalCents / 100).toFixed(2)} + Card fee ${(processingFeeCents / 100).toFixed(2)}</span>
+                  <span className="font-bold text-black ml-2">= ${(totalCents / 100).toFixed(2)}</span>
+                </div>
+              </div>
+              {clientSecret ? (
+                <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
+                  <StripePaymentForm totalCents={totalCents} slotId={slot.id} />
+                </Elements>
+              ) : (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-golden" />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ─── Request Modal ────────────────────────────────────────────────────────────
@@ -145,8 +360,8 @@ function RequestModal({ defaultDate, userEmail, onClose, onSuccess }: RequestMod
 // ─── Main Schedule Page ───────────────────────────────────────────────────────
 
 function SchedulePageContent() {
-  const { user, session, loading: authLoading } = useAuth()
-  const [slots, setSlots] = useState<SlotData[]>([])
+  const { user, loading: authLoading } = useAuth()
+  const [slots, setSlots] = useState<Slot[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'training' | 'tour'>('all')
   const [calendarMonth, setCalendarMonth] = useState(() => {
@@ -154,24 +369,29 @@ function SchedulePageContent() {
     return new Date(now.getFullYear(), now.getMonth(), 1)
   })
   const [selectedDateKey, setSelectedDateKey] = useState<string | null>(null)
+  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [requestModalOpen, setRequestModalOpen] = useState(false)
   const [requestSuccess, setRequestSuccess] = useState(false)
-  const [bookingState, setBookingState] = useState<Record<string, 'idle' | 'loading' | 'success' | 'error'>>({})
-  const [bookingMessages, setBookingMessages] = useState<Record<string, string>>({})
 
   const todayKey = toDateKey(new Date().toISOString())
 
   useEffect(() => { fetchSlots() }, [])
 
+  useEffect(() => {
+    if (user?.email) return
+  }, [user])
+
   const fetchSlots = async () => {
     setLoading(true)
     try {
-      const start = new Date().toISOString()
-      const end = new Date(Date.now() + 60 * 86400000).toISOString()
-      const res = await fetch(`/api/student/slots?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
-      if (!res.ok) throw new Error('Failed to load slots')
-      const data = await res.json()
-      setSlots(data.slots || [])
+      const { data, error } = await supabase
+        .from('slots')
+        .select('*')
+        .eq('is_booked', false)
+        .gte('start_time', new Date().toISOString())
+        .order('start_time', { ascending: true })
+      if (error) throw error
+      setSlots(data || [])
     } catch (err) {
       console.error('Error fetching slots:', err)
     } finally {
@@ -179,64 +399,9 @@ function SchedulePageContent() {
     }
   }
 
-  const handleBookSlot = async (slot: SlotData) => {
-    if (!user || !session) return
-
-    setBookingState(prev => ({ ...prev, [slot.id]: 'loading' }))
-    setBookingMessages(prev => ({ ...prev, [slot.id]: '' }))
-
-    try {
-      const res = await fetch('/api/student/bookings', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ slotId: slot.id }),
-      })
-
-      const data = await res.json().catch(() => ({}))
-
-      if (res.status === 401) {
-        window.location.href = '/login'
-        return
-      }
-
-      if (res.status === 409) {
-        setBookingState(prev => ({ ...prev, [slot.id]: 'error' }))
-        setBookingMessages(prev => ({ ...prev, [slot.id]: 'Slot is no longer available' }))
-        // Remove slot from list since it's now booked
-        setSlots(prev => prev.filter(s => s.id !== slot.id))
-        return
-      }
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Booking failed')
-      }
-
-      // Success
-      setBookingState(prev => ({ ...prev, [slot.id]: 'success' }))
-      const msg = slot.type === 'tour'
-        ? 'Discovery flight booked! Check your email for confirmation.'
-        : 'Request submitted! We\'ll confirm within 24 hours.'
-      setBookingMessages(prev => ({ ...prev, [slot.id]: msg }))
-
-      // Remove booked slot from list (tour) or keep visible with success state (training)
-      if (slot.type === 'tour') {
-        setSlots(prev => prev.filter(s => s.id !== slot.id))
-      }
-    } catch (err) {
-      setBookingState(prev => ({ ...prev, [slot.id]: 'error' }))
-      setBookingMessages(prev => ({
-        ...prev,
-        [slot.id]: err instanceof Error ? err.message : 'Booking failed. Please try again.',
-      }))
-    }
-  }
-
   const filteredSlots = slots.filter(s => filter === 'all' || s.type === filter)
 
-  const slotsByDate = filteredSlots.reduce<Record<string, SlotData[]>>((acc, slot) => {
+  const slotsByDate = filteredSlots.reduce<Record<string, Slot[]>>((acc, slot) => {
     const key = toDateKey(slot.start_time)
     if (!acc[key]) acc[key] = []
     acc[key].push(slot)
@@ -297,11 +462,11 @@ function SchedulePageContent() {
             Book Your <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Flight</span>
           </h1>
           <p className="text-gray-300 text-base sm:text-lg max-w-xl mx-auto font-light">
-            Pick a date, choose a time, and submit your request. No payment required to book.
+            Pick a date, choose a time, and you're done. Secure checkout powered by Stripe.
           </p>
           <div className="flex flex-wrap justify-center gap-4 mt-6 text-sm text-gray-400">
-            <span className="flex items-center gap-1.5"><span className="text-golden">✓</span> No upfront payment</span>
-            <span className="flex items-center gap-1.5"><span className="text-golden">✓</span> Discovery flights auto-confirmed</span>
+            <span className="flex items-center gap-1.5"><span className="text-golden">✓</span> Instant confirmation</span>
+            <span className="flex items-center gap-1.5"><span className="text-golden">✓</span> Secure Stripe checkout</span>
             <span className="flex items-center gap-1.5"><span className="text-golden">✓</span> Republic Airport (FRG)</span>
           </div>
         </div>
@@ -311,7 +476,7 @@ function SchedulePageContent() {
       {requestSuccess && (
         <div className="bg-green-50 border-b border-green-200 px-4 py-3 text-center">
           <p className="text-green-800 text-sm font-medium">
-            Request submitted! We'll review it and follow up within 24 hours.
+            ✓ Request submitted! We'll review it and follow up within 24 hours.
             <button onClick={() => setRequestSuccess(false)} className="ml-3 text-green-600 underline text-xs">Dismiss</button>
           </p>
         </div>
@@ -330,7 +495,7 @@ function SchedulePageContent() {
                   filter === f ? 'bg-black text-white shadow-sm' : 'text-gray-600 hover:text-black hover:bg-gray-50'
                 }`}
               >
-                {f === 'all' ? 'All Slots' : f === 'training' ? 'Training' : 'Discovery'}
+                {f === 'all' ? 'All Slots' : f === 'training' ? '🎓 Training' : '✈ Discovery'}
               </button>
             ))}
           </div>
@@ -469,8 +634,6 @@ function SchedulePageContent() {
                       {selectedDaySlots.map(slot => {
                         const dur = durationMins(slot.start_time, slot.end_time)
                         const isDiscovery = slot.type === 'tour'
-                        const slotBookingState = bookingState[slot.id] || 'idle'
-                        const slotMessage = bookingMessages[slot.id]
                         return (
                           <div
                             key={slot.id}
@@ -512,46 +675,26 @@ function SchedulePageContent() {
                                       FRG · Republic Airport
                                     </span>
                                   </div>
-
-                                  {/* Inline feedback messages */}
-                                  {slotMessage && (
-                                    <p className={`text-xs mt-2 font-medium ${
-                                      slotBookingState === 'success' ? 'text-green-600' : 'text-red-600'
-                                    }`}>
-                                      {slotMessage}
-                                    </p>
-                                  )}
                                 </div>
                               </div>
                               <div className="flex flex-row sm:flex-col items-center sm:items-end gap-4 sm:gap-2 sm:flex-shrink-0">
                                 <div className="text-left sm:text-right">
                                   <p className="text-2xl font-bold text-black">${(slot.price / 100).toFixed(2)}</p>
-                                  <p className="text-xs text-gray-400">no upfront payment</p>
+                                  <p className="text-xs text-gray-400">+3.5% card fee</p>
                                 </div>
                                 {user ? (
-                                  slotBookingState === 'success' ? (
-                                    <span className="px-5 py-2.5 bg-green-100 text-green-700 font-bold rounded-xl text-sm whitespace-nowrap">
-                                      {isDiscovery ? 'Booked!' : 'Request Sent!'}
-                                    </span>
-                                  ) : (
-                                    <button
-                                      onClick={() => handleBookSlot(slot)}
-                                      disabled={slotBookingState === 'loading'}
-                                      className="px-5 py-2.5 bg-golden text-black font-bold rounded-xl hover:bg-yellow-500 transition-all hover:shadow-lg text-sm whitespace-nowrap group-hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed"
-                                    >
-                                      {slotBookingState === 'loading'
-                                        ? 'Submitting...'
-                                        : isDiscovery
-                                        ? 'Book Discovery Flight'
-                                        : 'Request Booking'}
-                                    </button>
-                                  )
+                                  <button
+                                    onClick={() => setSelectedSlot(slot)}
+                                    className="px-5 py-2.5 bg-golden text-black font-bold rounded-xl hover:bg-yellow-500 transition-all hover:shadow-lg text-sm whitespace-nowrap group-hover:scale-105"
+                                  >
+                                    Book Slot →
+                                  </button>
                                 ) : (
                                   <Link
                                     href="/login"
                                     className="px-5 py-2.5 bg-black text-white font-bold rounded-xl hover:bg-gray-900 transition-all text-sm whitespace-nowrap"
                                   >
-                                    Log in to book
+                                    Sign in to Book
                                   </Link>
                                 )}
                               </div>
@@ -594,6 +737,15 @@ function SchedulePageContent() {
           userEmail={user?.email || ''}
           onClose={() => setRequestModalOpen(false)}
           onSuccess={() => { setRequestModalOpen(false); setRequestSuccess(true) }}
+        />
+      )}
+
+      {selectedSlot && user && (
+        <BookingModal
+          slot={selectedSlot}
+          userId={user.id}
+          userEmail={user.email}
+          onClose={() => setSelectedSlot(null)}
         />
       )}
     </div>
