@@ -504,14 +504,21 @@ export async function POST(req: Request) {
 
       const alreadyPaid = ['paid', 'confirmed', 'completed'].includes(existingBooking.status)
 
+      // Guard: only update statuses that are legitimately pre-payment.
+      // This prevents a Stripe retry or replay from downgrading a 'completed' booking back to 'paid'.
       const { data: booking, error: bookingError } = await supabaseAdmin
         .from('bookings')
         .update({ status: 'paid' })
         .eq('id', bookingId)
+        .in('status', ['pending', 'pending_approval', 'confirmed'])
         .select('id, slot_id, user_id')
         .single()
 
-      if (bookingError) throw bookingError
+      // PGRST116 means no rows matched (already paid/completed) — not an error.
+      if (bookingError && bookingError.code !== 'PGRST116') throw bookingError
+
+      // If booking is null (no rows updated), re-fetch for the email step below.
+      const bookingForEmail = booking ?? existingBooking
 
       const { error: slotError } = await supabaseAdmin
         .from('slots')
@@ -528,22 +535,22 @@ export async function POST(req: Request) {
 
       const recipientEmail = intent.receipt_email || null
 
-      if (!alreadyPaid && recipientEmail && booking?.id && slotData) {
+      if (!alreadyPaid && recipientEmail && bookingForEmail?.id && slotData) {
         const slotLabel = slotData.description || (slotData.type === 'tour' ? 'Discovery Flight' : 'Flight Training Session')
         await sendBookingEmail(recipientEmail, {
-          bookingId: booking.id,
+          bookingId: bookingForEmail.id,
           slotLabel,
           startTime: slotData.start_time,
           endTime: slotData.end_time,
           amountDollars: (slotData.price / 100).toFixed(2),
         })
-      } else if (!alreadyPaid && userId && booking?.id && slotData) {
+      } else if (!alreadyPaid && userId && bookingForEmail?.id && slotData) {
         const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId)
         const fallbackEmail = authUser?.user?.email
         if (fallbackEmail) {
           const slotLabel = slotData.description || (slotData.type === 'tour' ? 'Discovery Flight' : 'Flight Training Session')
           await sendBookingEmail(fallbackEmail, {
-            bookingId: booking.id,
+            bookingId: bookingForEmail.id,
             slotLabel,
             startTime: slotData.start_time,
             endTime: slotData.end_time,
