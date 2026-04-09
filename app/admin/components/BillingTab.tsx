@@ -164,22 +164,33 @@ export default function BillingTab() {
   }
 
   const handleResolveFee = async (flagId: string) => {
+    if (!session?.access_token) return
+
     setLoadingSection(flagId)
     setErrorMessages((prev) => ({ ...prev, [flagId]: '' }))
 
-    const { error } = await supabase
-      .from('cancellation_fee_flags')
-      .update({ resolved: true, resolved_at: new Date().toISOString() })
-      .eq('id', flagId)
+    try {
+      const res = await fetch('/api/admin/billing/resolve-fee', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ flagId }),
+      })
 
-    if (!error) {
-      setSuccessMessages((prev) => ({ ...prev, [flagId]: 'Fee resolved.' }))
-      setCancellationFees((prev) => prev.filter((f) => f.id !== flagId))
-    } else {
-      setErrorMessages((prev) => ({ ...prev, [flagId]: 'Failed to resolve fee.' }))
+      if (res.ok) {
+        setSuccessMessages((prev) => ({ ...prev, [flagId]: 'Fee resolved.' }))
+        setCancellationFees((prev) => prev.filter((f) => f.id !== flagId))
+      } else {
+        const err = await res.json()
+        setErrorMessages((prev) => ({ ...prev, [flagId]: err.error || 'Failed to resolve fee.' }))
+      }
+    } catch {
+      setErrorMessages((prev) => ({ ...prev, [flagId]: 'Network error. Please try again.' }))
+    } finally {
+      setLoadingSection(null)
     }
-
-    setLoadingSection(null)
   }
 
   // ---------------------------------------------------------------------------
