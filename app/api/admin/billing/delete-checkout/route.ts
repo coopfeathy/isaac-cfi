@@ -46,11 +46,18 @@ export async function DELETE(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}))
-    const paymentIntentId = typeof body.paymentIntentId === 'string' ? body.paymentIntentId : ''
+    const rawPaymentIntentId = typeof body.paymentIntentId === 'string' ? body.paymentIntentId : ''
 
-    if (!paymentIntentId) {
+    if (!rawPaymentIntentId) {
       return NextResponse.json({ error: 'Missing paymentIntentId' }, { status: 400 })
     }
+
+    const PI_ID_PATTERN = /^pi_[A-Za-z0-9_]{6,}$/
+    if (!PI_ID_PATTERN.test(rawPaymentIntentId)) {
+      return NextResponse.json({ error: 'Invalid paymentIntentId format' }, { status: 400 })
+    }
+
+    const paymentIntentId = rawPaymentIntentId
 
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
 
