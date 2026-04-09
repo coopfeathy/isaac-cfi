@@ -38,8 +38,8 @@ None — phase scope is tightly defined by STRIPE-01 through STRIPE-05.
 | ID | Description | Research Support |
 |----|-------------|------------------|
 | STRIPE-01 | Stripe dashboard audit confirms exactly one active webhook endpoint (`/api/stripe-webhook`) before any SDK changes | D-01 confirms the 3 Netlify dead files to delete; webhook already confirmed single active endpoint from Phase 4 |
-| STRIPE-02 | `stripe` package upgraded from `12.18.0` to `^17.x` across all 12 route files and Netlify functions | Verified 17.7.0 is latest stable 17.x; CONTEXT lists 16 active server files (not 12) plus 2 lib files; breaking changes documented |
-| STRIPE-03 | `apiVersion` updated to `'2025-02-24.acacia'` in all Stripe client instantiations | All 16 active files confirmed using `'2022-11-15'`; need to update to `'2025-02-24.acacia'` |
+| STRIPE-02 | `stripe` package upgraded from `12.18.0` to `^17.x` across all 12 route files and Netlify functions | Verified 17.7.0 is latest stable 17.x; CONTEXT lists 16 files but actual codebase has 14 API routes with Stripe constructors; 2 lib files have no Stripe constructor; breaking changes documented |
+| STRIPE-03 | `apiVersion` updated to `'2025-02-24.acacia'` in all Stripe client instantiations | All 14 API route files confirmed using `'2022-11-15'`; need to update to `'2025-02-24.acacia'` |
 | STRIPE-04 | Webhook handler uses `req.text()` (not `req.json()`) for signature verification after upgrade | Confirmed: `app/api/stripe-webhook/route.ts` already uses `req.text()` at line 240 |
 | STRIPE-05 | `@stripe/stripe-js` and `@stripe/react-stripe-js` client packages updated to match server SDK | Verified: `@stripe/stripe-js@7.9.0` + `@stripe/react-stripe-js@3.10.0`; peer deps compatible; client usage is `loadStripe`/`Elements`/`PaymentElement`/`useStripe`/`useElements` |
 </phase_requirements>
@@ -54,7 +54,7 @@ The upgrade span from `stripe` v12 to v17 traverses five major versions (v13, v1
 
 The three Netlify functions (`stripe-webhook.ts`, `create-payment-intent.ts`, `create-checkout.ts`) are confirmed dead code — they have Stripe v12 constructors with `apiVersion: '2022-11-15'` but should simply be deleted per D-01, not upgraded.
 
-**Primary recommendation:** Upgrade `stripe` to `^17.7.0`; update `apiVersion` to `'2025-02-24.acacia'` in all 16 active server files; delete the 3 dead Netlify functions; upgrade client packages to `@stripe/stripe-js@^7.9.0` and `@stripe/react-stripe-js@^3.10.0`; run `next build` to surface any TypeScript type errors from the SDK update.
+**Primary recommendation:** Upgrade `stripe` to `^17.7.0`; update `apiVersion` to `'2025-02-24.acacia'` in all 14 active server files (14 API routes with Stripe constructors); delete the 3 dead Netlify functions; upgrade client packages to `@stripe/stripe-js@^7.9.0` and `@stripe/react-stripe-js@^3.10.0`; run `next build` to surface any TypeScript type errors from the SDK update.
 
 ---
 
@@ -94,7 +94,7 @@ npm install @stripe/stripe-js@^7.9.0 @stripe/react-stripe-js@^3.10.0
 
 ### File Map: What Needs Changing
 
-**Active server files — apiVersion update AND SDK upgrade (16 files):**
+**Active server files — apiVersion update AND SDK upgrade (14 files with Stripe constructors + 2 lib files without):**
 ```
 app/api/stripe-webhook/route.ts               (line 5: apiVersion)
 app/api/create-payment-intent/route.ts        (line 6: apiVersion)
@@ -110,11 +110,11 @@ app/api/student/setup-intent/route.ts          (line 8: apiVersion)
 app/api/student/bookings/[id]/cancel/route.ts  (line 7: apiVersion)
 app/api/student/billing-portal/route.ts        (line 7: apiVersion)
 app/api/student/invoices/route.ts              (line 7: apiVersion)
-lib/stripe-customer.ts                         (line 6: apiVersion — inside ensureStripeCustomer, passed as arg)
+lib/stripe-customer.ts                         (NO Stripe constructor — receives Stripe instance as parameter; no apiVersion to update)
 lib/stripe-connect.ts                          (no Stripe constructor — no apiVersion to update here)
 ```
 
-Note: [VERIFIED from codebase grep] All 14 API route files and `lib/stripe-customer.ts` contain `new Stripe(...)` with `apiVersion: '2022-11-15'`. `lib/stripe-connect.ts` does NOT instantiate Stripe directly — it is a pure utility library that receives the Stripe instance from the calling route. It does NOT need an `apiVersion` update.
+Note: [VERIFIED from codebase grep + file inspection] All 14 API route files contain `new Stripe(...)` with `apiVersion: '2022-11-15'`. Neither `lib/stripe-customer.ts` (receives Stripe instance as parameter) nor `lib/stripe-connect.ts` (pure utility) instantiate Stripe directly — neither needs an `apiVersion` update.
 
 **Dead Netlify files — DELETE (3 files, D-01):**
 ```
@@ -255,14 +255,12 @@ The project uses `strict: true` TypeScript. The stripe SDK ships TypeScript type
 ### Pitfall 1: Applying the wrong target apiVersion string
 **What goes wrong:** Using the v17 release API version (`2024-09-30.acacia`) instead of the required target (`2025-02-24.acacia`). The SDK will accept any valid acacia version string.
 **Why it happens:** The v17 SDK ships with `2024-09-30.acacia` as its default, but Stripe has continued releasing acacia versions monthly. The project requirement (STRIPE-03) explicitly specifies `2025-02-24.acacia`.
-**How to avoid:** Use exactly `'2025-02-24.acacia'` as the apiVersion string in all 15 server files (14 API routes + `lib/stripe-customer.ts`).
+**How to avoid:** Use exactly `'2025-02-24.acacia'` as the apiVersion string in all 14 API route files (lib/stripe-customer.ts does not instantiate Stripe).
 **Warning signs:** If the TypeScript types reject `'2025-02-24.acacia'` as a non-literal type, it means the SDK's `Stripe.LatestApiVersion` type union doesn't include that string — this would indicate the SDK version must be 17.x with an acacia version that covers 2025-02-24. Verify with `npm view stripe@17.7.0 dist-tags` if this occurs.
 
-### Pitfall 2: Forgetting lib/stripe-customer.ts
-**What goes wrong:** Updating all API route files but missing `lib/stripe-customer.ts`, which also instantiates `new Stripe()` with `apiVersion: '2022-11-15'`.
-**Why it happens:** It's a library file, not a route file, and may be missed in a route-focused grep.
-**How to avoid:** The plan must explicitly list `lib/stripe-customer.ts` as one of the 15 files requiring `apiVersion` update.
-**Warning signs:** After upgrade, calls to `ensureStripeCustomer()` will use the old API version while routes use the new one.
+### Pitfall 2: ~~Forgetting lib/stripe-customer.ts~~ (RESOLVED — not applicable)
+**Status:** RESOLVED. `lib/stripe-customer.ts` does NOT instantiate `new Stripe()` — it receives a `Stripe` instance as a function parameter (`stripe: Stripe`). There is no `apiVersion` string in this file. The original research note was incorrect. Only the 14 API route files require `apiVersion` update.
+**No action needed:** The `ensureStripeCustomer()` function uses whatever Stripe instance the calling route passes in, so it inherits the caller's API version automatically.
 
 ### Pitfall 3: Updating dead Netlify functions instead of deleting them
 **What goes wrong:** Spending time upgrading `netlify/functions/stripe-webhook.ts` etc. instead of deleting them.
@@ -288,7 +286,7 @@ The project uses `strict: true` TypeScript. The stripe SDK ships TypeScript type
 
 ## Code Examples
 
-### Upgrading the Stripe constructor (all 15 server files)
+### Upgrading the Stripe constructor (all 14 API route files)
 
 ```typescript
 // Source: [VERIFIED: codebase + Stripe SDK pattern unchanged v12→v17]
@@ -427,17 +425,13 @@ None — no new test files need to be created. This phase has no unit-testable l
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Is `'2025-02-24.acacia'` in stripe@17.7.0's `Stripe.LatestApiVersion` type union?**
-   - What we know: The v17 SDK was released with `2024-09-30.acacia` as its initial API version. Stripe releases monthly acacia updates. The 17.7.0 release is dated 2025 and would include newer acacia versions.
-   - What's unclear: Whether `2025-02-24.acacia` is a valid literal type in 17.7.0's TypeScript definitions.
-   - Recommendation: Run `npm install stripe@^17.7.0` first, then attempt `npm run build`. If TypeScript rejects the string, check the SDK's `node_modules/stripe/types/index.d.ts` for the `LatestApiVersion` union and use the closest valid string. Alternatively, use `as Stripe.LatestApiVersion` cast only if necessary.
+   - RESOLVED: Plan handles this via the TYPE SAFETY NOTE fallback. After `npm install stripe@^17.7.0`, check `node_modules/stripe/types/index.d.ts` for the valid `LatestApiVersion` union. If `'2025-02-24.acacia'` is accepted, use it directly. If not, use `as Stripe.LatestApiVersion` cast as a last resort. The `npm run build` step in Plan 05-01 Task 2 will surface any type mismatch immediately.
 
-2. **Exact count discrepancy: REQUIREMENTS.md says "12 route files" but CONTEXT.md and codebase grep show 14 route files + 1 lib file**
-   - What we know: REQUIREMENTS.md (STRIPE-02) says "12 route files and Netlify functions" but CONTEXT.md lists 16 active files (14 API routes + 2 lib files). Codebase grep confirms 14 API routes + `lib/stripe-customer.ts` have `new Stripe()` calls. `lib/stripe-connect.ts` has no Stripe constructor.
-   - What's unclear: Whether REQUIREMENTS.md was written before new billing routes were added.
-   - Recommendation: Update based on actual codebase state — 14 API route files + `lib/stripe-customer.ts` = 15 files total require `apiVersion` update. The requirement is satisfied when all files are updated regardless of the count in the requirement text.
+2. **Exact count discrepancy: REQUIREMENTS.md says "12 route files" but codebase has 14 API route files**
+   - RESOLVED: Use actual codebase count. 14 API route files contain `new Stripe()` with `apiVersion: '2022-11-15'`. `lib/stripe-customer.ts` does NOT instantiate Stripe (receives instance as parameter). `lib/stripe-connect.ts` also does not instantiate Stripe. REQUIREMENTS.md count of 12 is stale; the requirement (STRIPE-02, STRIPE-03) is satisfied when all 14 files are updated regardless of the count in the requirement text.
 
 ---
 
@@ -445,7 +439,7 @@ None — no new test files need to be created. This phase has no unit-testable l
 
 ### Primary (HIGH confidence)
 - [VERIFIED: npm registry, 2026-04-09] — `stripe@17.7.0`, `@stripe/stripe-js@7.9.0`, `@stripe/react-stripe-js@3.10.0` version and peer dependency verification
-- [VERIFIED: codebase grep] — All 14 API route files + `lib/stripe-customer.ts` confirmed to use `apiVersion: '2022-11-15'`; webhook confirmed to use `req.text()`; client code confirmed to use `loadStripe()` without `apiVersion` argument
+- [VERIFIED: codebase grep + file inspection] — All 14 API route files confirmed to use `apiVersion: '2022-11-15'`; `lib/stripe-customer.ts` confirmed to NOT instantiate Stripe (receives instance as param); webhook confirmed to use `req.text()`; client code confirmed to use `loadStripe()` without `apiVersion` argument
 - [VERIFIED: codebase inspection] — Netlify functions stripe-webhook.ts, create-payment-intent.ts, create-checkout.ts confirmed to exist and use Stripe v12 constructor
 
 ### Secondary (MEDIUM confidence)
