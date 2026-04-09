@@ -65,36 +65,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  // Read config from discovery_slot_config table first, fall back to env vars
-  const { data: dbConfig } = await supabaseAdmin
-    .from('discovery_slot_config')
-    .select('*')
-    .limit(1)
-    .single()
-
-  const rawWeekdays = (dbConfig?.active_weekdays || process.env.DISCOVERY_SLOT_ACTIVE_WEEKDAYS || '').trim()
-  const rawTimes = (dbConfig?.template_times || process.env.DISCOVERY_SLOT_TEMPLATE_TIMES || '').trim()
-  const durationMinutes = Math.max(1, dbConfig?.duration_minutes || parseInt(process.env.DISCOVERY_SLOT_DURATION_MINUTES || '90', 10))
-  const priceCents = Math.max(0, dbConfig?.price_cents || parseInt(process.env.DISCOVERY_SLOT_PRICE_CENTS || '25000', 10))
-  const daysAhead = Math.max(1, dbConfig?.generation_days_ahead || parseInt(process.env.DISCOVERY_SLOT_GENERATION_DAYS_AHEAD || '30', 10))
-  const minDaysOut = Math.max(0, dbConfig?.min_days_out !== undefined ? dbConfig.min_days_out : parseInt(process.env.DISCOVERY_SLOT_MIN_DAYS_OUT || '1', 10))
+  // Read config from env vars (same as the scheduled function)
+  const rawWeekdays = (process.env.DISCOVERY_SLOT_ACTIVE_WEEKDAYS || '').trim()
+  const rawTimes = (process.env.DISCOVERY_SLOT_TEMPLATE_TIMES || '').trim()
+  const durationMinutes = Math.max(1, parseInt(process.env.DISCOVERY_SLOT_DURATION_MINUTES || '90', 10))
+  const priceCents = Math.max(0, parseInt(process.env.DISCOVERY_SLOT_PRICE_CENTS || '25000', 10))
+  const daysAhead = Math.max(1, parseInt(process.env.DISCOVERY_SLOT_GENERATION_DAYS_AHEAD || '30', 10))
+  const minDaysOut = Math.max(0, parseInt(process.env.DISCOVERY_SLOT_MIN_DAYS_OUT || '1', 10))
   const timezone = 'America/New_York'
 
   if (!rawWeekdays || !rawTimes) {
     return NextResponse.json(
-      { error: 'No schedule configuration found. Set DISCOVERY_SLOT_ACTIVE_WEEKDAYS and DISCOVERY_SLOT_TEMPLATE_TIMES in env vars or configure the schedule in the admin Slots tab.' },
+      { error: 'DISCOVERY_SLOT_ACTIVE_WEEKDAYS and DISCOVERY_SLOT_TEMPLATE_TIMES must be set in environment variables' },
       { status: 400 },
     )
   }
 
   const slotDays = rawWeekdays
     .split(',')
-    .map((d: string) => parseInt(d.trim(), 10))
-    .filter((d: number) => !isNaN(d) && d >= 0 && d <= 6)
+    .map((d) => parseInt(d.trim(), 10))
+    .filter((d) => !isNaN(d) && d >= 0 && d <= 6)
 
   const slotTimes = rawTimes
     .split(',')
-    .map((t: string) => {
+    .map((t) => {
       const parts = t.trim().split(':').map(Number)
       return { hour: parts[0] ?? 10, minute: parts[1] ?? 0 }
     })
