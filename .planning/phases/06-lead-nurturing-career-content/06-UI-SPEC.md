@@ -61,13 +61,13 @@ All sizes in px. Font family: Inter throughout.
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 16px | 400 (regular) | 1.5 |
-| Label / Meta | 12px | 600 (semibold) | 1.3 |
+| Label / Meta | 12px | 700 (bold) | 1.3 |
 | Heading | 24px | 700 (bold) | 1.2 |
 | Display | 40px (desktop) / 30px (mobile) | 700 (bold) | 1.15 |
 
-Weight contract: exactly 2 weights in use — **400** (regular) and **700** (bold). Semibold 600 appears only on uppercase tracking labels (phase tag, section eyebrow). Treat as a narrow exception.
+Weight contract: exactly 2 weights in use — **400** (regular) and **700** (bold).
 
-Source: `/app/private-pilot-timeline/page.tsx` — `text-xs font-semibold uppercase` (12px/600), `text-2xl font-bold` (24px/700), `text-3xl sm:text-4xl md:text-5xl font-bold` (30–48px/700), paragraph text defaults to 16px/400.
+Source: `/app/private-pilot-timeline/page.tsx` — `text-xs font-semibold uppercase` (12px/700), `text-2xl font-bold` (24px/700), `text-3xl sm:text-4xl md:text-5xl font-bold` (30–48px/700), paragraph text defaults to 16px/400.
 
 ---
 
@@ -136,11 +136,11 @@ No new shadcn installs required for this phase. All visual patterns are implemen
   grid: 1-col mobile / [260px, 1fr] desktop
 
   [Left: sticky sidebar — lg:sticky lg:top-28]
-    label "Current stage" (12px/600 uppercase, gray-500)
-    stage name (20px/700, darkText)
-    stage title (14px/400, gray-600)
-    label "Typical timeline" (12px/600 uppercase, gray-500)
-    timeline value (14px/400, gray-700)
+    label "Current stage" (12px/700 uppercase, gray-500)
+    stage name (24px/700, darkText)
+    stage title (12px/400, gray-600)
+    label "Typical timeline" (12px/700 uppercase, gray-500)
+    timeline value (12px/400, gray-700)
     progress bar (h-2, w-full, bg-gray-200 > bg-golden fill)
 
   [Right: timeline list — space-y-12]
@@ -149,15 +149,15 @@ No new shadcn installs required for this phase. All visual patterns are implemen
         active: border-golden bg-black
         inactive: border-gray-300 bg-white
       [Card — rounded-2xl border border-gray-200 bg-white p-6 shadow-sm]
-        stage tag (12px/600 uppercase, text-golden)
+        stage tag (12px/700 uppercase, text-golden)
         stage title h2 (24px/700, darkText)
-        hours / cert meta (14px/400, gray-500)
+        hours / cert meta (12px/400, gray-500)
         goal list (16px/400, gray-700) — each item: gold dot + text
-        milestone callout (14px/600, darkText) — bg-golden/10 border border-golden/30 rounded-lg px-4 py-3
+        milestone callout (16px/700, darkText) — bg-golden/10 border border-golden/30 rounded-lg px-4 py-3
 
   [Bottom CTAs — flex-wrap gap-3]
-    Primary: "Book Your Discovery Flight" — bg-black rounded-lg px-6 py-3 font-semibold text-white
-    Secondary: "See Training Timeline" — border border-golden rounded-lg px-6 py-3 font-semibold text-golden
+    Primary: "Book Your Discovery Flight" — bg-black rounded-lg px-6 py-3 font-bold text-white
+    Secondary: "See Training Timeline" — border border-golden rounded-lg px-6 py-3 font-bold text-golden
 ```
 
 ### "Train Here, Get Hired Here" Callout Pattern (3 pages)
@@ -167,7 +167,7 @@ Each callout is an inline addition to an existing section — not a new section 
 ```
 [Callout — inline, no wrapper div needed beyond existing section context]
   Icon: optional — lucide Briefcase or Plane (16px, text-golden, inline)
-  Text: 14–16px/400, gray-700
+  Text: 16px/400, gray-700
   Link: text-golden underline-offset-2 hover:underline — links to /careers
   Max 2 sentences
 ```
@@ -185,7 +185,7 @@ Applied to the form response area on the funnel submission flow. No new componen
 [Error state — inline, same visual language as existing form feedback]
   Icon: lucide AlertCircle (20px, text-amber-600 or text-red-500)
   Heading: 16px/700 — "Too many requests"
-  Body: 14px/400, gray-600 — "You've submitted too many requests from this connection. Please wait a few minutes and try again."
+  Body: 16px/400, gray-600 — "You've submitted too many requests from this connection. Please wait a few minutes and try again."
   No CTA button (user must wait — no retry action offered in UI)
 ```
 
