@@ -24,9 +24,9 @@ decisions:
   - "BillingTab invoice query uses .in('status', ['completed', 'confirmed']) to handle both Phase 3 lesson status variations"
   - "Billing overview filters to show only students with Stripe customers or unresolved fees to reduce noise"
 metrics:
-  duration: "~25 minutes"
-  completed: "2026-04-09T03:36:35Z"
-  tasks_completed: 3
+  duration: "~30 minutes"
+  completed: "2026-04-08"
+  tasks_completed: 4
   tasks_total: 4
   files_created: 5
   files_modified: 1
@@ -85,14 +85,14 @@ metrics:
 
 4. **Billing Overview**: Per-student summary showing Stripe customer ID, unresolved fee count, and total flagged amount. Filters to students with Stripe customers or outstanding flags.
 
-### Task 4: Database Migrations (Checkpoint - Not Yet Applied)
+### Task 4: Database Migrations Applied
 
-Three migrations need to be applied via `supabase db push`:
-- `20260408_phase4_booking_status.sql` (Plan 01) — pending_approval status
-- `20260408_phase4_cancellation.sql` (Plan 02) — cancellation_fee_flags table + RPC
-- `20260408_phase4_invoice.sql` (Plan 04) — stripe_invoice_id column
+All three migrations applied to the live Supabase database via `supabase db push` (confirmed by Isaac):
+- `20260408_phase4_booking_status.sql` (Plan 01) — `pending_approval` status value on bookings
+- `20260408_phase4_cancellation.sql` (Plan 02) — `cancellation_fee_flags` table + `cancel_booking_atomic` RPC
+- `20260408_phase4_invoice.sql` (Plan 04) — `stripe_invoice_id` column on bookings
 
-**Status:** Awaiting human action at checkpoint.
+**Status:** Complete.
 
 ## Deviations from Plan
 
@@ -111,6 +111,7 @@ None — plan executed as written.
 | Task 1 (TDD) | d55a182 | feat(04-04): invoice API, invoice.paid webhook handler, and unit tests |
 | Task 2 | 798a73a | feat(04-04): admin booking approval endpoint (BOOK-03) |
 | Task 3 | 727ee35 | feat(04-04): admin BillingTab with pending approvals, cancellation fees, and invoice UI |
+| Task 4 | 4529658 | feat(04-04): apply Phase 4 DB migrations (supabase db push confirmed) |
 
 ## Known Stubs
 
@@ -122,4 +123,4 @@ None — all new endpoints use `requireAdmin()`. The `invoice.paid` webhook uses
 
 ## Self-Check: PASSED
 
-All created files confirmed present on disk. All commits (d55a182, 798a73a, 727ee35) confirmed in git history.
+All created files confirmed present on disk. All commits (d55a182, 798a73a, 727ee35, 4529658) confirmed in git history. Task 4 migration confirmed applied to live database by Isaac.
