@@ -22,22 +22,29 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ invoices: [] })
   }
 
-  const invoices = await stripe.invoices.list({
-    customer: student.stripe_customer_id,
-    status: 'open',
-    limit: 20,
-  })
+  try {
+    const invoices = await stripe.invoices.list({
+      customer: student.stripe_customer_id,
+      status: 'open',
+      limit: 20,
+    })
 
-  const formatted = invoices.data.map((inv) => ({
-    id: inv.id,
-    amount_due: inv.amount_due,
-    currency: inv.currency,
-    description: inv.description || inv.lines?.data?.[0]?.description || 'Invoice',
-    created: inv.created,
-    due_date: inv.due_date,
-    hosted_invoice_url: inv.hosted_invoice_url,
-    status: inv.status,
-  }))
+    const formatted = invoices.data.map((inv) => ({
+      id: inv.id,
+      amount_due: inv.amount_due,
+      currency: inv.currency,
+      description: inv.description || inv.lines?.data?.[0]?.description || 'Invoice',
+      created: inv.created,
+      due_date: inv.due_date,
+      hosted_invoice_url: inv.hosted_invoice_url,
+      status: inv.status,
+    }))
 
-  return NextResponse.json({ invoices: formatted })
+    return NextResponse.json({ invoices: formatted })
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error?.message || 'Unable to fetch invoices' },
+      { status: 500 }
+    )
+  }
 }
