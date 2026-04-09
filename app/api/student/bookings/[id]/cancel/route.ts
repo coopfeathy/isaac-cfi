@@ -113,7 +113,26 @@ export async function POST(
     .eq('user_id', authCheck.user.id)
     .single()
 
-  // 4. Attempt to charge $50 or flag the fee
+  // 4. Check 24-hour grace period — only charge a cancellation fee for late cancellations.
+  const LATE_CANCEL_HOURS = 24
+  const slotId = (result as any).slot_id as string | undefined
+
+  if (slotId) {
+    const { data: slotRow } = await supabaseAdmin
+      .from('slots')
+      .select('start_time')
+      .eq('id', slotId)
+      .single()
+
+    if (slotRow?.start_time) {
+      const hoursUntil = (new Date(slotRow.start_time).getTime() - Date.now()) / 3600000
+      if (hoursUntil >= LATE_CANCEL_HOURS) {
+        return NextResponse.json({ canceled: true, fee: 'waived', amount_cents: 0 }, { status: 200 })
+      }
+    }
+  }
+
+  // 5. Attempt to charge $50 or flag the fee (late cancellation — within 24 hours)
   const feeResult = await processCancellationFee({
     stripeCustomerId: student?.stripe_customer_id ?? null,
     bookingId: id,
