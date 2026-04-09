@@ -5,7 +5,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { sendTwilioMessage } from '@/lib/twilio'
 
 const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2022-11-15' })
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-02-24.acacia' })
   : null
 
 type TransactionRow = {
