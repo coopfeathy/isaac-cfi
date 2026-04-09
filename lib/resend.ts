@@ -165,6 +165,61 @@ export const emailTemplates = {
     `),
   }),
 
+  // Prospect welcome email — day-0 confirmation after discovery flight signup
+  prospectWelcome: (name: string) => ({
+    subject: 'Your Discovery Flight is Confirmed — What Happens Next',
+    html: emailWrapper(`
+      <h1 style="color: ${brand.dark}; margin: 0 0 8px 0; font-size: 24px;">Welcome, ${name}!</h1>
+      <div style="width: 40px; height: 3px; background: ${brand.gold}; margin-bottom: 20px;"></div>
+      <p>Thank you for signing up for a discovery flight with Merlin Flight Training. We're thrilled you're taking this step — here's what to expect next:</p>
+      <ul style="line-height: 1.9; padding-left: 20px;">
+        <li>Your instructor will reach out within 1–2 business days to confirm your time slot.</li>
+        <li>Your discovery flight will be approximately 60–90 minutes.</li>
+        <li>No prior experience is required — just bring your curiosity.</li>
+      </ul>
+      <div style="margin: 28px 0; text-align: center;">
+        <a href="https://merlinflighttraining.com/careers" style="display: inline-block; background: ${brand.gold}; color: ${brand.dark}; font-weight: 700; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-size: 14px;">See Where Training Can Take You</a>
+      </div>
+      <p style="color: ${brand.mutedText}; font-size: 13px;">Blue skies ahead,<br/>The Merlin Flight Training Team</p>
+    `),
+  }),
+
+  // Prospect follow-up — day 3
+  prospectFollowUpDay3: (name: string) => ({
+    subject: `Still thinking about flying, ${name}?`,
+    html: emailWrapper(`
+      <h1 style="color: ${brand.dark}; margin: 0 0 8px 0; font-size: 24px;">Your Discovery Flight Awaits</h1>
+      <div style="width: 40px; height: 3px; background: ${brand.gold}; margin-bottom: 20px;"></div>
+      <p>Hi ${name},</p>
+      <p>Just checking in — we know life gets busy. Your spot for a discovery flight at Merlin Flight Training is still open, but we're filling up fast for this month.</p>
+      <p>A discovery flight is one of those experiences you won't forget. Sixty minutes over Long Island, with an experienced instructor by your side — and it might just change everything.</p>
+      <p>Curious where aviation can take your career? <a href="https://merlinflighttraining.com/careers" style="color: ${brand.gold}; font-weight: 600; text-decoration: none;">See the full path from student to professional pilot.</a></p>
+      <div style="margin: 28px 0; text-align: center;">
+        <a href="https://merlinflighttraining.com/discovery-flight" style="display: inline-block; background: ${brand.gold}; color: ${brand.dark}; font-weight: 700; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-size: 14px;">Book Your Flight</a>
+      </div>
+      <p style="color: ${brand.mutedText}; font-size: 13px;">Blue skies,<br/>The Merlin Flight Training Team</p>
+    `),
+  }),
+
+  // Prospect follow-up — day 7
+  prospectFollowUpDay7: (name: string) => ({
+    subject: `Your flight is waiting, ${name}`,
+    html: emailWrapper(`
+      <h1 style="color: ${brand.dark}; margin: 0 0 8px 0; font-size: 24px;">Ready When You Are</h1>
+      <div style="width: 40px; height: 3px; background: ${brand.gold}; margin-bottom: 20px;"></div>
+      <p>Hi ${name},</p>
+      <p>We wanted to reach out one last time — our instructors have availability this week, and we'd love to get you in the air.</p>
+      <div style="background: ${brand.lightBg}; border-left: 4px solid ${brand.gold}; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 20px 0;">
+        <p style="margin: 0; font-style: italic; color: ${brand.dark};">"The discovery flight was the best decision I made. I had my private pilot license within a year and now I instruct here." — Merlin Graduate</p>
+      </div>
+      <p>There's no pressure, and no rush — but your first flight is just one click away.</p>
+      <div style="margin: 28px 0; text-align: center;">
+        <a href="https://merlinflighttraining.com/discovery-flight" style="display: inline-block; background: ${brand.gold}; color: ${brand.dark}; font-weight: 700; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-size: 14px;">Schedule My Discovery Flight</a>
+      </div>
+      <p style="color: ${brand.mutedText}; font-size: 13px;">Blue skies,<br/>The Merlin Flight Training Team</p>
+    `),
+  }),
+
   // Lesson scheduled notification
   lessonScheduled: (payload: {
     studentName: string
