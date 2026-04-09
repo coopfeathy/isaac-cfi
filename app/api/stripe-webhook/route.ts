@@ -483,6 +483,12 @@ export async function POST(req: Request) {
           }
         }
 
+        // Mark event processed before returning so Stripe retries don't re-send the email.
+        await supabaseAdmin
+          .from('stripe_webhook_events')
+          .update({ status: 'processed', processed_at: new Date().toISOString() })
+          .eq('event_id', event.id)
+
         return new Response(JSON.stringify({ ok: true }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
@@ -644,6 +650,12 @@ export async function POST(req: Request) {
         if (slotError) throw slotError
 
         if (alreadyPaid) {
+          // Mark event processed before returning so Stripe retries don't re-send emails.
+          await supabaseAdmin
+            .from('stripe_webhook_events')
+            .update({ status: 'processed', processed_at: new Date().toISOString() })
+            .eq('event_id', event.id)
+
           return new Response(JSON.stringify({ received: true }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
