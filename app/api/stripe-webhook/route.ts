@@ -645,6 +645,19 @@ export async function POST(req: Request) {
       }
     }
 
+    if (event.type === 'invoice.paid') {
+      const invoice = event.data.object as Stripe.Invoice
+      const invoiceBookingId = invoice.metadata?.bookingId
+
+      if (invoiceBookingId) {
+        await supabaseAdmin
+          .from('bookings')
+          .update({ status: 'paid' })
+          .eq('id', invoiceBookingId)
+          .in('status', ['confirmed', 'pending_approval'])
+      }
+    }
+
     if (event.type === 'payment_intent.payment_failed') {
       const intent = event.data.object as Stripe.PaymentIntent
       const studentMetaId = intent.metadata?.studentId
