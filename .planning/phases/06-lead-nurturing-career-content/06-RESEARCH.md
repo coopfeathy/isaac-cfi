@@ -527,7 +527,7 @@ export function getRatelimit(): Ratelimit {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does Upstash free tier have sufficient throughput for this usage?**
    - What we know: Free tier at Upstash provides 10,000 commands/day
