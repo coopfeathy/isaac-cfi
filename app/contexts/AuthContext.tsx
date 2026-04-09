@@ -13,6 +13,7 @@ interface AuthContextType {
   signIn: (email: string) => Promise<void>
   signOut: () => Promise<void>
   isAdmin: boolean
+  isCFI: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -107,6 +108,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAdmin = Boolean(profile?.is_admin) ||
     (user?.email ? adminEmails.includes(user.email.toLowerCase()) : false)
 
+  const isCFI = isAdmin
+
   const value = {
     user,
     profile,
@@ -115,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signOut,
     isAdmin,
+    isCFI,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
