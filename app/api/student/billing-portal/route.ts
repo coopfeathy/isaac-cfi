@@ -25,10 +25,16 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const session = await stripe.billingPortal.sessions.create({
-    customer: student.stripe_customer_id,
-    return_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://isaac-cfi.netlify.app'}/dashboard`,
-  })
-
-  return NextResponse.json({ url: session.url })
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: student.stripe_customer_id,
+      return_url: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://isaac-cfi.netlify.app'}/dashboard`,
+    })
+    return NextResponse.json({ url: session.url })
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: error?.message || 'Unable to open billing portal' },
+      { status: 500 }
+    )
+  }
 }
