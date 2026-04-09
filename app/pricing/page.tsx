@@ -316,6 +316,13 @@ export default function PricingPage() {
                   </div>
                 </div>
               </div>
+              <p className="text-base text-gray-700 mt-4">
+                CFI certification isn&apos;t just a rating — it&apos;s your entry to a paid flying career.
+                Merlin hires from within.{' '}
+                <Link href="/careers" className="text-golden underline-offset-2 hover:underline">
+                  See how &rarr;
+                </Link>
+              </p>
             </div>
           </div>
         </section>

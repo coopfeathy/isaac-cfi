@@ -539,6 +539,13 @@ export default function Home() {
               <p className="text-gray-600 leading-relaxed font-light text-sm sm:text-base">
                 Learn from FAA-certified flight instructors with thousands of hours of experience and a passion for teaching.
               </p>
+              <p className="text-base text-gray-700 mt-4">
+                Every Merlin student trains with an instructor who was once in your seat.
+                The best candidates earn a spot on our team.{' '}
+                <Link href="/careers" className="text-golden underline-offset-2 hover:underline">
+                  Learn about the career path &rarr;
+                </Link>
+              </p>
             </div>
 
             {/* NYC Views */}
