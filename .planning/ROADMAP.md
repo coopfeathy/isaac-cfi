@@ -102,8 +102,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Delete 3 dead Netlify functions, install stripe@17.7.0, update apiVersion to '2025-02-24.acacia' in all 14 active server files (STRIPE-01, STRIPE-02, STRIPE-03, STRIPE-04)
-- [ ] 05-02-PLAN.md — Upgrade @stripe/stripe-js to 7.x and @stripe/react-stripe-js to 3.x; manual test gate for payment + webhook (STRIPE-05)
+- [x] 05-01-PLAN.md — Delete 3 dead Netlify functions, install stripe@17.7.0, update apiVersion to '2025-02-24.acacia' in all 14 active server files (STRIPE-01, STRIPE-02, STRIPE-03, STRIPE-04)
+- [x] 05-02-PLAN.md — Upgrade @stripe/stripe-js to 7.x and @stripe/react-stripe-js to 3.x; manual test gate for payment + webhook (STRIPE-05)
 
 ### Phase 6: Lead Nurturing + Career Content
 **Goal**: Discovery flight prospects receive automatic follow-up sequences; admin can manage the pipeline; the site makes the "train here, get hired here" case to every visitor
@@ -118,9 +118,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: Prospect persistence and follow-up email sequences — save all submissions to `prospects`, Resend sequences at day 0 / 3 / 7 (LEAD-01, LEAD-02)
-- [ ] 06-02: Rate limiting on discovery flight funnel, contact form, and slot request endpoints via Upstash Redis (LEAD-04, LEAD-05)
-- [ ] 06-03: Career pipeline page and "train here, get hired here" content integration across homepage, pricing, and discovery flight pages; confirm blog SEO pipeline and social feed still functional (LEAD-03, PUB-01, PUB-02, PUB-03, PUB-04)
+- [ ] 06-01-PLAN.md — Prospect persistence and follow-up email sequences: sequence_step migration, day-0 email on signup, day-3/day-7 Netlify scheduled functions (LEAD-01, LEAD-02)
+- [ ] 06-02-PLAN.md — Rate limiting on discovery flight funnel, contact form, and slot request endpoints via Upstash Redis (LEAD-04, LEAD-05)
+- [ ] 06-03-PLAN.md — Career pipeline page and "train here, get hired here" content integration; LEAD-03 gap verification; blog/social regression check (LEAD-03, PUB-01, PUB-02, PUB-03, PUB-04)
 **UI hint**: yes
 
 ## Progress
