@@ -13,7 +13,6 @@ interface AuthContextType {
   signIn: (email: string) => Promise<void>
   signOut: () => Promise<void>
   isAdmin: boolean
-  isCFI: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -108,10 +107,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAdmin = Boolean(profile?.is_admin) ||
     (user?.email ? adminEmails.includes(user.email.toLowerCase()) : false)
 
-  // isCFI is derived from DB-backed is_instructor flag only (no email fallback — per RESEARCH Pitfall 4)
-  // Admin is superset of CFI
-  const isCFI = Boolean(profile?.is_instructor) || isAdmin
-
   const value = {
     user,
     profile,
@@ -120,7 +115,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signOut,
     isAdmin,
-    isCFI,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

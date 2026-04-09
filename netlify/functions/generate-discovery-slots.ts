@@ -84,35 +84,29 @@ const handler: Handler = async () => {
     }
   }
 
-  // ── Read configuration from discovery_slot_config table first, fall back to env vars ──
-  const { data: dbConfig } = await supabase
-    .from('discovery_slot_config')
-    .select('*')
-    .limit(1)
-    .single()
-
-  const rawWeekdays = (dbConfig?.active_weekdays || process.env.DISCOVERY_SLOT_ACTIVE_WEEKDAYS || '').trim()
-  const rawTimes = (dbConfig?.template_times || process.env.DISCOVERY_SLOT_TEMPLATE_TIMES || '').trim()
-  const durationMinutes = Math.max(1, dbConfig?.duration_minutes || parseInt(process.env.DISCOVERY_SLOT_DURATION_MINUTES || '90', 10))
-  const priceCents = Math.max(0, dbConfig?.price_cents || parseInt(process.env.DISCOVERY_SLOT_PRICE_CENTS || '25000', 10))
-  const daysAhead = Math.max(1, dbConfig?.generation_days_ahead || parseInt(process.env.DISCOVERY_SLOT_GENERATION_DAYS_AHEAD || '30', 10))
-  const minDaysOut = Math.max(0, dbConfig?.min_days_out !== undefined ? dbConfig.min_days_out : parseInt(process.env.DISCOVERY_SLOT_MIN_DAYS_OUT || '1', 10))
+  // ── Read configuration from existing Netlify env vars ─────────────────────
+  const rawWeekdays = (process.env.DISCOVERY_SLOT_ACTIVE_WEEKDAYS || '').trim()
+  const rawTimes = (process.env.DISCOVERY_SLOT_TEMPLATE_TIMES || '').trim()
+  const durationMinutes = Math.max(1, parseInt(process.env.DISCOVERY_SLOT_DURATION_MINUTES || '90', 10))
+  const priceCents = Math.max(0, parseInt(process.env.DISCOVERY_SLOT_PRICE_CENTS || '25000', 10))
+  const daysAhead = Math.max(1, parseInt(process.env.DISCOVERY_SLOT_GENERATION_DAYS_AHEAD || '30', 10))
+  const minDaysOut = Math.max(0, parseInt(process.env.DISCOVERY_SLOT_MIN_DAYS_OUT || '1', 10))
   // Timezone is Eastern — hardcoded to match existing slot config
   const timezone = 'America/New_York'
 
   if (!rawWeekdays) {
-    console.log('[generate-discovery-slots] No active weekdays configured (DB or env) — skipping')
+    console.log('[generate-discovery-slots] DISCOVERY_SLOT_ACTIVE_WEEKDAYS not set — skipping')
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: 'No active weekdays configured, nothing to do' }),
+      body: JSON.stringify({ message: 'DISCOVERY_SLOT_ACTIVE_WEEKDAYS not configured, nothing to do' }),
     }
   }
 
   if (!rawTimes) {
-    console.log('[generate-discovery-slots] No template times configured (DB or env) — skipping')
+    console.log('[generate-discovery-slots] DISCOVERY_SLOT_TEMPLATE_TIMES not set — skipping')
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: 'No template times configured, nothing to do' }),
+      body: JSON.stringify({ message: 'DISCOVERY_SLOT_TEMPLATE_TIMES not configured, nothing to do' }),
     }
   }
 

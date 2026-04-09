@@ -69,28 +69,7 @@ const nextConfig = {
   // Redirects for old URLs if needed
   async redirects() {
     return [
-      // /manage retirement — Phase 2 (ADMIN-01, D-04 through D-08)
-      { source: '/manage/users', destination: '/admin/students', permanent: true },
-      { source: '/manage/users/:path*', destination: '/admin/students', permanent: true },
-      { source: '/manage/aircraft', destination: '/admin/aircraft', permanent: true },
-      { source: '/manage/aircraft/:path*', destination: '/admin/aircraft', permanent: true },
-      { source: '/manage/schedule', destination: '/admin', permanent: true },
-      { source: '/manage/schedule/:path*', destination: '/admin', permanent: true },
-      { source: '/manage/instructors', destination: '/admin', permanent: true },
-      { source: '/manage/instructors/:path*', destination: '/admin', permanent: true },
-      { source: '/manage/administrators', destination: '/admin', permanent: true },
-      { source: '/manage/administrators/:path*', destination: '/admin', permanent: true },
-      { source: '/manage/adjustments', destination: '/admin', permanent: true },
-      { source: '/manage/adjustments/:path*', destination: '/admin', permanent: true },
-      { source: '/manage/forms', destination: '/admin', permanent: true },
-      { source: '/manage/forms/:path*', destination: '/admin', permanent: true },
-      { source: '/manage/groups', destination: '/admin', permanent: true },
-      { source: '/manage/groups/:path*', destination: '/admin', permanent: true },
-      { source: '/manage/items', destination: '/admin', permanent: true },
-      { source: '/manage/items/:path*', destination: '/admin', permanent: true },
-      // Catch-all for any other /manage paths
-      { source: '/manage', destination: '/admin', permanent: true },
-      { source: '/manage/:path*', destination: '/admin', permanent: true },
+      // Add any URL redirects here for SEO preservation
     ]
   },
   // Image optimization
