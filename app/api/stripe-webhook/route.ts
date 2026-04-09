@@ -639,8 +639,10 @@ export async function POST(req: Request) {
           .from('bookings')
           .update({ status: 'paid' })
           .eq('id', bookingId)
+          .in('status', ['pending', 'pending_approval', 'confirmed'])
 
-        if (bookingError) throw bookingError
+        // PGRST116 = no rows matched (already paid/completed) — not an error
+        if (bookingError && bookingError.code !== 'PGRST116') throw bookingError
 
         const { error: slotError } = await supabaseAdmin
           .from('slots')
