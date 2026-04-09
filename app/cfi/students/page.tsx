@@ -46,7 +46,7 @@ export default function CFIStudentsPage() {
 
         const token = session?.access_token
         const res = await fetch('/api/cfi/students', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          headers: token ? { Authorization: `Bearer ${token}` } : {} as Record<string, string>,
         })
 
         if (!res.ok) {

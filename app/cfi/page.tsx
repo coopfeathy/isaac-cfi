@@ -71,7 +71,7 @@ export default function CFISchedulePage() {
 
         const token = session?.access_token
         const res = await fetch('/api/cfi/schedule', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          headers: token ? { Authorization: `Bearer ${token}` } : {} as Record<string, string>,
         })
 
         if (!res.ok) {

@@ -505,7 +505,7 @@ export default function CFILogPage() {
   const [logEndorsementOpen, setLogEndorsementOpen] = useState(false)
 
   const authHeaders = useCallback(
-    () => (token ? { Authorization: `Bearer ${token}` } : {}),
+    (): Record<string, string> => (token ? { Authorization: `Bearer ${token}` } : {}),
     [token]
   )
 
