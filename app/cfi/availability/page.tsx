@@ -51,7 +51,7 @@ export default function CFIAvailabilityPage() {
     )
   )
 
-  const getAuthHeaders = useCallback(() => {
+  const getAuthHeaders = useCallback((): Record<string, string> => {
     const token = session?.access_token
     return token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
   }, [session])
