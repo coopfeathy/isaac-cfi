@@ -1,0 +1,42 @@
+import Stripe from 'stripe'
+import { getSupabaseAdmin } from './supabase-admin'
+
+/**
+ * Ensures a Stripe customer exists for the given student.
+ *
+ * If the student already has a stripe_customer_id stored in the database,
+ * that ID is returned immediately. Otherwise, a new Stripe customer is
+ * created and the ID is persisted to the students table before returning.
+ *
+ * This helper is shared across cancel, setup-intent, and billing-portal routes
+ * to avoid creating duplicate Stripe customers for the same student.
+ */
+export async function ensureStripeCustomer(
+  stripe: Stripe,
+  studentId: string,
+  { email, name }: { email: string | null; name: string }
+): Promise<string> {
+  const supabaseAdmin = getSupabaseAdmin()
+  const { data: student } = await supabaseAdmin
+    .from('students')
+    .select('stripe_customer_id')
+    .eq('id', studentId)
+    .single()
+
+  if (student?.stripe_customer_id) {
+    return student.stripe_customer_id
+  }
+
+  const customer = await stripe.customers.create({
+    email: email ?? undefined,
+    name,
+    metadata: { studentId },
+  })
+
+  await supabaseAdmin
+    .from('students')
+    .update({ stripe_customer_id: customer.id })
+    .eq('id', studentId)
+
+  return customer.id
+}

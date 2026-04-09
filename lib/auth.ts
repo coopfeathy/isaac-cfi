@@ -53,13 +53,11 @@ export async function requireAdmin(request: NextRequest) {
 }
 
 /**
- * Require the caller to be an authenticated CFI (instructor) or admin.
- *
- * Admin is a superset of CFI — any admin passes this check (D-02).
+ * Require the caller to be a CFI (instructor) or admin.
  *
  * Returns { error: NextResponse } with:
  *   - 401 if no Authorization header or invalid/expired token
- *   - 403 if the user is neither an instructor nor an admin
+ *   - 403 if the user is not an instructor or admin
  *
  * Returns { user, profile } on success.
  */
