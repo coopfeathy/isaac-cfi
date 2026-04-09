@@ -2,7 +2,6 @@
 
 export interface InstructorAvailability {
   id: string
-  instructor_id: string  // UUID of the owning CFI
   day_of_week: number // 0=Sunday, 6=Saturday
   start_time: string  // "HH:MM:SS" format from Postgres TIME
   end_time: string

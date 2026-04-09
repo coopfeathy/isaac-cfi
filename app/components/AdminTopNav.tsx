@@ -52,13 +52,6 @@ const navSections: NavSection[] = [
       { href: '/admin/email', label: 'Email Campaigns', match: ['/admin/email'] },
     ],
   },
-  {
-    label: 'Platform Settings',
-    icon: 'learn',
-    items: [
-      { href: '/admin?tab=settings', label: 'Settings', match: [] },
-    ],
-  },
 ]
 
 const allNavItems = navSections.flatMap((section) => section.items)

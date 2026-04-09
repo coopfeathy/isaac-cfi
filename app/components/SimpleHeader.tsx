@@ -8,7 +8,6 @@ import { supabase } from "@/lib/supabase"
 
 export default function SimpleHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const { user, isAdmin } = useAuth()
   const primaryNavLinks = [
     { href: '/', label: 'Home' },
@@ -121,43 +120,8 @@ export default function SimpleHeader() {
                     </Link>
                   </li>
                 )}
-                <li style={{ position: 'relative', paddingBottom: '8px' }}
-                  onMouseEnter={() => setUserMenuOpen(true)}
-                  onMouseLeave={() => setUserMenuOpen(false)}
-                >
-                  <span style={{ color: '#6B7280', fontSize: '14px', cursor: 'default', userSelect: 'none' }}>
-                    {user.email}
-                  </span>
-                  {userMenuOpen && isAdmin && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      right: 0,
-                      marginTop: '0',
-                      backgroundColor: '#fff',
-                      border: '1px solid #E9D7A5',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-                      minWidth: '160px',
-                      zIndex: 100,
-                      overflow: 'hidden',
-                    }}>
-                      <Link
-                        href="/admin?tab=settings"
-                        style={{
-                          display: 'block',
-                          padding: '10px 16px',
-                          color: '#374151',
-                          fontSize: '14px',
-                          fontWeight: 500,
-                          textDecoration: 'none',
-                          backgroundColor: '#FFFDF7',
-                        }}
-                      >
-                        ⚙ Platform Settings
-                      </Link>
-                    </div>
-                  )}
+                <li style={{ color: '#6B7280', fontSize: '14px' }}>
+                  {user.email}
                 </li>
                 <li>
                   <button
