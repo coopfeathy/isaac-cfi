@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       notes: string | null
       user_id: string
       created_at: string
-      slots: { start_time: string; end_time: string; type: string } | null
+      slots: { start_time: string; end_time: string; type: string }[] | null
     }) => ({
       ...b,
       student_name: studentMap.get(b.user_id) ?? 'Unknown',
