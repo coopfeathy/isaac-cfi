@@ -33,10 +33,24 @@ export async function ensureStripeCustomer(
     metadata: { studentId },
   })
 
-  await supabaseAdmin
+  // Use a conditional update (.is null guard) so that if two concurrent requests
+  // both created a Stripe customer, only the first writer wins and the second
+  // update is a no-op (rather than silently overwriting the winning customer ID).
+  const { error: updateError } = await supabaseAdmin
     .from('students')
     .update({ stripe_customer_id: customer.id })
     .eq('id', studentId)
+    .is('stripe_customer_id', null)
+
+  if (updateError) {
+    // Another concurrent request won the race — re-fetch the winning customer ID.
+    const { data: refetch } = await supabaseAdmin
+      .from('students')
+      .select('stripe_customer_id')
+      .eq('id', studentId)
+      .single()
+    if (refetch?.stripe_customer_id) return refetch.stripe_customer_id
+  }
 
   return customer.id
 }
