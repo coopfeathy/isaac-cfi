@@ -1,18 +1,25 @@
 import Stripe from 'stripe'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { resolveDeveloperCommissionConfig, resolveStripeConnectConfig } from '@/lib/stripe-connect'
+import { requireUser } from '@/lib/auth'
+import { NextRequest } from 'next/server'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia',
 })
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { amount, slotId, userId, email, name, phone, notes } = await req.json()
+    const authCheck = await requireUser(req)
+    if ('error' in authCheck) return authCheck.error
 
-    if (!amount || !slotId || !userId) {
+    const { amount, slotId, email, name, phone, notes } = await req.json()
+    // Use authenticated user's ID — never trust caller-supplied userId
+    const userId = authCheck.user.id
+
+    if (!amount || !slotId) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: amount, slotId, userId' }),
+        JSON.stringify({ error: 'Missing required fields: amount, slotId' }),
         {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
