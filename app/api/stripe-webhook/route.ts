@@ -5,6 +5,14 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia',
 })
 
+// The Stripe platform (self) account. Stripe rejects transfers.create when
+// destination equals the platform account, because funds already live there.
+// Buckets targeting this account are recorded for audit but never transferred.
+const PLATFORM_ACCOUNT_ID =
+  process.env.STRIPE_CONNECT_PLATFORM_ACCOUNT_ID ||
+  process.env.STRIPE_CONNECT_DEFAULT_DESTINATION_ACCOUNT ||
+  ''
+
 type SplitPayoutPlan = {
   v: 1
   m: 'split'
@@ -299,16 +307,62 @@ export async function POST(req: Request) {
       const splitPlan = parseSplitPayoutPlan(intent.metadata?.connect_payout_plan_v1)
 
       if (payoutMode === 'split_transfers' && splitPlan && chargeId) {
-        const { data: existingTransfers } = await supabaseAdmin
+        // Load every prior ledger row for this PI so we can resume partial
+        // runs at the bucket level instead of the all-or-nothing semantics
+        // that previously blocked later buckets (e.g. the Fuel Surcharge)
+        // whenever an earlier bucket failed.
+        const { data: existingLedger } = await supabaseAdmin
           .from('stripe_connect_payout_ledger')
-          .select('id')
+          .select('id, transfer_kind, status, metadata')
           .eq('payment_intent_id', intent.id)
-          .not('transfer_id', 'is', null)
 
-        if (!existingTransfers || existingTransfers.length === 0) {
-          for (const [index, bucket] of splitPlan.b.entries()) {
-            if (!Number.isFinite(bucket.a) || bucket.a <= 0 || !bucket.d) continue
+        const processedBucketIndexes = new Set<number>()
+        let developerAlreadyRecorded = false
+        for (const row of existingLedger || []) {
+          if (row.status !== 'transferred' && row.status !== 'platform_retained') continue
+          if (row.transfer_kind === 'developer') {
+            developerAlreadyRecorded = true
+            continue
+          }
+          const idx = Number(
+            (row.metadata as Record<string, unknown> | null)?.bucket_index
+          )
+          if (Number.isFinite(idx)) processedBucketIndexes.add(idx)
+        }
 
+        for (const [index, bucket] of splitPlan.b.entries()) {
+          if (!Number.isFinite(bucket.a) || bucket.a <= 0 || !bucket.d) continue
+          if (processedBucketIndexes.has(index)) continue
+
+          // Platform (self) buckets: Stripe rejects transfers.create when the
+          // destination is the platform account. Funds already live on the
+          // platform; just record a ledger row so reporting stays correct.
+          if (PLATFORM_ACCOUNT_ID && bucket.d === PLATFORM_ACCOUNT_ID) {
+            await supabaseAdmin.from('stripe_connect_payout_ledger').insert([
+              {
+                payment_intent_id: intent.id,
+                charge_id: chargeId,
+                destination_account: bucket.d,
+                amount_cents: Math.round(bucket.a),
+                currency: intent.currency,
+                rule_id: bucket.r,
+                transfer_id: null,
+                transfer_kind: 'primary',
+                status: 'platform_retained',
+                reversed_amount_cents: 0,
+                metadata: {
+                  event_id: event.id,
+                  payout_mode: 'split_transfers',
+                  bucket_index: index,
+                  label: bucket.l || null,
+                  reason: 'destination_is_platform_account',
+                },
+              },
+            ])
+            continue
+          }
+
+          try {
             const transfer = await stripe.transfers.create(
               {
                 amount: Math.round(bucket.a),
@@ -321,10 +375,11 @@ export async function POST(req: Request) {
                   event_id: event.id,
                   payout_mode: 'split_transfers',
                   payout_rule_id: bucket.r || '',
+                  bucket_index: String(index),
                 },
               },
               {
-                idempotencyKey: `split-transfer-${intent.id}-${index}-${event.id}`,
+                idempotencyKey: `split-transfer-${intent.id}-${index}`,
               }
             )
 
@@ -343,31 +398,52 @@ export async function POST(req: Request) {
                 metadata: {
                   event_id: event.id,
                   payout_mode: 'split_transfers',
+                  bucket_index: index,
+                  label: bucket.l || null,
+                },
+              },
+            ])
+          } catch (transferError: any) {
+            // Record the failure but DO NOT abort — later buckets (like the
+            // Fuel Surcharge) must still be processed. The row is inserted
+            // without a transfer_id, so a subsequent webhook replay or a
+            // manual retry can still pick it up.
+            console.error(
+              `[stripe-webhook] split transfer failed for PI ${intent.id} bucket ${index} → ${bucket.d}:`,
+              transferError?.message || transferError
+            )
+            await supabaseAdmin.from('stripe_connect_payout_ledger').insert([
+              {
+                payment_intent_id: intent.id,
+                charge_id: chargeId,
+                destination_account: bucket.d,
+                amount_cents: Math.round(bucket.a),
+                currency: intent.currency,
+                rule_id: bucket.r,
+                transfer_id: null,
+                transfer_kind: 'primary',
+                status: 'failed',
+                reversed_amount_cents: 0,
+                metadata: {
+                  event_id: event.id,
+                  payout_mode: 'split_transfers',
+                  bucket_index: index,
+                  label: bucket.l || null,
+                  error: String(transferError?.message || transferError),
+                  error_code: transferError?.code || null,
                 },
               },
             ])
           }
+        }
 
-          if (splitPlan.dev?.d && Number.isFinite(splitPlan.dev.a) && splitPlan.dev.a > 0) {
-            const developerTransfer = await stripe.transfers.create(
-              {
-                amount: Math.round(splitPlan.dev.a),
-                currency: intent.currency,
-                destination: splitPlan.dev.d,
-                source_transaction: chargeId,
-                description: `Developer commission — ${intent.description || intent.id}`,
-                metadata: {
-                  payment_intent_id: intent.id,
-                  event_id: event.id,
-                  payout_mode: 'split_transfers',
-                  transaction_type: intent.metadata?.transaction_type || '',
-                },
-              },
-              {
-                idempotencyKey: `split-dev-transfer-${intent.id}-${event.id}`,
-              }
-            )
-
+        if (
+          !developerAlreadyRecorded &&
+          splitPlan.dev?.d &&
+          Number.isFinite(splitPlan.dev.a) &&
+          splitPlan.dev.a > 0
+        ) {
+          if (PLATFORM_ACCOUNT_ID && splitPlan.dev.d === PLATFORM_ACCOUNT_ID) {
             await supabaseAdmin.from('stripe_connect_payout_ledger').insert([
               {
                 payment_intent_id: intent.id,
@@ -376,17 +452,85 @@ export async function POST(req: Request) {
                 amount_cents: Math.round(splitPlan.dev.a),
                 currency: intent.currency,
                 rule_id: null,
-                transfer_id: developerTransfer.id,
+                transfer_id: null,
                 transfer_kind: 'developer',
-                status: 'transferred',
+                status: 'platform_retained',
                 reversed_amount_cents: 0,
                 metadata: {
                   event_id: event.id,
                   payout_mode: 'split_transfers',
                   applied_bps: splitPlan.dev.bps,
+                  reason: 'destination_is_platform_account',
                 },
               },
             ])
+          } else {
+            try {
+              const developerTransfer = await stripe.transfers.create(
+                {
+                  amount: Math.round(splitPlan.dev.a),
+                  currency: intent.currency,
+                  destination: splitPlan.dev.d,
+                  source_transaction: chargeId,
+                  description: `Developer commission — ${intent.description || intent.id}`,
+                  metadata: {
+                    payment_intent_id: intent.id,
+                    event_id: event.id,
+                    payout_mode: 'split_transfers',
+                    transaction_type: intent.metadata?.transaction_type || '',
+                  },
+                },
+                {
+                  idempotencyKey: `split-dev-transfer-${intent.id}`,
+                }
+              )
+
+              await supabaseAdmin.from('stripe_connect_payout_ledger').insert([
+                {
+                  payment_intent_id: intent.id,
+                  charge_id: chargeId,
+                  destination_account: splitPlan.dev.d,
+                  amount_cents: Math.round(splitPlan.dev.a),
+                  currency: intent.currency,
+                  rule_id: null,
+                  transfer_id: developerTransfer.id,
+                  transfer_kind: 'developer',
+                  status: 'transferred',
+                  reversed_amount_cents: 0,
+                  metadata: {
+                    event_id: event.id,
+                    payout_mode: 'split_transfers',
+                    applied_bps: splitPlan.dev.bps,
+                  },
+                },
+              ])
+            } catch (devTransferError: any) {
+              console.error(
+                `[stripe-webhook] developer transfer failed for PI ${intent.id}:`,
+                devTransferError?.message || devTransferError
+              )
+              await supabaseAdmin.from('stripe_connect_payout_ledger').insert([
+                {
+                  payment_intent_id: intent.id,
+                  charge_id: chargeId,
+                  destination_account: splitPlan.dev.d,
+                  amount_cents: Math.round(splitPlan.dev.a),
+                  currency: intent.currency,
+                  rule_id: null,
+                  transfer_id: null,
+                  transfer_kind: 'developer',
+                  status: 'failed',
+                  reversed_amount_cents: 0,
+                  metadata: {
+                    event_id: event.id,
+                    payout_mode: 'split_transfers',
+                    applied_bps: splitPlan.dev.bps,
+                    error: String(devTransferError?.message || devTransferError),
+                    error_code: devTransferError?.code || null,
+                  },
+                },
+              ])
+            }
           }
         }
       }
