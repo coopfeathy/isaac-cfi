@@ -220,6 +220,78 @@ export const emailTemplates = {
     `),
   }),
 
+  // Start-Training confirmation — sent after a discovery flight grad
+  // fills out the /start-training intake form. This is the transition
+  // from "prospect" to "student in onboarding".
+  startTrainingConfirmation: (payload: {
+    name: string
+    preferredLocation: string
+    earliestStart: string
+  }) => {
+    const locationLabels: Record<string, string> = {
+      lumberton: 'Lumberton, NJ (N14 — Flying W Airport)',
+      'long-island': 'Long Island, NY (FRG — Republic Airport)',
+      warwick: 'Warwick, NY (N72 — Warwick Municipal)',
+    }
+    const locationLabel = locationLabels[payload.preferredLocation] || payload.preferredLocation
+    return {
+      subject: `Welcome to training, ${payload.name} — your next steps`,
+      html: emailWrapper(`
+        <h1 style="color: ${brand.dark}; margin: 0 0 8px 0; font-size: 24px;">You're in, ${payload.name}.</h1>
+        <div style="width: 40px; height: 3px; background: ${brand.gold}; margin-bottom: 20px;"></div>
+        <p>Your discovery flight convinced you — and we're thrilled you're taking the next step. Here's what you told us, and what happens now:</p>
+
+        <div style="background: ${brand.lightBg}; border-left: 4px solid ${brand.gold}; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 20px 0;">
+          <p style="margin: 0;"><strong>Training location:</strong> ${locationLabel}</p>
+          <p style="margin: 10px 0 0 0;"><strong>Target first lesson:</strong> ${payload.earliestStart}</p>
+        </div>
+
+        <h2 style="color: ${brand.dark}; margin: 28px 0 8px 0; font-size: 18px;">Your pre-training checklist</h2>
+        <div style="width: 30px; height: 2px; background: ${brand.gold}; margin-bottom: 16px;"></div>
+        <p style="margin: 0 0 12px 0;">Everything below must be complete before your first solo flight. None of it is required for your very first lesson — you can start flying with us while you work through it.</p>
+
+        <ol style="line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
+          <li style="margin-bottom: 10px;">
+            <strong>TSA Citizenship Verification.</strong>
+            US citizens: bring a passport or birth cert + photo ID to your first lesson. Non-US citizens: apply at
+            <a href="https://www.fts.tsa.dhs.gov/" style="color: ${brand.gold}; font-weight: 600; text-decoration: none;">fts.tsa.dhs.gov</a>.
+          </li>
+          <li style="margin-bottom: 10px;">
+            <strong>FAA Third-Class Medical Certificate.</strong>
+            Find an AME at
+            <a href="https://www.faa.gov/pilots/amelocator" style="color: ${brand.gold}; font-weight: 600; text-decoration: none;">faa.gov/pilots/amelocator</a>
+            and fill out MedXPress beforehand.
+          </li>
+          <li style="margin-bottom: 10px;">
+            <strong>Student Pilot Certificate (IACRA).</strong>
+            Register at
+            <a href="https://iacra.faa.gov/" style="color: ${brand.gold}; font-weight: 600; text-decoration: none;">iacra.faa.gov</a>
+            — your instructor will review and sign your 8710-1.
+          </li>
+          <li style="margin-bottom: 10px;">
+            <strong>Merlin enrollment packet + deposit.</strong>
+            We'll e-mail you the e-signature links right after your instructor reaches out.
+          </li>
+        </ol>
+
+        <div style="margin: 28px 0; text-align: center;">
+          <a href="https://merlinflighttraining.com/onboarding" style="display: inline-block; background: ${brand.gold}; color: ${brand.dark}; font-weight: 700; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-size: 15px;">Start Onboarding →</a>
+        </div>
+
+        <p>Your instructor will reach out within one business day to confirm your first lesson on or near <strong>${payload.earliestStart}</strong>. If you'd rather book a specific slot right now, you can use our live calendar:</p>
+
+        <div style="margin: 20px 0; text-align: center;">
+          <a href="https://calendly.com/merlinflighttraining" style="display: inline-block; background: transparent; color: ${brand.dark}; border: 2px solid ${brand.gold}; font-weight: 700; text-decoration: none; padding: 10px 24px; border-radius: 6px; font-size: 14px;">Pick a Lesson Time</a>
+        </div>
+
+        <p style="color: ${brand.mutedText}; font-size: 13px; margin-top: 28px;">
+          Questions? Just reply to this email — it goes straight to your instructor.<br/><br/>
+          Blue skies,<br/>The Merlin Flight Training Team
+        </p>
+      `),
+    }
+  },
+
   // Lesson scheduled notification
   lessonScheduled: (payload: {
     studentName: string

@@ -2,11 +2,14 @@
 
 import Link from 'next/link'
 import { Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 
 function DiscoveryFlightPt4Content() {
-  const router = useRouter()
-  useSearchParams()
+  const searchParams = useSearchParams()
+  const email = searchParams?.get('email') || ''
+  const startTrainingHref = email
+    ? `/start-training?email=${encodeURIComponent(email)}`
+    : '/start-training'
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black py-12 px-4">
@@ -29,20 +32,24 @@ function DiscoveryFlightPt4Content() {
               Thank You!
             </span>
           </h1>
-          <p className="text-gray-400 text-base sm:text-lg leading-relaxed mb-8">
-            Your discovery flight questionnaire has been completed. We'll be in touch with you soon to schedule your flight experience!
+          <p className="text-gray-300 text-base sm:text-lg leading-relaxed mb-3">
+            Your discovery flight questionnaire has been completed. We&apos;ll be in touch within one business day to confirm your flight.
           </p>
-          
+          <p className="text-gray-400 text-sm sm:text-base leading-relaxed mb-8">
+            Ready to go a step further? Most of our students decide to start real training right after
+            their discovery flight. Here&apos;s exactly what that looks like and how to begin.
+          </p>
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={() => router.back()}
-              className="w-full sm:w-auto min-h-[52px] px-8 py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-all duration-300"
+            <Link
+              href={startTrainingHref}
+              className="inline-flex items-center justify-center w-full sm:w-auto min-h-[52px] px-8 py-3 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105"
             >
-              Go Back
-            </button>
+              Start My Flight Training →
+            </Link>
             <Link
               href="/"
-              className="inline-block w-full sm:w-auto min-h-[52px] px-8 py-3 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-300"
+              className="inline-flex items-center justify-center w-full sm:w-auto min-h-[52px] px-8 py-3 bg-transparent text-white border-2 border-white/30 hover:border-golden hover:bg-white/10 font-semibold rounded-lg transition-all duration-300"
             >
               Back to Home
             </Link>
