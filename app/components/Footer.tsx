@@ -52,6 +52,11 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
+                <Link href="/foreign-students" className="text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base">
+                  International Students
+                </Link>
+              </li>
+              <li>
                 <Link href="/store" className="text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base">
                   Pilot Store
                 </Link>
