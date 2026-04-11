@@ -66,6 +66,11 @@ const Footer = () => {
                   Support
                 </Link>
               </li>
+              <li>
+                <Link href="/sms-opt-in" className="text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base">
+                  SMS Updates
+                </Link>
+              </li>
             </ul>
           </div>
           
@@ -104,6 +109,17 @@ const Footer = () => {
         <div className="border-t border-gray-800 pt-6 sm:pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-gray-500 text-xs sm:text-sm font-light text-center md:text-left">&copy; {new Date().getFullYear()} Merlin Flight Training. All rights reserved.</p>
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs sm:text-sm font-light">
+              <Link href="/terms" className="text-gray-500 hover:text-golden transition-colors duration-300">
+                Terms of Service
+              </Link>
+              <Link href="/privacy" className="text-gray-500 hover:text-golden transition-colors duration-300">
+                Privacy Policy
+              </Link>
+              <Link href="/sms-opt-in" className="text-gray-500 hover:text-golden transition-colors duration-300">
+                SMS Opt-In
+              </Link>
+            </div>
             <div className="md:mt-0">
               <div className="h-px w-24 sm:w-32 bg-gradient-to-r from-transparent via-golden to-transparent" />
             </div>
