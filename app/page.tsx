@@ -67,6 +67,7 @@ export default function Home() {
           loop
           muted
           playsInline
+          poster="/images/golden-hour-skyline-flight.png"
           className="absolute inset-0 w-full h-full object-cover"
         >
           <source src="/flightTakeoff.mov" type="video/quicktime" />
