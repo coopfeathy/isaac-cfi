@@ -16,6 +16,7 @@ export default function SimpleHeader() {
     { href: '/learn', label: 'Learn' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/store', label: 'Store' },
+    { href: '/weddings', label: 'Weddings' },
     { href: '/faq', label: 'FAQ' },
   ]
 
@@ -56,6 +57,8 @@ export default function SimpleHeader() {
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={mobileMenuOpen}
             style={{
               display: 'none',
               minHeight: '44px',
