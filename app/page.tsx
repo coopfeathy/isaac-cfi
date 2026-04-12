@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import LocationsMap from "@/app/components/LocationsMap"
 import TypingEffect from "@/app/components/TypingEffect"
 
@@ -206,7 +207,15 @@ export default function Home() {
               rel="noopener noreferrer"
               className="group relative rounded-2xl overflow-hidden border border-gray-200 shadow-lg hover:shadow-2xl transition-all duration-300"
             >
-              <div className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-300" style={{ backgroundImage: 'url("/images/republic-airport.png")' }} />
+              <div className="absolute inset-0 overflow-hidden">
+                <Image
+                  src="/images/republic-airport.png"
+                  alt="Aerial view of Republic Airport (FRG) in Farmingdale, Long Island, NY — home base of Merlin Flight Training"
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                />
+              </div>
               <div className="absolute inset-0 bg-black/45" />
               <div className="relative z-10 h-full min-h-[350px] sm:min-h-[420px] flex flex-col justify-end p-6 sm:p-8">
                 <h3 className="text-2xl sm:text-3xl font-bold text-white mb-2">Long Island, NY</h3>
