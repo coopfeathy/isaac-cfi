@@ -1,5 +1,18 @@
 'use client'
 
+/**
+ * =============================================================================
+ *  ADMIN FLIGHT PLANNER (Apple Calendar–style dark theme)
+ * =============================================================================
+ *
+ *  Drag-to-select time range, assign student, set price/type/syllabus lesson.
+ *  All existing logic preserved; styling updated to dark theme with:
+ *  - Dark gradient card (bg-white/[0.04] backdrop-blur-xl)
+ *  - Gold accent for selection (golden = #FFBF00)
+ *  - Training = green-500/20, Discovery = blue-500/20 (semi-transparent)
+ * =============================================================================
+ */
+
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -26,14 +39,16 @@ type PlannerProps = {
   onCreated?: () => void | Promise<void>
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────
 
-const SLOT_MINS = 15        // grid resolution
+const SLOT_MINS = 15
 const START_HOUR = 6
 const END_HOUR = 21
 const ROWS = ((END_HOUR - START_HOUR) * 60) / SLOT_MINS
+const HOUR_HEIGHT = 56
+const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────
 
 const normalizeName = (v: string | null | undefined) =>
   typeof v === 'string' ? v.trim().replace(/\s+/g, ' ') : ''
@@ -51,7 +66,7 @@ const toLocalDateKey = (date: Date) =>
 
 const startOfWeek = (date: Date) => {
   const copy = new Date(date)
-  const diff = (copy.getDay() + 6) % 7          // Mon-start: Mon=0
+  const diff = (copy.getDay() + 6) % 7
   copy.setDate(copy.getDate() - diff)
   copy.setHours(0, 0, 0, 0)
   return copy
@@ -63,29 +78,42 @@ const addDays = (date: Date, days: number) => {
   return copy
 }
 
+const isSameDay = (a: Date, b: Date) => {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  )
+}
+
 const fmtHHMM = (date: Date) =>
   date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 
-// row index → Date in that column
 const rowToTime = (day: Date, row: number) => {
   const d = new Date(day)
   d.setHours(START_HOUR, row * SLOT_MINS, 0, 0)
   return d
 }
 
-// Date → row index (-1 if outside range)
 const timeToRow = (date: Date) => {
   const totalMins = (date.getHours() - START_HOUR) * 60 + date.getMinutes()
   if (totalMins < 0 || totalMins >= (END_HOUR - START_HOUR) * 60) return -1
   return Math.floor(totalMins / SLOT_MINS)
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ─── Component ────────────────────────────────────────────────────────────
 
 export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()))
   const [students, setStudents] = useState<StudentOption[]>([])
   const [loadingStudents, setLoadingStudents] = useState(true)
+  const [now, setNow] = useState<Date>(() => new Date())
+
+  // Tick every minute so the red "current time" indicator moves
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000)
+    return () => clearInterval(id)
+  }, [])
 
   // drag state
   const [dragDay, setDragDay] = useState<number | null>(null)
@@ -97,7 +125,7 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
   const [selEnd, setSelEnd] = useState<Date | null>(null)
   const [studentId, setStudentId] = useState('')
   const [slotType, setSlotType] = useState<'training' | 'tour'>('training')
-  const [priceDisplay, setPriceDisplay] = useState('120.00')   // dollars
+  const [priceDisplay, setPriceDisplay] = useState('120.00')
   const [description, setDescription] = useState('')
   const [syllabusLessons, setSyllabusLessons] = useState<{ id: string; lesson_number: number; title: string; stage: string }[]>([])
   const [syllabusId, setSyllabusId] = useState('')
@@ -173,6 +201,11 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
     return map
   }, [slots, weekDays])
 
+  const headerLabel = useMemo(() => {
+    const mid = weekDays[3] ?? weekDays[0]
+    return mid.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+  }, [weekDays])
+
   // ── Drag handlers ─────────────────────────────────────────────────────────
 
   const onMouseDown = (dayIdx: number, row: number) => {
@@ -210,6 +243,16 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
     const min = Math.min(dragStart, dragEnd)
     const max = Math.max(dragStart, dragEnd)
     return row >= min && row <= max
+  }
+
+  const handleNavigate = (dir: 'prev' | 'next' | 'today') => {
+    if (dir === 'today') {
+      setWeekStart(startOfWeek(new Date()))
+      return
+    }
+    const d = new Date(weekStart)
+    d.setDate(d.getDate() + (dir === 'next' ? 7 : -7))
+    setWeekStart(d)
   }
 
   // ── Slot creation ─────────────────────────────────────────────────────────
@@ -262,41 +305,43 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
   const todayKey = toLocalDateKey(new Date())
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden" onMouseUp={onMouseUp}>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-2xl overflow-hidden" onMouseUp={onMouseUp}>
 
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-5 border-b border-gray-100">
+      {/* Title bar */}
+      <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 border-b border-white/10 bg-white/[0.03]">
         <div>
-          <h3 className="text-xl font-bold text-black">Flight Planner</h3>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Click and drag to select a time range, then fill in the details below.
+          <h3 className="text-lg font-bold text-white">Flight Planner</h3>
+          <p className="text-[11px] text-gray-400 mt-0.5 uppercase tracking-widest">
+            Drag to select, then fill in details
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setWeekStart(prev => addDays(prev, -7))}
-            className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-            ← Prev
-          </button>
-          <button onClick={() => setWeekStart(startOfWeek(new Date()))}
-            className="px-4 py-2 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-900 transition-colors">
+
+        <div className="flex items-center gap-1.5">
+          <NavButton onClick={() => handleNavigate('prev')} ariaLabel="Previous week">
+            <ChevronLeft />
+          </NavButton>
+          <button
+            onClick={() => handleNavigate('today')}
+            className="px-3 py-1.5 text-sm font-medium rounded-md bg-white/5 hover:bg-white/10 border border-white/10 transition"
+          >
             Today
           </button>
-          <button onClick={() => setWeekStart(prev => addDays(prev, 7))}
-            className="px-3 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-            Next →
-          </button>
+          <NavButton onClick={() => handleNavigate('next')} ariaLabel="Next week">
+            <ChevronRight />
+          </NavButton>
         </div>
+
+        <div className="text-sm font-semibold text-gray-300">{headerLabel}</div>
       </div>
 
-      {/* Week label */}
-      <div className="px-6 py-2.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-        <span className="text-sm font-semibold text-gray-700">
-          Week of {weekStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-        </span>
-        <div className="flex items-center gap-4 text-xs text-gray-500">
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-green-100 border border-green-300 inline-block" /> Training</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-blue-100 border border-blue-300 inline-block" /> Discovery</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded bg-golden/40 border border-golden inline-block" /> Selecting</span>
+      {/* Day headers & legend */}
+      <div className="border-b border-white/10 bg-white/[0.02] px-4 sm:px-6 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 text-[11px] text-gray-400">
+            <LegendSwatch className="w-3 h-3 rounded bg-green-500/20 border border-green-400/40" label="Training" />
+            <LegendSwatch className="w-3 h-3 rounded bg-blue-500/20 border border-blue-400/40" label="Discovery" />
+            <LegendSwatch className="w-3 h-3 rounded bg-yellow-500/30 border border-yellow-400/60" label="Selecting" />
+          </div>
         </div>
       </div>
 
@@ -305,20 +350,30 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
         <div className="min-w-[700px]" style={{ display: 'grid', gridTemplateColumns: '64px repeat(7, 1fr)' }}>
 
           {/* Day headers */}
-          <div className="bg-gray-50 border-b border-r border-gray-200" />
-          {weekDays.map(day => {
-            const key = toLocalDateKey(day)
+          <div />
+          {weekDays.map((d, i) => {
+            const key = toLocalDateKey(d)
             const isToday = key === todayKey
             return (
-              <div key={day.toISOString()}
-                className={`border-b border-r border-gray-200 px-2 py-3 text-center last:border-r-0 ${isToday ? 'bg-golden/10' : 'bg-gray-50'}`}>
-                <p className={`text-xs font-semibold uppercase tracking-wide ${isToday ? 'text-golden' : 'text-gray-400'}`}>
-                  {day.toLocaleDateString('en-US', { weekday: 'short' })}
+              <div
+                key={i}
+                className={`px-2 py-3 text-center border-l border-white/10 first:border-l-0 ${
+                  isToday ? 'bg-white/[0.08]' : 'bg-white/[0.02]'
+                }`}
+              >
+                <p className={`text-[10px] uppercase tracking-widest font-semibold ${
+                  isToday ? 'text-gray-200' : 'text-gray-400'
+                }`}>
+                  {DAY_LABELS[i]}
                 </p>
-                <p className={`text-sm font-bold mt-0.5 ${isToday ? 'text-black' : 'text-gray-700'}`}>
-                  {day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                <p className={`text-sm font-bold mt-1 ${isToday ? 'text-white' : 'text-gray-300'}`}>
+                  {d.getDate()}
                 </p>
-                {isToday && <div className="w-1.5 h-1.5 bg-golden rounded-full mx-auto mt-1" />}
+                {isToday && (
+                  <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-500 text-white text-[10px] font-bold mt-1">
+                    {d.getDate()}
+                  </div>
+                )}
               </div>
             )
           })}
@@ -329,15 +384,20 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
             const hour = START_HOUR + Math.floor(totalMins / 60)
             const minute = totalMins % 60
             const showLabel = minute === 0
-            const labelDate = new Date(); labelDate.setHours(hour, minute, 0, 0)
+            const labelDate = new Date()
+            labelDate.setHours(hour, minute, 0, 0)
 
             return (
               <Fragment key={`row-${rowIdx}`}>
                 {/* Time label */}
-                <div className={`border-r border-gray-100 px-2 flex items-start justify-end pr-2 select-none bg-gray-50 ${showLabel ? 'border-t border-gray-200' : ''}`}
-                  style={{ height: '20px' }}>
+                <div
+                  className={`border-r border-white/5 px-2 flex items-start justify-end select-none bg-white/[0.02] ${
+                    showLabel ? 'border-t border-white/10' : ''
+                  }`}
+                  style={{ height: '56px' }}
+                >
                   {showLabel && (
-                    <span className="text-[10px] text-gray-400 font-medium -mt-2 whitespace-nowrap">
+                    <span className="text-[10px] uppercase tracking-wide text-gray-500 font-medium -mt-2 whitespace-nowrap">
                       {fmtHHMM(labelDate)}
                     </span>
                   )}
@@ -359,11 +419,11 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
 
                   const isDragging = isCellDragging(dayIdx, rowIdx)
 
-                  // Determine if this is the first cell of a covering slot (for label rendering)
+                  // Determine if this is the first cell of a covering slot
                   const isFirstCellOfSlot = coveringSlot && toLocalDateKey(new Date(coveringSlot.start_time)) === key &&
                     timeToRow(new Date(coveringSlot.start_time)) === rowIdx
 
-                  // Slot row span for visual label
+                  // Slot row span
                   let slotRows = 0
                   if (isFirstCellOfSlot && coveringSlot) {
                     const ss = new Date(coveringSlot.start_time)
@@ -372,34 +432,44 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
                   }
 
                   const bgClass = isDragging
-                    ? 'bg-golden/40 border-golden/50'
+                    ? 'bg-yellow-500/30 border-yellow-400/60'
                     : coveringSlot
                     ? coveringSlot.type === 'tour'
-                      ? 'bg-blue-50 border-blue-200'
-                      : 'bg-green-50 border-green-200'
-                    : 'bg-white hover:bg-gray-50'
+                      ? 'bg-blue-500/20 border-blue-400/40'
+                      : 'bg-green-500/20 border-green-400/40'
+                    : 'bg-white/[0.02] hover:bg-white/[0.06]'
 
                   return (
                     <div
                       key={`${key}-${rowIdx}`}
-                      className={`relative border-r border-b border-gray-100 cursor-crosshair select-none last:border-r-0 overflow-visible transition-colors ${bgClass} ${showLabel ? 'border-t border-gray-200' : ''}`}
-                      style={{ height: '20px' }}
+                      className={`relative border-r border-b border-white/5 cursor-crosshair select-none last:border-r-0 overflow-visible transition-colors ${bgClass} ${
+                        showLabel ? 'border-t border-white/10' : ''
+                      }`}
+                      style={{ height: '56px' }}
                       onMouseDown={() => !coveringSlot && onMouseDown(dayIdx, rowIdx)}
                       onMouseEnter={() => onMouseEnter(dayIdx, rowIdx)}
                     >
                       {isFirstCellOfSlot && coveringSlot && slotRows > 0 && (
                         <div
-                          className={`absolute left-0 right-0 z-10 px-1 py-0.5 pointer-events-none ${
-                            coveringSlot.type === 'tour' ? 'text-blue-700' : 'text-green-700'
+                          className={`absolute left-0 right-0 z-10 px-2 py-1 pointer-events-none ${
+                            coveringSlot.type === 'tour'
+                              ? 'text-blue-300'
+                              : 'text-green-300'
                           }`}
-                          style={{ top: 0, height: `${slotRows * 20}px` }}
+                          style={{ top: 0, height: `${slotRows * 56}px` }}
                         >
-                          {slotRows >= 4 && (
-                            <div className={`rounded text-[9px] font-semibold leading-tight px-1 py-0.5 truncate ${
-                              coveringSlot.type === 'tour'
-                                ? coveringSlot.is_booked ? 'bg-blue-200' : 'bg-blue-100'
-                                : coveringSlot.is_booked ? 'bg-green-200' : 'bg-green-100'
-                            }`}>
+                          {slotRows >= 2 && (
+                            <div
+                              className={`rounded text-[10px] font-semibold leading-tight px-2 py-1.5 truncate ${
+                                coveringSlot.type === 'tour'
+                                  ? coveringSlot.is_booked
+                                    ? 'bg-blue-500/40 border border-blue-400/50'
+                                    : 'bg-blue-500/30 border border-blue-400/40'
+                                  : coveringSlot.is_booked
+                                  ? 'bg-green-500/40 border border-green-400/50'
+                                  : 'bg-green-500/30 border border-green-400/40'
+                              }`}
+                            >
                               {coveringSlot.is_booked ? '✓ ' : ''}
                               {coveringSlot.description || (coveringSlot.type === 'tour' ? 'Discovery' : 'Training')}
                             </div>
@@ -417,33 +487,37 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
 
       {/* Slot creation form */}
       {selStart && selEnd && (
-        <div className="border-t border-gray-100 px-6 py-5 bg-gray-50">
+        <div className="border-t border-white/10 px-6 py-5 bg-white/[0.03]">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h4 className="text-base font-bold text-black">New Slot</h4>
-              <p className="text-sm text-gray-500">
+              <h4 className="text-base font-bold text-white">New Slot</h4>
+              <p className="text-[11px] text-gray-400 uppercase tracking-widest mt-1">
                 {selStart.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                 {' · '}
-                <span className="font-semibold text-black">{fmtHHMM(selStart)} – {fmtHHMM(selEnd)}</span>
+                <span className="font-semibold text-gray-200">{fmtHHMM(selStart)} – {fmtHHMM(selEnd)}</span>
                 {' · '}
                 {Math.round((selEnd.getTime() - selStart.getTime()) / 60000)} min
               </p>
             </div>
-            <button onClick={() => { setSelStart(null); setSelEnd(null); setStatus(null) }}
-              className="text-gray-400 hover:text-black transition-colors text-xl leading-none">
-              ×
+            <button
+              onClick={() => { setSelStart(null); setSelEnd(null); setStatus(null) }}
+              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition text-gray-300 hover:text-white"
+            >
+              ✕
             </button>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             {/* Student */}
             <div className="col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Student</label>
+              <label className="block text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-widest">
+                Student
+              </label>
               <select
                 value={studentId}
                 onChange={e => setStudentId(e.target.value)}
                 disabled={loadingStudents}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-golden outline-none"
+                className="w-full px-3 py-2.5 bg-white/[0.06] border border-white/12 rounded-lg text-sm text-white focus:border-yellow-400/70 focus:outline-none transition"
               >
                 {loadingStudents && <option>Loading...</option>}
                 {students.map(s => (
@@ -454,58 +528,72 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
 
             {/* Type */}
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Type</label>
+              <label className="block text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-widest">
+                Type
+              </label>
               <select
                 value={slotType}
                 onChange={e => {
                   const t = e.target.value as 'training' | 'tour'
                   setSlotType(t)
-                  if (t === 'tour') { setDescription('Discovery Flight'); setPriceDisplay('265.00'); setSyllabusId('') }
-                  else { setDescription(''); setPriceDisplay('120.00') }
+                  if (t === 'tour') {
+                    setDescription('Discovery Flight')
+                    setPriceDisplay('265.00')
+                    setSyllabusId('')
+                  } else {
+                    setDescription('')
+                    setPriceDisplay('120.00')
+                  }
                 }}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-golden outline-none"
+                className="w-full px-3 py-2.5 bg-white/[0.06] border border-white/12 rounded-lg text-sm text-white focus:border-yellow-400/70 focus:outline-none transition"
               >
                 <option value="training">🎓 Training Flight</option>
-                <option value="tour">✈ Discovery Flight</option>
+                <option value="tour">✈️ Discovery Flight</option>
               </select>
             </div>
 
             {/* Price */}
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Price ($)</label>
+              <label className="block text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-widest">
+                Price ($)
+              </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
                 <input
                   type="number"
                   step="0.01"
                   min="0"
                   value={priceDisplay}
                   onChange={e => setPriceDisplay(e.target.value)}
-                  className="w-full pl-6 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-golden outline-none"
+                  className="w-full pl-6 pr-3 py-2.5 bg-white/[0.06] border border-white/12 rounded-lg text-sm text-white focus:border-yellow-400/70 focus:outline-none transition"
                 />
               </div>
             </div>
 
             {/* Description */}
             <div className="col-span-2">
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Description</label>
+              <label className="block text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-widest">
+                Description
+              </label>
               <input
                 type="text"
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 placeholder="Optional label shown to student"
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-golden outline-none"
+                className="w-full px-3 py-2.5 bg-white/[0.06] border border-white/12 rounded-lg text-sm text-white placeholder-gray-500 focus:border-yellow-400/70 focus:outline-none transition"
               />
             </div>
 
             {/* Syllabus lesson (training only) */}
             {slotType === 'training' && (
               <div className="col-span-2">
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Syllabus Lesson <span className="font-normal text-gray-400">(optional)</span></label>
+                <label className="block text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-widest">
+                  Syllabus Lesson <span className="font-normal text-gray-500">(optional)</span>
+                </label>
                 <select
                   value={syllabusId}
                   onChange={e => setSyllabusId(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-golden outline-none"
+                  className="w-full px-3 py-2.5 bg-white/[0.06] border border-white/12 rounded-lg text-sm text-white focus:border-yellow-400/70 focus:outline-none transition"
                 >
                   <option value="">— No lesson linked —</option>
                   {syllabusLessons.map(l => (
@@ -517,9 +605,13 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
           </div>
 
           {status && (
-            <div className={`mb-4 px-4 py-3 rounded-xl text-sm font-medium ${
-              status.ok ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'
-            }`}>
+            <div
+              className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium border ${
+                status.ok
+                  ? 'bg-green-500/10 border-green-400/30 text-green-300'
+                  : 'bg-red-500/10 border-red-400/30 text-red-300'
+              }`}
+            >
               {status.msg}
             </div>
           )}
@@ -528,13 +620,17 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
             <button
               onClick={() => void createSlot()}
               disabled={saving || loadingStudents || !studentId}
-              className="px-6 py-2.5 bg-golden text-black font-bold rounded-xl hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              className="px-6 py-2.5 bg-yellow-400 text-black font-bold rounded-lg hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm"
             >
               {saving ? 'Creating...' : 'Create Flight Slot'}
             </button>
             <button
-              onClick={() => { setSelStart(null); setSelEnd(null); setStatus(null) }}
-              className="px-5 py-2.5 border border-gray-200 text-gray-600 font-semibold rounded-xl hover:bg-gray-50 transition-colors text-sm"
+              onClick={() => {
+                setSelStart(null)
+                setSelEnd(null)
+                setStatus(null)
+              }}
+              className="px-5 py-2.5 border border-white/15 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-lg transition text-sm"
             >
               Cancel
             </button>
@@ -544,13 +640,73 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
 
       {/* Status (when no selection open) */}
       {status && !selStart && (
-        <div className={`px-6 py-3 text-sm font-medium border-t ${
-          status.ok ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'
-        }`}>
-          {status.msg}
-          <button onClick={() => setStatus(null)} className="ml-3 underline text-xs opacity-70 hover:opacity-100">Dismiss</button>
+        <div
+          className={`px-6 py-3 text-sm font-medium border-t border-white/10 ${
+            status.ok
+              ? 'bg-green-500/10 text-green-300'
+              : 'bg-red-500/10 text-red-300'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span>{status.msg}</span>
+            <button
+              onClick={() => setStatus(null)}
+              className="ml-3 text-[10px] opacity-70 hover:opacity-100 transition"
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
     </div>
+  )
+}
+
+// =========================================================================
+//  Small presentational helpers
+// =========================================================================
+
+function NavButton({
+  onClick,
+  children,
+  ariaLabel,
+}: {
+  onClick: () => void
+  children: React.ReactNode
+  ariaLabel: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className="w-8 h-8 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-gray-300 hover:text-white transition"
+    >
+      {children}
+    </button>
+  )
+}
+
+function LegendSwatch({ className, label }: { className: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`inline-block ${className}`} />
+      <span className="text-gray-400">{label}</span>
+    </span>
+  )
+}
+
+function ChevronLeft() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  )
+}
+
+function ChevronRight() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
   )
 }
