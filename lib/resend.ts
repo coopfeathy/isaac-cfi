@@ -220,6 +220,64 @@ export const emailTemplates = {
     `),
   }),
 
+  // Post-discovery-flight follow-up — sent manually by admin after a
+  // discovery flight to invite the prospect to fill out the
+  // /start-training intake form and start their training journey.
+  postDiscoveryStartTraining: (name?: string) => ({
+    subject: 'Ready for Takeoff? Your Next Steps After Your Discovery Flight',
+    html: emailWrapper(`
+      <h1 style="color: ${brand.dark}; margin: 0 0 8px 0; font-size: 24px;">Great Flight${name ? `, ${name}` : ''}!</h1>
+      <div style="width: 40px; height: 3px; background: ${brand.gold}; margin-bottom: 20px;"></div>
+      <p>Thank you for flying with us at Merlin Flight Training. We hope your discovery flight gave you a taste of what it's like behind the controls — and that you're as excited about aviation as we are.</p>
+      <p>If you're ready to take the next step toward becoming a pilot, we've made it simple. Fill out our short Start Training form and we'll get you set up with an instructor, a training plan, and a clear path forward.</p>
+
+      <div style="margin: 28px 0; text-align: center;">
+        <a href="https://merlinflighttraining.com/start-training" style="display: inline-block; background: ${brand.gold}; color: ${brand.dark}; font-weight: 700; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-size: 15px;">Start Your Training →</a>
+      </div>
+
+      <h2 style="color: ${brand.dark}; margin: 28px 0 8px 0; font-size: 18px;">How to Get Started</h2>
+      <div style="width: 30px; height: 2px; background: ${brand.gold}; margin-bottom: 16px;"></div>
+      <p style="margin: 0 0 12px 0;">Here's a quick overview of what you'll need to begin training. Don't worry — none of this is required for your first lesson. You can start flying while you work through it.</p>
+
+      <ol style="line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
+        <li style="margin-bottom: 10px;">
+          <strong>Fill out the Start Training form.</strong>
+          Tell us your preferred training location and when you'd like to begin at
+          <a href="https://merlinflighttraining.com/start-training" style="color: ${brand.gold}; font-weight: 600; text-decoration: none;">merlinflighttraining.com/start-training</a>.
+        </li>
+        <li style="margin-bottom: 10px;">
+          <strong>FAA Third-Class Medical Certificate.</strong>
+          Find an Aviation Medical Examiner at
+          <a href="https://www.faa.gov/pilots/amelocator" style="color: ${brand.gold}; font-weight: 600; text-decoration: none;">faa.gov/pilots/amelocator</a>
+          and fill out MedXPress beforehand.
+        </li>
+        <li style="margin-bottom: 10px;">
+          <strong>Student Pilot Certificate (IACRA).</strong>
+          Register at
+          <a href="https://iacra.faa.gov/" style="color: ${brand.gold}; font-weight: 600; text-decoration: none;">iacra.faa.gov</a>
+          — your instructor will review and sign your 8710-1.
+        </li>
+        <li style="margin-bottom: 10px;">
+          <strong>TSA Citizenship Verification.</strong>
+          US citizens: bring a passport or birth certificate + photo ID to your first lesson. Non-US citizens: apply at
+          <a href="https://www.fts.tsa.dhs.gov/" style="color: ${brand.gold}; font-weight: 600; text-decoration: none;">fts.tsa.dhs.gov</a>.
+        </li>
+      </ol>
+
+      <div style="background: ${brand.lightBg}; border-left: 4px solid ${brand.gold}; padding: 16px 20px; border-radius: 0 8px 8px 0; margin: 24px 0;">
+        <p style="margin: 0; font-style: italic; color: ${brand.dark};">Most students earn their Private Pilot Certificate in 6–12 months. The sooner you start, the sooner you'll be in the air as pilot-in-command.</p>
+      </div>
+
+      <p>If you have any questions — about cost, scheduling, what to expect, or anything else — just reply to this email and I'll get back to you personally.</p>
+
+      <p style="color: ${brand.mutedText}; font-size: 13px; margin-top: 28px;">
+        Blue skies,<br/>
+        Isaac Prestwich, CFII<br/>
+        Merlin Flight Training
+      </p>
+    `),
+  }),
+
   // Start-Training confirmation — sent after a discovery flight grad
   // fills out the /start-training intake form. This is the transition
   // from "prospect" to "student in onboarding".
@@ -281,7 +339,7 @@ export const emailTemplates = {
         <p>Your instructor will reach out within one business day to confirm your first lesson on or near <strong>${payload.earliestStart}</strong>. If you'd rather book a specific slot right now, you can use our live calendar:</p>
 
         <div style="margin: 20px 0; text-align: center;">
-          <a href="https://calendly.com/merlinflighttraining" style="display: inline-block; background: transparent; color: ${brand.dark}; border: 2px solid ${brand.gold}; font-weight: 700; text-decoration: none; padding: 10px 24px; border-radius: 6px; font-size: 14px;">Pick a Lesson Time</a>
+          <a href="https://merlinflighttraining.com/book-lesson" style="display: inline-block; background: transparent; color: ${brand.dark}; border: 2px solid ${brand.gold}; font-weight: 700; text-decoration: none; padding: 10px 24px; border-radius: 6px; font-size: 14px;">Pick a Lesson Time</a>
         </div>
 
         <p style="color: ${brand.mutedText}; font-size: 13px; margin-top: 28px;">

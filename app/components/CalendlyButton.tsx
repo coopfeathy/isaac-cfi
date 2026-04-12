@@ -1,92 +1,67 @@
+/**
+ * DEPRECATED — Calendly has been removed from Merlin Flight Training.
+ *
+ * Scheduling is now handled by our own in-house, Apple Calendar–style
+ * week-view picker at `/book-lesson`. This file only exists as a thin
+ * compatibility shim in case any old imports still reference it — the
+ * exports below silently route the user to the new scheduler so nothing
+ * crashes in a stale build.
+ *
+ * Safe to delete this file once you've confirmed nothing imports from
+ * `@/app/components/CalendlyButton` anywhere in the codebase.
+ */
 'use client'
 
-import { useEffect } from 'react'
+import Link from 'next/link'
 
-// Calendly URL - update this if the URL changes
-const CALENDLY_URL = 'https://calendly.com/merlinflighttraining'
+const BOOK_LESSON_URL = '/book-lesson'
 
-// Declare Calendly on window for TypeScript
-declare global {
-  interface Window {
-    Calendly?: {
-      initPopupWidget: (options: { url: string }) => void
-    }
+/** No-op hook kept for backwards compatibility. */
+export function useCalendly(): void {
+  // intentionally empty — no third-party script to load anymore
+}
+
+/** Opens our in-house scheduler in the current tab. */
+export function openCalendly(): void {
+  if (typeof window !== 'undefined') {
+    window.location.href = BOOK_LESSON_URL
   }
 }
 
-// Hook to load Calendly scripts
-export function useCalendly() {
-  useEffect(() => {
-    // Check if scripts are already loaded
-    if (document.querySelector('link[href*="calendly"]')) {
-      return
-    }
-
-    // Load Calendly CSS
-    const link = document.createElement('link')
-    link.href = 'https://assets.calendly.com/assets/external/widget.css'
-    link.rel = 'stylesheet'
-    document.head.appendChild(link)
-
-    // Load Calendly JS
-    const script = document.createElement('script')
-    script.src = 'https://assets.calendly.com/assets/external/widget.js'
-    script.async = true
-    document.head.appendChild(script)
-
-    return () => {
-      // Cleanup on unmount (optional, usually not needed)
-    }
-  }, [])
-}
-
-// Function to open Calendly popup
-export function openCalendly() {
-  if (typeof window !== 'undefined' && window.Calendly) {
-    window.Calendly.initPopupWidget({ url: CALENDLY_URL })
-  } else {
-    // Fallback: open in new tab if widget isn't loaded
-    window.open(CALENDLY_URL, '_blank')
-  }
-}
-
-// Calendly Button Component
 interface CalendlyButtonProps {
   children: React.ReactNode
   className?: string
   variant?: 'primary' | 'secondary' | 'outline'
 }
 
-export default function CalendlyButton({ 
-  children, 
+/**
+ * Renders a link to the in-house scheduler. Kept named `CalendlyButton`
+ * purely so legacy imports keep type-checking; new code should use a
+ * plain `<Link href="/book-lesson">` instead.
+ */
+export default function CalendlyButton({
+  children,
   className = '',
-  variant = 'primary' 
+  variant = 'primary',
 }: CalendlyButtonProps) {
-  useCalendly()
+  const baseStyles =
+    'font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 cursor-pointer inline-flex items-center justify-center'
 
-  const baseStyles = 'font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 cursor-pointer'
-  
   const variantStyles = {
     primary: 'bg-golden text-black hover:bg-yellow-500 shadow-lg hover:shadow-xl',
     secondary: 'bg-black text-white hover:bg-golden hover:text-black shadow-lg hover:shadow-xl',
-    outline: 'bg-transparent text-white border-2 border-white/30 hover:border-golden hover:bg-white/10 backdrop-blur-sm',
+    outline:
+      'bg-transparent text-white border-2 border-white/30 hover:border-golden hover:bg-white/10 backdrop-blur-sm',
   }
 
   return (
-    <button
-      onClick={(e) => {
-        e.preventDefault()
-        openCalendly()
-      }}
-      className={`${baseStyles} ${variantStyles[variant]} ${className}`}
-    >
+    <Link href={BOOK_LESSON_URL} className={`${baseStyles} ${variantStyles[variant]} ${className}`}>
       {children}
-    </button>
+    </Link>
   )
 }
 
-// Provider component to load Calendly scripts once at the app level
+/** Provider shim — used to inject Calendly scripts; now a pass-through. */
 export function CalendlyProvider({ children }: { children: React.ReactNode }) {
-  useCalendly()
   return <>{children}</>
 }

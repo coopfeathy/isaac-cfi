@@ -4,7 +4,8 @@ import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { AlertCircle } from 'lucide-react'
-import CalendlyButton, { openCalendly, useCalendly } from '@/app/components/CalendlyButton'
+// In-house scheduler replaces the old Calendly integration. All "book a lesson"
+// CTAs now route to /book-lesson, a fully custom Apple Calendar–style picker.
 
 // ---------------------------------------------------------------------------
 // Inline SVG icons — we avoid importing most icons from lucide-react because
@@ -149,9 +150,6 @@ function StartTrainingContent() {
   const searchParams = useSearchParams()
   const prefillEmail = searchParams?.get('email') ?? ''
 
-  // Load the Calendly widget once on mount so the CTA buttons below open instantly.
-  useCalendly()
-
   const [checked, setChecked] = useState<Record<string, boolean>>({
     tsa: false,
     medical: false,
@@ -245,9 +243,12 @@ function StartTrainingContent() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <CalendlyButton className="min-h-[56px] px-8 py-4 text-base sm:text-lg">
+            <Link
+              href="/book-lesson"
+              className="min-h-[56px] inline-flex items-center justify-center px-8 py-4 text-base sm:text-lg bg-golden text-black font-bold rounded-lg shadow-lg hover:bg-yellow-500 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+            >
               Book My First Lesson →
-            </CalendlyButton>
+            </Link>
             <Link
               href="#requirements"
               className="min-h-[56px] inline-flex items-center justify-center px-8 py-4 bg-transparent text-white border-2 border-white/30 hover:border-golden hover:bg-white/10 backdrop-blur-sm font-semibold rounded-lg transition-all duration-300"
@@ -390,9 +391,12 @@ function StartTrainingContent() {
                   We just sent a confirmation email with your onboarding links. Your instructor will
                   reach out within one business day to lock in your first lesson.
                 </p>
-                <CalendlyButton className="min-h-[52px] px-8 py-3">
+                <Link
+                  href="/book-lesson"
+                  className="min-h-[52px] inline-flex items-center justify-center px-8 py-3 bg-golden text-black font-bold rounded-lg shadow-lg hover:bg-yellow-500 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
+                >
                   Book My First Lesson Now
-                </CalendlyButton>
+                </Link>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -532,13 +536,12 @@ function StartTrainingContent() {
                   >
                     {submitting ? 'Saving…' : 'Start My Training'}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => openCalendly()}
-                    className="flex-1 min-h-[56px] px-8 py-4 bg-transparent text-white border-2 border-golden/50 hover:border-golden hover:bg-golden/10 font-semibold rounded-lg transition-all duration-300"
+                  <Link
+                    href="/book-lesson"
+                    className="flex-1 min-h-[56px] inline-flex items-center justify-center px-8 py-4 bg-transparent text-white border-2 border-golden/50 hover:border-golden hover:bg-golden/10 font-semibold rounded-lg transition-all duration-300"
                   >
                     Or: Book Lesson on Calendar
-                  </button>
+                  </Link>
                 </div>
 
                 <p className="text-center text-gray-500 text-xs">
