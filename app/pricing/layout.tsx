@@ -17,6 +17,20 @@ export const metadata: Metadata = {
     description: "Transparent pricing for flight training near NYC. Discovery flights from $265. Private pilot license from $13,810. Aircraft rental $185/hr.",
     url: "https://merlinflighttraining.com/pricing",
     type: "website",
+    images: [
+      {
+        url: "/images/merlin-og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Merlin Flight Training – Flight Training Pricing",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Flight Training Pricing | Merlin Flight Training",
+    description: "Transparent pricing for flight training near NYC. Discovery flights from $265. Private pilot license from $13,810.",
+    images: ["/images/merlin-og-image.jpg"],
   },
   alternates: {
     canonical: "https://merlinflighttraining.com/pricing",

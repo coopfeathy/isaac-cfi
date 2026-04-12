@@ -16,6 +16,20 @@ export const metadata: Metadata = {
     description: "Flight training gear, headsets, and aviation supplies for student pilots.",
     url: "https://merlinflighttraining.com/store",
     type: "website",
+    images: [
+      {
+        url: "/images/merlin-og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Merlin Flight Training – Pilot Store",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Pilot Store | Merlin Flight Training",
+    description: "Flight training gear, headsets, and aviation supplies for student pilots.",
+    images: ["/images/merlin-og-image.jpg"],
   },
   alternates: {
     canonical: "https://merlinflighttraining.com/store",
