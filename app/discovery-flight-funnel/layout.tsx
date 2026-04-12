@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Discovery Flight Booking | Merlin Flight Training",
     description: "Book your discovery flight experience with Merlin Flight Training",
-    url: "https://merlinflight.com/discovery-flight-funnel",
+    url: "https://merlinflighttraining.com/discovery-flight-funnel",
     type: "website",
   },
 }

@@ -23,7 +23,7 @@ export async function generateMetadata({
     }
   }
 
-  const baseUrl = 'https://merlinflight.com'
+  const baseUrl = 'https://merlinflighttraining.com'
   const postUrl = `${baseUrl}/blog/${post.slug}`
 
   return {
@@ -66,7 +66,7 @@ export default async function BlogPost({ params }: { params: { slug: string } })
     notFound()
   }
 
-  const baseUrl = 'https://merlinflight.com'
+  const baseUrl = 'https://merlinflighttraining.com'
   const breadcrumbSchema = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',

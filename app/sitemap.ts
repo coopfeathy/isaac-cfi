@@ -2,7 +2,7 @@ import { MetadataRoute } from "next"
 import { getAllPosts } from "@/lib/posts"
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://merlinflight.com"
+  const baseUrl = "https://merlinflighttraining.com"
   const now = new Date()
 
   const staticRoutes: MetadataRoute.Sitemap = [

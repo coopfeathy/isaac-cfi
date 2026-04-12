@@ -7,11 +7,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Contact | Merlin Flight Training",
     description: "Reach out to Merlin Flight Training — Republic Airport (FRG), Farmingdale, NY.",
-    url: "https://merlinflight.com/support",
+    url: "https://merlinflighttraining.com/support",
     type: "website",
   },
   alternates: {
-    canonical: "https://merlinflight.com/support",
+    canonical: "https://merlinflighttraining.com/support",
   },
 }
 

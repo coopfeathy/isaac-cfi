@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     title: "Schedule A Flight Lesson | Merlin Flight Training",
     description:
       "Book your next training session with flexible scheduling options.",
-    url: "https://merlinflight.com/schedule",
+    url: "https://merlinflighttraining.com/schedule",
     type: "website",
   },
   alternates: {

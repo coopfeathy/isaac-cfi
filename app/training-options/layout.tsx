@@ -14,11 +14,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Pilot Training Programs | Merlin Flight Training",
     description: "Private Pilot, Instrument Rating & Commercial Pilot programs near NYC. 1-on-1 instruction at Republic Airport, Farmingdale, NY.",
-    url: "https://merlinflight.com/training-options",
+    url: "https://merlinflighttraining.com/training-options",
     type: "website",
   },
   alternates: {
-    canonical: "https://merlinflight.com/training-options",
+    canonical: "https://merlinflighttraining.com/training-options",
   },
 }
 

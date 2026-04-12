@@ -14,11 +14,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Flight Training FAQ | Merlin Flight Training",
     description: "Common questions about flight training costs, timelines, and getting started near NYC.",
-    url: "https://merlinflight.com/faq",
+    url: "https://merlinflighttraining.com/faq",
     type: "website",
   },
   alternates: {
-    canonical: "https://merlinflight.com/faq",
+    canonical: "https://merlinflighttraining.com/faq",
   },
 }
 

@@ -15,11 +15,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Flight Training Pricing | Merlin Flight Training",
     description: "Transparent pricing for flight training near NYC. Discovery flights from $265. Private pilot license from $13,810. Aircraft rental $185/hr.",
-    url: "https://merlinflight.com/pricing",
+    url: "https://merlinflighttraining.com/pricing",
     type: "website",
   },
   alternates: {
-    canonical: "https://merlinflight.com/pricing",
+    canonical: "https://merlinflighttraining.com/pricing",
   },
 }
 
@@ -41,7 +41,7 @@ const pricingSchema = {
           "@type": "Offer",
           price: "265",
           priceCurrency: "USD",
-          url: "https://merlinflight.com/discovery-flight",
+          url: "https://merlinflighttraining.com/discovery-flight",
         },
       },
     },

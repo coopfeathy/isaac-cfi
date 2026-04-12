@@ -9,5 +9,5 @@ Disallow: /secret
 
 Crawl-delay: 1
 
-Sitemap: https://merlinflight.com/sitemap.xml
-Sitemap: https://merlinflight.com/sitemap-blog.xml
+Sitemap: https://merlinflighttraining.com/sitemap.xml
+Sitemap: https://merlinflighttraining.com/sitemap-blog.xml

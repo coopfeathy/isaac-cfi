@@ -8,22 +8,22 @@ export async function GET(): Promise<Response> {
 <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:media="http://search.yahoo.com/mrss/">
   <channel>
     <title>Merlin Flight Training Blog</title>
-    <link>https://merlinflight.com/blog</link>
+    <link>https://merlinflighttraining.com/blog</link>
     <description>Flight training tips, aviation news, and flying guides</description>
     <language>en-us</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
     <image>
-      <url>https://merlinflight.com/images/logo.png</url>
+      <url>https://merlinflighttraining.com/images/logo.png</url>
       <title>Merlin Flight Training</title>
-      <link>https://merlinflight.com</link>
+      <link>https://merlinflighttraining.com</link>
     </image>
     ${posts
       .map(
         (post) => `
     <item>
       <title>${escapeXml(post.title)}</title>
-      <link>https://merlinflight.com/blog/${post.slug}</link>
-      <guid>https://merlinflight.com/blog/${post.slug}</guid>
+      <link>https://merlinflighttraining.com/blog/${post.slug}</link>
+      <guid>https://merlinflighttraining.com/blog/${post.slug}</guid>
       <pubDate>${new Date(post.date).toUTCString()}</pubDate>
       <description>${escapeXml(post.excerpt || post.title)}</description>
       <content:encoded><![CDATA[${post.content || ''}]]></content:encoded>

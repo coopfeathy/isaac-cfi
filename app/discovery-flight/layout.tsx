@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Discovery Flight near NYC | $265 | Merlin Flight Training",
     description: "Experience flying over Manhattan for $265. No experience needed. Republic Airport (FRG), Farmingdale, NY. Book today.",
-    url: "https://merlinflight.com/discovery-flight",
+    url: "https://merlinflighttraining.com/discovery-flight",
     type: "website",
     images: [
       {
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     images: ["/images/merlin-og-image.jpg"],
   },
   alternates: {
-    canonical: "https://merlinflight.com/discovery-flight",
+    canonical: "https://merlinflighttraining.com/discovery-flight",
   },
 }
 
@@ -49,7 +49,7 @@ const discoveryFlightSchema = {
     price: "265",
     priceCurrency: "USD",
     availability: "https://schema.org/InStock",
-    url: "https://merlinflight.com/discovery-flight",
+    url: "https://merlinflighttraining.com/discovery-flight",
     seller: { "@type": "LocalBusiness", name: "Merlin Flight Training" },
   },
 }

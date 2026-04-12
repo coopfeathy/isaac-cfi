@@ -14,11 +14,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Pilot Store | Merlin Flight Training",
     description: "Flight training gear, headsets, and aviation supplies for student pilots.",
-    url: "https://merlinflight.com/store",
+    url: "https://merlinflighttraining.com/store",
     type: "website",
   },
   alternates: {
-    canonical: "https://merlinflight.com/store",
+    canonical: "https://merlinflighttraining.com/store",
   },
 }
 

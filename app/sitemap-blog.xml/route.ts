@@ -1,7 +1,7 @@
 import { getAllPosts } from "@/lib/posts"
 
 export async function GET(): Promise<Response> {
-  const baseUrl = "https://merlinflight.com"
+  const baseUrl = "https://merlinflighttraining.com"
   const posts = getAllPosts().filter((post) => post.published)
 
   const urls = posts

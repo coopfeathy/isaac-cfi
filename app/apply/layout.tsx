@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     title: "Apply For Flight Training | Merlin Flight Training",
     description:
       "Apply to begin your flight training journey and connect with our FAA-certified instructors.",
-    url: "https://merlinflight.com/apply",
+    url: "https://merlinflighttraining.com/apply",
     type: "website",
   },
   alternates: {

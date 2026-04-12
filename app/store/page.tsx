@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     title: "Pilot Store | Merlin Flight Training",
     description:
       "Curated starter packages, branded merch, and recommended aviation gear for student pilots.",
-    url: "https://merlinflight.com/store",
+    url: "https://merlinflighttraining.com/store",
   },
 }
 
@@ -192,7 +192,7 @@ const trainingMaterials = [
     price: "~$45",
     description: "Wairworthy Ascend — purpose-built pilot bag with smart organization",
     href: "https://amzn.to/3NX5Jsx",
-    image: "https://m.media-amazon.com/images/I/71MQGU5gHJL._AC_SX679_.jpg",
+    image: "/images/wairworthy-ascend-flight-bag.jpg",
   },
   {
     name: "Pilot Kneeboard",

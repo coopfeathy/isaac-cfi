@@ -17,6 +17,6 @@ describe("Store Page Metadata", () => {
     expect(metadata.openGraph).toBeDefined()
     const og = metadata.openGraph as Record<string, unknown>
     expect(og.title).toBe("Pilot Store | Merlin Flight Training")
-    expect(og.url).toBe("https://merlinflight.com/store")
+    expect(og.url).toBe("https://merlinflighttraining.com/store")
   })
 })
