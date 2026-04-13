@@ -206,7 +206,6 @@ export interface ExpenseTransaction {
   item: string
   direction: 'income' | 'expense'
   price: number
-  confirmed_price: number | null
   notes: string | null
   created_at: string
   updated_at: string

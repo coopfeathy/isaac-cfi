@@ -27,7 +27,6 @@ interface Transaction {
   item: string
   direction: 'income' | 'expense'
   price: number
-  confirmed_price: number | null
   notes: string | null
   created_at: string
 }
@@ -79,7 +78,6 @@ export default function ExpensesPage() {
     item: '',
     direction: 'expense' as Transaction['direction'],
     price: '',
-    confirmed_price: '',
     notes: '',
   })
 
@@ -90,7 +88,6 @@ export default function ExpensesPage() {
     item: '',
     direction: 'expense' as Transaction['direction'],
     price: '',
-    confirmed_price: '',
     notes: '',
     account_id: '',
   })
@@ -122,33 +119,29 @@ export default function ExpensesPage() {
 
   /* ---- summary calculations ---- */
   const summaryByAccount = useMemo(() => {
-    const map: Record<string, { income: number; expense: number; confirmedIncome: number; confirmedExpense: number }> = {}
+    const map: Record<string, { income: number; expense: number }> = {}
     for (const a of accounts) {
-      map[a.id] = { income: 0, expense: 0, confirmedIncome: 0, confirmedExpense: 0 }
+      map[a.id] = { income: 0, expense: 0 }
     }
     for (const t of transactions) {
       if (!map[t.account_id]) continue
       const bucket = map[t.account_id]
       if (t.direction === 'income') {
         bucket.income += Number(t.price)
-        bucket.confirmedIncome += Number(t.confirmed_price ?? 0)
       } else {
         bucket.expense += Number(t.price)
-        bucket.confirmedExpense += Number(t.confirmed_price ?? 0)
       }
     }
     return map
   }, [accounts, transactions])
 
   const grandTotals = useMemo(() => {
-    let income = 0, expense = 0, confirmedIncome = 0, confirmedExpense = 0
+    let income = 0, expense = 0
     for (const v of Object.values(summaryByAccount)) {
       income += v.income
       expense += v.expense
-      confirmedIncome += v.confirmedIncome
-      confirmedExpense += v.confirmedExpense
     }
-    return { income, expense, confirmedIncome, confirmedExpense, net: income - expense }
+    return { income, expense, net: income - expense }
   }, [summaryByAccount])
 
   /* ---- account name lookup ---- */
@@ -203,14 +196,13 @@ export default function ExpensesPage() {
       item: newTx.item.trim(),
       direction: newTx.direction,
       price: parseFloat(newTx.price) || 0,
-      confirmed_price: newTx.confirmed_price ? parseFloat(newTx.confirmed_price) : null,
       notes: newTx.notes.trim() || null,
     })
     if (error) {
       setStatus({ type: 'error', text: error.message })
     } else {
       setStatus({ type: 'success', text: 'Transaction added.' })
-      setNewTx({ account_id: newTx.account_id, date: today(), item: '', direction: 'expense', price: '', confirmed_price: '', notes: '' })
+      setNewTx({ account_id: newTx.account_id, date: today(), item: '', direction: 'expense', price: '', notes: '' })
       setShowNewTx(false)
       fetchData()
     }
@@ -233,7 +225,6 @@ export default function ExpensesPage() {
       item: t.item,
       direction: t.direction,
       price: String(t.price),
-      confirmed_price: t.confirmed_price != null ? String(t.confirmed_price) : '',
       notes: t.notes ?? '',
       account_id: t.account_id,
     })
@@ -248,7 +239,6 @@ export default function ExpensesPage() {
       item: editTx.item.trim(),
       direction: editTx.direction,
       price: parseFloat(editTx.price) || 0,
-      confirmed_price: editTx.confirmed_price ? parseFloat(editTx.confirmed_price) : null,
       notes: editTx.notes.trim() || null,
     }).eq('id', editingTxId)
     if (error) {
@@ -306,9 +296,9 @@ export default function ExpensesPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-        <SummaryCard label="Total Income" value={fmt(grandTotals.income)} sub={`Confirmed: ${fmt(grandTotals.confirmedIncome)}`} color="green" />
-        <SummaryCard label="Total Expenses" value={fmt(grandTotals.expense)} sub={`Confirmed: ${fmt(grandTotals.confirmedExpense)}`} color="red" />
-        <SummaryCard label="Net (Listed)" value={fmt(grandTotals.net)} color={grandTotals.net >= 0 ? 'green' : 'red'} />
+        <SummaryCard label="Total Income" value={fmt(grandTotals.income)} color="green" />
+        <SummaryCard label="Total Expenses" value={fmt(grandTotals.expense)} color="red" />
+        <SummaryCard label="Net" value={fmt(grandTotals.net)} color={grandTotals.net >= 0 ? 'green' : 'red'} />
       </div>
 
       {/* Tabs */}
@@ -398,10 +388,6 @@ export default function ExpensesPage() {
                       <label className="block text-xs font-medium text-gray-600 mb-1">Price ($) *</label>
                       <input type="number" step="0.01" min="0" value={newTx.price} onChange={(e) => setNewTx({ ...newTx, price: e.target.value })} placeholder="0.00" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" required />
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Confirmed Price ($)</label>
-                      <input type="number" step="0.01" min="0" value={newTx.confirmed_price} onChange={(e) => setNewTx({ ...newTx, confirmed_price: e.target.value })} placeholder="Actual amount paid" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
@@ -428,7 +414,6 @@ export default function ExpensesPage() {
                         <th className="py-3 px-3">Item</th>
                         <th className="py-3 px-3">Type</th>
                         <th className="py-3 px-3 text-right">Price</th>
-                        <th className="py-3 px-3 text-right">Confirmed</th>
                         <th className="py-3 px-3">Notes</th>
                         <th className="py-3 px-3 text-center">Actions</th>
                       </tr>
@@ -452,7 +437,6 @@ export default function ExpensesPage() {
                               </select>
                             </td>
                             <td className="py-2 px-3"><input type="number" step="0.01" value={editTx.price} onChange={(e) => setEditTx({ ...editTx, price: e.target.value })} className="border rounded px-2 py-1 text-sm w-24 text-right" /></td>
-                            <td className="py-2 px-3"><input type="number" step="0.01" value={editTx.confirmed_price} onChange={(e) => setEditTx({ ...editTx, confirmed_price: e.target.value })} className="border rounded px-2 py-1 text-sm w-24 text-right" /></td>
                             <td className="py-2 px-3"><input type="text" value={editTx.notes} onChange={(e) => setEditTx({ ...editTx, notes: e.target.value })} className="border rounded px-2 py-1 text-sm w-full" /></td>
                             <td className="py-2 px-3 text-center whitespace-nowrap">
                               <button onClick={handleUpdateTransaction} className="text-green-600 hover:underline text-xs mr-2">Save</button>
@@ -471,7 +455,6 @@ export default function ExpensesPage() {
                               </span>
                             </td>
                             <td className="py-3 px-3 text-right font-mono">{fmt(Number(t.price))}</td>
-                            <td className="py-3 px-3 text-right font-mono">{t.confirmed_price != null ? fmt(Number(t.confirmed_price)) : '—'}</td>
                             <td className="py-3 px-3 text-gray-500 text-xs">{t.notes || '—'}</td>
                             <td className="py-3 px-3 text-center whitespace-nowrap">
                               <button onClick={() => startEditTransaction(t)} className="text-blue-600 hover:underline text-xs mr-2">Edit</button>
@@ -537,7 +520,7 @@ export default function ExpensesPage() {
               ) : (
                 <div className="grid gap-4">
                   {accounts.map((a) => {
-                    const s = summaryByAccount[a.id] || { income: 0, expense: 0, confirmedIncome: 0, confirmedExpense: 0 }
+                    const s = summaryByAccount[a.id] || { income: 0, expense: 0 }
                     const net = s.income - s.expense
                     return (
                       <div key={a.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
@@ -590,15 +573,13 @@ export default function ExpensesPage() {
                       <th className="py-3 px-3">Account</th>
                       <th className="py-3 px-3">Type</th>
                       <th className="py-3 px-3 text-right">Income</th>
-                      <th className="py-3 px-3 text-right">Confirmed In</th>
                       <th className="py-3 px-3 text-right">Expenses</th>
-                      <th className="py-3 px-3 text-right">Confirmed Out</th>
                       <th className="py-3 px-3 text-right">Net</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {accounts.map((a) => {
-                      const s = summaryByAccount[a.id] || { income: 0, expense: 0, confirmedIncome: 0, confirmedExpense: 0 }
+                      const s = summaryByAccount[a.id] || { income: 0, expense: 0 }
                       const net = s.income - s.expense
                       return (
                         <tr key={a.id} className="hover:bg-gray-50">
@@ -609,9 +590,7 @@ export default function ExpensesPage() {
                             </span>
                           </td>
                           <td className="py-3 px-3 text-right font-mono text-green-700">{fmt(s.income)}</td>
-                          <td className="py-3 px-3 text-right font-mono text-green-600">{fmt(s.confirmedIncome)}</td>
                           <td className="py-3 px-3 text-right font-mono text-red-600">{fmt(s.expense)}</td>
-                          <td className="py-3 px-3 text-right font-mono text-red-500">{fmt(s.confirmedExpense)}</td>
                           <td className={`py-3 px-3 text-right font-mono font-semibold ${net >= 0 ? 'text-green-800' : 'text-red-800'}`}>{fmt(net)}</td>
                         </tr>
                       )
@@ -621,9 +600,7 @@ export default function ExpensesPage() {
                     <tr className="border-t-2 border-gray-300 font-semibold">
                       <td className="py-3 px-3" colSpan={2}>Totals</td>
                       <td className="py-3 px-3 text-right font-mono text-green-700">{fmt(grandTotals.income)}</td>
-                      <td className="py-3 px-3 text-right font-mono text-green-600">{fmt(grandTotals.confirmedIncome)}</td>
                       <td className="py-3 px-3 text-right font-mono text-red-600">{fmt(grandTotals.expense)}</td>
-                      <td className="py-3 px-3 text-right font-mono text-red-500">{fmt(grandTotals.confirmedExpense)}</td>
                       <td className={`py-3 px-3 text-right font-mono ${grandTotals.net >= 0 ? 'text-green-800' : 'text-red-800'}`}>{fmt(grandTotals.net)}</td>
                     </tr>
                   </tfoot>
@@ -641,12 +618,11 @@ export default function ExpensesPage() {
 /*  Summary Card                                                       */
 /* ------------------------------------------------------------------ */
 
-function SummaryCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color: 'green' | 'red' }) {
+function SummaryCard({ label, value, color }: { label: string; value: string; color: 'green' | 'red' }) {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
       <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{label}</p>
       <p className={`text-lg font-bold ${color === 'green' ? 'text-green-700' : 'text-red-600'}`}>{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
     </div>
   )
 }
