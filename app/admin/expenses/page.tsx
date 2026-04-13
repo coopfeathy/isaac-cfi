@@ -148,7 +148,7 @@ export default function ExpensesPage() {
       confirmedIncome += v.confirmedIncome
       confirmedExpense += v.confirmedExpense
     }
-    return { income, expense, confirmedIncome, confirmedExpense, net: income - expense, confirmedNet: confirmedIncome - confirmedExpense }
+    return { income, expense, confirmedIncome, confirmedExpense, net: income - expense }
   }, [summaryByAccount])
 
   /* ---- account name lookup ---- */
@@ -305,11 +305,10 @@ export default function ExpensesPage() {
       )}
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         <SummaryCard label="Total Income" value={fmt(grandTotals.income)} sub={`Confirmed: ${fmt(grandTotals.confirmedIncome)}`} color="green" />
         <SummaryCard label="Total Expenses" value={fmt(grandTotals.expense)} sub={`Confirmed: ${fmt(grandTotals.confirmedExpense)}`} color="red" />
         <SummaryCard label="Net (Listed)" value={fmt(grandTotals.net)} color={grandTotals.net >= 0 ? 'green' : 'red'} />
-        <SummaryCard label="Net (Confirmed)" value={fmt(grandTotals.confirmedNet)} color={grandTotals.confirmedNet >= 0 ? 'green' : 'red'} />
       </div>
 
       {/* Tabs */}
