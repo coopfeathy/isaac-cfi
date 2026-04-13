@@ -187,6 +187,31 @@ export interface AircraftHoursEntry {
   updated_at: string
 }
 
+// Expense tracking types
+export interface ExpenseAccount {
+  id: string
+  name: string
+  type: 'student' | 'client' | 'business'
+  email: string | null
+  phone: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ExpenseTransaction {
+  id: string
+  account_id: string
+  date: string
+  item: string
+  direction: 'income' | 'expense'
+  price: number
+  confirmed_price: number | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface Reminder {
   id: string
   prospect_id: string | null
