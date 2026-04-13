@@ -282,7 +282,7 @@ export default function ExpensesPage() {
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Expense Tracker</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Account Balance Tracker</h1>
         <select
           value={selectedAccountId}
           onChange={(e) => setSelectedAccountId(e.target.value)}
