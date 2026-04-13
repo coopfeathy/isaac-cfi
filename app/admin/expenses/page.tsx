@@ -144,6 +144,13 @@ export default function ExpensesPage() {
     return { income, expense, net: income - expense }
   }, [summaryByAccount])
 
+  /* ---- display totals (filtered by selected account) ---- */
+  const displayTotals = useMemo(() => {
+    if (selectedAccountId === 'all') return grandTotals
+    const s = summaryByAccount[selectedAccountId] || { income: 0, expense: 0 }
+    return { income: s.income, expense: s.expense, net: s.income - s.expense }
+  }, [selectedAccountId, summaryByAccount, grandTotals])
+
   /* ---- account name lookup ---- */
   const accountName = useCallback(
     (id: string) => accounts.find((a) => a.id === id)?.name ?? 'Unknown',
@@ -274,8 +281,20 @@ export default function ExpensesPage() {
       </div>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Expense Tracker</h1>
+        <select
+          value={selectedAccountId}
+          onChange={(e) => setSelectedAccountId(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+        >
+          <option value="all">All Accounts</option>
+          {accounts.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name} ({a.type})
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Status banner */}
@@ -295,10 +314,15 @@ export default function ExpensesPage() {
       )}
 
       {/* Summary cards */}
+      {selectedAccountId !== 'all' && (
+        <p className="text-sm text-gray-500 mb-2">
+          Showing totals for <span className="font-semibold text-gray-800">{accountName(selectedAccountId)}</span>
+        </p>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-        <SummaryCard label="Total Income" value={fmt(grandTotals.income)} color="green" />
-        <SummaryCard label="Total Expenses" value={fmt(grandTotals.expense)} color="red" />
-        <SummaryCard label="Net" value={fmt(grandTotals.net)} color={grandTotals.net >= 0 ? 'green' : 'red'} />
+        <SummaryCard label="Total Income" value={fmt(displayTotals.income)} color="green" />
+        <SummaryCard label="Total Expenses" value={fmt(displayTotals.expense)} color="red" />
+        <SummaryCard label="Net" value={fmt(displayTotals.net)} color={displayTotals.net >= 0 ? 'green' : 'red'} />
       </div>
 
       {/* Tabs */}
@@ -327,19 +351,6 @@ export default function ExpensesPage() {
             <div>
               {/* Controls row */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-                <select
-                  value={selectedAccountId}
-                  onChange={(e) => setSelectedAccountId(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                >
-                  <option value="all">All Accounts</option>
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} ({a.type})
-                    </option>
-                  ))}
-                </select>
-
                 <button
                   onClick={() => { setShowNewTx(!showNewTx); setShowNewAccount(false) }}
                   className="bg-golden text-darkText font-semibold text-sm py-2 px-4 rounded-lg hover:bg-opacity-90 transition-colors"
