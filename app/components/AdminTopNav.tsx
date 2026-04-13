@@ -28,6 +28,7 @@ const navSections: NavSection[] = [
     items: [
       { href: '/admin/students', label: 'Students', match: ['/admin/students'] },
       { href: '/admin/billing', label: 'Billing', match: ['/admin/billing'] },
+      { href: '/admin/expenses', label: 'Expenses', match: ['/admin/expenses'] },
       { href: '/admin/prospects', label: 'Prospects', match: ['/admin/prospects', '/admin/leads'] },
       { href: '/admin/onboarding', label: 'Onboarding Queue', match: ['/admin/onboarding'] },
     ],
