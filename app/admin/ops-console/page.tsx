@@ -265,11 +265,18 @@ export default function OpsConsolePage() {
     })
   }, [displayBookings, filters])
 
+  // Ref-forward `handleCancelBooking` so the keyboard shortcut effect below can
+  // call it without sitting in its dep array. The handler is declared further
+  // down the component, so including it in the deps would hit the TDZ during
+  // the first render pass when useEffect's dep array is evaluated.
+  const cancelBookingRef = useRef<(id: string) => void>(() => {})
+
   // Keyboard shortcuts.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const tgt = e.target as HTMLElement | null
       if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'SELECT' || tgt.tagName === 'TEXTAREA')) return
+      if (tgt && (tgt as HTMLElement).isContentEditable) return
       if (e.key === 'Escape') { setSelBooking(null); setModal(null) }
       if (e.key === 'j' || e.key === 'k') {
         const todayBookings = displayBookings.filter(b => b.status !== 'maint' && b.status !== 'aog')
@@ -280,11 +287,29 @@ export default function OpsConsolePage() {
         setSelBooking(todayBookings[next]?.id ?? null)
       }
       if (e.key === 'n' || e.key === 'N') setModal({ kind: 'new' })
-      if (e.key === '?') showToast('Keyboard: j/k nav · Esc clear · N new slot', 'info')
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (!selBooking) return
+        const b = displayBookings.find(x => x.id === selBooking)
+        if (!b) return
+        // Prevent the browser's default (Backspace → history back).
+        e.preventDefault()
+        const displayId = usingDb ? b.id.slice(0, 8) : b.id
+        setModal({
+          kind: 'confirm',
+          payload: {
+            title: 'CANCEL BOOKING',
+            message: `Cancel ${displayId} (${b.student})? This cannot be undone.`,
+            confirmLabel: 'Cancel booking',
+            danger: true,
+            onConfirm: () => cancelBookingRef.current(b.id),
+          },
+        })
+      }
+      if (e.key === '?') showToast('Keyboard: j/k nav · Del delete · Esc clear · N new slot', 'info')
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [displayBookings, selBooking, showToast])
+  }, [displayBookings, selBooking, showToast, usingDb])
 
   const handleSelect = (node: TreeNodeData) => {
     setSelectedNode(node)
@@ -323,6 +348,9 @@ export default function OpsConsolePage() {
     setSelBooking(null)
     showToast(`Booking ${id} cancelled`, 'info')
   }
+  // Keep the ref used by the Delete/Backspace keyboard shortcut pointing at
+  // the latest cancel handler so the shortcut closes over fresh state.
+  cancelBookingRef.current = handleCancelBooking
   const handleNewSlot = async (data: { tail: string; start: string; end: string; student: string; cfi: string; lesson: string }) => {
     const parseT = (s: string) => { const [h, m] = s.split(':').map(Number); return Math.round((h * 60 + m - 7 * 60) / 30) }
     if (usingDb) {
