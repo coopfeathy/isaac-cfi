@@ -670,7 +670,7 @@ export default function OpsConsolePage() {
   const renderView = () => {
     if (loading) return <div className="view-pad"><Skeleton lines={8} /></div>
     switch (view) {
-      case 'schedule':   return <ScheduleBoard aircraft={aircraft} bookings={visibleBookings} zoom={zoom} selBookingId={selBooking} onSelBooking={setSelBooking} onEmptySlotClick={handleEmptySlotClick} onAddAircraft={handleAddAircraft} onDeleteAircraft={handleDeleteAircraft} onMoveBooking={handleMoveBooking} onResizeBookingRequest={handleResizeBookingRequest} />
+      case 'schedule':   return <ScheduleBoard aircraft={aircraft} bookings={visibleBookings} zoom={zoom} viewDate={date} selBookingId={selBooking} onSelBooking={setSelBooking} onEmptySlotClick={handleEmptySlotClick} onAddAircraft={handleAddAircraft} onDeleteAircraft={handleDeleteAircraft} onMoveBooking={handleMoveBooking} onResizeBookingRequest={handleResizeBookingRequest} />
       case 'fleet':      return <FleetView aircraft={aircraft} bookings={displayBookings} subTab={subTab} onAddAircraft={handleAddAircraft} onDeleteAircraft={handleDeleteAircraft} onOpenAircraft={(a) => setModal({ kind: 'aircraft', payload: a })} />
       case 'students':   return <StudentsView students={students} subTab={subTab} onDelete={handleDeleteStudent} onAddStudent={handleAddStudent} />
       case 'integrity':  return <IntegrityView alerts={alerts} onResolve={handleResolve} />

@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import type { ReactNode, MouseEvent, DragEvent, PointerEvent } from 'react'
 import { I, Badge, Avatar } from './primitives'
+import { useNow } from './shell'
 import {
   INSTRUCTORS, SLOT_REQUESTS, DISPATCH,
   INVOICES, SYLLABUS, ONBOARDING, PAYOUTS, EXPENSES, SUBSCRIPTIONS, CREDITS,
@@ -48,9 +49,9 @@ export function Skeleton({ lines = 6 }: { lines?: number }) {
   )
 }
 
-export function ScheduleBoard({ aircraft, bookings, zoom, selBookingId, onSelBooking, onEmptySlotClick, onAddAircraft, onDeleteAircraft, onMoveBooking, onResizeBookingRequest }: {
+export function ScheduleBoard({ aircraft, bookings, zoom, viewDate, selBookingId, onSelBooking, onEmptySlotClick, onAddAircraft, onDeleteAircraft, onMoveBooking, onResizeBookingRequest }: {
   aircraft: Aircraft[];
-  bookings: Booking[]; zoom: number; selBookingId: string | null;
+  bookings: Booking[]; zoom: number; viewDate?: Date; selBookingId: string | null;
   onSelBooking: (id: string) => void;
   onEmptySlotClick?: (tail: string, startTick: number) => void;
   onAddAircraft?: () => void;
@@ -61,6 +62,26 @@ export function ScheduleBoard({ aircraft, bookings, zoom, selBookingId, onSelBoo
   const TICK_PX = 44 * zoom
   const ROW_H = 62
   const LABEL_W = 168
+
+  // Only render the amber "now" line when the viewed day is the real-world
+  // today (compared in the user's local timezone). Board ticks run 07:00→19:00
+  // in 30-min increments, so times outside that window also hide the line.
+  const now = useNow()
+  const nowTick: number | null = (() => {
+    if (!now || !viewDate) return null
+    const sameDay =
+      now.getFullYear() === viewDate.getFullYear() &&
+      now.getMonth() === viewDate.getMonth() &&
+      now.getDate() === viewDate.getDate()
+    if (!sameDay) return null
+    const minutes = now.getHours() * 60 + now.getMinutes()
+    const tick = (minutes - 7 * 60) / 30
+    if (tick < 0 || tick > TICKS.length - 1) return null
+    return tick
+  })()
+  const nowLabel = now
+    ? `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} · NOW`
+    : ''
   // Track drag state: which booking is being dragged and the pointer-offset (in ticks)
   // from its left edge, so drop position maps naturally to the new start tick.
   const dragRef = useRef<{ id: string; offsetTicks: number } | null>(null)
@@ -173,10 +194,12 @@ export function ScheduleBoard({ aircraft, bookings, zoom, selBookingId, onSelBoo
               ))}
             </div>
           </div>
-          <div className="now-line" style={{ left: LABEL_W + 5 * TICK_PX - 1 }}>
-            <div className="now-dot" />
-            <div className="now-label mono">09:30 · NOW</div>
-          </div>
+          {nowTick !== null && (
+            <div className="now-line" style={{ left: LABEL_W + nowTick * TICK_PX - 1 }}>
+              <div className="now-dot" />
+              <div className="now-label mono">{nowLabel}</div>
+            </div>
+          )}
           {aircraft.map(ac => {
             const rowBookings = bookings.filter(b => b.tail === ac.tail)
             return (

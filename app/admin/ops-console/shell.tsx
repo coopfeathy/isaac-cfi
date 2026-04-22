@@ -25,7 +25,7 @@ export const filterActiveCount = (f: Filters) =>
 // Ticks every 15s so the header clock feels live without wasting renders.
 // Returns `null` on the first render (SSR) so the text doesn't mismatch between
 // server and client; callers show a stable fallback until mount.
-function useNow(intervalMs = 15_000): Date | null {
+export function useNow(intervalMs = 15_000): Date | null {
   const [now, setNow] = useState<Date | null>(null)
   useEffect(() => {
     setNow(new Date())
