@@ -16,12 +16,8 @@ export default function AircraftPage() {
 
   const images: AircraftImage[] = [
     {
-      src: '/images/n2152z-1.JPG',
-      alt: 'N2152Z Piper Warrior - Exterior',
-    },
-    {
-      src: '/images/n2152z-2.JPG',
-      alt: 'N2152Z Piper Warrior - Cockpit',
+      src: '/images/our-aircraft-header.JPG',
+      alt: 'N9725U - photos coming soon',
     },
   ]
 
@@ -67,7 +63,7 @@ export default function AircraftPage() {
 
       {/* Aircraft Fleet */}
       <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-b from-darkText via-darkText to-black border-t border-golden/20">
-        <div id="n2152z" className="container mx-auto px-4 sm:px-6 scroll-mt-32">
+        <div id="n9725u" className="container mx-auto px-4 sm:px-6 scroll-mt-32">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 items-center">
             {/* Image Carousel */}
             <div className="flex flex-col items-center">
@@ -144,11 +140,11 @@ export default function AircraftPage() {
               </div>
 
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-white">
-                N2152Z Piper Warrior
+                N9725U
               </h2>
 
               <p className="text-base sm:text-lg text-gray-300 leading-relaxed mb-6">
-                Fly our airplane equipped with a refreshed avionics stack, glass instruments, and a clean updated interior for modern, practical training.
+                Our training aircraft — well-maintained and ready for flight instruction and rental out of Republic Airport. Full aircraft specs and photos coming soon.
               </p>
 
               <div className="space-y-4 mb-8">
@@ -172,14 +168,6 @@ export default function AircraftPage() {
                 <div className="flex items-start gap-3">
                   <span className="text-golden text-xl flex-shrink-0">✓</span>
                   <div>
-                    <h4 className="font-semibold text-white mb-1">Glass Panel Training</h4>
-                    <p className="text-gray-400 text-sm">Configured for current avionics workflows and instrument scanning habits</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <span className="text-golden text-xl flex-shrink-0">✓</span>
-                  <div>
                     <h4 className="font-semibold text-white mb-1">Multi-Certificate Utility</h4>
                     <p className="text-gray-400 text-sm">Suitable for private, instrument, and commercial pilot training tracks</p>
                   </div>
@@ -188,8 +176,8 @@ export default function AircraftPage() {
                 <div className="flex items-start gap-3">
                   <span className="text-golden text-xl flex-shrink-0">✓</span>
                   <div>
-                    <h4 className="font-semibold text-white mb-1">Updated Cabin and Interior</h4>
-                    <p className="text-gray-400 text-sm">Well-maintained aircraft presentation with a student-friendly cockpit environment</p>
+                    <h4 className="font-semibold text-white mb-1">Full Details Coming Soon</h4>
+                    <p className="text-gray-400 text-sm">Updated photos and complete aircraft specifications will be posted shortly</p>
                   </div>
                 </div>
               </div>
@@ -201,16 +189,6 @@ export default function AircraftPage() {
                 <p className="text-gray-300 text-sm">
                   Aircraft rental and training availability from Republic Airport
                 </p>
-              </div>
-
-              <div className="bg-white/5 border border-white/15 rounded-lg p-5 mb-8">
-                <h3 className="text-white font-semibold mb-3">Aircraft Snapshot</h3>
-                <ul className="space-y-1.5 text-sm text-gray-300">
-                  <li>Glass instruments for modern scan discipline</li>
-                  <li>Updated avionics array for training and proficiency work</li>
-                  <li>Refreshed interior for student comfort</li>
-                  <li>Strong fit for private, instrument, and commercial progression</li>
-                </ul>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">

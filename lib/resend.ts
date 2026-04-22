@@ -287,9 +287,7 @@ export const emailTemplates = {
     earliestStart: string
   }) => {
     const locationLabels: Record<string, string> = {
-      lumberton: 'Lumberton, NJ (N14 — Flying W Airport)',
       'long-island': 'Long Island, NY (FRG — Republic Airport)',
-      warwick: 'Warwick, NY (N72 — Warwick Municipal)',
     }
     const locationLabel = locationLabels[payload.preferredLocation] || payload.preferredLocation
     return {

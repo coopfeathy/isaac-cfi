@@ -21,7 +21,7 @@ export default function AircraftDocumentsPage() {
           </div>
 
           <section className="mb-8">
-            <h2 className="text-2xl font-bold text-darkText mb-4">N2152Z Piper Warrior</h2>
+            <h2 className="text-2xl font-bold text-darkText mb-4">N9725U</h2>
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-5">
               <ul className="space-y-2 text-gray-700">
                 <li>Airworthiness and registration records are maintained and current.</li>

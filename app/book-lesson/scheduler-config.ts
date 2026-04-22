@@ -85,9 +85,7 @@ export const schedulerConfig: SchedulerConfig = {
   ],
 
   locations: [
-    { value: 'lumberton', label: 'Lumberton, NJ (N14)' },
     { value: 'long-island', label: 'Long Island, NY (FRG)' },
-    { value: 'warwick', label: 'Warwick, NY (N72)' },
   ],
 }
 

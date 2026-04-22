@@ -141,7 +141,7 @@ export default function PricingPage() {
                   </svg>
                 </div>
                 <h3 className="text-xl sm:text-2xl font-bold text-black mb-1">Aircraft Rental</h3>
-                <p className="text-sm text-gray-500 mb-5">N2152Z Piper Warrior · FRG</p>
+                <p className="text-sm text-gray-500 mb-5">N9725U · FRG</p>
                 <div className="flex items-baseline gap-1 mb-4">
                   <span className="text-4xl sm:text-5xl font-bold text-golden">${aircraftRate}</span>
                   <span className="text-gray-500 text-lg">/hr</span>
@@ -464,7 +464,7 @@ export default function PricingPage() {
               />
               <FAQItem
                 question="How does billing work?"
-                answer="Training is billed hourly: $65/hr for instruction and $185.00/hr for N2152Z aircraft time. A 3.5% fee applies to card purchases. No block-hour pricing."
+                answer="Training is billed hourly: $65/hr for instruction and $185.00/hr for N9725U aircraft time. A 3.5% fee applies to card purchases. No block-hour pricing."
               />
               <FAQItem
                 question="What about fuel surcharges?"

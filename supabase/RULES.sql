@@ -14,9 +14,9 @@
 -- PAYMENT FLOW:
 --
 --   Aircraft Items (acct_1TGjHxE14NEZerCV) — NO developer commission:
---     - Aircraft Rental N2152Z          → 100% to owner
 --     - Redbird Simulator Rental        → 94% to owner, 6% to Isaac
 --     - FRG Landing Fee                 → 84% to owner, 16% to Isaac
+--     - ISP Airspace Entry Fee          → 84% to owner, 16% to Isaac
 --     - Fuel Surcharge                  → 97% to owner, 3% to Isaac
 --
 --   Non-Aircraft Items (acct_1FbdK6Cus0IiI5gg) → Isaac + Cooper commission:
@@ -60,17 +60,17 @@ SELECT
   false,  -- *** NO developer commission on aircraft items ***
   'bps',
   CASE lower(i.name)
-    WHEN 'aircraft rental n2152z 0.1/hr' THEN 0   -- owner gets 100%, Isaac gets 0%
     WHEN 'redbird simulator rental'       THEN 6   -- owner gets 94%, Isaac gets 6%
     WHEN 'frg landing fee'                THEN 16  -- owner gets 84%, Isaac gets 16%
+    WHEN 'isp airspace entry fee'         THEN 16  -- owner gets 84%, Isaac gets 16%
     WHEN 'fuel surcharge'                 THEN 3   -- owner gets 97%, Isaac gets 3%
   END
 FROM items i
 CROSS JOIN owner
 WHERE lower(i.name) IN (
-  'aircraft rental n2152z 0.1/hr',
   'redbird simulator rental',
   'frg landing fee',
+  'isp airspace entry fee',
   'fuel surcharge'
 )
 ON CONFLICT DO NOTHING;

@@ -4,7 +4,15 @@ import { supabase } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
-    const { type, recipients, subject, message, name, date, time } = await request.json()
+    const { type, recipients, subject, message, name, date, time } = await request.json() as {
+      type: string
+      recipients: string | string[]
+      subject?: string
+      message?: string
+      name?: string
+      date?: string
+      time?: string
+    }
 
     // Verify admin authentication
     const authHeader = request.headers.get('authorization')
@@ -47,6 +55,14 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
         }
         emailData = emailTemplates.flightReminder(name, date, time)
+        emailTo = recipients
+        break
+
+      case 'post_discovery_start_training':
+        if (!recipients) {
+          return NextResponse.json({ error: 'Missing recipient email' }, { status: 400 })
+        }
+        emailData = emailTemplates.postDiscoveryStartTraining(name)
         emailTo = recipients
         break
 

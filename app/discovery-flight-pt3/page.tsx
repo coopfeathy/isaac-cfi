@@ -14,22 +14,10 @@ function DiscoveryFlightPt3Content() {
 
   const locations = [
     {
-      id: 'lumberton',
-      name: 'Lumberton, NJ',
-      airport: 'N14 - Flying W Airport',
-      address: '68 Stacy Haines Rd, Lumberton, NJ',
-    },
-    {
       id: 'long-island',
       name: 'Long Island, NY',
       airport: 'FRG - Republic Airport',
       address: '208 NY-109, Farmingdale, NY 11735',
-    },
-    {
-      id: 'warwick',
-      name: 'Warwick, NY',
-      airport: 'N72 - Warwick Municipal',
-      address: 'Warwick, New York',
     },
   ]
 

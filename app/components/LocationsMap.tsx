@@ -13,10 +13,10 @@ const geoUrl = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json'
 
 const airports = [
   {
-    id: 'n2152z',
+    id: 'n9725u',
     name: 'FRG - Republic Airport',
     location: 'Farmingdale, NY',
-    aircraft: 'N2152Z Piper Warrior',
+    aircraft: 'N9725U',
     coordinates: [-73.4134, 40.7288] as [number, number],
   },
 ]

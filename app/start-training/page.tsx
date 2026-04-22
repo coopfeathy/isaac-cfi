@@ -475,14 +475,8 @@ function StartTrainingContent() {
                       <option value="" className="bg-gray-900">
                         Select a location
                       </option>
-                      <option value="lumberton" className="bg-gray-900">
-                        Lumberton, NJ (N14)
-                      </option>
                       <option value="long-island" className="bg-gray-900">
                         Long Island, NY (FRG)
-                      </option>
-                      <option value="warwick" className="bg-gray-900">
-                        Warwick, NY (N72)
                       </option>
                     </select>
                   </div>

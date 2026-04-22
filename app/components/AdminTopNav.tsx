@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 
 type NavSection = {
   label: string
-  icon: 'learn' | 'students' | 'schedule' | 'content'
+  icon: 'learn' | 'students' | 'schedule' | 'content' | 'finance'
   items: { href: string; label: string; match: string[] }[]
 }
 
@@ -53,6 +53,13 @@ const navSections: NavSection[] = [
       { href: '/admin/email', label: 'Email Campaigns', match: ['/admin/email'] },
     ],
   },
+  {
+    label: 'Finance',
+    icon: 'finance',
+    items: [
+      { href: '/admin/revenue', label: 'Revenue Tracker', match: ['/admin/revenue'] },
+    ],
+  },
 ]
 
 const allNavItems = navSections.flatMap((section) => section.items)
@@ -89,6 +96,12 @@ function SectionIcon({ icon }: { icon: NavSection['icon'] }) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={common} aria-hidden="true">
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
           <path d="M6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22V4.5A2.5 2.5 0 0 1 6.5 2Z" />
+        </svg>
+      )
+    case 'finance':
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={common} aria-hidden="true">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
         </svg>
       )
   }
