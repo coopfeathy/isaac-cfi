@@ -173,7 +173,35 @@
 .ops-console-root .sidebar-search input::placeholder { color: var(--fg-3); }
 .ops-console-root .sidebar-search kbd { font-family: var(--ff-mono); font-size: 10px; color: var(--fg-3); border: 1px solid var(--line-1); padding: 1px 4px; border-radius: 2px; }
 
-.ops-console-root .sidebar-actions { display: flex; gap: 4px; padding: 0 10px 8px; border-bottom: 1px solid var(--line-1); }
+.ops-console-root .sidebar-actions { display: flex; gap: 4px; padding: 0 10px 8px; border-bottom: 1px solid var(--line-1); position: relative; }
+.ops-console-root .sidebar-actions .btn-ghost.act { background: var(--bg-3); border-color: var(--line-2); color: var(--fg-0); }
+
+/* ═══════ Filter Panel ═══════ */
+.ops-console-root .filter-pop {
+  position: absolute; left: 10px; top: calc(100% + 4px);
+  width: 260px; max-height: 60vh; z-index: 60;
+  background: var(--bg-1); border: 1px solid var(--line-2);
+  border-radius: var(--radius-lg); box-shadow: 0 10px 30px -8px rgba(0, 0, 0, 0.5);
+  font-size: 12px;
+  display: flex; flex-direction: column;
+}
+.ops-console-root .filter-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--line-1); }
+.ops-console-root .filter-title { font-size: 10px; letter-spacing: 0.08em; color: var(--fg-2); }
+.ops-console-root .filter-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 12px; overflow: auto; flex: 1; min-height: 0; }
+.ops-console-root .fp-group { display: flex; flex-direction: column; gap: 6px; }
+.ops-console-root .fp-label { font-size: 10px; letter-spacing: 0.08em; color: var(--fg-2); text-transform: uppercase; }
+.ops-console-root .fp-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.ops-console-root .fp-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border: 1px solid var(--line-1); border-radius: 999px;
+  background: transparent; color: var(--fg-2); cursor: pointer; font: inherit; font-size: 11px;
+}
+.ops-console-root .fp-chip:hover { border-color: var(--line-2); color: var(--fg-1); }
+.ops-console-root .fp-chip.act { background: var(--accent-bg); color: var(--fg-0); border-color: var(--accent-dim); }
+.ops-console-root .fp-chip .dot { width: 6px; height: 6px; border-radius: 50%; }
+.ops-console-root .fp-foot { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-top: 1px solid var(--line-1); }
+.ops-console-root .fp-foot .count { color: var(--fg-2); font-size: 11px; }
+
 .ops-console-root .btn-ghost {
   background: transparent; border: 1px solid var(--line-1);
   color: var(--fg-1); padding: 4px 8px; border-radius: 3px; cursor: pointer;

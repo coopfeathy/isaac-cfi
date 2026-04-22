@@ -10,6 +10,82 @@ type Booking = {
 }
 type AlertRow = { id: string; sev: string; code: string; msg: string; ts: string; resolved: boolean }
 
+export type Filters = {
+  status: string[]
+  aircraft: string[]
+  cfi: string[]
+  paid: boolean | null
+}
+export const EMPTY_FILTERS: Filters = { status: [], aircraft: [], cfi: [], paid: null }
+export const filterActiveCount = (f: Filters) =>
+  f.status.length + f.aircraft.length + f.cfi.length + (f.paid !== null ? 1 : 0)
+
+function FilterPanel({ filters, setFilters, onClose }: {
+  filters: Filters; setFilters: (updater: (f: Filters) => Filters) => void; onClose: () => void;
+}) {
+  const STATUSES: { k: string; label: string; color: string }[] = [
+    { k: 'booked',    label: 'Booked',     color: 'var(--accent)' },
+    { k: 'in_flight', label: 'In flight',  color: 'var(--teal-1)' },
+    { k: 'completed', label: 'Completed',  color: 'var(--fg-2)' },
+    { k: 'pending',   label: 'Pending',    color: 'var(--violet-1)' },
+    { k: 'maint',     label: 'Maint',      color: 'var(--amber-1)' },
+    { k: 'aog',       label: 'AOG',        color: 'var(--red-1)' },
+  ]
+  const toggle = (key: 'status' | 'aircraft' | 'cfi', v: string) => setFilters(f => ({
+    ...f,
+    [key]: f[key].includes(v) ? f[key].filter(x => x !== v) : [...f[key], v],
+  }))
+  const reset = () => setFilters(() => EMPTY_FILTERS)
+  const total = filterActiveCount(filters)
+  return (
+    <div className="filter-pop" onClick={e => e.stopPropagation()}>
+      <div className="filter-head">
+        <span className="filter-title mono">FILTERS</span>
+        <button className="btn-ghost icon" onClick={onClose}><I name="x-oct" /></button>
+      </div>
+      <div className="filter-body">
+        <div className="fp-group">
+          <div className="fp-label mono">Status</div>
+          <div className="fp-chips">
+            {STATUSES.map(s => (
+              <button key={s.k} className={`fp-chip ${filters.status.includes(s.k) ? 'act' : ''}`} onClick={() => toggle('status', s.k)}>
+                <span className="dot" style={{ background: s.color }} />{s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="fp-group">
+          <div className="fp-label mono">Aircraft</div>
+          <div className="fp-chips">
+            {AIRCRAFT.map(a => (
+              <button key={a.tail} className={`fp-chip mono ${filters.aircraft.includes(a.tail) ? 'act' : ''}`} onClick={() => toggle('aircraft', a.tail)}>{a.tail}</button>
+            ))}
+          </div>
+        </div>
+        <div className="fp-group">
+          <div className="fp-label mono">Instructor</div>
+          <div className="fp-chips">
+            {INSTRUCTORS.map(c => (
+              <button key={c.id} className={`fp-chip ${filters.cfi.includes(c.id) ? 'act' : ''}`} onClick={() => toggle('cfi', c.id)}>{c.name}</button>
+            ))}
+          </div>
+        </div>
+        <div className="fp-group">
+          <div className="fp-label mono">Payment</div>
+          <div className="fp-chips">
+            <button className={`fp-chip ${filters.paid === true ? 'act' : ''}`} onClick={() => setFilters(f => ({ ...f, paid: f.paid === true ? null : true }))}>Paid</button>
+            <button className={`fp-chip ${filters.paid === false ? 'act' : ''}`} onClick={() => setFilters(f => ({ ...f, paid: f.paid === false ? null : false }))}>Unpaid</button>
+          </div>
+        </div>
+      </div>
+      <div className="fp-foot">
+        <span className="count mono">{total} active</span>
+        <button className="btn-ghost" onClick={reset}>Reset</button>
+      </div>
+    </div>
+  )
+}
+
 function TreeNode({ node, depth, selected, onSelect, expanded, toggleExpand }: {
   node: TreeNodeData; depth: number; selected: string | null;
   onSelect: (n: TreeNodeData) => void;
@@ -51,9 +127,17 @@ function TreeNode({ node, depth, selected, onSelect, expanded, toggleExpand }: {
   )
 }
 
-export function Sidebar({ selected, onSelect }: { selected: string | null; onSelect: (n: TreeNodeData) => void }) {
+export function Sidebar({ selected, onSelect, filters, setFilters, onSync }: {
+  selected: string | null;
+  onSelect: (n: TreeNodeData) => void;
+  filters: Filters;
+  setFilters: (updater: (f: Filters) => Filters) => void;
+  onSync: () => void;
+}) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [q, setQ] = useState('')
+  const [showFilter, setShowFilter] = useState(false)
+  const activeCount = filterActiveCount(filters)
   const toggleExpand = (id: string) => setExpanded(e => ({
     ...e,
     [id]: e[id] == null ? !(TREE.find(n => n.id === id)?.open) : !e[id],
@@ -83,8 +167,12 @@ export function Sidebar({ selected, onSelect }: { selected: string | null; onSel
         <kbd>⌘K</kbd>
       </div>
       <div className="sidebar-actions">
-        <button className="btn-ghost"><I name="filter" /> Filter</button>
-        <button className="btn-ghost"><I name="refresh" /> Sync</button>
+        <button className={`btn-ghost ${showFilter ? 'act' : ''}`} onClick={() => setShowFilter(s => !s)}>
+          <I name="filter" /> Filter
+          {activeCount > 0 && <span className="mono dim" style={{ marginLeft: 4 }}>· {activeCount}</span>}
+        </button>
+        <button className="btn-ghost" onClick={onSync}><I name="refresh" /> Sync</button>
+        {showFilter && <FilterPanel filters={filters} setFilters={setFilters} onClose={() => setShowFilter(false)} />}
       </div>
       <nav className="tree">
         {filtered.length === 0 && <div className="tree-empty mono dim">no matches</div>}

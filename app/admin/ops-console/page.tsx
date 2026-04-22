@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import './ops-console.css'
 import { INITIAL_BOOKINGS, INITIAL_ALERTS, type TreeNodeData } from './data'
-import { Sidebar, TopBar, IconRail, DocNav, SubTabs, Toolbar, Inspector, OpsPulse } from './shell'
+import { Sidebar, TopBar, IconRail, DocNav, SubTabs, Toolbar, Inspector, OpsPulse, EMPTY_FILTERS, type Filters } from './shell'
 import {
   ScheduleBoard, FleetView, StudentsView, IntegrityView, RequestsView, DispatchView,
   BillingView, SyllabusView, OnboardingView, PayoutsView, ExpensesView, DebriefsView,
@@ -37,7 +37,20 @@ export default function OpsConsolePage() {
   const [toast, setToast] = useState<{ msg: string; kind?: string } | null>(null)
   const [loading, setLoading] = useState(false)
   const [draft, setDraft] = useState(1)
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
   const rootRef = useRef<HTMLDivElement | null>(null)
+
+  const visibleBookings = useMemo(() => {
+    const f = filters
+    if (f.status.length === 0 && f.aircraft.length === 0 && f.cfi.length === 0 && f.paid === null) return bookings
+    return bookings.filter(b => {
+      if (f.status.length > 0 && !f.status.includes(b.status)) return false
+      if (f.aircraft.length > 0 && !f.aircraft.includes(b.tail)) return false
+      if (f.cfi.length > 0 && (!b.cfi || !f.cfi.includes(b.cfi))) return false
+      if (f.paid !== null && b.paid !== f.paid) return false
+      return true
+    })
+  }, [bookings, filters])
 
   // Hydrate persisted settings from localStorage after mount.
   useEffect(() => {
@@ -146,7 +159,7 @@ export default function OpsConsolePage() {
   const renderView = () => {
     if (loading) return <div className="view-pad"><Skeleton lines={8} /></div>
     switch (view) {
-      case 'schedule':   return <ScheduleBoard bookings={bookings} zoom={zoom} selBookingId={selBooking} onSelBooking={setSelBooking} />
+      case 'schedule':   return <ScheduleBoard bookings={visibleBookings} zoom={zoom} selBookingId={selBooking} onSelBooking={setSelBooking} />
       case 'fleet':      return <FleetView subTab={subTab} />
       case 'students':   return <StudentsView />
       case 'integrity':  return <IntegrityView alerts={alerts} onResolve={handleResolve} />
@@ -166,7 +179,13 @@ export default function OpsConsolePage() {
     <div ref={rootRef} className="ops-console-root" data-theme={theme}>
       <div className="app">
         <TopBar view={view} theme={theme} onToggleTheme={toggleTheme} />
-        <Sidebar selected={selectedNode?.id ?? null} onSelect={handleSelect} />
+        <Sidebar
+          selected={selectedNode?.id ?? null}
+          onSelect={handleSelect}
+          filters={filters}
+          setFilters={(updater) => setFilters(updater)}
+          onSync={() => showToast('Synced · 0 changes', 'ok')}
+        />
         <main className="main">
           <IconRail view={view} onView={(v) => { setView(v); setSubTab(0) }} />
           <div className="main-inner">
@@ -186,7 +205,7 @@ export default function OpsConsolePage() {
         </main>
         <OpsPulse
           alerts={alerts}
-          bookings={bookings}
+          bookings={visibleBookings}
           onSelBooking={setSelBooking}
           onJumpView={(v) => { setView(v); setSubTab(0) }}
         />
