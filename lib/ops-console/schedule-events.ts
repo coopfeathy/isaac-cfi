@@ -26,6 +26,9 @@ export type ScheduleEventStatus =
 
 export type OpsScheduleEvent = {
   id: string
+  // Human-friendly sequential code ("BK-1", "BK-2", ...) sourced from the
+  // `booking_number` column. `id` remains the UUID used for DB mutations.
+  code: string
   tail: string
   aircraftId: string
   start: number  // tick index
@@ -43,6 +46,7 @@ export type OpsScheduleEvent = {
 
 type Row = {
   id: string
+  booking_number: number | null
   aircraft_id: string | null
   instructor_id: string | null
   student_id: string | null
@@ -86,6 +90,7 @@ function rowToOps(row: Row, dayStart: Date): OpsScheduleEvent {
   const cfiLabel = pickCfiInitials(row.profiles)
   return {
     id: row.id,
+    code: row.booking_number != null ? `BK-${row.booking_number}` : `BK-${row.id.slice(0, 6)}`,
     tail: row.aircraft?.registration || '—',
     aircraftId: row.aircraft_id || '',
     start: isoToTick(row.start_time, dayStart),
@@ -112,7 +117,7 @@ export async function listEventsForDay(day: Date): Promise<OpsScheduleEvent[]> {
   const { data, error } = await supabase
     .from('schedule_events')
     .select(`
-      id, aircraft_id, instructor_id, student_id,
+      id, booking_number, aircraft_id, instructor_id, student_id,
       lesson, student_label, start_time, end_time, status, paid,
       aircraft:aircraft_id ( registration ),
       students:student_id ( full_name ),
@@ -152,7 +157,7 @@ export async function createScheduleEvent(input: CreateEventInput, day: Date): P
       paid: input.paid ?? null,
     })
     .select(`
-      id, aircraft_id, instructor_id, student_id,
+      id, booking_number, aircraft_id, instructor_id, student_id,
       lesson, student_label, start_time, end_time, status, paid,
       aircraft:aircraft_id ( registration ),
       students:student_id ( full_name ),

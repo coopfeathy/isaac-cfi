@@ -11,7 +11,7 @@ import {
 } from './data'
 
 type Booking = {
-  id: string; tail: string; start: number; end: number; student: string;
+  id: string; code?: string; tail: string; start: number; end: number; student: string;
   cfi: string | null; lesson: string; status: string; paid: boolean | null;
 }
 type AlertRow = { id: string; sev: string; code: string; msg: string; ts: string; resolved: boolean }
@@ -280,7 +280,7 @@ export function ScheduleBoard({ aircraft, bookings, zoom, viewDate, selBookingId
                           </>
                         )}
                         <div className="block-head">
-                          <span className="mono block-id">{b.id}</span>
+                          <span className="mono block-id">{b.code ?? b.id}</span>
                           <Avatar cfi={cfi} />
                         </div>
                         <div className="block-body">

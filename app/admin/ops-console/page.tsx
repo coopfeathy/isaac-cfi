@@ -32,7 +32,7 @@ declare global {
 }
 
 type Booking = {
-  id: string; tail: string; start: number; end: number; student: string;
+  id: string; code?: string; tail: string; start: number; end: number; student: string;
   cfi: string | null; lesson: string; status: string; paid: boolean | null;
 }
 type AlertRow = { id: string; sev: string; code: string; msg: string; ts: string; resolved: boolean }
@@ -251,6 +251,7 @@ export default function OpsConsolePage() {
     if (!scheduleEvents) return bookings
     return scheduleEvents.map(ev => ({
       id: ev.id,
+      code: ev.code,
       tail: ev.tail,
       start: ev.start,
       end: ev.end,

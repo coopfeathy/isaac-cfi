@@ -6,7 +6,7 @@ import { I, Badge, Avatar, StatusLights } from './primitives'
 import { TREE, VIEW_META, AIRCRAFT, INSTRUCTORS, STUDENTS, STATUS, TICKS, type TreeNodeData } from './data'
 
 type Booking = {
-  id: string; tail: string; start: number; end: number; student: string;
+  id: string; code?: string; tail: string; start: number; end: number; student: string;
   cfi: string | null; lesson: string; status: string; paid: boolean | null;
 }
 type AlertRow = { id: string; sev: string; code: string; msg: string; ts: string; resolved: boolean }
@@ -683,7 +683,7 @@ export function Inspector({ bookings, bookingId, onClear, onEditBooking, onReass
         <button className="btn-ghost icon" onClick={onClear} title="Clear (Esc)"><I name="x-oct" /></button>
       </div>
       <div className="ins-hero">
-        <div className="hero-id mono">{b.id}</div>
+        <div className="hero-id mono">{b.code ?? b.id}</div>
         <div className="hero-title">{b.student}</div>
         <div className="hero-sub mono dim">{b.lesson}</div>
         <div className="hero-chips">
