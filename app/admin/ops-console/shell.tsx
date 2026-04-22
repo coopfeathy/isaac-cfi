@@ -7,7 +7,7 @@ import { TREE, VIEW_META, AIRCRAFT, INSTRUCTORS, STUDENTS, STATUS, TICKS, type T
 
 type Booking = {
   id: string; code?: string; tail: string; start: number; end: number; student: string;
-  cfi: string | null; lesson: string; status: string; paid: boolean | null;
+  cfi: string | null; cfiInitials?: string | null; lesson: string; status: string; paid: boolean | null;
 }
 type AlertRow = { id: string; sev: string; code: string; msg: string; ts: string; resolved: boolean }
 
@@ -423,7 +423,7 @@ function TreeNode({ node, depth, selected, onSelect, expanded, toggleExpand }: {
   )
 }
 
-export function Sidebar({ selected, onSelect, filters, setFilters, onSync, aircraft }: {
+export function Sidebar({ selected, onSelect, filters, setFilters, onSync, aircraft, students }: {
   selected: string | null;
   onSelect: (n: TreeNodeData) => void;
   filters: Filters;
@@ -432,6 +432,9 @@ export function Sidebar({ selected, onSelect, filters, setFilters, onSync, aircr
   // Live fleet from the DB. The `fleet-g` group's aircraft children are rebuilt
   // from this list so the dropdown reflects exactly what's in Supabase.
   aircraft?: Array<{ tail: string; model: string; status: string }>;
+  // Live student roster. Same pattern — rebuild `students-g` children from the
+  // live list so newly-added students appear in the tree without reload.
+  students?: Array<{ id: string; name: string; phase: string }>;
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [q, setQ] = useState('')
@@ -442,11 +445,12 @@ export function Sidebar({ selected, onSelect, filters, setFilters, onSync, aircr
     ...e,
     [id]: e[id] == null ? !(TREE.find(n => n.id === id)?.open) : !e[id],
   }))
-  // Replace the static fleet aircraft children in TREE with the live list so
-  // adding/removing aircraft in the DB flows straight into the sidebar.
+  // Replace the static fleet aircraft + student children in TREE with the
+  // live lists so adding/removing rows in the DB flows straight into the
+  // sidebar.
   const liveTree = useMemo<TreeNodeData[]>(() => {
-    const list = aircraft ?? []
-    const fleetChildren: TreeNodeData[] = list.map(a => ({
+    const acList = aircraft ?? []
+    const fleetChildren: TreeNodeData[] = acList.map(a => ({
       id: `ac_${a.tail}`,
       label: a.tail,
       sub: a.model,
@@ -454,12 +458,25 @@ export function Sidebar({ selected, onSelect, filters, setFilters, onSync, aircr
       badge: a.status === 'ground' ? 'AOG' : a.status === 'squawk' ? 'SQK' : null,
       badgeKind: a.status === 'ground' ? 'error' : a.status === 'squawk' ? 'warn' : null,
     }))
+    const stuList = students ?? []
+    const studentChildren: TreeNodeData[] = stuList.map(s => ({
+      id: s.id,
+      label: s.name,
+      sub: s.phase,
+      kind: 'student',
+    }))
     return TREE.map(n => {
-      if (n.id !== 'fleet-g') return n
-      const nonAircraft = (n.children || []).filter(c => c.kind !== 'aircraft')
-      return { ...n, count: list.length, children: [...nonAircraft, ...fleetChildren] }
+      if (n.id === 'fleet-g') {
+        const nonAircraft = (n.children || []).filter(c => c.kind !== 'aircraft')
+        return { ...n, count: acList.length, children: [...nonAircraft, ...fleetChildren] }
+      }
+      if (n.id === 'students-g') {
+        const nonStudent = (n.children || []).filter(c => c.kind !== 'student')
+        return { ...n, count: stuList.length, children: [...nonStudent, ...studentChildren] }
+      }
+      return n
     })
-  }, [aircraft])
+  }, [aircraft, students])
   const filtered = useMemo(() => {
     if (!q) return liveTree
     const ql = q.toLowerCase()

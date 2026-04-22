@@ -14,7 +14,7 @@ import {
   BillingView, SyllabusView, OnboardingView, PayoutsView, ExpensesView, DebriefsView,
   Skeleton, EmptyState, type Student, type Aircraft,
 } from './views'
-import { NewSlotModal, NewAircraftModal, NewStudentModal, ReassignModal, ConfirmModal, AircraftDetailModal, Toast } from './modals'
+import { NewSlotModal, NewAircraftModal, NewStudentModal, ReassignModal, ConfirmModal, AircraftDetailModal, StudentDetailModal, Toast } from './modals'
 import { listAircraft, createAircraft, deleteAircraft, updateAircraft } from '@/lib/ops-console/aircraft'
 import { listStudents, softDeleteStudent, createStudent } from '@/lib/ops-console/students'
 import { listPendingSlotRequests, approveSlotRequest, denySlotRequest, type OpsSlotRequest } from '@/lib/ops-console/slot-requests'
@@ -33,15 +33,16 @@ declare global {
 
 type Booking = {
   id: string; code?: string; tail: string; start: number; end: number; student: string;
-  cfi: string | null; lesson: string; status: string; paid: boolean | null;
+  cfi: string | null; cfiInitials?: string | null; lesson: string; status: string; paid: boolean | null;
 }
 type AlertRow = { id: string; sev: string; code: string; msg: string; ts: string; resolved: boolean }
 type ModalState =
-  | { kind: 'new'; prefill?: { tail?: string; start?: string; end?: string } }
+  | { kind: 'new'; prefill?: { tail?: string; start?: string; end?: string; student?: string } }
   | { kind: 'reassign'; payload: Booking }
   | { kind: 'newAircraft' }
   | { kind: 'newStudent' }
   | { kind: 'aircraft'; payload: Aircraft }
+  | { kind: 'student'; payload: Student }
   | { kind: 'confirm'; payload: { title: string; message: string; confirmLabel: string; danger?: boolean; onConfirm: () => void } }
   | null
 
@@ -272,6 +273,7 @@ export default function OpsConsolePage() {
       end: ev.end,
       student: ev.student,
       cfi: ev.cfiId,
+      cfiInitials: ev.cfi,
       lesson: ev.lesson,
       status: ev.status,
       paid: ev.paid,
@@ -353,7 +355,13 @@ export default function OpsConsolePage() {
       if (found) setModal({ kind: 'aircraft', payload: found })
       setView('fleet')
     }
-    else if (node.kind === 'student') setView('students')
+    else if (node.kind === 'student') {
+      // Match by id first (stable, the tree uses student id as node id), then
+      // fall back to label (name) for backward compatibility with older nodes.
+      const found = students.find(s => s.id === node.id) || students.find(s => s.name === node.label)
+      if (found) setModal({ kind: 'student', payload: found })
+      setView('students')
+    }
   }
 
   const handleEditBooking = (id: string, patch: Partial<Booking>) => {
@@ -756,6 +764,7 @@ export default function OpsConsolePage() {
           setFilters={(updater) => setFilters(updater)}
           onSync={() => showToast('Synced · 0 changes', 'ok')}
           aircraft={aircraft}
+          students={students}
         />
         <main className="main">
           <IconRail view={view} onView={(v) => { setView(v); setSubTab(0) }} />
@@ -819,6 +828,17 @@ export default function OpsConsolePage() {
       )}
       {modal?.kind === 'newAircraft' && <NewAircraftModal onClose={() => setModal(null)} onCreate={handleCreateAircraft} existingTails={aircraft.map(a => a.tail)} />}
       {modal?.kind === 'newStudent' && <NewStudentModal onClose={() => setModal(null)} onCreate={handleCreateStudent} existingNames={students.map(s => s.name)} />}
+      {modal?.kind === 'student' && (
+        <StudentDetailModal
+          student={modal.payload}
+          bookings={displayBookings}
+          onClose={() => setModal(null)}
+          onNewSlot={(s) => {
+            setView('schedule')
+            setModal({ kind: 'new', prefill: { student: s.name } })
+          }}
+        />
+      )}
       {modal?.kind === 'new' && (
         <NewSlotModal
           onClose={() => setModal(null)}

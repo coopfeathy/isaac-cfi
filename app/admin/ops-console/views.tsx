@@ -12,7 +12,7 @@ import {
 
 type Booking = {
   id: string; code?: string; tail: string; start: number; end: number; student: string;
-  cfi: string | null; lesson: string; status: string; paid: boolean | null;
+  cfi: string | null; cfiInitials?: string | null; lesson: string; status: string; paid: boolean | null;
 }
 type AlertRow = { id: string; sev: string; code: string; msg: string; ts: string; resolved: boolean }
 export type Student = {
@@ -25,6 +25,17 @@ export type Aircraft = {
   tail: string; model: string; hobbs: number; nextInsp: string; status: string;
   // Home base ICAO. Defaults to KPNE for rows that don't yet persist this.
   homeBase?: string;
+}
+
+// Deterministic color bucket for DB-backed instructors so each CFI renders a
+// stable avatar color across reloads. Uses the Avatar color tokens defined in
+// ops-console.css (avatar-blue/teal/violet).
+const CFI_PALETTE = ['blue', 'teal', 'violet'] as const
+function pickCfiColor(cfiId: string | null): string {
+  if (!cfiId) return CFI_PALETTE[0]
+  let h = 0
+  for (let i = 0; i < cfiId.length; i++) h = (h * 31 + cfiId.charCodeAt(i)) | 0
+  return CFI_PALETTE[Math.abs(h) % CFI_PALETTE.length]
 }
 
 export function EmptyState({ icon, title, sub, cta }: { icon?: string; title: string; sub?: string; cta?: ReactNode }) {
@@ -237,7 +248,13 @@ export function ScheduleBoard({ aircraft, bookings, zoom, viewDate, selBookingId
                   {TICKS.slice(0, -1).map((_, i) => <div key={i} className={`cell ${i % 2 === 0 ? 'cell-major' : ''}`} style={{ width: TICK_PX }} />)}
                   {rowBookings.map(b => {
                     const s = STATUS[b.status]
-                    const cfi = INSTRUCTORS.find(c => c.id === b.cfi) || null
+                    // Prefer the live-DB initials if present (sourced from the
+                    // `profiles` join in rowToOps). Fall back to the seed
+                    // INSTRUCTORS lookup for in-memory demo bookings.
+                    const seedCfi = INSTRUCTORS.find(c => c.id === b.cfi) || null
+                    const cfi = b.cfiInitials
+                      ? { initials: b.cfiInitials, color: pickCfiColor(b.cfi) }
+                      : seedCfi
                     // If this booking is mid-resize, use the live preview values.
                     const isResizing = resize?.id === b.id
                     const displayStart = isResizing ? resize!.previewStart : b.start

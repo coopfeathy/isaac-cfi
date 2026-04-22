@@ -3,11 +3,11 @@
 import { useState, type ReactNode } from 'react'
 import { I } from './primitives'
 import { INSTRUCTORS, STUDENTS, TICKS, SQUAWKS, MAINT_EVENTS } from './data'
-import type { Aircraft } from './views'
+import type { Aircraft, Student } from './views'
 
 type Booking = {
   id: string; tail: string; start: number; end: number; student: string;
-  cfi: string | null; lesson: string; status: string; paid: boolean | null;
+  cfi: string | null; cfiInitials?: string | null; lesson: string; status: string; paid: boolean | null;
 }
 
 export function Modal({ title, onClose, children, footer, width = 520 }: {
@@ -32,7 +32,7 @@ type DirectoryOption = { id: string; name: string }
 export function NewSlotModal({ onClose, onCreate, prefill, aircraft, instructors, studentList }: {
   onClose: () => void;
   onCreate: (data: { tail: string; start: string; end: string; student: string; cfi: string; lesson: string }) => void;
-  prefill?: { tail?: string; start?: string; end?: string };
+  prefill?: { tail?: string; start?: string; end?: string; student?: string };
   aircraft: Aircraft[];
   // Optional live lists from Supabase. If omitted we fall back to the seed
   // INSTRUCTORS/STUDENTS so the modal still works in demo mode.
@@ -49,10 +49,13 @@ export function NewSlotModal({ onClose, onCreate, prefill, aircraft, instructors
   const defaultTail = prefill?.tail && aircraft.some(a => a.tail === prefill.tail)
     ? prefill.tail
     : (aircraft[0]?.tail ?? '')
+  const defaultStudent = prefill?.student && studentOpts.some(s => s.name === prefill.student)
+    ? prefill.student
+    : (studentOpts[0]?.name ?? '')
   const [tail, setTail] = useState(defaultTail)
   const [start, setStart] = useState(prefill?.start ?? '13:00')
   const [end, setEnd] = useState(prefill?.end ?? '15:00')
-  const [student, setStudent] = useState<string>(studentOpts[0]?.name ?? '')
+  const [student, setStudent] = useState<string>(defaultStudent)
   const [cfi, setCfi] = useState<string>(cfiOpts[0]?.id ?? '')
   const [lesson, setLesson] = useState('PPL-04 Ground Ref')
   return (
@@ -77,9 +80,20 @@ export function NewSlotModal({ onClose, onCreate, prefill, aircraft, instructors
         <div className="f-row"><label className="f-label mono">End</label><input className="f-input mono" value={end} onChange={e => setEnd(e.target.value)} /></div>
         <div className="f-row">
           <label className="f-label mono">Student</label>
-          <select className="f-input" value={student} onChange={e => setStudent(e.target.value)}>
+          {/* Type-to-search combobox so picking a student out of the full
+           * roster stays fast as the list grows. Any roster name the user
+           * types matches the datalist; anything else is still accepted
+           * (typed free-text gets stored as student_label). */}
+          <input
+            className="f-input"
+            list="ops-console-students"
+            value={student}
+            onChange={e => setStudent(e.target.value)}
+            placeholder="Type to search roster…"
+          />
+          <datalist id="ops-console-students">
             {studentOpts.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-          </select>
+          </datalist>
         </div>
         <div className="f-row">
           <label className="f-label mono">Instructor</label>
@@ -418,6 +432,105 @@ export function ConfirmModal({ title, message, confirmLabel, onClose, onConfirm,
       }
     >
       <div className="confirm-msg">{message}</div>
+    </Modal>
+  )
+}
+
+export function StudentDetailModal({ student, bookings, onClose, onNewSlot }: {
+  student: Student;
+  // All known bookings (seed + DB). We filter to this student by name for the
+  // recent-activity section until we wire student_id through the whole board.
+  bookings: Booking[];
+  onClose: () => void;
+  // Hand off to the parent to open NewSlot prefilled with this student.
+  onNewSlot?: (s: Student) => void;
+}) {
+  // "Hours" isn't yet a real DB field; mirror the StudentsView estimate
+  // (progress fraction of a 40h syllabus) so the number stays consistent.
+  const hoursEst = (student.progress * 40).toFixed(1)
+  const lessonsDone = Math.round(student.progress * 22)
+
+  const studentBookings = bookings
+    .filter(b => b.student === student.name)
+    .slice()
+    .sort((a, b) => b.start - a.start)
+  const recent = studentBookings.slice(0, 5)
+
+  const statusMeta = student.status === 'active'
+    ? { label: 'ACTIVE', dot: 'var(--teal-1)' }
+    : student.status === 'pending'
+      ? { label: 'PENDING', dot: 'var(--amber-1)' }
+      : { label: student.status.toUpperCase(), dot: 'var(--fg-2)' }
+
+  return (
+    <Modal
+      title={`STUDENT · ${student.id}`}
+      onClose={onClose}
+      width={640}
+      footer={
+        <>
+          <button className="btn-ghost" onClick={onClose}>Close</button>
+          {onNewSlot && (
+            <button className="btn-primary" onClick={() => onNewSlot(student)}>
+              <I name="plus" /> New slot
+            </button>
+          )}
+        </>
+      }
+    >
+      <div className="ins-hero">
+        <div className="hero-id mono">{student.id}</div>
+        <div className="hero-title">{student.name}</div>
+        <div className="hero-sub mono dim">{student.phase}</div>
+        <div className="hero-chips">
+          <span className="chip chip-muted mono"><span className="chip-dot" style={{ background: statusMeta.dot }} />{statusMeta.label}</span>
+          <span className="chip chip-muted mono">{Math.round(student.progress * 100)}% COMPLETE</span>
+          <span className="chip chip-muted mono">{hoursEst}h</span>
+        </div>
+      </div>
+
+      <div className="ins-sect-head"><span className="mono">PROGRESS</span></div>
+      <div className="f-row">
+        <label className="f-label mono">Phase</label>
+        <div className="f-val">{student.phase}</div>
+      </div>
+      <div className="f-row">
+        <label className="f-label mono">Completion</label>
+        <div className="f-val" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="progress" style={{ flex: 1 }}>
+            <div className="progress-fill" style={{ width: `${student.progress * 100}%` }} />
+            <span className="progress-txt mono">{Math.round(student.progress * 100)}%</span>
+          </div>
+        </div>
+      </div>
+      <div className="f-row">
+        <label className="f-label mono">Lessons</label>
+        <div className="f-val mono">{lessonsDone}/22</div>
+      </div>
+      <div className="f-row">
+        <label className="f-label mono">Hours (est.)</label>
+        <div className="f-val mono">{hoursEst} <span className="dim">h</span></div>
+      </div>
+      <div className="f-row">
+        <label className="f-label mono">Last lesson</label>
+        <div className="f-val mono dim">{student.lastLesson || '—'}</div>
+      </div>
+
+      <div className="ins-sect-head"><span className="mono">RECENT ACTIVITY</span></div>
+      {recent.length === 0
+        ? <div className="f-val dim">No bookings on file</div>
+        : recent.map(b => (
+          <div key={b.id} className="f-row">
+            <label className="f-label mono">{TICKS[b.start]}–{TICKS[b.end]}</label>
+            <div className="f-val">
+              <span className="mono">{b.tail}</span>
+              {' · '}
+              <span>{b.lesson}</span>
+              {' '}
+              <span className="dim mono">· {b.status}</span>
+            </div>
+          </div>
+        ))}
     </Modal>
   )
 }
