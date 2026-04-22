@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { I, Badge, Avatar, StatusLights } from './primitives'
 import { TREE, VIEW_META, AIRCRAFT, INSTRUCTORS, STUDENTS, STATUS, TICKS, type TreeNodeData } from './data'
@@ -20,6 +20,82 @@ export type Filters = {
 export const EMPTY_FILTERS: Filters = { status: [], aircraft: [], cfi: [], paid: null }
 export const filterActiveCount = (f: Filters) =>
   f.status.length + f.aircraft.length + f.cfi.length + (f.paid !== null ? 1 : 0)
+
+// ────────── Live clock + region ──────────
+// Ticks every 15s so the header clock feels live without wasting renders.
+// Returns `null` on the first render (SSR) so the text doesn't mismatch between
+// server and client; callers show a stable fallback until mount.
+function useNow(intervalMs = 15_000): Date | null {
+  const [now, setNow] = useState<Date | null>(null)
+  useEffect(() => {
+    setNow(new Date())
+    const id = setInterval(() => setNow(new Date()), intervalMs)
+    return () => clearInterval(id)
+  }, [intervalMs])
+  return now
+}
+
+// Best-effort map from IANA timezone → AWS-style region code. Falls back to
+// `us-west-2` so the UI keeps showing something sensible if the browser
+// returns a zone we don't know.
+function regionFromTimeZone(tz: string): string {
+  const t = tz.toLowerCase()
+  if (t.startsWith('america/')) {
+    if (t.includes('new_york') || t.includes('detroit') || t.includes('toronto') || t.includes('montreal') || t.includes('indianapolis')) return 'us-east-1'
+    if (t.includes('chicago') || t.includes('mexico_city') || t.includes('winnipeg') || t.includes('regina')) return 'us-east-2'
+    if (t.includes('denver') || t.includes('edmonton') || t.includes('boise')) return 'us-west-1'
+    if (t.includes('los_angeles') || t.includes('vancouver') || t.includes('tijuana') || t.includes('phoenix')) return 'us-west-2'
+    if (t.includes('anchorage') || t.includes('juneau')) return 'us-west-2'
+    return 'us-west-2'
+  }
+  if (t.startsWith('europe/')) {
+    if (t.includes('london') || t.includes('dublin') || t.includes('lisbon')) return 'eu-west-1'
+    return 'eu-central-1'
+  }
+  if (t.startsWith('asia/')) {
+    if (t.includes('tokyo')) return 'ap-northeast-1'
+    if (t.includes('singapore') || t.includes('kuala_lumpur')) return 'ap-southeast-1'
+    return 'ap-southeast-1'
+  }
+  if (t.startsWith('australia/')) return 'ap-southeast-2'
+  return 'us-west-2'
+}
+
+function useLocale() {
+  const [locale, setLocale] = useState<{ tz: string; region: string } | null>(null)
+  useEffect(() => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+    setLocale({ tz, region: regionFromTimeZone(tz) })
+  }, [])
+  return locale
+}
+
+function formatClock(now: Date, tz: string): string {
+  // Build "22 Apr 2026 · 09:30 PDT" in the user's local timezone.
+  const dateParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, day: '2-digit', month: 'short', year: 'numeric',
+  }).formatToParts(now)
+  const day = dateParts.find(p => p.type === 'day')?.value ?? ''
+  const mon = dateParts.find(p => p.type === 'month')?.value ?? ''
+  const yr  = dateParts.find(p => p.type === 'year')?.value ?? ''
+  const timeParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short',
+  }).formatToParts(now)
+  const hh = timeParts.find(p => p.type === 'hour')?.value ?? ''
+  const mm = timeParts.find(p => p.type === 'minute')?.value ?? ''
+  const zone = timeParts.find(p => p.type === 'timeZoneName')?.value ?? ''
+  return `${day} ${mon} ${yr} · ${hh}:${mm} ${zone}`
+}
+
+function formatTimeShort(now: Date, tz: string): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short',
+  }).formatToParts(now)
+  const hh = parts.find(p => p.type === 'hour')?.value ?? ''
+  const mm = parts.find(p => p.type === 'minute')?.value ?? ''
+  const zone = parts.find(p => p.type === 'timeZoneName')?.value ?? ''
+  return `${hh}:${mm} ${zone}`
+}
 
 function FilterPanel({ filters, setFilters, onClose }: {
   filters: Filters; setFilters: (updater: (f: Filters) => Filters) => void; onClose: () => void;
@@ -156,6 +232,7 @@ export function Sidebar({ selected, onSelect, filters, setFilters, onSync }: {
   const [q, setQ] = useState('')
   const [showFilter, setShowFilter] = useState(false)
   const activeCount = filterActiveCount(filters)
+  const locale = useLocale()
   const toggleExpand = (id: string) => setExpanded(e => ({
     ...e,
     [id]: e[id] == null ? !(TREE.find(n => n.id === id)?.open) : !e[id],
@@ -177,7 +254,7 @@ export function Sidebar({ selected, onSelect, filters, setFilters, onSync }: {
             <div className="sb-brand-tag mono">FLIGHT TRAINING</div>
           </div>
         </div>
-        <div className="sidebar-sub">KMHR · Mather Field · Ops Console</div>
+        <div className="sidebar-sub">KPNE · Northeast Philadelphia · Ops Console</div>
       </div>
       <div className="sidebar-search">
         <I name="search" />
@@ -200,7 +277,7 @@ export function Sidebar({ selected, onSelect, filters, setFilters, onSync }: {
       </nav>
       <div className="sidebar-foot">
         <div className="foot-row"><span className="foot-k">Session</span><span className="foot-v mono">isaac@merlin.cfi</span></div>
-        <div className="foot-row"><span className="foot-k">Region</span><span className="foot-v mono">us-west-2</span></div>
+        <div className="foot-row"><span className="foot-k">Region</span><span className="foot-v mono">{locale?.region ?? 'us-west-2'}</span></div>
         <div className="foot-row"><span className="foot-k">Build</span><span className="foot-v mono">v2.14.0 · main@a8f2c1e</span></div>
       </div>
     </aside>
@@ -209,6 +286,10 @@ export function Sidebar({ selected, onSelect, filters, setFilters, onSync }: {
 
 export function TopBar({ view, theme, onToggleTheme }: { view: string; theme: string; onToggleTheme: () => void }) {
   const title = VIEW_META[view]?.title || 'Ops Console'
+  const now = useNow()
+  const locale = useLocale()
+  const region = locale?.region ?? 'us-west-2'
+  const clock = now && locale ? formatClock(now, locale.tz) : '— — —'
   return (
     <header className="topbar">
       <div className="tb-brand">
@@ -221,8 +302,8 @@ export function TopBar({ view, theme, onToggleTheme }: { view: string; theme: st
       </div>
       <div className="tb-right">
         <StatusLights />
-        <span className="env-pill">PROD · us-west-2</span>
-        <span className="mono tb-time">22 Apr 2026 · 09:30 PDT</span>
+        <span className="env-pill">PROD · {region}</span>
+        <span className="mono tb-time">{clock}</span>
         <button className="icon-btn" onClick={onToggleTheme} title="Toggle theme">
           <I name={theme === 'dark' ? 'sun' : 'moon'} />
         </button>
@@ -433,10 +514,13 @@ export function Inspector({ bookings, bookingId, onClear, onEditBooking, onReass
 }
 
 // ────────── Ops Pulse ──────────
-export function OpsPulse({ alerts, bookings, onSelBooking, onJumpView }: {
-  alerts: AlertRow[]; bookings: Booking[];
+export function OpsPulse({ alerts, bookings, aircraftCount, onSelBooking, onJumpView }: {
+  alerts: AlertRow[]; bookings: Booking[]; aircraftCount?: number;
   onSelBooking: (id: string) => void; onJumpView: (v: string) => void;
 }) {
+  const now = useNow()
+  const locale = useLocale()
+  const liveTime = now && locale ? formatTimeShort(now, locale.tz) : '— —'
   const inFlight = bookings.filter(b => b.status === 'in_flight')
   const nextUp = bookings
     .filter(b => b.status === 'booked' && b.start >= 5 && b.start <= 10)
@@ -457,14 +541,14 @@ export function OpsPulse({ alerts, bookings, onSelBooking, onJumpView }: {
     <div className="timeline pulse">
       <div className="pulse-head">
         <span className="mono pulse-title">OPS PULSE</span>
-        <span className="mono dim">LIVE · 09:30 PDT</span>
+        <span className="mono dim">LIVE · {liveTime}</span>
         <span className="pulse-health">
-          <span className="sl sl-green" /><span className="mono dim">{5 - errorCt}/5 AIRCRAFT</span>
+          <span className="sl sl-green" /><span className="mono dim">{Math.max(0, (aircraftCount ?? 1) - errorCt)}/{aircraftCount ?? 1} AIRCRAFT</span>
           <span className="pulse-sep">·</span>
           <span className="mono"><b className={errorCt ? 'neg' : 'dim'}>{errorCt}</b> ERR</span>
           <span className="mono"><b className={warnCt ? 'warn' : 'dim'}>{warnCt}</b> WRN</span>
         </span>
-        <span className="pulse-right mono dim">KMHR · VFR · 240°/08 · 10SM · 18°C</span>
+        <span className="pulse-right mono dim">KPNE · VFR · 240°/08 · 10SM · 18°C</span>
       </div>
       <div className="pulse-body">
         <div className="pulse-col">

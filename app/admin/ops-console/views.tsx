@@ -463,7 +463,7 @@ export function FleetView({ aircraft, bookings, subTab = 0, onAddAircraft, onDel
   )
 }
 
-export function StudentsView({ students, subTab = 0, onDelete }: { students: Student[]; subTab?: number; onDelete: (s: Student) => void }) {
+export function StudentsView({ students, subTab = 0, onDelete, onAddStudent }: { students: Student[]; subTab?: number; onDelete: (s: Student) => void; onAddStudent?: () => void }) {
   if (subTab === 1) {
     // PROGRESS
     const avgPct = students.length === 0 ? 0 : Math.round(students.reduce((t, s) => t + s.progress, 0) / students.length * 100)
@@ -576,12 +576,25 @@ export function StudentsView({ students, subTab = 0, onDelete }: { students: Stu
   if (students.length === 0) {
     return (
       <div className="view-pad">
-        <EmptyState icon="user" title="No students" sub="All students have been removed. Add one to get started." />
+        <EmptyState
+          icon="user"
+          title="No students"
+          sub="All students have been removed. Add one to get started."
+          cta={onAddStudent ? <button className="btn-primary" onClick={onAddStudent}><I name="plus" /> Add student</button> : undefined}
+        />
       </div>
     )
   }
   return (
     <div className="view-pad">
+      <div className="sect-head">
+        <h3>Active roster</h3>
+        {onAddStudent && (
+          <button className="btn-primary" onClick={onAddStudent}>
+            <I name="plus" /> Add student
+          </button>
+        )}
+      </div>
       <table className="dt"><thead><tr><th>ID</th><th>Name</th><th>Phase</th><th>Progress</th><th className="right">Balance</th><th>Last lesson</th><th>Status</th><th></th></tr></thead><tbody>
         {students.map(s => (
           <tr key={s.id}>

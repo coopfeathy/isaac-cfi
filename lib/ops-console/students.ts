@@ -48,3 +48,24 @@ export async function softDeleteStudent(id: string): Promise<void> {
     .eq('id', id)
   if (error) throw error
 }
+
+export async function createStudent(input: {
+  fullName: string
+  email?: string
+  phone?: string
+  trainingStage?: string
+}): Promise<OpsStudent> {
+  const { data, error } = await supabase
+    .from('students')
+    .insert({
+      full_name: input.fullName,
+      email: input.email || null,
+      phone: input.phone || null,
+      training_stage: input.trainingStage || null,
+      status: 'active',
+    })
+    .select('id, full_name, training_stage, status')
+    .single()
+  if (error) throw error
+  return rowToOps(data as StudentRow)
+}

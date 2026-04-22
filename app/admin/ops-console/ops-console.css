@@ -789,11 +789,15 @@
 .ops-console-toast.toast-error svg { color: var(--red-1); }
 .ops-console-toast.toast-info svg { color: var(--blue-1); }
 
-/* ═══════ Scrollbars (scoped) ═══════ */
-.ops-console-root ::-webkit-scrollbar { width: 10px; height: 10px; }
+/* ═══════ Scrollbars (scoped, hidden) ═══════ */
+/* Hide scrollbars entirely — scrollable regions still scroll via wheel/trackpad
+ * and keyboard, but no chrome is shown. Removes the persistent vertical bar
+ * the inspector/view panes would otherwise render. */
+.ops-console-root { scrollbar-width: none; }
+.ops-console-root * { scrollbar-width: none; }
+.ops-console-root ::-webkit-scrollbar { width: 0; height: 0; display: none; }
 .ops-console-root ::-webkit-scrollbar-track { background: transparent; }
-.ops-console-root ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 5px; border: 2px solid var(--bg-0); }
-.ops-console-root ::-webkit-scrollbar-thumb:hover { background: var(--line-2); }
+.ops-console-root ::-webkit-scrollbar-thumb { background: transparent; }
 
 /* ═══════ Responsive ═══════ */
 @media (max-width: 1400px) {

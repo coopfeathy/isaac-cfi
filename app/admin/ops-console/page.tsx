@@ -13,9 +13,9 @@ import {
   BillingView, SyllabusView, OnboardingView, PayoutsView, ExpensesView, DebriefsView,
   Skeleton, EmptyState, type Student, type Aircraft,
 } from './views'
-import { NewSlotModal, NewAircraftModal, ReassignModal, ConfirmModal, AircraftDetailModal, Toast } from './modals'
+import { NewSlotModal, NewAircraftModal, NewStudentModal, ReassignModal, ConfirmModal, AircraftDetailModal, Toast } from './modals'
 import { listAircraft, createAircraft, deleteAircraft } from '@/lib/ops-console/aircraft'
-import { listStudents, softDeleteStudent } from '@/lib/ops-console/students'
+import { listStudents, softDeleteStudent, createStudent } from '@/lib/ops-console/students'
 import { listPendingSlotRequests, approveSlotRequest, denySlotRequest, type OpsSlotRequest } from '@/lib/ops-console/slot-requests'
 import { listInstructors, listActiveStudentsForDirectory, type DirectoryPerson } from '@/lib/ops-console/directory'
 import {
@@ -39,6 +39,7 @@ type ModalState =
   | { kind: 'new'; prefill?: { tail?: string; start?: string; end?: string } }
   | { kind: 'reassign'; payload: Booking }
   | { kind: 'newAircraft' }
+  | { kind: 'newStudent' }
   | { kind: 'aircraft'; payload: Aircraft }
   | { kind: 'confirm'; payload: { title: string; message: string; confirmLabel: string; danger?: boolean; onConfirm: () => void } }
   | null
@@ -465,6 +466,23 @@ export default function OpsConsolePage() {
       },
     })
   }
+  const handleAddStudent = () => setModal({ kind: 'newStudent' })
+  const handleCreateStudent = async (data: { fullName: string; email: string; phone: string; trainingStage: string }) => {
+    try {
+      const created = await createStudent({
+        fullName: data.fullName,
+        email: data.email || undefined,
+        phone: data.phone || undefined,
+        trainingStage: data.trainingStage || undefined,
+      })
+      setStudents(list => [...list, created])
+      setModal(null)
+      showToast(`${created.name} added to roster`, 'ok')
+    } catch (err) {
+      console.error('[ops-console] createStudent failed:', err)
+      showToast(`Failed to add ${data.fullName} — ${(err as Error).message || 'unknown error'}`, 'error')
+    }
+  }
   const handleDeleteStudent = (s: Student) => {
     setModal({
       kind: 'confirm',
@@ -654,7 +672,7 @@ export default function OpsConsolePage() {
     switch (view) {
       case 'schedule':   return <ScheduleBoard aircraft={aircraft} bookings={visibleBookings} zoom={zoom} selBookingId={selBooking} onSelBooking={setSelBooking} onEmptySlotClick={handleEmptySlotClick} onAddAircraft={handleAddAircraft} onDeleteAircraft={handleDeleteAircraft} onMoveBooking={handleMoveBooking} onResizeBookingRequest={handleResizeBookingRequest} />
       case 'fleet':      return <FleetView aircraft={aircraft} bookings={displayBookings} subTab={subTab} onAddAircraft={handleAddAircraft} onDeleteAircraft={handleDeleteAircraft} onOpenAircraft={(a) => setModal({ kind: 'aircraft', payload: a })} />
-      case 'students':   return <StudentsView students={students} subTab={subTab} onDelete={handleDeleteStudent} />
+      case 'students':   return <StudentsView students={students} subTab={subTab} onDelete={handleDeleteStudent} onAddStudent={handleAddStudent} />
       case 'integrity':  return <IntegrityView alerts={alerts} onResolve={handleResolve} />
       case 'requests':   return <RequestsView requests={slotRequests} onApprove={handleApproveRequest} onDecline={handleDeclineRequest} />
       case 'dispatch':   return <DispatchView subTab={subTab} />
@@ -701,6 +719,7 @@ export default function OpsConsolePage() {
         <OpsPulse
           alerts={alerts}
           bookings={visibleBookings}
+          aircraftCount={aircraft.length}
           onSelBooking={setSelBooking}
           onJumpView={(v) => { setView(v); setSubTab(0) }}
         />
@@ -727,6 +746,7 @@ export default function OpsConsolePage() {
 
       {modal?.kind === 'aircraft' && <AircraftDetailModal aircraft={modal.payload} bookings={displayBookings} onClose={() => setModal(null)} />}
       {modal?.kind === 'newAircraft' && <NewAircraftModal onClose={() => setModal(null)} onCreate={handleCreateAircraft} existingTails={aircraft.map(a => a.tail)} />}
+      {modal?.kind === 'newStudent' && <NewStudentModal onClose={() => setModal(null)} onCreate={handleCreateStudent} existingNames={students.map(s => s.name)} />}
       {modal?.kind === 'new' && (
         <NewSlotModal
           onClose={() => setModal(null)}

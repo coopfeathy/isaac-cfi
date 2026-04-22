@@ -158,6 +158,70 @@ export function NewAircraftModal({ onClose, onCreate, existingTails }: {
   )
 }
 
+export function NewStudentModal({ onClose, onCreate, existingNames }: {
+  onClose: () => void;
+  onCreate: (data: { fullName: string; email: string; phone: string; trainingStage: string }) => void;
+  existingNames: string[];
+}) {
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [trainingStage, setTrainingStage] = useState('PPL · Pre-solo')
+
+  const trimmedName = fullName.trim()
+  const dupe = existingNames.some(n => n.toLowerCase() === trimmedName.toLowerCase())
+  const valid = trimmedName.length >= 2 && !dupe
+
+  return (
+    <Modal
+      title="NEW STUDENT"
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          <button
+            className="btn-primary"
+            disabled={!valid}
+            style={valid ? undefined : { opacity: 0.5, cursor: 'not-allowed' }}
+            onClick={() => valid && onCreate({ fullName: trimmedName, email: email.trim(), phone: phone.trim(), trainingStage: trainingStage.trim() })}
+          >
+            Add student
+          </button>
+        </>
+      }
+    >
+      <div className="form-grid">
+        <div className="f-row">
+          <label className="f-label mono">Full name</label>
+          <input className="f-input" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Jane Doe" autoFocus />
+        </div>
+        {dupe && <div className="f-row"><div /><div className="warn mono" style={{ fontSize: 11 }}>A student named {trimmedName} already exists</div></div>}
+        <div className="f-row">
+          <label className="f-label mono">Email</label>
+          <input className="f-input" value={email} onChange={e => setEmail(e.target.value)} placeholder="jane@example.com" type="email" />
+        </div>
+        <div className="f-row">
+          <label className="f-label mono">Phone</label>
+          <input className="f-input mono" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 555 123 4567" />
+        </div>
+        <div className="f-row">
+          <label className="f-label mono">Training stage</label>
+          <select className="f-input" value={trainingStage} onChange={e => setTrainingStage(e.target.value)}>
+            <option value="PPL · Pre-solo">PPL · Pre-solo</option>
+            <option value="PPL · Solo XC">PPL · Solo XC</option>
+            <option value="PPL · XC">PPL · XC</option>
+            <option value="PPL · Checkride">PPL · Checkride</option>
+            <option value="IR · Approaches">IR · Approaches</option>
+            <option value="IR · Partial Panel">IR · Partial Panel</option>
+            <option value="CPL">CPL</option>
+            <option value="Discovery">Discovery</option>
+          </select>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 export function ReassignModal({ booking, onClose, onReassign, aircraft }: {
   booking: Booking; onClose: () => void; onReassign: (id: string, patch: Partial<Booking>) => void;
   aircraft: Aircraft[];
