@@ -135,17 +135,34 @@ export default function OpsConsolePage() {
     }
   }, [])
 
-  // Load the real student roster (excluding soft-deleted inactive rows).
+  // Load the student roster AND the NewSlot dropdown directory. Both are
+  // backed by the `students` table, so one realtime subscription keeps them
+  // in sync — if George Hubbard is added in another tab / the admin dashboard
+  // the dropdown picks him up without requiring a page reload.
   useEffect(() => {
     let cancelled = false
-    listStudents().then(list => {
-      if (cancelled) return
-      if (list.length > 0) setStudents(list)
-    }).catch(err => {
-      // eslint-disable-next-line no-console
-      console.warn('[ops-console] students fetch failed, using seed data:', err)
-    })
-    return () => { cancelled = true }
+    const refresh = () => {
+      listStudents().then(list => {
+        if (!cancelled && list.length > 0) setStudents(list)
+      }).catch(err => {
+        // eslint-disable-next-line no-console
+        console.warn('[ops-console] students fetch failed, using seed data:', err)
+      })
+      listActiveStudentsForDirectory().then(list => {
+        if (!cancelled) setStudentOptions(list)
+      }).catch(err => {
+        console.warn('[ops-console] student directory fetch failed:', err)
+      })
+    }
+    refresh()
+    const channel = supabase
+      .channel('ops-console-students')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, refresh)
+      .subscribe()
+    return () => {
+      cancelled = true
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   // Load pending slot requests. Always replace — empty list is a valid state.
@@ -161,14 +178,12 @@ export default function OpsConsolePage() {
     return () => { cancelled = true }
   }, [])
 
-  // Instructor + student directories for the New Slot dropdowns. Silent fail:
-  // if a list is empty the modal falls back to the seed arrays.
+  // Instructor directory for the New Slot dropdown. Student directory is
+  // handled alongside the roster above (shared realtime subscription).
   useEffect(() => {
     let cancelled = false
     listInstructors().then(list => { if (!cancelled) setInstructors(list) })
       .catch(err => { console.warn('[ops-console] instructors fetch failed:', err) })
-    listActiveStudentsForDirectory().then(list => { if (!cancelled) setStudentOptions(list) })
-      .catch(err => { console.warn('[ops-console] student directory fetch failed:', err) })
     return () => { cancelled = true }
   }, [])
 
