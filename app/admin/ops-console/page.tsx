@@ -7,7 +7,6 @@ import {
   Sidebar, TopBar, IconRail, DocNav, SubTabs, Toolbar, Inspector, OpsPulse,
   Tweaks, TWEAK_DEFAULTS, type TweakState,
   EMPTY_FILTERS, type Filters,
-  useNearestAirport,
 } from './shell'
 import {
   ScheduleBoard, FleetView, StudentsView, IntegrityView, RequestsView, DispatchView,
@@ -97,10 +96,6 @@ export default function OpsConsolePage() {
   // the effect below syncs it to today's real date after mount.
   const [date, setDate] = useState<Date>(() => makeDate(2026, 3, 22))
   const rootRef = useRef<HTMLDivElement | null>(null)
-  // Detect the viewer's nearest airport (KPNE for the home base by default).
-  // This drives the Ops Pulse weather station so visiting testers see weather
-  // for their own location.
-  const nearestIcao = useNearestAirport('KPNE')
 
   // Hydrate persisted settings from localStorage + sync date to real "today"
   // after mount. Both are done post-hydration to avoid SSR/client mismatch.
@@ -748,7 +743,7 @@ export default function OpsConsolePage() {
           alerts={alerts}
           bookings={visibleBookings}
           aircraftCount={aircraft.length}
-          airportIcao={nearestIcao}
+          airportIcao="KPNE"
           onSelBooking={setSelBooking}
           onJumpView={(v) => { setView(v); setSubTab(0) }}
         />
