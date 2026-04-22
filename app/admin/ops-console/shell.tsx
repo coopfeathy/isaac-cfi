@@ -4,6 +4,81 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { I, Badge, Avatar, StatusLights } from './primitives'
 import { TREE, VIEW_META, AIRCRAFT, INSTRUCTORS, STUDENTS, STATUS, TICKS, type TreeNodeData } from './data'
 
+type SidebarFilters = {
+  status: string[]
+  aircraft: string[]
+  cfi: string[]
+  paid: boolean | null
+}
+
+function FilterPanel({ filters, setFilters, onClose }: {
+  filters: SidebarFilters
+  setFilters: (updater: (f: SidebarFilters) => SidebarFilters) => void
+  onClose: () => void
+}) {
+  const STATUSES: { k: string; label: string; color: string }[] = [
+    { k: 'booked',    label: 'Booked',    color: 'var(--accent)' },
+    { k: 'in_flight', label: 'In flight', color: 'var(--teal-1)' },
+    { k: 'completed', label: 'Completed', color: 'var(--fg-2)' },
+    { k: 'pending',   label: 'Pending',   color: 'var(--violet-1)' },
+    { k: 'maint',     label: 'Maint',     color: 'var(--amber-1)' },
+    { k: 'aog',       label: 'AOG',       color: 'var(--red-1)' },
+  ]
+  const toggle = (key: 'status' | 'aircraft' | 'cfi', v: string) => setFilters(f => ({
+    ...f,
+    [key]: f[key].includes(v) ? f[key].filter(x => x !== v) : [...f[key], v],
+  }))
+  const reset = () => setFilters(() => ({ status: [], aircraft: [], cfi: [], paid: null }))
+  const total = filters.status.length + filters.aircraft.length + filters.cfi.length + (filters.paid !== null ? 1 : 0)
+  return (
+    <div className="filter-pop" onClick={e => e.stopPropagation()}>
+      <div className="filter-head">
+        <span className="filter-title mono">FILTERS</span>
+        <button className="btn-ghost icon" onClick={onClose}><I name="x-oct" /></button>
+      </div>
+      <div className="filter-body">
+        <div className="fp-group">
+          <div className="fp-label mono">Status</div>
+          <div className="fp-chips">
+            {STATUSES.map(s => (
+              <button key={s.k} className={`fp-chip ${filters.status.includes(s.k) ? 'act' : ''}`} onClick={() => toggle('status', s.k)}>
+                <span className="dot" style={{ background: s.color }} />{s.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="fp-group">
+          <div className="fp-label mono">Aircraft</div>
+          <div className="fp-chips">
+            {AIRCRAFT.map(a => (
+              <button key={a.tail} className={`fp-chip mono ${filters.aircraft.includes(a.tail) ? 'act' : ''}`} onClick={() => toggle('aircraft', a.tail)}>{a.tail}</button>
+            ))}
+          </div>
+        </div>
+        <div className="fp-group">
+          <div className="fp-label mono">Instructor</div>
+          <div className="fp-chips">
+            {INSTRUCTORS.map(c => (
+              <button key={c.id} className={`fp-chip ${filters.cfi.includes(c.id) ? 'act' : ''}`} onClick={() => toggle('cfi', c.id)}>{c.name}</button>
+            ))}
+          </div>
+        </div>
+        <div className="fp-group">
+          <div className="fp-label mono">Payment</div>
+          <div className="fp-chips">
+            <button className={`fp-chip ${filters.paid === true ? 'act' : ''}`} onClick={() => setFilters(f => ({ ...f, paid: f.paid === true ? null : true }))}>Paid</button>
+            <button className={`fp-chip ${filters.paid === false ? 'act' : ''}`} onClick={() => setFilters(f => ({ ...f, paid: f.paid === false ? null : false }))}>Unpaid</button>
+          </div>
+        </div>
+      </div>
+      <div className="fp-foot">
+        <span className="count mono">{total} active</span>
+        <button className="btn-ghost" onClick={reset}>Reset</button>
+      </div>
+    </div>
+  )
+}
+
 type Booking = {
   id: string; tail: string; start: number; end: number; student: string;
   cfi: string | null; lesson: string; status: string; paid: boolean | null;
@@ -54,6 +129,9 @@ function TreeNode({ node, depth, selected, onSelect, expanded, toggleExpand }: {
 export function Sidebar({ selected, onSelect }: { selected: string | null; onSelect: (n: TreeNodeData) => void }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [q, setQ] = useState('')
+  const [showFilter, setShowFilter] = useState(false)
+  const [filters, setFilters] = useState<SidebarFilters>({ status: [], aircraft: [], cfi: [], paid: null })
+  const activeCount = filters.status.length + filters.aircraft.length + filters.cfi.length + (filters.paid !== null ? 1 : 0)
   const toggleExpand = (id: string) => setExpanded(e => ({
     ...e,
     [id]: e[id] == null ? !(TREE.find(n => n.id === id)?.open) : !e[id],
@@ -83,8 +161,17 @@ export function Sidebar({ selected, onSelect }: { selected: string | null; onSel
         <kbd>⌘K</kbd>
       </div>
       <div className="sidebar-actions">
-        <button className="btn-ghost"><I name="filter" /> Filter</button>
-        <button className="btn-ghost"><I name="refresh" /> Sync</button>
+        <button className={`btn-ghost ${showFilter ? 'act' : ''}`} onClick={() => setShowFilter(s => !s)}>
+          <I name="filter" /> Filter
+          {activeCount > 0 && <span className="mono dim" style={{ marginLeft: 4 }}>· {activeCount}</span>}
+        </button>
+        <button
+          className="btn-ghost"
+          onClick={() => window.__toast?.('Synced · 0 changes', 'ok')}
+        >
+          <I name="refresh" /> Sync
+        </button>
+        {showFilter && <FilterPanel filters={filters} setFilters={setFilters} onClose={() => setShowFilter(false)} />}
       </div>
       <nav className="tree">
         {filtered.length === 0 && <div className="tree-empty mono dim">no matches</div>}
@@ -149,9 +236,7 @@ export function IconRail({ view, onView }: { view: string; onView: (v: string) =
   )
 }
 
-export function DocNav({ view, draftIdx, draftCount, onPrevDraft, onNextDraft }: {
-  view: string; draftIdx: number; draftCount: number; onPrevDraft: () => void; onNextDraft: () => void;
-}) {
+export function DocNav({ view }: { view: string }) {
   const meta = VIEW_META[view] || { title: view, doc: '', tabs: [] }
   return (
     <div className="doc-nav">
@@ -161,11 +246,6 @@ export function DocNav({ view, draftIdx, draftCount, onPrevDraft, onNextDraft }:
         <span className="dim">merlin-prod</span>
         <span className="crumb-sep">›</span>
         <span>{meta.title}</span>
-      </div>
-      <div className="doc-draft">
-        <button className="btn-ghost icon" onClick={onPrevDraft}><I name="chev-l" /></button>
-        <span className="mono">Draft {draftIdx} of {draftCount}</span>
-        <button className="btn-ghost icon" onClick={onNextDraft}><I name="chev-r" /></button>
       </div>
       <div className="doc-spacer" />
       <span className="doc-meta mono dim">{meta.doc}</span>
@@ -186,16 +266,21 @@ export function SubTabs({ view, active, onActive }: { view: string; active: numb
   )
 }
 
-export function Toolbar({ zoom, onZoom, date, onNewSlot }: {
-  zoom: number; onZoom: (z: number) => void; date: string; onNewSlot: () => void;
+export function Toolbar({ zoom, onZoom, dateLabel, onPrevDay, onNextDay, onToday, onNewSlot }: {
+  zoom: number; onZoom: (z: number) => void;
+  dateLabel: string;
+  onPrevDay: () => void;
+  onNextDay: () => void;
+  onToday: () => void;
+  onNewSlot: () => void;
 }) {
   return (
     <div className="toolbar">
       <div className="tb-date">
-        <button className="btn-ghost icon">‹</button>
-        <span className="mono">{date}</span>
-        <button className="btn-ghost icon">›</button>
-        <button className="btn-ghost">Today</button>
+        <button className="btn-ghost icon" onClick={onPrevDay} title="Previous day" aria-label="Previous day">‹</button>
+        <span className="mono">{dateLabel}</span>
+        <button className="btn-ghost icon" onClick={onNextDay} title="Next day" aria-label="Next day">›</button>
+        <button className="btn-ghost" onClick={onToday}>Today</button>
       </div>
       <div className="tb-divider" />
       <div className="tb-group mono dim">PDT · UTC-7</div>
@@ -424,6 +509,79 @@ export function OpsPulse({ alerts, bookings, onSelBooking, onJumpView }: {
               <I name="chev-r" />
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export type TweakState = {
+  accentHue: number
+  density: 'compact' | 'default' | 'comfortable'
+  dataFont: 'mono' | 'sans'
+  showGrid: boolean
+}
+
+export const TWEAK_DEFAULTS: TweakState = /*EDITMODE-BEGIN*/{
+  accentHue: 260,
+  density: 'comfortable',
+  dataFont: 'mono',
+  showGrid: true,
+}/*EDITMODE-END*/
+
+export function Tweaks({ tweaks, setTweaks, theme, onToggleTheme, onClose }: {
+  tweaks: TweakState
+  setTweaks: (updater: (t: TweakState) => TweakState) => void
+  theme: string
+  onToggleTheme: () => void
+  onClose: () => void
+}) {
+  const setK = <K extends keyof TweakState>(k: K, v: TweakState[K]) => {
+    setTweaks(t => ({ ...t, [k]: v }))
+    // Bridge back to the host (Edit Mode frame) so external tools see the change.
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*')
+    }
+  }
+  return (
+    <div className="tweaks">
+      <div className="tweaks-head">
+        <span className="tweaks-title mono">TWEAKS</span>
+        <button className="btn-ghost icon" onClick={onClose}><I name="x-oct" /></button>
+      </div>
+      <div className="tweaks-body">
+        <div className="tw-row">
+          <label>Theme</label>
+          <div className="tw-seg">
+            <button className={theme === 'dark' ? 'act' : ''} onClick={onToggleTheme}>dark</button>
+            <button className={theme === 'light' ? 'act' : ''} onClick={onToggleTheme}>light</button>
+          </div>
+        </div>
+        <div className="tw-row">
+          <label>Accent hue</label>
+          <input className="tw-slider" type="range" min={0} max={360} step={5} value={tweaks.accentHue} onChange={e => setK('accentHue', +e.target.value)} />
+        </div>
+        <div className="tw-row">
+          <label>Density</label>
+          <div className="tw-seg">
+            {(['compact', 'default', 'comfortable'] as const).map(d => (
+              <button key={d} className={tweaks.density === d ? 'act' : ''} onClick={() => setK('density', d)}>{d}</button>
+            ))}
+          </div>
+        </div>
+        <div className="tw-row">
+          <label>Data labels</label>
+          <div className="tw-seg">
+            <button className={tweaks.dataFont === 'mono' ? 'act' : ''} onClick={() => setK('dataFont', 'mono')}>mono</button>
+            <button className={tweaks.dataFont === 'sans' ? 'act' : ''} onClick={() => setK('dataFont', 'sans')}>sans</button>
+          </div>
+        </div>
+        <div className="tw-row">
+          <label>Grid lines</label>
+          <div className="tw-seg">
+            <button className={tweaks.showGrid ? 'act' : ''} onClick={() => setK('showGrid', true)}>on</button>
+            <button className={!tweaks.showGrid ? 'act' : ''} onClick={() => setK('showGrid', false)}>off</button>
+          </div>
         </div>
       </div>
     </div>

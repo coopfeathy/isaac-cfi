@@ -152,6 +152,21 @@ export const TICKS = Array.from({ length: 25 }, (_, i) => {
   return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`
 })
 
+// Synthetic activity feed — deterministic so SSR/client renders stay in sync.
+export const ACTIVITY = Array.from({ length: 180 }, (_, i) => ({
+  id: `ACT-${1000 + i}`,
+  ts: `${String(Math.floor(i / 8) % 24).padStart(2, '0')}:${String((i * 7) % 60).padStart(2, '0')}`,
+  kind: (['booking', 'payment', 'maint', 'alert', 'auth'] as const)[i % 5],
+  actor: (['isaac@merlin.cfi', 'reena@merlin.cfi', 'darius@merlin.cfi', 'system', 'stripe-webhook'] as const)[i % 5],
+  msg: [
+    'Booking created',
+    'Invoice paid',
+    'Squawk logged',
+    'Integrity alert raised',
+    'Session started',
+  ][i % 5],
+}))
+
 export const STATUS: Record<string, { fill: string; stroke: string; text: string; label: string }> = {
   booked:    { fill: 'var(--blue-2)',   stroke: 'var(--blue-1)',   text: 'var(--blue-text)',   label: 'BOOKED' },
   in_flight: { fill: 'var(--teal-2)',   stroke: 'var(--teal-1)',   text: 'var(--teal-text)',   label: 'IN FLIGHT' },

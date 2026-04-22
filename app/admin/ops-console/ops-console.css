@@ -377,6 +377,20 @@
 .ops-console-root .board-row { display: flex; border-bottom: 1px solid var(--line-1); }
 .ops-console-root .board-row:hover { background: oklch(0.19 0.012 240); }
 .ops-console-root[data-theme="light"] .board-row:hover { background: oklch(0.955 0.006 240); }
+.ops-console-root .board-row-add { background: transparent; }
+.ops-console-root .row-label-add { display: flex; align-items: center; justify-content: center; background: var(--bg-1); border-right: 1px solid var(--line-1); position: sticky; left: 0; z-index: 2; padding: 6px 10px; }
+.ops-console-root .row-add-btn { font-size: 11.5px; color: var(--fg-2); border-style: dashed; width: 100%; justify-content: center; }
+.ops-console-root .row-add-btn:hover { color: var(--fg-0); }
+.ops-console-root .row-track-add { flex: 1; }
+.ops-console-root .row-del {
+  background: transparent; border: 0; padding: 2px;
+  color: var(--fg-3); cursor: pointer; border-radius: 2px;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-left: auto; opacity: 0;
+  transition: opacity 0.1s ease, color 0.1s ease, background 0.1s ease;
+}
+.ops-console-root .row-label:hover .row-del { opacity: 1; }
+.ops-console-root .row-del:hover { color: var(--red-text); background: var(--red-2); }
 .ops-console-root .row-label {
   position: sticky; left: 0; z-index: 2;
   flex: 0 0 auto;
@@ -406,6 +420,24 @@
 }
 .ops-console-root .block:hover { transform: translateY(-1px); box-shadow: 0 6px 14px -4px oklch(0 0 0 / 0.5); z-index: 1; filter: brightness(1.08); }
 .ops-console-root .block-sel { outline: 1.5px solid var(--accent); outline-offset: 1px; z-index: 2; box-shadow: 0 0 0 3px oklch(0.72 0.14 var(--accent-h) / 0.22); }
+.ops-console-root .block-resizing { z-index: 5; box-shadow: 0 0 0 2px var(--accent), 0 8px 18px -4px oklch(0 0 0 / 0.5); }
+.ops-console-root .block-handle {
+  position: absolute; top: 0; bottom: 0; width: 6px;
+  cursor: ew-resize; z-index: 3;
+  background: transparent;
+  touch-action: none;
+}
+.ops-console-root .block-handle::before {
+  content: ''; position: absolute; top: 25%; bottom: 25%; left: 50%;
+  width: 2px; transform: translateX(-50%);
+  background: currentColor; opacity: 0;
+  border-radius: 1px;
+  transition: opacity 0.12s ease;
+}
+.ops-console-root .block:hover .block-handle::before { opacity: 0.45; }
+.ops-console-root .block-handle:hover::before { opacity: 0.85; }
+.ops-console-root .block-handle-l { left: 0; border-top-left-radius: var(--radius); border-bottom-left-radius: var(--radius); }
+.ops-console-root .block-handle-r { right: 0; border-top-right-radius: var(--radius); border-bottom-right-radius: var(--radius); }
 .ops-console-root .block-head { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
 .ops-console-root .block-id { font-size: 9.5px; opacity: 0.8; letter-spacing: 0.02em; }
 .ops-console-root .block-body { margin-top: 2px; flex: 1; min-height: 0; }
