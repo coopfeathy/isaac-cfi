@@ -259,9 +259,12 @@ export function ReassignModal({ booking, onClose, onReassign, aircraft }: {
   )
 }
 
-export function AircraftDetailModal({ aircraft, bookings, onClose, onSave }: {
+export function AircraftDetailModal({ aircraft, bookings, onClose, onSave, onNewSlot }: {
   aircraft: Aircraft; bookings: Booking[]; onClose: () => void;
   onSave?: (patch: Partial<Aircraft> & { tail: string }) => void | Promise<void>;
+  // Optional: when provided, the modal renders a "New slot" action that
+  // hands the scheduling handoff back to the parent with this aircraft.
+  onNewSlot?: (a: Aircraft) => void;
 }) {
   const today = bookings.filter(b => b.tail === aircraft.tail)
   const squawks = SQUAWKS.filter(s => s.tail === aircraft.tail)
@@ -319,6 +322,11 @@ export function AircraftDetailModal({ aircraft, bookings, onClose, onSave }: {
       footer={
         <>
           <button className="btn-ghost" onClick={onClose}>Close</button>
+          {onNewSlot && (
+            <button className="btn-ghost" onClick={() => onNewSlot(aircraft)}>
+              <I name="plus" /> New slot
+            </button>
+          )}
           <button
             className="btn-primary"
             disabled={!valid || !dirty || saving}

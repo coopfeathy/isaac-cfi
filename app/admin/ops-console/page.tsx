@@ -330,7 +330,13 @@ export default function OpsConsolePage() {
     setSelectedNode(node)
     setSubTab(0)
     if (node.kind === 'view' && node.view) setView(node.view)
-    else if (node.kind === 'aircraft') setView('fleet')
+    else if (node.kind === 'aircraft') {
+      // Open the detail modal for the clicked aircraft so the user lands
+      // directly on its data (and can schedule an event scoped to it).
+      const found = aircraft.find(a => a.tail === node.label)
+      if (found) setModal({ kind: 'aircraft', payload: found })
+      setView('fleet')
+    }
     else if (node.kind === 'student') setView('students')
   }
 
@@ -783,7 +789,18 @@ export default function OpsConsolePage() {
         />
       </div>
 
-      {modal?.kind === 'aircraft' && <AircraftDetailModal aircraft={modal.payload} bookings={displayBookings} onClose={() => setModal(null)} onSave={handleSaveAircraft} />}
+      {modal?.kind === 'aircraft' && (
+        <AircraftDetailModal
+          aircraft={modal.payload}
+          bookings={displayBookings}
+          onClose={() => setModal(null)}
+          onSave={handleSaveAircraft}
+          onNewSlot={(a) => {
+            setView('schedule')
+            setModal({ kind: 'new', prefill: { tail: a.tail } })
+          }}
+        />
+      )}
       {modal?.kind === 'newAircraft' && <NewAircraftModal onClose={() => setModal(null)} onCreate={handleCreateAircraft} existingTails={aircraft.map(a => a.tail)} />}
       {modal?.kind === 'newStudent' && <NewStudentModal onClose={() => setModal(null)} onCreate={handleCreateStudent} existingNames={students.map(s => s.name)} />}
       {modal?.kind === 'new' && (
