@@ -799,6 +799,15 @@
 .ops-console-root ::-webkit-scrollbar-track { background: transparent; }
 .ops-console-root ::-webkit-scrollbar-thumb { background: transparent; }
 
+/* The console is position:fixed + overflow:hidden and fills the viewport, so
+ * the outer document scrollbar is never needed on this page. Hide it while the
+ * ops console is mounted so the global amber thumb from app/globals.css
+ * doesn't bleed through on the far right. */
+html:has(.ops-console-root),
+html:has(.ops-console-root) body { overflow: hidden; scrollbar-width: none; }
+html:has(.ops-console-root)::-webkit-scrollbar,
+html:has(.ops-console-root) body::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
 /* ═══════ Responsive ═══════ */
 @media (max-width: 1400px) {
   .ops-console-root .tb-time { display: none; }

@@ -423,12 +423,15 @@ function TreeNode({ node, depth, selected, onSelect, expanded, toggleExpand }: {
   )
 }
 
-export function Sidebar({ selected, onSelect, filters, setFilters, onSync }: {
+export function Sidebar({ selected, onSelect, filters, setFilters, onSync, aircraft }: {
   selected: string | null;
   onSelect: (n: TreeNodeData) => void;
   filters: Filters;
   setFilters: (updater: (f: Filters) => Filters) => void;
   onSync: () => void;
+  // Live fleet from the DB. The `fleet-g` group's aircraft children are rebuilt
+  // from this list so the dropdown reflects exactly what's in Supabase.
+  aircraft?: Array<{ tail: string; model: string; status: string }>;
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [q, setQ] = useState('')
@@ -439,13 +442,31 @@ export function Sidebar({ selected, onSelect, filters, setFilters, onSync }: {
     ...e,
     [id]: e[id] == null ? !(TREE.find(n => n.id === id)?.open) : !e[id],
   }))
+  // Replace the static fleet aircraft children in TREE with the live list so
+  // adding/removing aircraft in the DB flows straight into the sidebar.
+  const liveTree = useMemo<TreeNodeData[]>(() => {
+    const list = aircraft ?? []
+    const fleetChildren: TreeNodeData[] = list.map(a => ({
+      id: `ac_${a.tail}`,
+      label: a.tail,
+      sub: a.model,
+      kind: 'aircraft',
+      badge: a.status === 'ground' ? 'AOG' : a.status === 'squawk' ? 'SQK' : null,
+      badgeKind: a.status === 'ground' ? 'error' : a.status === 'squawk' ? 'warn' : null,
+    }))
+    return TREE.map(n => {
+      if (n.id !== 'fleet-g') return n
+      const nonAircraft = (n.children || []).filter(c => c.kind !== 'aircraft')
+      return { ...n, count: list.length, children: [...nonAircraft, ...fleetChildren] }
+    })
+  }, [aircraft])
   const filtered = useMemo(() => {
-    if (!q) return TREE
+    if (!q) return liveTree
     const ql = q.toLowerCase()
-    return TREE
+    return liveTree
       .map(g => ({ ...g, children: (g.children || []).filter(c => c.label.toLowerCase().includes(ql) || (c.sub || '').toLowerCase().includes(ql)) }))
       .filter(g => g.children.length > 0)
-  }, [q])
+  }, [q, liveTree])
   return (
     <aside className="sidebar">
       <div className="sidebar-head">
@@ -708,7 +729,7 @@ export function Inspector({ bookings, bookingId, onClear, onEditBooking, onReass
       <Field label="Stripe" value={b.paid ? 'pi_3Oq…xR7' : '—'} mono />
       <div className="ins-actions">
         <button className="btn-ghost" onClick={() => onReassign(b)}>Reassign</button>
-        <button className="btn-ghost" onClick={() => onCancel(b)}>Cancel</button>
+        <button className="btn-danger" onClick={() => onCancel(b)}>Cancel</button>
         <button className="btn-primary"><I name="check" /> Saved</button>
       </div>
     </aside>

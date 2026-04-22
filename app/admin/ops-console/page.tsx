@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import './ops-console.css'
-import { INITIAL_BOOKINGS, INITIAL_ALERTS, STUDENTS, AIRCRAFT, type TreeNodeData } from './data'
+import { INITIAL_BOOKINGS, INITIAL_ALERTS, STUDENTS, type TreeNodeData } from './data'
+import { supabase } from '@/lib/supabase'
 import {
   Sidebar, TopBar, IconRail, DocNav, SubTabs, Toolbar, Inspector, OpsPulse,
   Tweaks, TWEAK_DEFAULTS, type TweakState,
@@ -78,7 +79,9 @@ export default function OpsConsolePage() {
   // in-memory `bookings` seed. Once this is non-null the board renders straight
   // from the DB and all mutations persist.
   const [scheduleEvents, setScheduleEvents] = useState<OpsScheduleEvent[] | null>(null)
-  const [aircraft, setAircraft] = useState<Aircraft[]>(AIRCRAFT as unknown as Aircraft[])
+  // Fleet is DB-backed. We start empty so nothing stale shows before the first
+  // fetch resolves; the Supabase load + realtime subscription below keep it in sync.
+  const [aircraft, setAircraft] = useState<Aircraft[]>([])
   const [students, setStudents] = useState<Student[]>(STUDENTS as unknown as Student[])
   const [slotRequests, setSlotRequests] = useState<OpsSlotRequest[]>([])
   const [instructors, setInstructors] = useState<DirectoryPerson[]>([])
@@ -107,18 +110,29 @@ export default function OpsConsolePage() {
     setDate(todayDate())
   }, [])
 
-  // Load the real fleet from Supabase; fall back silently to seed on failure
-  // so the console still renders offline / during DB outages.
+  // Load the real fleet from Supabase and keep it in sync via realtime. The DB
+  // is the only source of truth — if a row is inserted/updated/deleted anywhere
+  // (other tab, another admin, direct DB edit) we refetch so the fleet dropdown
+  // and every aircraft-aware view reflect it immediately.
   useEffect(() => {
     let cancelled = false
-    listAircraft().then(list => {
-      if (cancelled) return
-      if (list.length > 0) setAircraft(list)
-    }).catch(err => {
-      // eslint-disable-next-line no-console
-      console.warn('[ops-console] aircraft fetch failed, using seed data:', err)
-    })
-    return () => { cancelled = true }
+    const refresh = () => {
+      listAircraft().then(list => {
+        if (!cancelled) setAircraft(list)
+      }).catch(err => {
+        // eslint-disable-next-line no-console
+        console.warn('[ops-console] aircraft fetch failed:', err)
+      })
+    }
+    refresh()
+    const channel = supabase
+      .channel('ops-console-aircraft')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'aircraft' }, refresh)
+      .subscribe()
+    return () => {
+      cancelled = true
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   // Load the real student roster (excluding soft-deleted inactive rows).
@@ -719,6 +733,7 @@ export default function OpsConsolePage() {
           filters={filters}
           setFilters={(updater) => setFilters(updater)}
           onSync={() => showToast('Synced · 0 changes', 'ok')}
+          aircraft={aircraft}
         />
         <main className="main">
           <IconRail view={view} onView={(v) => { setView(v); setSubTab(0) }} />
