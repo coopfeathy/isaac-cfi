@@ -255,9 +255,7 @@ export function IconRail({ view, onView }: { view: string; onView: (v: string) =
   )
 }
 
-export function DocNav({ view, draftIdx, draftCount, onPrevDraft, onNextDraft }: {
-  view: string; draftIdx: number; draftCount: number; onPrevDraft: () => void; onNextDraft: () => void;
-}) {
+export function DocNav({ view }: { view: string }) {
   const meta = VIEW_META[view] || { title: view, doc: '', tabs: [] }
   return (
     <div className="doc-nav">
@@ -267,11 +265,6 @@ export function DocNav({ view, draftIdx, draftCount, onPrevDraft, onNextDraft }:
         <span className="dim">merlin-prod</span>
         <span className="crumb-sep">›</span>
         <span>{meta.title}</span>
-      </div>
-      <div className="doc-draft">
-        <button className="btn-ghost icon" onClick={onPrevDraft}><I name="chev-l" /></button>
-        <span className="mono">Draft {draftIdx} of {draftCount}</span>
-        <button className="btn-ghost icon" onClick={onNextDraft}><I name="chev-r" /></button>
       </div>
       <div className="doc-spacer" />
       <span className="doc-meta mono dim">{meta.doc}</span>
@@ -292,16 +285,21 @@ export function SubTabs({ view, active, onActive }: { view: string; active: numb
   )
 }
 
-export function Toolbar({ zoom, onZoom, date, onNewSlot }: {
-  zoom: number; onZoom: (z: number) => void; date: string; onNewSlot: () => void;
+export function Toolbar({ zoom, onZoom, dateLabel, onPrevDay, onNextDay, onToday, onNewSlot }: {
+  zoom: number; onZoom: (z: number) => void;
+  dateLabel: string;
+  onPrevDay: () => void;
+  onNextDay: () => void;
+  onToday: () => void;
+  onNewSlot: () => void;
 }) {
   return (
     <div className="toolbar">
       <div className="tb-date">
-        <button className="btn-ghost icon">‹</button>
-        <span className="mono">{date}</span>
-        <button className="btn-ghost icon">›</button>
-        <button className="btn-ghost">Today</button>
+        <button className="btn-ghost icon" onClick={onPrevDay} title="Previous day" aria-label="Previous day">‹</button>
+        <span className="mono">{dateLabel}</span>
+        <button className="btn-ghost icon" onClick={onNextDay} title="Next day" aria-label="Next day">›</button>
+        <button className="btn-ghost" onClick={onToday}>Today</button>
       </div>
       <div className="tb-divider" />
       <div className="tb-group mono dim">PDT · UTC-7</div>
@@ -530,6 +528,79 @@ export function OpsPulse({ alerts, bookings, onSelBooking, onJumpView }: {
               <I name="chev-r" />
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export type TweakState = {
+  accentHue: number
+  density: 'compact' | 'default' | 'comfortable'
+  dataFont: 'mono' | 'sans'
+  showGrid: boolean
+}
+
+export const TWEAK_DEFAULTS: TweakState = /*EDITMODE-BEGIN*/{
+  accentHue: 260,
+  density: 'comfortable',
+  dataFont: 'mono',
+  showGrid: true,
+}/*EDITMODE-END*/
+
+export function Tweaks({ tweaks, setTweaks, theme, onToggleTheme, onClose }: {
+  tweaks: TweakState
+  setTweaks: (updater: (t: TweakState) => TweakState) => void
+  theme: string
+  onToggleTheme: () => void
+  onClose: () => void
+}) {
+  const setK = <K extends keyof TweakState>(k: K, v: TweakState[K]) => {
+    setTweaks(t => ({ ...t, [k]: v }))
+    // Bridge back to the host (Edit Mode frame) so external tools see the change.
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*')
+    }
+  }
+  return (
+    <div className="tweaks">
+      <div className="tweaks-head">
+        <span className="tweaks-title mono">TWEAKS</span>
+        <button className="btn-ghost icon" onClick={onClose}><I name="x-oct" /></button>
+      </div>
+      <div className="tweaks-body">
+        <div className="tw-row">
+          <label>Theme</label>
+          <div className="tw-seg">
+            <button className={theme === 'dark' ? 'act' : ''} onClick={onToggleTheme}>dark</button>
+            <button className={theme === 'light' ? 'act' : ''} onClick={onToggleTheme}>light</button>
+          </div>
+        </div>
+        <div className="tw-row">
+          <label>Accent hue</label>
+          <input className="tw-slider" type="range" min={0} max={360} step={5} value={tweaks.accentHue} onChange={e => setK('accentHue', +e.target.value)} />
+        </div>
+        <div className="tw-row">
+          <label>Density</label>
+          <div className="tw-seg">
+            {(['compact', 'default', 'comfortable'] as const).map(d => (
+              <button key={d} className={tweaks.density === d ? 'act' : ''} onClick={() => setK('density', d)}>{d}</button>
+            ))}
+          </div>
+        </div>
+        <div className="tw-row">
+          <label>Data labels</label>
+          <div className="tw-seg">
+            <button className={tweaks.dataFont === 'mono' ? 'act' : ''} onClick={() => setK('dataFont', 'mono')}>mono</button>
+            <button className={tweaks.dataFont === 'sans' ? 'act' : ''} onClick={() => setK('dataFont', 'sans')}>sans</button>
+          </div>
+        </div>
+        <div className="tw-row">
+          <label>Grid lines</label>
+          <div className="tw-seg">
+            <button className={tweaks.showGrid ? 'act' : ''} onClick={() => setK('showGrid', true)}>on</button>
+            <button className={!tweaks.showGrid ? 'act' : ''} onClick={() => setK('showGrid', false)}>off</button>
+          </div>
         </div>
       </div>
     </div>
