@@ -97,6 +97,69 @@ function formatTimeShort(now: Date, tz: string): string {
   return `${hh}:${mm} ${zone}`
 }
 
+// ────────── Live METAR weather (NOAA Aviation Weather Center) ──────────
+// Polls the public AWC JSON endpoint every ~10 minutes. The endpoint supports
+// CORS, so we can call it straight from the browser.
+type Metar = {
+  station: string
+  flightCategory: string | null
+  windDir: number | 'VRB' | null
+  windSpd: number | null
+  visibility: string | null
+  tempC: number | null
+}
+
+export function useMetar(icao: string, intervalMs = 10 * 60 * 1000): Metar | null {
+  const [metar, setMetar] = useState<Metar | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await fetch(
+          `https://aviationweather.gov/api/data/metar?ids=${encodeURIComponent(icao)}&format=json`,
+          { cache: 'no-store' },
+        )
+        if (!res.ok) return
+        const data = await res.json()
+        if (cancelled || !Array.isArray(data) || data.length === 0) return
+        const d = data[0] as Record<string, unknown>
+        const wdirRaw = d.wdir
+        const wdir: number | 'VRB' | null =
+          typeof wdirRaw === 'number' ? wdirRaw : wdirRaw === 'VRB' ? 'VRB' : null
+        setMetar({
+          station: typeof d.icaoId === 'string' ? d.icaoId : icao,
+          flightCategory: typeof d.fltCat === 'string' ? d.fltCat : null,
+          windDir: wdir,
+          windSpd: typeof d.wspd === 'number' ? d.wspd : null,
+          visibility:
+            typeof d.visib === 'string' ? d.visib :
+            typeof d.visib === 'number' ? String(d.visib) : null,
+          tempC: typeof d.temp === 'number' ? d.temp : null,
+        })
+      } catch {
+        /* swallow — UI falls back to the station/— placeholder */
+      }
+    }
+    load()
+    const id = setInterval(load, intervalMs)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [icao, intervalMs])
+  return metar
+}
+
+export function formatMetar(m: Metar | null, fallbackIcao: string): string {
+  if (!m) return `${fallbackIcao} · —`
+  const parts: string[] = [m.station]
+  if (m.flightCategory) parts.push(m.flightCategory)
+  if (m.windDir != null && m.windSpd != null) {
+    const dir = m.windDir === 'VRB' ? 'VRB' : String(m.windDir).padStart(3, '0')
+    parts.push(`${dir}°/${String(m.windSpd).padStart(2, '0')}`)
+  }
+  if (m.visibility) parts.push(`${m.visibility}SM`)
+  if (m.tempC != null) parts.push(`${Math.round(m.tempC)}°C`)
+  return parts.join(' · ')
+}
+
 function FilterPanel({ filters, setFilters, onClose }: {
   filters: Filters; setFilters: (updater: (f: Filters) => Filters) => void; onClose: () => void;
 }) {
@@ -514,13 +577,15 @@ export function Inspector({ bookings, bookingId, onClear, onEditBooking, onReass
 }
 
 // ────────── Ops Pulse ──────────
-export function OpsPulse({ alerts, bookings, aircraftCount, onSelBooking, onJumpView }: {
-  alerts: AlertRow[]; bookings: Booking[]; aircraftCount?: number;
+export function OpsPulse({ alerts, bookings, aircraftCount, airportIcao = 'KPNE', onSelBooking, onJumpView }: {
+  alerts: AlertRow[]; bookings: Booking[]; aircraftCount?: number; airportIcao?: string;
   onSelBooking: (id: string) => void; onJumpView: (v: string) => void;
 }) {
   const now = useNow()
   const locale = useLocale()
   const liveTime = now && locale ? formatTimeShort(now, locale.tz) : '— —'
+  const metar = useMetar(airportIcao)
+  const weatherLine = formatMetar(metar, airportIcao)
   const inFlight = bookings.filter(b => b.status === 'in_flight')
   const nextUp = bookings
     .filter(b => b.status === 'booked' && b.start >= 5 && b.start <= 10)
@@ -548,7 +613,7 @@ export function OpsPulse({ alerts, bookings, aircraftCount, onSelBooking, onJump
           <span className="mono"><b className={errorCt ? 'neg' : 'dim'}>{errorCt}</b> ERR</span>
           <span className="mono"><b className={warnCt ? 'warn' : 'dim'}>{warnCt}</b> WRN</span>
         </span>
-        <span className="pulse-right mono dim">KPNE · VFR · 240°/08 · 10SM · 18°C</span>
+        <span className="pulse-right mono dim">{weatherLine}</span>
       </div>
       <div className="pulse-body">
         <div className="pulse-col">
