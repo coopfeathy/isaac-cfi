@@ -180,8 +180,9 @@ export type TreeNodeData = {
   id: string
   label: string
   sub?: string
-  kind?: 'view' | 'aircraft' | 'student'
+  kind?: 'view' | 'aircraft' | 'student' | 'link'
   view?: string
+  href?: string
   badge?: string | null
   badgeKind?: string | null
   open?: boolean
@@ -217,5 +218,29 @@ export const TREE: TreeNodeData[] = [
     { id: 'billing', label: 'Billing', kind: 'view', view: 'billing', badge: '2', badgeKind: 'warn' },
     { id: 'expenses', label: 'Expenses', kind: 'view', view: 'expenses' },
     { id: 'payouts', label: 'Stripe Payouts', kind: 'view', view: 'payouts' },
+  ]},
+  { id: 'admin-workspaces', label: 'Admin Workspaces', count: 17, open: true, children: [
+    // Learn Platform
+    { id: 'adm-courses',     label: 'Manage Courses',      sub: 'Learn',    kind: 'link', href: '/admin/courses' },
+    { id: 'adm-enrollments', label: 'Assign Students',     sub: 'Learn',    kind: 'link', href: '/admin/enrollments' },
+    { id: 'adm-progress',    label: 'Lesson Debriefs',     sub: 'Learn',    kind: 'link', href: '/admin/progress' },
+    // Students & Prospects
+    { id: 'adm-students',    label: 'Students',            sub: 'Students', kind: 'link', href: '/admin/students' },
+    { id: 'adm-billing',     label: 'Billing',             sub: 'Students', kind: 'link', href: '/admin/billing' },
+    { id: 'adm-expenses',    label: 'Account Balances',    sub: 'Students', kind: 'link', href: '/admin/expenses' },
+    { id: 'adm-prospects',   label: 'Prospects',           sub: 'Students', kind: 'link', href: '/admin/prospects' },
+    { id: 'adm-onboarding',  label: 'Onboarding Queue',    sub: 'Students', kind: 'link', href: '/admin/onboarding' },
+    // Bookings & Schedule
+    { id: 'adm-slots',       label: 'Manage Slots',        sub: 'Bookings', kind: 'link', href: '/admin/slots' },
+    { id: 'adm-bookings',    label: 'View Bookings',       sub: 'Bookings', kind: 'link', href: '/admin/bookings' },
+    { id: 'adm-calendar',    label: 'Calendar Sync',       sub: 'Bookings', kind: 'link', href: '/admin/calendar' },
+    { id: 'adm-aircraft',    label: 'Aircraft Flight Log', sub: 'Bookings', kind: 'link', href: '/admin/aircraft' },
+    { id: 'adm-items',       label: 'Training Items',      sub: 'Bookings', kind: 'link', href: '/admin/items' },
+    // Content
+    { id: 'adm-blog',        label: 'Create Blog Post',    sub: 'Content',  kind: 'link', href: '/admin/blog' },
+    { id: 'adm-social',      label: 'Manage Social Posts', sub: 'Content',  kind: 'link', href: '/admin/social' },
+    { id: 'adm-email',       label: 'Email Campaigns',     sub: 'Content',  kind: 'link', href: '/admin/email' },
+    // Finance
+    { id: 'adm-revenue',     label: 'Revenue Tracker',     sub: 'Finance',  kind: 'link', href: '/admin/revenue' },
   ]},
 ]

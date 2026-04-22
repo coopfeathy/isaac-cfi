@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, type ReactNode } from 'react'
+import Link from 'next/link'
 import { I, Badge, Avatar, StatusLights } from './primitives'
 import { TREE, VIEW_META, AIRCRAFT, INSTRUCTORS, STUDENTS, STATUS, TICKS, type TreeNodeData } from './data'
 
@@ -95,27 +96,44 @@ function TreeNode({ node, depth, selected, onSelect, expanded, toggleExpand }: {
   const hasChildren = !!(node.children && node.children.length > 0)
   const isOpen = expanded[node.id] ?? node.open ?? false
   const isSelected = selected === node.id
+  const isLink = node.kind === 'link' && !!node.href
   const ico = node.kind === 'aircraft' ? 'plane'
     : node.kind === 'student' ? 'user'
+    : node.kind === 'link' ? 'chev-r'
     : node.id === 'schedule' ? 'cal'
     : node.id === 'syllabus' ? 'book'
     : node.id === 'billing' || node.id === 'payouts' || node.id === 'expenses' ? 'wallet'
     : node.id === 'integrity' ? 'alert'
     : 'dot'
+  const rowInner = (
+    <>
+      <span className="tree-chev">{hasChildren ? <I name={isOpen ? 'chev-d' : 'chev-r'} /> : <span style={{ width: 12, display: 'inline-block' }} />}</span>
+      <span className="tree-ico"><I name={ico} /></span>
+      <span className="tree-label">{node.label}</span>
+      {node.sub && <span className="tree-sub">{node.sub}</span>}
+      {node.badge && <Badge kind={node.badgeKind || 'muted'}>{node.badge}</Badge>}
+      {node.count != null && !node.badge && <span className="tree-count">{node.count}</span>}
+    </>
+  )
   return (
     <div className="tree-node">
-      <div
-        className={`tree-row ${isSelected ? 'sel' : ''}`}
-        style={{ paddingLeft: 8 + depth * 12 }}
-        onClick={() => { if (hasChildren) toggleExpand(node.id); onSelect(node) }}
-      >
-        <span className="tree-chev">{hasChildren ? <I name={isOpen ? 'chev-d' : 'chev-r'} /> : <span style={{ width: 12, display: 'inline-block' }} />}</span>
-        <span className="tree-ico"><I name={ico} /></span>
-        <span className="tree-label">{node.label}</span>
-        {node.sub && <span className="tree-sub">{node.sub}</span>}
-        {node.badge && <Badge kind={node.badgeKind || 'muted'}>{node.badge}</Badge>}
-        {node.count != null && !node.badge && <span className="tree-count">{node.count}</span>}
-      </div>
+      {isLink ? (
+        <Link
+          href={node.href!}
+          className={`tree-row tree-row-link ${isSelected ? 'sel' : ''}`}
+          style={{ paddingLeft: 8 + depth * 12 }}
+        >
+          {rowInner}
+        </Link>
+      ) : (
+        <div
+          className={`tree-row ${isSelected ? 'sel' : ''}`}
+          style={{ paddingLeft: 8 + depth * 12 }}
+          onClick={() => { if (hasChildren) toggleExpand(node.id); onSelect(node) }}
+        >
+          {rowInner}
+        </div>
+      )}
       {hasChildren && isOpen && (
         <div className="tree-children">
           {node.children!.map(ch => (

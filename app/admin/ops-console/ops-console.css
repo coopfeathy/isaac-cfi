@@ -240,6 +240,8 @@
 .ops-console-root .tree-chev { color: var(--fg-3); display: inline-flex; width: 12px; }
 .ops-console-root .tree-ico { color: var(--fg-2); display: inline-flex; }
 .ops-console-root .tree-row.sel .tree-ico { color: var(--accent); }
+.ops-console-root .tree-row-link { text-decoration: none; color: var(--fg-1); }
+.ops-console-root .tree-row-link:hover { color: var(--fg-0); }
 .ops-console-root .tree-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ops-console-root .tree-sub { font-family: var(--ff-mono); font-size: 10.5px; color: var(--fg-3); }
 .ops-console-root .tree-count { font-family: var(--ff-mono); font-size: 10.5px; color: var(--fg-3); }
