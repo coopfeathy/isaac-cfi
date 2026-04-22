@@ -27,20 +27,33 @@ export function Modal({ title, onClose, children, footer, width = 520 }: {
   )
 }
 
-export function NewSlotModal({ onClose, onCreate, prefill, aircraft }: {
+type DirectoryOption = { id: string; name: string }
+
+export function NewSlotModal({ onClose, onCreate, prefill, aircraft, instructors, studentList }: {
   onClose: () => void;
   onCreate: (data: { tail: string; start: string; end: string; student: string; cfi: string; lesson: string }) => void;
   prefill?: { tail?: string; start?: string; end?: string };
   aircraft: Aircraft[];
+  // Optional live lists from Supabase. If omitted we fall back to the seed
+  // INSTRUCTORS/STUDENTS so the modal still works in demo mode.
+  instructors?: DirectoryOption[];
+  studentList?: DirectoryOption[];
 }) {
+  const cfiOpts: DirectoryOption[] = instructors && instructors.length > 0
+    ? instructors
+    : INSTRUCTORS.map(c => ({ id: c.id, name: `${c.name} · ${c.ratings.join('/')}` }))
+  const studentOpts: DirectoryOption[] = studentList && studentList.length > 0
+    ? studentList
+    : STUDENTS.map(s => ({ id: s.id, name: s.name }))
+
   const defaultTail = prefill?.tail && aircraft.some(a => a.tail === prefill.tail)
     ? prefill.tail
     : (aircraft[0]?.tail ?? '')
   const [tail, setTail] = useState(defaultTail)
   const [start, setStart] = useState(prefill?.start ?? '13:00')
   const [end, setEnd] = useState(prefill?.end ?? '15:00')
-  const [student, setStudent] = useState<string>(STUDENTS[0].name)
-  const [cfi, setCfi] = useState('cfi_01')
+  const [student, setStudent] = useState<string>(studentOpts[0]?.name ?? '')
+  const [cfi, setCfi] = useState<string>(cfiOpts[0]?.id ?? '')
   const [lesson, setLesson] = useState('PPL-04 Ground Ref')
   return (
     <Modal
@@ -65,13 +78,13 @@ export function NewSlotModal({ onClose, onCreate, prefill, aircraft }: {
         <div className="f-row">
           <label className="f-label mono">Student</label>
           <select className="f-input" value={student} onChange={e => setStudent(e.target.value)}>
-            {STUDENTS.map(s => <option key={s.id}>{s.name}</option>)}
+            {studentOpts.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
           </select>
         </div>
         <div className="f-row">
           <label className="f-label mono">Instructor</label>
           <select className="f-input" value={cfi} onChange={e => setCfi(e.target.value)}>
-            {INSTRUCTORS.map(c => <option key={c.id} value={c.id}>{c.name} · {c.ratings.join('/')}</option>)}
+            {cfiOpts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
         <div className="f-row"><label className="f-label mono">Lesson</label><input className="f-input" value={lesson} onChange={e => setLesson(e.target.value)} /></div>

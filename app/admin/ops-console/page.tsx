@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import './ops-console.css'
 import { INITIAL_BOOKINGS, INITIAL_ALERTS, STUDENTS, AIRCRAFT, type TreeNodeData } from './data'
 import { Sidebar, TopBar, IconRail, DocNav, SubTabs, Toolbar, Inspector, OpsPulse, Tweaks, TWEAK_DEFAULTS, type TweakState } from './shell'
@@ -13,6 +13,12 @@ import { NewSlotModal, NewAircraftModal, ReassignModal, ConfirmModal, AircraftDe
 import { listAircraft, createAircraft, deleteAircraft } from '@/lib/ops-console/aircraft'
 import { listStudents, softDeleteStudent } from '@/lib/ops-console/students'
 import { listPendingSlotRequests, approveSlotRequest, denySlotRequest, type OpsSlotRequest } from '@/lib/ops-console/slot-requests'
+import { listInstructors, listActiveStudentsForDirectory, type DirectoryPerson } from '@/lib/ops-console/directory'
+import {
+  listEventsForDay, createScheduleEvent, moveScheduleEvent,
+  resizeScheduleEvent, deleteScheduleEvent, tickToIso,
+  type OpsScheduleEvent,
+} from '@/lib/ops-console/schedule-events'
 
 declare global {
   interface Window {
@@ -62,9 +68,16 @@ export default function OpsConsolePage() {
   const [subTab, setSubTab] = useState(0)
   const [zoom, setZoom] = useState(1)
   const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS as Booking[])
+  // DB-backed schedule events for the currently viewed day. `null` means we
+  // haven't fetched yet (or the fetch failed) and the board falls back to the
+  // in-memory `bookings` seed. Once this is non-null the board renders straight
+  // from the DB and all mutations persist.
+  const [scheduleEvents, setScheduleEvents] = useState<OpsScheduleEvent[] | null>(null)
   const [aircraft, setAircraft] = useState<Aircraft[]>(AIRCRAFT as unknown as Aircraft[])
   const [students, setStudents] = useState<Student[]>(STUDENTS as unknown as Student[])
   const [slotRequests, setSlotRequests] = useState<OpsSlotRequest[]>([])
+  const [instructors, setInstructors] = useState<DirectoryPerson[]>([])
+  const [studentOptions, setStudentOptions] = useState<DirectoryPerson[]>([])
   const [alerts, setAlerts] = useState<AlertRow[]>(INITIAL_ALERTS)
   const [selBooking, setSelBooking] = useState<string | null>('BK-20488')
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
@@ -128,6 +141,41 @@ export default function OpsConsolePage() {
     return () => { cancelled = true }
   }, [])
 
+  // Instructor + student directories for the New Slot dropdowns. Silent fail:
+  // if a list is empty the modal falls back to the seed arrays.
+  useEffect(() => {
+    let cancelled = false
+    listInstructors().then(list => { if (!cancelled) setInstructors(list) })
+      .catch(err => { console.warn('[ops-console] instructors fetch failed:', err) })
+    listActiveStudentsForDirectory().then(list => { if (!cancelled) setStudentOptions(list) })
+      .catch(err => { console.warn('[ops-console] student directory fetch failed:', err) })
+    return () => { cancelled = true }
+  }, [])
+
+  // Re-fetch the schedule for the currently-viewed day. Called from any
+  // mutation handler so the UI reflects the new state.
+  const refreshSchedule = useCallback(async () => {
+    try {
+      const list = await listEventsForDay(date)
+      setScheduleEvents(list)
+    } catch (err) {
+      console.warn('[ops-console] schedule_events fetch failed:', err)
+      // Leave scheduleEvents as-is so the in-memory demo keeps working.
+    }
+  }, [date])
+
+  // Initial fetch + refetch whenever the user advances the date.
+  useEffect(() => {
+    let cancelled = false
+    listEventsForDay(date).then(list => {
+      if (cancelled) return
+      setScheduleEvents(list)
+    }).catch(err => {
+      console.warn('[ops-console] schedule_events fetch failed:', err)
+    })
+    return () => { cancelled = true }
+  }, [date])
+
   useEffect(() => { localStorage.setItem('mf_zoom', String(zoom)) }, [zoom])
   useEffect(() => { localStorage.setItem('mf_theme', theme) }, [theme])
 
@@ -176,6 +224,25 @@ export default function OpsConsolePage() {
     return () => window.clearTimeout(t)
   }, [view])
 
+  // Flatten OpsScheduleEvent → Booking so ScheduleBoard / Inspector keep their
+  // existing prop shape. When `scheduleEvents` is null (initial fetch hasn't
+  // finished or it failed) we fall back to the in-memory seed.
+  const displayBookings: Booking[] = useMemo(() => {
+    if (!scheduleEvents) return bookings
+    return scheduleEvents.map(ev => ({
+      id: ev.id,
+      tail: ev.tail,
+      start: ev.start,
+      end: ev.end,
+      student: ev.student,
+      cfi: ev.cfiId,
+      lesson: ev.lesson,
+      status: ev.status,
+      paid: ev.paid,
+    }))
+  }, [scheduleEvents, bookings])
+  const usingDb = scheduleEvents !== null
+
   // Keyboard shortcuts.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -183,7 +250,7 @@ export default function OpsConsolePage() {
       if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'SELECT' || tgt.tagName === 'TEXTAREA')) return
       if (e.key === 'Escape') { setSelBooking(null); setModal(null) }
       if (e.key === 'j' || e.key === 'k') {
-        const todayBookings = bookings.filter(b => b.status !== 'maint' && b.status !== 'aog')
+        const todayBookings = displayBookings.filter(b => b.status !== 'maint' && b.status !== 'aog')
         const idx = todayBookings.findIndex(b => b.id === selBooking)
         const next = e.key === 'j'
           ? (idx + 1) % todayBookings.length
@@ -195,7 +262,7 @@ export default function OpsConsolePage() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [bookings, selBooking, showToast])
+  }, [displayBookings, selBooking, showToast])
 
   const handleSelect = (node: TreeNodeData) => {
     setSelectedNode(node)
@@ -214,14 +281,69 @@ export default function OpsConsolePage() {
     setModal(null)
     showToast(`Booking ${id} reassigned`, 'ok')
   }
-  const handleCancelBooking = (id: string) => {
+  const handleCancelBooking = async (id: string) => {
+    if (usingDb) {
+      try {
+        await deleteScheduleEvent(id)
+      } catch (err) {
+        console.error('[ops-console] deleteScheduleEvent failed:', err)
+        showToast(`Failed to cancel — ${(err as Error).message || 'unknown error'}`, 'error')
+        return
+      }
+      setModal(null)
+      setSelBooking(null)
+      await refreshSchedule()
+      showToast(`Booking cancelled`, 'info')
+      return
+    }
     setBookings(bs => bs.filter(b => b.id !== id))
     setModal(null)
     setSelBooking(null)
     showToast(`Booking ${id} cancelled`, 'info')
   }
-  const handleNewSlot = (data: { tail: string; start: string; end: string; student: string; cfi: string; lesson: string }) => {
+  const handleNewSlot = async (data: { tail: string; start: string; end: string; student: string; cfi: string; lesson: string }) => {
     const parseT = (s: string) => { const [h, m] = s.split(':').map(Number); return Math.round((h * 60 + m - 7 * 60) / 30) }
+    if (usingDb) {
+      const ac = aircraft.find(a => a.tail === data.tail)
+      if (!ac?.id) {
+        showToast(`Can't create slot: aircraft ${data.tail} is not in the database yet`, 'error')
+        return
+      }
+      const startTick = parseT(data.start)
+      const endTick = parseT(data.end)
+      if (!(endTick > startTick)) {
+        showToast(`End must be after start`, 'error')
+        return
+      }
+      // Map the student name back to an id if we recognize it; otherwise pass
+      // it through as a free-text `student_label` on the event.
+      const studentMatch = studentOptions.find(s => s.name === data.student)
+      // Only pass the CFI as an FK if it's a UUID (i.e. sourced from the
+      // instructors dropdown). The seed CFI ids (`cfi_01`) won't match.
+      const cfiIsUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.cfi)
+      try {
+        await createScheduleEvent({
+          aircraftId: ac.id,
+          instructorId: cfiIsUuid ? data.cfi : null,
+          studentId: studentMatch?.id ?? null,
+          studentLabel: studentMatch ? null : data.student,
+          lesson: data.lesson,
+          startIso: tickToIso(startTick, date),
+          endIso: tickToIso(endTick, date),
+          status: 'booked',
+          paid: false,
+        }, date)
+      } catch (err) {
+        console.error('[ops-console] createScheduleEvent failed:', err)
+        showToast(`Failed to create slot — ${(err as Error).message || 'unknown error'}`, 'error')
+        return
+      }
+      setModal(null)
+      setView('schedule')
+      await refreshSchedule()
+      showToast(`Slot created for ${data.student}`, 'ok')
+      return
+    }
     const nb: Booking = {
       id: 'BK-' + (20500 + Math.floor(Math.random() * 500)),
       tail: data.tail,
@@ -256,7 +378,10 @@ export default function OpsConsolePage() {
     }
   }
   const handleDeleteAircraft = (a: Aircraft) => {
-    const linked = bookings.filter(b => b.tail === a.tail)
+    // Cascade note: the DB foreign key `schedule_events.aircraft_id` uses
+    // `on delete cascade`, so any schedule events on this tail will be
+    // removed by Postgres automatically when we delete the aircraft row.
+    const linked = displayBookings.filter(b => b.tail === a.tail)
     const msg = linked.length > 0
       ? `Remove ${a.tail} (${a.model})? ${linked.length} booking${linked.length === 1 ? '' : 's'} on this aircraft will also be removed.`
       : `Remove ${a.tail} (${a.model}) from the fleet?`
@@ -268,7 +393,6 @@ export default function OpsConsolePage() {
         confirmLabel: 'Delete',
         danger: true,
         onConfirm: async () => {
-          // Only hit the DB if this row originated from the DB (has an id).
           if (a.id) {
             try {
               await deleteAircraft(a.id)
@@ -279,7 +403,11 @@ export default function OpsConsolePage() {
             }
           }
           setAircraft(list => list.filter(x => x.tail !== a.tail))
-          setBookings(list => list.filter(b => b.tail !== a.tail))
+          if (usingDb) {
+            await refreshSchedule()
+          } else {
+            setBookings(list => list.filter(b => b.tail !== a.tail))
+          }
           if (selBooking && linked.some(b => b.id === selBooking)) setSelBooking(null)
           setModal(null)
           showToast(`${a.tail} removed`, 'ok')
@@ -361,11 +489,11 @@ export default function OpsConsolePage() {
     })
   }
   const handleResizeBookingRequest = (id: string, nextStart: number, nextEnd: number) => {
-    const b = bookings.find(x => x.id === id)
+    const b = displayBookings.find(x => x.id === id)
     if (!b) return
     if (nextStart === b.start && nextEnd === b.end) return
     // Collision check: resize cannot overlap any other booking on the same tail.
-    const collides = bookings.some(other =>
+    const collides = displayBookings.some(other =>
       other.id !== id &&
       other.tail === b.tail &&
       nextStart < other.end &&
@@ -379,13 +507,27 @@ export default function OpsConsolePage() {
     const newDur = (nextEnd - nextStart) * 0.5
     const oldRange = `${tickToHHMM(b.start)}–${tickToHHMM(b.end)}`
     const newRange = `${tickToHHMM(nextStart)}–${tickToHHMM(nextEnd)}`
+    const displayId = usingDb ? id.slice(0, 8) : id
     setModal({
       kind: 'confirm',
       payload: {
         title: 'ADJUST BOOKING TIME',
-        message: `Change ${id} (${b.student}) from ${oldRange} (${oldDur.toFixed(1)}h) to ${newRange} (${newDur.toFixed(1)}h)?`,
+        message: `Change ${displayId} (${b.student}) from ${oldRange} (${oldDur.toFixed(1)}h) to ${newRange} (${newDur.toFixed(1)}h)?`,
         confirmLabel: 'Apply',
-        onConfirm: () => {
+        onConfirm: async () => {
+          if (usingDb) {
+            try {
+              await resizeScheduleEvent(id, tickToIso(nextStart, date), tickToIso(nextEnd, date))
+            } catch (err) {
+              console.error('[ops-console] resizeScheduleEvent failed:', err)
+              showToast(`Failed to resize — ${(err as Error).message || 'unknown error'}`, 'error')
+              return
+            }
+            setModal(null)
+            await refreshSchedule()
+            showToast(`Booking updated to ${newRange}`, 'ok')
+            return
+          }
           setBookings(list => list.map(x => x.id === id ? { ...x, start: nextStart, end: nextEnd } : x))
           setModal(null)
           showToast(`${id} updated to ${newRange}`, 'ok')
@@ -393,8 +535,8 @@ export default function OpsConsolePage() {
       },
     })
   }
-  const handleMoveBooking = (id: string, to: { tail: string; startTick: number }) => {
-    const b = bookings.find(x => x.id === id)
+  const handleMoveBooking = async (id: string, to: { tail: string; startTick: number }) => {
+    const b = displayBookings.find(x => x.id === id)
     if (!b) return
     const duration = b.end - b.start
     let startTick = to.startTick
@@ -404,20 +546,43 @@ export default function OpsConsolePage() {
     startTick = Math.max(0, Math.min(startTick, maxStart))
     const endTick = startTick + duration
     // Abort if the target aircraft is missing (shouldn't happen, defensive).
-    if (!aircraft.some(a => a.tail === to.tail)) return
+    const targetAc = aircraft.find(a => a.tail === to.tail)
+    if (!targetAc) return
     // Collision check against other bookings on the target aircraft.
-    const collides = bookings.some(other =>
+    const collides = displayBookings.some(other =>
       other.id !== id &&
       other.tail === to.tail &&
       startTick < other.end &&
       endTick > other.start,
     )
     if (collides) {
-      showToast(`Can't drop ${id} — that slot is taken on ${to.tail}`, 'error')
+      showToast(`Can't drop ${usingDb ? id.slice(0, 8) : id} — that slot is taken on ${to.tail}`, 'error')
       return
     }
-    // No-op if nothing would change.
     if (b.tail === to.tail && b.start === startTick) return
+    if (usingDb) {
+      if (!targetAc.id) {
+        showToast(`Can't move to ${to.tail}: not in the database yet`, 'error')
+        return
+      }
+      try {
+        await moveScheduleEvent(id, {
+          aircraftId: targetAc.id,
+          startIso: tickToIso(startTick, date),
+          endIso: tickToIso(endTick, date),
+        })
+      } catch (err) {
+        console.error('[ops-console] moveScheduleEvent failed:', err)
+        showToast(`Failed to move — ${(err as Error).message || 'unknown error'}`, 'error')
+        return
+      }
+      await refreshSchedule()
+      const moved: string[] = []
+      if (b.tail !== to.tail) moved.push(`→ ${to.tail}`)
+      if (b.start !== startTick) moved.push(`→ ${tickToHHMM(startTick)}`)
+      showToast(`Booking moved ${moved.join(' ')}`, 'ok')
+      return
+    }
     setBookings(list => list.map(x => x.id === id ? { ...x, tail: to.tail, start: startTick, end: endTick } : x))
     const moved: string[] = []
     if (b.tail !== to.tail) moved.push(`→ ${to.tail}`)
@@ -437,8 +602,8 @@ export default function OpsConsolePage() {
   const renderView = () => {
     if (loading) return <div className="view-pad"><Skeleton lines={8} /></div>
     switch (view) {
-      case 'schedule':   return <ScheduleBoard aircraft={aircraft} bookings={bookings} zoom={zoom} selBookingId={selBooking} onSelBooking={setSelBooking} onEmptySlotClick={handleEmptySlotClick} onAddAircraft={handleAddAircraft} onDeleteAircraft={handleDeleteAircraft} onMoveBooking={handleMoveBooking} onResizeBookingRequest={handleResizeBookingRequest} />
-      case 'fleet':      return <FleetView aircraft={aircraft} bookings={bookings} subTab={subTab} onAddAircraft={handleAddAircraft} onDeleteAircraft={handleDeleteAircraft} onOpenAircraft={(a) => setModal({ kind: 'aircraft', payload: a })} />
+      case 'schedule':   return <ScheduleBoard aircraft={aircraft} bookings={displayBookings} zoom={zoom} selBookingId={selBooking} onSelBooking={setSelBooking} onEmptySlotClick={handleEmptySlotClick} onAddAircraft={handleAddAircraft} onDeleteAircraft={handleDeleteAircraft} onMoveBooking={handleMoveBooking} onResizeBookingRequest={handleResizeBookingRequest} />
+      case 'fleet':      return <FleetView aircraft={aircraft} bookings={displayBookings} subTab={subTab} onAddAircraft={handleAddAircraft} onDeleteAircraft={handleDeleteAircraft} onOpenAircraft={(a) => setModal({ kind: 'aircraft', payload: a })} />
       case 'students':   return <StudentsView students={students} subTab={subTab} onDelete={handleDeleteStudent} />
       case 'integrity':  return <IntegrityView alerts={alerts} onResolve={handleResolve} />
       case 'requests':   return <RequestsView requests={slotRequests} onApprove={handleApproveRequest} onDecline={handleDeclineRequest} />
@@ -479,12 +644,12 @@ export default function OpsConsolePage() {
         </main>
         <OpsPulse
           alerts={alerts}
-          bookings={bookings}
+          bookings={displayBookings}
           onSelBooking={setSelBooking}
           onJumpView={(v) => { setView(v); setSubTab(0) }}
         />
         <Inspector
-          bookings={bookings}
+          bookings={displayBookings}
           bookingId={selBooking}
           onClear={() => setSelBooking(null)}
           onEditBooking={handleEditBooking}
@@ -504,9 +669,18 @@ export default function OpsConsolePage() {
         />
       </div>
 
-      {modal?.kind === 'aircraft' && <AircraftDetailModal aircraft={modal.payload} bookings={bookings} onClose={() => setModal(null)} />}
+      {modal?.kind === 'aircraft' && <AircraftDetailModal aircraft={modal.payload} bookings={displayBookings} onClose={() => setModal(null)} />}
       {modal?.kind === 'newAircraft' && <NewAircraftModal onClose={() => setModal(null)} onCreate={handleCreateAircraft} existingTails={aircraft.map(a => a.tail)} />}
-      {modal?.kind === 'new' && <NewSlotModal onClose={() => setModal(null)} onCreate={handleNewSlot} prefill={modal.prefill} aircraft={aircraft} />}
+      {modal?.kind === 'new' && (
+        <NewSlotModal
+          onClose={() => setModal(null)}
+          onCreate={handleNewSlot}
+          prefill={modal.prefill}
+          aircraft={aircraft}
+          instructors={instructors}
+          studentList={studentOptions}
+        />
+      )}
       {modal?.kind === 'reassign' && <ReassignModal booking={modal.payload} onClose={() => setModal(null)} onReassign={handleReassign} aircraft={aircraft} />}
       {modal?.kind === 'confirm' && <ConfirmModal {...modal.payload} onClose={() => setModal(null)} />}
 
