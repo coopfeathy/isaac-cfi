@@ -259,13 +259,58 @@ export function ReassignModal({ booking, onClose, onReassign, aircraft }: {
   )
 }
 
-export function AircraftDetailModal({ aircraft, bookings, onClose }: {
+export function AircraftDetailModal({ aircraft, bookings, onClose, onSave }: {
   aircraft: Aircraft; bookings: Booking[]; onClose: () => void;
+  onSave?: (patch: Partial<Aircraft> & { tail: string }) => void | Promise<void>;
 }) {
   const today = bookings.filter(b => b.tail === aircraft.tail)
   const squawks = SQUAWKS.filter(s => s.tail === aircraft.tail)
   const maint = MAINT_EVENTS.filter(m => m.tail === aircraft.tail)
   const openSquawks = squawks.filter(s => s.status !== 'resolved')
+
+  // Local editable state, seeded from the incoming row. Home base defaults to
+  // KPNE for rows that don't persist it yet.
+  const [model, setModel] = useState(aircraft.model)
+  const [homeBase, setHomeBase] = useState(aircraft.homeBase ?? 'KPNE')
+  const [hobbs, setHobbs] = useState(String(aircraft.hobbs ?? 0))
+  const [nextInsp, setNextInsp] = useState(aircraft.nextInsp ?? '—')
+  const [status, setStatus] = useState(aircraft.status || 'active')
+  const [saving, setSaving] = useState(false)
+
+  const hobbsNum = Number(hobbs)
+  const dirty =
+    model !== aircraft.model ||
+    homeBase !== (aircraft.homeBase ?? 'KPNE') ||
+    (!Number.isNaN(hobbsNum) && hobbsNum !== aircraft.hobbs) ||
+    nextInsp !== aircraft.nextInsp ||
+    status !== aircraft.status
+  const valid = model.trim().length > 0 && !Number.isNaN(hobbsNum) && hobbsNum >= 0 && homeBase.trim().length > 0
+
+  const statusMeta = status === 'active'
+    ? { label: 'ACTIVE', dot: 'var(--teal-1)' }
+    : status === 'squawk'
+      ? { label: 'SQUAWK', dot: 'var(--amber-1)' }
+      : status === 'ground'
+        ? { label: 'AOG', dot: 'var(--red-1)' }
+        : { label: status.toUpperCase(), dot: 'var(--fg-2)' }
+
+  const handleSave = async () => {
+    if (!onSave || !valid || !dirty) return
+    setSaving(true)
+    try {
+      await onSave({
+        tail: aircraft.tail,
+        model: model.trim(),
+        homeBase: homeBase.trim().toUpperCase(),
+        hobbs: hobbsNum,
+        nextInsp: nextInsp.trim() || '—',
+        status,
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
     <Modal
       title={`AIRCRAFT · ${aircraft.tail}`}
@@ -274,26 +319,58 @@ export function AircraftDetailModal({ aircraft, bookings, onClose }: {
       footer={
         <>
           <button className="btn-ghost" onClick={onClose}>Close</button>
-          <button className="btn-primary" onClick={() => window.__toast?.('Opening aircraft record')}>Open full record ›</button>
+          <button
+            className="btn-primary"
+            disabled={!valid || !dirty || saving}
+            style={(!valid || !dirty || saving) ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+            onClick={handleSave}
+          >
+            {saving ? 'Saving…' : dirty ? 'Save changes' : 'No changes'}
+          </button>
         </>
       }
     >
       <div className="ins-hero">
         <div className="hero-id mono">{aircraft.tail}</div>
-        <div className="hero-title">{aircraft.model}</div>
-        <div className="hero-sub mono dim">KMHR · based · last sync 09:12</div>
+        <div className="hero-title">{model || aircraft.model}</div>
+        <div className="hero-sub mono dim">{homeBase || 'KPNE'} · based</div>
         <div className="hero-chips">
-          {aircraft.status === 'active' && <span className="chip chip-muted mono"><span className="chip-dot" style={{ background: 'var(--teal-1)' }} />ACTIVE</span>}
-          {aircraft.status === 'squawk' && <span className="chip chip-muted mono"><span className="chip-dot" style={{ background: 'var(--amber-1)' }} />SQUAWK</span>}
-          {aircraft.status === 'ground' && <span className="chip chip-muted mono"><span className="chip-dot" style={{ background: 'var(--red-1)' }} />AOG</span>}
-          <span className="chip chip-muted mono">TACH {aircraft.hobbs.toFixed(1)}</span>
+          <span className="chip chip-muted mono"><span className="chip-dot" style={{ background: statusMeta.dot }} />{statusMeta.label}</span>
+          <span className="chip chip-muted mono">TACH {Number.isNaN(hobbsNum) ? aircraft.hobbs.toFixed(1) : hobbsNum.toFixed(1)}</span>
+          <span className="chip chip-muted mono">TODAY {today.length}</span>
         </div>
       </div>
+      <div className="ins-sect-head"><span className="mono">IDENTITY</span></div>
+      <div className="f-row">
+        <label className="f-label mono">Model</label>
+        <input className="f-input" value={model} onChange={e => setModel(e.target.value)} placeholder="Grumman AA-5A Cheetah" />
+      </div>
+      <div className="f-row">
+        <label className="f-label mono">Home base</label>
+        <input className="f-input mono" value={homeBase} onChange={e => setHomeBase(e.target.value.toUpperCase())} placeholder="KPNE" maxLength={4} />
+      </div>
       <div className="ins-sect-head"><span className="mono">TIMES &amp; INSPECTIONS</span></div>
-      <div className="f-row"><label className="f-label mono">Model</label><div className="f-val">{aircraft.model}</div></div>
-      <div className="f-row"><label className="f-label mono">Tach total</label><div className="f-val mono">{aircraft.hobbs.toFixed(1)} h</div></div>
-      <div className="f-row"><label className="f-label mono">Next inspection</label><div className="f-val mono">{aircraft.nextInsp}</div></div>
-      <div className="f-row"><label className="f-label mono">Bookings today</label><div className="f-val mono">{today.length}</div></div>
+      <div className="f-row">
+        <label className="f-label mono">Tach total</label>
+        <input className="f-input mono" value={hobbs} onChange={e => setHobbs(e.target.value)} inputMode="decimal" placeholder="1234.5" />
+      </div>
+      <div className="f-row">
+        <label className="f-label mono">Next inspection</label>
+        <input className="f-input" value={nextInsp} onChange={e => setNextInsp(e.target.value)} placeholder="100h @ 1300 or Annual 08/15" />
+      </div>
+      <div className="f-row">
+        <label className="f-label mono">Bookings today</label>
+        <div className="f-val mono">{today.length} <span className="dim">· live</span></div>
+      </div>
+      <div className="ins-sect-head"><span className="mono">MAINTENANCE STATUS</span></div>
+      <div className="f-row">
+        <label className="f-label mono">Status</label>
+        <select className="f-input" value={status} onChange={e => setStatus(e.target.value)}>
+          <option value="active">Active</option>
+          <option value="squawk">Squawk</option>
+          <option value="ground">AOG / Ground</option>
+        </select>
+      </div>
       <div className="ins-sect-head"><span className="mono">OPEN SQUAWKS</span></div>
       {openSquawks.length === 0
         ? <div className="f-val dim">None</div>
@@ -303,7 +380,7 @@ export function AircraftDetailModal({ aircraft, bookings, onClose }: {
             <div className="f-val">{s.item} <span className="dim mono">· {s.reported}</span></div>
           </div>
         ))}
-      <div className="ins-sect-head"><span className="mono">MAINTENANCE</span></div>
+      <div className="ins-sect-head"><span className="mono">SCHEDULED MAINTENANCE</span></div>
       {maint.length === 0
         ? <div className="f-val dim">No scheduled events</div>
         : maint.map(m => (

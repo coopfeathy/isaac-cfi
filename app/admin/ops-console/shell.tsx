@@ -97,6 +97,134 @@ function formatTimeShort(now: Date, tz: string): string {
   return `${hh}:${mm} ${zone}`
 }
 
+// ────────── Nearest-airport detection ──────────
+// A small curated list of US GA/training airports with their lat/lng. This
+// powers the default ICAO used for weather etc. when the user allows
+// geolocation; otherwise we fall back to a timezone-based guess, and
+// ultimately to KPNE (the home base).
+const AIRPORTS: Array<{ icao: string; lat: number; lng: number }> = [
+  { icao: 'KPNE', lat: 40.0819, lng: -75.0106 }, // Northeast Philadelphia
+  { icao: 'KTEB', lat: 40.8501, lng: -74.0608 }, // Teterboro
+  { icao: 'KHPN', lat: 41.0670, lng: -73.7076 }, // Westchester County
+  { icao: 'KFRG', lat: 40.7288, lng: -73.4134 }, // Republic
+  { icao: 'KBED', lat: 42.4700, lng: -71.2890 }, // Hanscom Field
+  { icao: 'KMHT', lat: 42.9326, lng: -71.4357 }, // Manchester NH
+  { icao: 'KBWI', lat: 39.1754, lng: -76.6683 },
+  { icao: 'KIAD', lat: 38.9531, lng: -77.4565 },
+  { icao: 'KRDU', lat: 35.8776, lng: -78.7875 },
+  { icao: 'KCLT', lat: 35.2140, lng: -80.9431 },
+  { icao: 'KATL', lat: 33.6407, lng: -84.4277 },
+  { icao: 'KPDK', lat: 33.8756, lng: -84.3020 }, // Atlanta DeKalb-Peachtree
+  { icao: 'KMCO', lat: 28.4312, lng: -81.3081 },
+  { icao: 'KMIA', lat: 25.7959, lng: -80.2870 },
+  { icao: 'KTPA', lat: 27.9755, lng: -82.5332 },
+  { icao: 'KDPA', lat: 41.9078, lng: -88.2485 }, // Chicago DuPage
+  { icao: 'KPWK', lat: 42.1142, lng: -87.9015 }, // Chicago Exec
+  { icao: 'KORD', lat: 41.9742, lng: -87.9073 },
+  { icao: 'KMSP', lat: 44.8848, lng: -93.2223 },
+  { icao: 'KSTL', lat: 38.7487, lng: -90.3700 },
+  { icao: 'KAPA', lat: 39.5701, lng: -104.8493 }, // Denver Centennial
+  { icao: 'KDEN', lat: 39.8561, lng: -104.6737 },
+  { icao: 'KSDL', lat: 33.6229, lng: -111.9108 }, // Scottsdale
+  { icao: 'KPHX', lat: 33.4343, lng: -112.0116 },
+  { icao: 'KLAS', lat: 36.0800, lng: -115.1522 },
+  { icao: 'KVNY', lat: 34.2098, lng: -118.4900 }, // Van Nuys
+  { icao: 'KSMO', lat: 34.0158, lng: -118.4513 }, // Santa Monica
+  { icao: 'KLAX', lat: 33.9416, lng: -118.4085 },
+  { icao: 'KSJC', lat: 37.3626, lng: -121.9290 },
+  { icao: 'KPAO', lat: 37.4611, lng: -122.1150 }, // Palo Alto
+  { icao: 'KRHV', lat: 37.3329, lng: -121.8197 }, // Reid-Hillview
+  { icao: 'KOAK', lat: 37.7213, lng: -122.2207 },
+  { icao: 'KSFO', lat: 37.6189, lng: -122.3750 },
+  { icao: 'KPDX', lat: 45.5887, lng: -122.5975 },
+  { icao: 'KSEA', lat: 47.4502, lng: -122.3088 },
+  { icao: 'KBFI', lat: 47.5300, lng: -122.3020 }, // Boeing Field
+  { icao: 'KMHR', lat: 38.5539, lng: -121.2975 }, // Sacramento Mather
+  { icao: 'KSAC', lat: 38.5125, lng: -121.4929 },
+  { icao: 'KDFW', lat: 32.8998, lng: -97.0403 },
+  { icao: 'KHOU', lat: 29.6454, lng: -95.2789 },
+  { icao: 'KADS', lat: 32.9684, lng: -96.8356 }, // Dallas Addison
+]
+
+// Haversine distance in kilometers (we only need "which is smallest", but
+// proper km keeps the math readable and is cheap).
+function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const R = 6371
+  const toRad = (d: number) => (d * Math.PI) / 180
+  const dLat = toRad(bLat - aLat)
+  const dLng = toRad(bLng - aLng)
+  const lat1 = toRad(aLat)
+  const lat2 = toRad(bLat)
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(h))
+}
+
+function nearestIcao(lat: number, lng: number): string {
+  let best = AIRPORTS[0]
+  let bestD = haversineKm(lat, lng, best.lat, best.lng)
+  for (let i = 1; i < AIRPORTS.length; i++) {
+    const d = haversineKm(lat, lng, AIRPORTS[i].lat, AIRPORTS[i].lng)
+    if (d < bestD) { best = AIRPORTS[i]; bestD = d }
+  }
+  return best.icao
+}
+
+// Rough fallback when geolocation is denied: map the browser's IANA timezone
+// to a reasonable regional training airport. Ultimately falls back to KPNE
+// so the UI always has something to show.
+function icaoFromTimeZone(tz: string): string {
+  const t = tz.toLowerCase()
+  if (t.includes('new_york') || t.includes('toronto') || t.includes('montreal')) return 'KPNE'
+  if (t.includes('chicago') || t.includes('winnipeg')) return 'KPWK'
+  if (t.includes('denver') || t.includes('edmonton') || t.includes('boise')) return 'KAPA'
+  if (t.includes('los_angeles') || t.includes('vancouver') || t.includes('tijuana')) return 'KVNY'
+  if (t.includes('phoenix')) return 'KSDL'
+  if (t.includes('anchorage')) return 'PANC'
+  if (t.includes('honolulu')) return 'PHNL'
+  return 'KPNE'
+}
+
+// Returns the user's nearest airport ICAO. Tries browser geolocation first
+// (quick timeout; no retry), then falls back to timezone-based guess. The
+// result is cached in localStorage so we don't re-prompt on every load.
+export function useNearestAirport(fallback = 'KPNE'): string {
+  const [icao, setIcao] = useState<string>(fallback)
+  useEffect(() => {
+    // Cache check.
+    try {
+      const cached = localStorage.getItem('ops-console:nearest-icao')
+      if (cached) { setIcao(cached); }
+    } catch { /* ignore */ }
+
+    // Always refresh in the background so stale cache self-heals.
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+    const tzGuess = icaoFromTimeZone(tz)
+    if (!navigator.geolocation) {
+      setIcao(prev => prev || tzGuess)
+      try { localStorage.setItem('ops-console:nearest-icao', tzGuess) } catch {}
+      return
+    }
+    let cancelled = false
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (cancelled) return
+        const found = nearestIcao(pos.coords.latitude, pos.coords.longitude)
+        setIcao(found)
+        try { localStorage.setItem('ops-console:nearest-icao', found) } catch {}
+      },
+      () => {
+        if (cancelled) return
+        // Permission denied or error — use timezone guess.
+        setIcao(prev => prev && prev !== fallback ? prev : tzGuess)
+        try { localStorage.setItem('ops-console:nearest-icao', tzGuess) } catch {}
+      },
+      { timeout: 5000, maximumAge: 24 * 60 * 60 * 1000 },
+    )
+    return () => { cancelled = true }
+  }, [fallback])
+  return icao
+}
+
 // ────────── Live METAR weather (NOAA Aviation Weather Center) ──────────
 // Polls the public AWC JSON endpoint every ~10 minutes. The endpoint supports
 // CORS, so we can call it straight from the browser.
@@ -113,15 +241,25 @@ export function useMetar(icao: string, intervalMs = 10 * 60 * 1000): Metar | nul
   const [metar, setMetar] = useState<Metar | null>(null)
   useEffect(() => {
     let cancelled = false
+    setMetar(null) // reset when the station changes so stale data doesn't linger
     const load = async () => {
       try {
-        const res = await fetch(
-          `https://aviationweather.gov/api/data/metar?ids=${encodeURIComponent(icao)}&format=json`,
-          { cache: 'no-store' },
-        )
-        if (!res.ok) return
+        // Go through our own API route — calling aviationweather.gov directly
+        // from the browser can hit CORS/corporate-network issues. Our proxy
+        // normalizes the response and attaches a short cache-control.
+        const res = await fetch(`/api/metar?icao=${encodeURIComponent(icao)}`, { cache: 'no-store' })
+        if (!res.ok) {
+          // eslint-disable-next-line no-console
+          console.warn('[metar] proxy returned', res.status, 'for', icao)
+          return
+        }
         const data = await res.json()
-        if (cancelled || !Array.isArray(data) || data.length === 0) return
+        if (cancelled) return
+        if (!Array.isArray(data) || data.length === 0) {
+          // eslint-disable-next-line no-console
+          console.warn('[metar] empty payload for', icao)
+          return
+        }
         const d = data[0] as Record<string, unknown>
         const wdirRaw = d.wdir
         const wdir: number | 'VRB' | null =
@@ -136,8 +274,9 @@ export function useMetar(icao: string, intervalMs = 10 * 60 * 1000): Metar | nul
             typeof d.visib === 'number' ? String(d.visib) : null,
           tempC: typeof d.temp === 'number' ? d.temp : null,
         })
-      } catch {
-        /* swallow — UI falls back to the station/— placeholder */
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn('[metar] fetch failed:', err)
       }
     }
     load()

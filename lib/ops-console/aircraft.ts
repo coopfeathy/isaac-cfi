@@ -53,3 +53,20 @@ export async function deleteAircraft(id: string): Promise<void> {
   const { error } = await supabase.from('aircraft').delete().eq('id', id)
   if (error) throw error
 }
+
+// Only the DB-backed columns (`registration`, `model`, `status`) are persisted.
+// Tach/next-inspection/home-base live in-memory for now (no DB columns yet).
+export async function updateAircraft(id: string, patch: { tail?: string; model?: string; status?: string }): Promise<OpsAircraft & { id: string }> {
+  const row: Record<string, string> = {}
+  if (patch.tail != null) row.registration = patch.tail
+  if (patch.model != null) row.model = patch.model
+  if (patch.status != null) row.status = patch.status
+  const { data, error } = await supabase
+    .from('aircraft')
+    .update(row)
+    .eq('id', id)
+    .select('id, registration, model, status')
+    .single()
+  if (error) throw error
+  return rowToOps(data as AircraftRow)
+}

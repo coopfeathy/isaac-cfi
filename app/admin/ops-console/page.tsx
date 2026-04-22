@@ -7,6 +7,7 @@ import {
   Sidebar, TopBar, IconRail, DocNav, SubTabs, Toolbar, Inspector, OpsPulse,
   Tweaks, TWEAK_DEFAULTS, type TweakState,
   EMPTY_FILTERS, type Filters,
+  useNearestAirport,
 } from './shell'
 import {
   ScheduleBoard, FleetView, StudentsView, IntegrityView, RequestsView, DispatchView,
@@ -14,7 +15,7 @@ import {
   Skeleton, EmptyState, type Student, type Aircraft,
 } from './views'
 import { NewSlotModal, NewAircraftModal, NewStudentModal, ReassignModal, ConfirmModal, AircraftDetailModal, Toast } from './modals'
-import { listAircraft, createAircraft, deleteAircraft } from '@/lib/ops-console/aircraft'
+import { listAircraft, createAircraft, deleteAircraft, updateAircraft } from '@/lib/ops-console/aircraft'
 import { listStudents, softDeleteStudent, createStudent } from '@/lib/ops-console/students'
 import { listPendingSlotRequests, approveSlotRequest, denySlotRequest, type OpsSlotRequest } from '@/lib/ops-console/slot-requests'
 import { listInstructors, listActiveStudentsForDirectory, type DirectoryPerson } from '@/lib/ops-console/directory'
@@ -96,6 +97,10 @@ export default function OpsConsolePage() {
   // the effect below syncs it to today's real date after mount.
   const [date, setDate] = useState<Date>(() => makeDate(2026, 3, 22))
   const rootRef = useRef<HTMLDivElement | null>(null)
+  // Detect the viewer's nearest airport (KPNE for the home base by default).
+  // This drives the Ops Pulse weather station so visiting testers see weather
+  // for their own location.
+  const nearestIcao = useNearestAirport('KPNE')
 
   // Hydrate persisted settings from localStorage + sync date to real "today"
   // after mount. Both are done post-hydration to avoid SSR/client mismatch.
@@ -466,6 +471,29 @@ export default function OpsConsolePage() {
       },
     })
   }
+  const handleSaveAircraft = async (patch: Partial<Aircraft> & { tail: string }) => {
+    const current = aircraft.find(a => a.tail === patch.tail)
+    if (!current) return
+    // Persist only the DB-backed columns. Tach/next-insp/home-base live in-memory
+    // until we add columns for them.
+    if (current.id) {
+      const persistedChanged =
+        (patch.model != null && patch.model !== current.model) ||
+        (patch.status != null && patch.status !== current.status)
+      if (persistedChanged) {
+        try {
+          await updateAircraft(current.id, { model: patch.model, status: patch.status })
+        } catch (err) {
+          console.error('[ops-console] updateAircraft failed:', err)
+          showToast(`Failed to save ${patch.tail} — ${(err as Error).message || 'unknown error'}`, 'error')
+          return
+        }
+      }
+    }
+    setAircraft(list => list.map(a => a.tail === patch.tail ? { ...a, ...patch } : a))
+    setModal(null)
+    showToast(`${patch.tail} updated`, 'ok')
+  }
   const handleAddStudent = () => setModal({ kind: 'newStudent' })
   const handleCreateStudent = async (data: { fullName: string; email: string; phone: string; trainingStage: string }) => {
     try {
@@ -720,6 +748,7 @@ export default function OpsConsolePage() {
           alerts={alerts}
           bookings={visibleBookings}
           aircraftCount={aircraft.length}
+          airportIcao={nearestIcao}
           onSelBooking={setSelBooking}
           onJumpView={(v) => { setView(v); setSubTab(0) }}
         />
@@ -744,7 +773,7 @@ export default function OpsConsolePage() {
         />
       </div>
 
-      {modal?.kind === 'aircraft' && <AircraftDetailModal aircraft={modal.payload} bookings={displayBookings} onClose={() => setModal(null)} />}
+      {modal?.kind === 'aircraft' && <AircraftDetailModal aircraft={modal.payload} bookings={displayBookings} onClose={() => setModal(null)} onSave={handleSaveAircraft} />}
       {modal?.kind === 'newAircraft' && <NewAircraftModal onClose={() => setModal(null)} onCreate={handleCreateAircraft} existingTails={aircraft.map(a => a.tail)} />}
       {modal?.kind === 'newStudent' && <NewStudentModal onClose={() => setModal(null)} onCreate={handleCreateStudent} existingNames={students.map(s => s.name)} />}
       {modal?.kind === 'new' && (

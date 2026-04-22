@@ -23,6 +23,8 @@ export type Aircraft = {
   // `id` is present for DB-backed rows; seed/fallback rows omit it.
   id?: string;
   tail: string; model: string; hobbs: number; nextInsp: string; status: string;
+  // Home base ICAO. Defaults to KPNE for rows that don't yet persist this.
+  homeBase?: string;
 }
 
 export function EmptyState({ icon, title, sub, cta }: { icon?: string; title: string; sub?: string; cta?: ReactNode }) {
