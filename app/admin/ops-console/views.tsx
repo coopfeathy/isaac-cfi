@@ -996,14 +996,18 @@ export function DispatchView({ subTab = 0 }: { subTab?: number }) {
 
 export function BillingView({ subTab = 0 }: { subTab?: number }) {
   if (subTab === 1) {
-    const activeMrr = SUBSCRIPTIONS.filter(s => s.status === 'active').reduce((t, s) => t + s.mrr, 0)
+    const activeSubs = SUBSCRIPTIONS.filter(s => s.status === 'active')
+    const pastDueSubs = SUBSCRIPTIONS.filter(s => s.status === 'past_due')
+    const canceledSubs = SUBSCRIPTIONS.filter(s => s.status === 'canceled')
+    const activeMrr = activeSubs.reduce((t, s) => t + s.mrr, 0)
+    const pastDueAmount = pastDueSubs.reduce((t, s) => t + s.mrr, 0)
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">ACTIVE</div><div className="stat-v">{SUBSCRIPTIONS.filter(s => s.status === 'active').length}</div><div className="stat-delta pos">+1 this week</div></div>
-          <div className="stat"><div className="stat-k mono">MRR</div><div className="stat-v">${activeMrr.toFixed(2)}</div><div className="stat-delta pos">▴ 8.2%</div></div>
-          <div className="stat"><div className="stat-k mono">PAST DUE</div><div className="stat-v">{SUBSCRIPTIONS.filter(s => s.status === 'past_due').length}</div><div className="stat-delta neg mono">$49.00</div></div>
-          <div className="stat"><div className="stat-k mono">CHURN · 30D</div><div className="stat-v">1</div><div className="stat-delta dim">2.4%</div></div>
+          <div className="stat"><div className="stat-k mono">ACTIVE</div><div className="stat-v">{activeSubs.length}</div><div className="stat-delta dim">—</div></div>
+          <div className="stat"><div className="stat-k mono">MRR</div><div className="stat-v">${activeMrr.toFixed(2)}</div><div className="stat-delta dim">—</div></div>
+          <div className="stat"><div className="stat-k mono">PAST DUE</div><div className="stat-v">{pastDueSubs.length}</div><div className={pastDueSubs.length ? 'stat-delta neg mono' : 'stat-delta dim mono'}>{pastDueSubs.length ? `$${pastDueAmount.toFixed(2)}` : '—'}</div></div>
+          <div className="stat"><div className="stat-k mono">CANCELED</div><div className="stat-v">{canceledSubs.length}</div><div className="stat-delta dim">—</div></div>
         </div>
         <div className="sect-head"><h3>Subscriptions</h3><span className="mono dim">{SUBSCRIPTIONS.length} total</span></div>
         <table className="dt"><thead><tr><th>ID</th><th>Student</th><th>Plan</th><th className="right">MRR</th><th>Renews</th><th>Status</th><th></th></tr></thead><tbody>
@@ -1141,13 +1145,25 @@ export function SyllabusView({ subTab = 0, students = [] }: { subTab?: number; s
       { id: 'IR-07',  title: 'Approaches · precision',            dur: '1.8h', ground: '1.0h', prereq: 'IR-06',  active: 1 },
       { id: 'CPL-02', title: 'Commercial maneuvers',              dur: '1.5h', ground: '1.0h', prereq: 'CPL-01', active: 1 },
     ]
+    // Derive the top-row tiles from live data instead of hardcoding. The
+    // previous "GROUND · RATIO: 0.43" was wrong — the actual ground/flight
+    // ratio across LESSONS is ~0.60 — and TOTAL LESSONS / AVG DURATION drifted
+    // as SYLLABUS / LESSONS changed. Parsing "1.5h"/"0.5h" keeps the table
+    // row format intact while making the tiles honest.
+    const parseH = (s: string) => parseFloat(s) || 0
+    const totalLessons = SYLLABUS.reduce((t, c) => t + c.lessons, 0)
+    const courseCount = SYLLABUS.length
+    const totalFlight = LESSONS.reduce((t, l) => t + parseH(l.dur), 0)
+    const totalGround = LESSONS.reduce((t, l) => t + parseH(l.ground), 0)
+    const avgDuration = LESSONS.length > 0 ? totalFlight / LESSONS.length : 0
+    const groundRatio = totalFlight > 0 ? totalGround / totalFlight : 0
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">TOTAL LESSONS</div><div className="stat-v">80</div><div className="stat-delta dim">4 courses</div></div>
+          <div className="stat"><div className="stat-k mono">TOTAL LESSONS</div><div className="stat-v">{totalLessons}</div><div className="stat-delta dim">{courseCount} course{courseCount === 1 ? '' : 's'}</div></div>
           <div className="stat"><div className="stat-k mono">IN PROGRESS</div><div className="stat-v">{LESSONS.filter(l => l.active > 0).length}</div><div className="stat-delta pos">across fleet</div></div>
-          <div className="stat"><div className="stat-k mono">AVG DURATION</div><div className="stat-v">1.6 h</div><div className="stat-delta dim">flight time</div></div>
-          <div className="stat"><div className="stat-k mono">GROUND · RATIO</div><div className="stat-v">0.43</div><div className="stat-delta dim">hrs per flight hr</div></div>
+          <div className="stat"><div className="stat-k mono">AVG DURATION</div><div className="stat-v">{avgDuration.toFixed(1)} h</div><div className="stat-delta dim">flight time</div></div>
+          <div className="stat"><div className="stat-k mono">GROUND · RATIO</div><div className="stat-v">{groundRatio.toFixed(2)}</div><div className="stat-delta dim">hrs per flight hr</div></div>
         </div>
         <div className="sect-head"><h3>Lesson library</h3><span className="mono dim">{LESSONS.length} shown</span></div>
         <table className="dt"><thead><tr><th>ID</th><th>Lesson</th><th className="right">Flight</th><th className="right">Ground</th><th>Prereq</th><th className="right">Active</th><th></th></tr></thead><tbody>
@@ -1424,7 +1440,13 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">FEES · MTD</div><div className="stat-v">${FEES[0].fees.toFixed(2)}</div><div className="stat-delta dim">3.02% eff.</div></div>
           <div className="stat"><div className="stat-k mono">FEES · YTD</div><div className="stat-v">${FEES.reduce((s, f) => s + f.fees, 0).toFixed(2)}</div><div className="stat-delta dim">4 periods</div></div>
-          <div className="stat"><div className="stat-k mono">DISPUTES · MTD</div><div className="stat-v">$30.00</div><div className="stat-delta warn">2 raised</div></div>
+          {(() => {
+            const openDisputes = DISPUTES.filter(d => d.status !== 'won')
+            const openDisputesAmount = openDisputes.reduce((s, d) => s + d.amount, 0)
+            return (
+              <div className="stat"><div className="stat-k mono">DISPUTES · MTD</div><div className="stat-v">${openDisputesAmount.toFixed(2)}</div><div className={openDisputes.length ? 'stat-delta warn' : 'stat-delta dim'}>{openDisputes.length ? `${openDisputes.length} raised` : 'none'}</div></div>
+            )
+          })()}
           <div className="stat"><div className="stat-k mono">REFUND · COST</div><div className="stat-v">$0.30</div><div className="stat-delta pos">minimal</div></div>
         </div>
         <div className="sect-head"><h3>Fee breakdown by period</h3></div>
