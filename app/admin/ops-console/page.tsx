@@ -793,8 +793,8 @@ export default function OpsConsolePage() {
       case 'integrity':  return <IntegrityView alerts={alerts} bookings={displayBookings} slotRequests={slotRequests} subTab={subTab} onResolve={handleResolve} />
       case 'requests':   return <RequestsView requests={slotRequests} subTab={subTab} onApprove={handleApproveRequest} onDecline={handleDeclineRequest} />
       case 'dispatch':   return <DispatchView subTab={subTab} />
-      case 'syllabus':   return <SyllabusView subTab={subTab} />
-      case 'onboarding': return <OnboardingView />
+      case 'syllabus':   return <SyllabusView subTab={subTab} students={students} />
+      case 'onboarding': return <OnboardingView students={students} />
       case 'debriefs':   return <DebriefsView bookings={displayBookings} />
       case 'billing':    return <BillingView subTab={subTab} />
       case 'expenses':   return <ExpensesView subTab={subTab} />

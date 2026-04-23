@@ -1095,7 +1095,7 @@ export function BillingView({ subTab = 0 }: { subTab?: number }) {
   )
 }
 
-export function SyllabusView({ subTab = 0 }: { subTab?: number }) {
+export function SyllabusView({ subTab = 0, students = [] }: { subTab?: number; students?: Student[] }) {
   if (subTab === 1) {
     // LESSONS
     const LESSONS = [
@@ -1212,14 +1212,29 @@ export function SyllabusView({ subTab = 0 }: { subTab?: number }) {
   }
 
   // COURSES (default)
+  // Derive the "active" count per course from the live roster so the cards
+  // stay in sync as students are added/removed, instead of showing the stale
+  // seed counts (5/2/1/0). A student is counted toward a course when their
+  // `phase` starts with the course id (e.g. "PPL · Solo XC" → PPL).
+  const liveCourseCounts: Record<string, number> = {}
+  for (const s of students) {
+    if (s.status !== 'active') continue
+    const prefix = (s.phase || '').split(/[·\s]/)[0]
+    if (!prefix) continue
+    liveCourseCounts[prefix] = (liveCourseCounts[prefix] || 0) + 1
+  }
   return (
     <div className="view-pad">
       <div className="syl-grid">
-        {SYLLABUS.map(s => (
+        {SYLLABUS.map(s => {
+          const activeCount = students.length > 0
+            ? (liveCourseCounts[s.id] ?? 0)
+            : s.students
+          return (
           <div key={s.id} className="syl-card">
             <div className="syl-head">
               <span className="mono dim">{s.id}</span>
-              <span className="mono">{s.students} active</span>
+              <span className="mono">{activeCount} active</span>
             </div>
             <div className="syl-title">{s.title}</div>
             <div className="syl-meta mono dim">{s.lessons} lessons</div>
@@ -1234,17 +1249,48 @@ export function SyllabusView({ subTab = 0 }: { subTab?: number }) {
               </div>
             )}
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
 }
 
-export function OnboardingView() {
+export function OnboardingView({ students = [] }: { students?: Student[] }) {
+  // Prefer the live roster — every `pending` student is effectively in the
+  // onboarding funnel (not yet an active trainee). When there are no pending
+  // students we fall back to the ONBOARDING seed so the view isn't empty in
+  // a fresh environment.
+  type Row = { id: string; name: string; stage: string; progress: number; started: string; notes: string; live: boolean }
+  const liveRows: Row[] = students
+    .filter(s => s.status === 'pending')
+    .map(s => ({
+      id: s.id,
+      name: s.name,
+      stage: s.phase || 'Prospect',
+      progress: Math.max(0, Math.min(1, s.progress ?? 0)),
+      started: s.lastLesson && s.lastLesson !== '—' ? s.lastLesson : '—',
+      notes: s.balance && s.balance !== 0 ? `Balance $${s.balance.toFixed(2)}` : 'Awaiting intake',
+      live: true,
+    }))
+  const rows: Row[] = liveRows.length > 0
+    ? liveRows
+    : ONBOARDING.map(o => ({ ...o, live: false }))
+  if (rows.length === 0) {
+    return (
+      <div className="view-pad">
+        <EmptyState icon="users" title="No prospects in the onboarding funnel" sub="Pending students will appear here once added." />
+      </div>
+    )
+  }
   return (
     <div className="view-pad">
+      <div className="sect-head">
+        <h3>Prospects in onboarding</h3>
+        <span className="mono dim">{rows.length} total{liveRows.length > 0 ? ' · live' : ''}</span>
+      </div>
       <table className="dt"><thead><tr><th>ID</th><th>Prospect</th><th>Stage</th><th>Progress</th><th>Started</th><th>Notes</th><th></th></tr></thead><tbody>
-        {ONBOARDING.map(o => (
+        {rows.map(o => (
           <tr key={o.id}>
             <td className="mono dim">{o.id}</td>
             <td className="strong">{o.name}</td>
@@ -1256,7 +1302,7 @@ export function OnboardingView() {
             <td><div className="progress"><div className="progress-fill" style={{ width: `${o.progress * 100}%` }} /><span className="progress-txt mono">{Math.round(o.progress * 100)}%</span></div></td>
             <td className="mono dim">{o.started}</td>
             <td className="dim">{o.notes}</td>
-            <td className="right"><button className="btn-ghost">Convert ›</button></td>
+            <td className="right"><button className="btn-ghost" onClick={() => window.__toast?.(`Convert ${o.name} to active roster`, 'ok')}>Convert ›</button></td>
           </tr>
         ))}
       </tbody></table>
