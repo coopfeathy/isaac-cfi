@@ -300,8 +300,13 @@ export function formatMetar(m: Metar | null, fallbackIcao: string): string {
   return parts.join(' · ')
 }
 
-function FilterPanel({ filters, setFilters, onClose }: {
+function FilterPanel({ filters, setFilters, onClose, aircraft, instructors }: {
   filters: Filters; setFilters: (updater: (f: Filters) => Filters) => void; onClose: () => void;
+  // Live fleet + instructor lists (DB-backed). Falls back to the seed arrays if
+  // not provided so the filter chips always render something sensible even
+  // before the first Supabase fetch resolves.
+  aircraft?: Array<{ tail: string }>;
+  instructors?: Array<{ id: string; name: string }>;
 }) {
   const STATUSES: { k: string; label: string; color: string }[] = [
     { k: 'booked',    label: 'Booked',     color: 'var(--accent)' },
@@ -317,6 +322,8 @@ function FilterPanel({ filters, setFilters, onClose }: {
   }))
   const reset = () => setFilters(() => EMPTY_FILTERS)
   const total = filterActiveCount(filters)
+  const acList = (aircraft && aircraft.length > 0) ? aircraft : AIRCRAFT
+  const cfiList = (instructors && instructors.length > 0) ? instructors : INSTRUCTORS
   return (
     <div className="filter-pop" onClick={e => e.stopPropagation()}>
       <div className="filter-head">
@@ -337,7 +344,7 @@ function FilterPanel({ filters, setFilters, onClose }: {
         <div className="fp-group">
           <div className="fp-label mono">Aircraft</div>
           <div className="fp-chips">
-            {AIRCRAFT.map(a => (
+            {acList.map(a => (
               <button key={a.tail} className={`fp-chip mono ${filters.aircraft.includes(a.tail) ? 'act' : ''}`} onClick={() => toggle('aircraft', a.tail)}>{a.tail}</button>
             ))}
           </div>
@@ -345,7 +352,7 @@ function FilterPanel({ filters, setFilters, onClose }: {
         <div className="fp-group">
           <div className="fp-label mono">Instructor</div>
           <div className="fp-chips">
-            {INSTRUCTORS.map(c => (
+            {cfiList.map(c => (
               <button key={c.id} className={`fp-chip ${filters.cfi.includes(c.id) ? 'act' : ''}`} onClick={() => toggle('cfi', c.id)}>{c.name}</button>
             ))}
           </div>
@@ -424,7 +431,7 @@ function TreeNode({ node, depth, selected, onSelect, expanded, toggleExpand }: {
   )
 }
 
-export function Sidebar({ selected, onSelect, filters, setFilters, onSync, aircraft, students }: {
+export function Sidebar({ selected, onSelect, filters, setFilters, onSync, aircraft, students, instructors }: {
   selected: string | null;
   onSelect: (n: TreeNodeData) => void;
   filters: Filters;
@@ -436,6 +443,9 @@ export function Sidebar({ selected, onSelect, filters, setFilters, onSync, aircr
   // Live student roster. Same pattern — rebuild `students-g` children from the
   // live list so newly-added students appear in the tree without reload.
   students?: Array<{ id: string; name: string; phase: string }>;
+  // Live instructor directory. Threaded down into FilterPanel so the CFI filter
+  // chips reflect actual instructors instead of the seed trio.
+  instructors?: Array<{ id: string; name: string }>;
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [q, setQ] = useState('')
@@ -508,7 +518,7 @@ export function Sidebar({ selected, onSelect, filters, setFilters, onSync, aircr
           {activeCount > 0 && <span className="mono dim" style={{ marginLeft: 4 }}>· {activeCount}</span>}
         </button>
         <button className="btn-ghost" onClick={onSync}><I name="refresh" /> Sync</button>
-        {showFilter && <FilterPanel filters={filters} setFilters={setFilters} onClose={() => setShowFilter(false)} />}
+        {showFilter && <FilterPanel filters={filters} setFilters={setFilters} onClose={() => setShowFilter(false)} aircraft={aircraft} instructors={instructors} />}
       </div>
       <nav className="tree">
         {filtered.length === 0 && <div className="tree-empty mono dim">no matches</div>}

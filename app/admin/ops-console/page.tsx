@@ -808,6 +808,7 @@ export default function OpsConsolePage() {
           onSync={() => showToast('Synced · 0 changes', 'ok')}
           aircraft={aircraft}
           students={students}
+          instructors={instructors}
         />
         <main className="main">
           <IconRail view={view} onView={(v) => { setView(v); setSubTab(0) }} />

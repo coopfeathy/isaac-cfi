@@ -1647,8 +1647,10 @@ export function ScheduleCalendar({ bookings, viewDate }: { bookings: Booking[]; 
   })
 
   // Simple deterministic fake distribution for non-today days until week-wide
-  // schedule fetch lands.
-  const fakeCounts: Record<string, number> = { mon: 11, tue: 14, wed: bookings.length, thu: 12, fri: 15, sat: 18, sun: 9 }
+  // schedule fetch lands. Today's count is always the live `bookings.length`;
+  // every other day uses a static seed so the week-view doesn't mislabel a
+  // random weekday with today's actual count.
+  const fakeCounts: Record<string, number> = { mon: 11, tue: 14, wed: 13, thu: 12, fri: 15, sat: 18, sun: 9 }
   DAYS.forEach(d => { if (d.today) fakeCounts[d.key] = bookings.length })
   const HOUR_PX = 36
   const START_H = 7
