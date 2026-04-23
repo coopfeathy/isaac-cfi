@@ -788,7 +788,7 @@ export default function OpsConsolePage() {
       case 'dispatch':   return <DispatchView subTab={subTab} />
       case 'syllabus':   return <SyllabusView subTab={subTab} />
       case 'onboarding': return <OnboardingView />
-      case 'debriefs':   return <DebriefsView />
+      case 'debriefs':   return <DebriefsView bookings={displayBookings} />
       case 'billing':    return <BillingView subTab={subTab} />
       case 'expenses':   return <ExpensesView subTab={subTab} />
       case 'payouts':    return <PayoutsView subTab={subTab} />

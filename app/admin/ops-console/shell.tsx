@@ -814,12 +814,41 @@ export function OpsPulse({ alerts, bookings, aircraftCount, airportIcao = 'KPNE'
   const errorCt = openAlerts.filter(a => a.sev === 'error').length
   const warnCt = openAlerts.filter(a => a.sev === 'warn').length
 
-  const actions = [
-    { kind: 'error', label: 'N219MF AOG · reassign 3 bookings for 24 Apr', view: 'integrity' },
-    { kind: 'warn',  label: 'INV-7709 overdue · Sofia Haddad · $645.00',   view: 'billing' },
-    { kind: 'warn',  label: 'SR-2214 stale >48h · L. Petrov',               view: 'requests' },
-    { kind: 'info',  label: 'ONB-044 ready for first lesson · assign CFI',  view: 'onboarding' },
-  ]
+  // Route an alert to whichever workspace is best suited to resolve it, based
+  // on its code prefix. Everything else falls back to the Integrity view.
+  const viewForAlert = (code?: string): string => {
+    if (!code) return 'integrity'
+    if (code.startsWith('BI-1')) return 'billing'
+    if (code.startsWith('SR-') || code.startsWith('BI-118')) return 'requests'
+    if (code.startsWith('ONB-')) return 'onboarding'
+    if (code.startsWith('CAL-')) return 'schedule'
+    return 'integrity'
+  }
+
+  // Build the "NEEDS ATTENTION" feed from live data rather than a hardcoded
+  // list, so resolving an alert / paying an invoice actually removes it here.
+  // Order: errors first, then unpaid active bookings, then warn/info alerts.
+  const unpaidBookings = bookings.filter(b => b.paid === false && b.status !== 'cancelled')
+  const actions: Array<{ kind: string; label: string; view: string }> = []
+  openAlerts
+    .filter(a => a.sev === 'error')
+    .forEach(a => actions.push({ kind: 'error', label: a.msg || a.code, view: viewForAlert(a.code) }))
+  if (unpaidBookings.length > 0) {
+    const b = unpaidBookings[0]
+    const extra = unpaidBookings.length > 1 ? ` (+${unpaidBookings.length - 1} more)` : ''
+    actions.push({
+      kind: 'warn',
+      label: `${b.code || b.id} unpaid · ${b.student}${extra}`,
+      view: 'billing',
+    })
+  }
+  openAlerts
+    .filter(a => a.sev === 'warn')
+    .forEach(a => actions.push({ kind: 'warn', label: a.msg || a.code, view: viewForAlert(a.code) }))
+  openAlerts
+    .filter(a => a.sev === 'info')
+    .forEach(a => actions.push({ kind: 'info', label: a.msg || a.code, view: viewForAlert(a.code) }))
+  const visibleActions = actions.slice(0, 4)
 
   return (
     <div className="timeline pulse">
@@ -889,7 +918,8 @@ export function OpsPulse({ alerts, bookings, aircraftCount, airportIcao = 'KPNE'
 
         <div className="pulse-col">
           <div className="pulse-col-h mono">NEEDS ATTENTION · {actions.length}</div>
-          {actions.map((a, i) => (
+          {visibleActions.length === 0 && <div className="pulse-empty mono dim">— all clear —</div>}
+          {visibleActions.map((a, i) => (
             <div key={i} className={`pulse-action pa-${a.kind}`} onClick={() => onJumpView(a.view)}>
               <span className="pa-dot" />
               <span className="pa-label">{a.label}</span>

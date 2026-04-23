@@ -1504,15 +1504,54 @@ export function ExpensesView({ subTab = 0 }: { subTab?: number }) {
   )
 }
 
-export function DebriefsView() {
+export function DebriefsView({ bookings = [] }: { bookings?: Booking[] }) {
+  // Debriefs are tied to flights that have actually occurred. "Pending" =
+  // landed/completed but not yet signed off; "in progress" = airborne now.
+  // Counts are derived from the bookings passed in so this view reflects the
+  // current day's real state instead of the old hardcoded "42 debriefs" copy.
+  const completed = bookings.filter(b => b.status === 'completed')
+  const inFlight = bookings.filter(b => b.status === 'in_flight')
+  const total = completed.length + inFlight.length
+  if (total === 0) {
+    return (
+      <div className="view-pad">
+        <EmptyState
+          icon="book"
+          title="No debriefs to review"
+          sub="No flights have landed or are airborne for this date."
+          cta={<button className="btn-primary" onClick={() => window.__toast?.('Generating weekly debrief report', 'ok')}>Generate weekly report</button>}
+        />
+      </div>
+    )
+  }
   return (
     <div className="view-pad">
-      <EmptyState
-        icon="book"
-        title="No recent debriefs flagged"
-        sub="All 42 debriefs in the last 30 days are complete."
-        cta={<button className="btn-primary">Generate weekly report</button>}
-      />
+      <div className="stat-grid">
+        <div className="stat"><div className="stat-k mono">LANDED · SIGNED</div><div className="stat-v">{completed.length}</div><div className="stat-delta dim">debriefs complete</div></div>
+        <div className="stat"><div className="stat-k mono">IN FLIGHT</div><div className="stat-v">{inFlight.length}</div><div className="stat-delta dim">awaiting landing</div></div>
+        <div className="stat"><div className="stat-k mono">TOTAL TODAY</div><div className="stat-v">{total}</div><div className="stat-delta dim">flights tracked</div></div>
+        <div className="stat"><div className="stat-k mono">ASSIGNED CFIS</div><div className="stat-v">{new Set([...completed, ...inFlight].map(b => b.cfi).filter(Boolean)).size}</div><div className="stat-delta dim">with debriefs</div></div>
+      </div>
+      <div className="sect-head"><h3>Debriefs</h3><span className="mono dim">{total} active today</span></div>
+      <table className="dt"><thead><tr><th>Booking</th><th>Student</th><th>Tail</th><th>Lesson</th><th>CFI</th><th>Status</th><th></th></tr></thead><tbody>
+        {[...inFlight, ...completed].map(b => {
+          const cfi = INSTRUCTORS.find(c => c.id === b.cfi) || null
+          return (
+            <tr key={b.id}>
+              <td className="mono">{b.code || b.id}</td>
+              <td className="strong">{b.student}</td>
+              <td className="mono">{b.tail}</td>
+              <td className="dim">{b.lesson}</td>
+              <td>{cfi ? <span className="cfi-chip"><Avatar cfi={cfi} /> {cfi.name}</span> : <span className="dim">—</span>}</td>
+              <td>
+                {b.status === 'in_flight' && <Badge kind="info">IN FLIGHT</Badge>}
+                {b.status === 'completed' && <Badge kind="ok">SIGNED</Badge>}
+              </td>
+              <td className="right"><button className="btn-ghost" onClick={() => window.__toast?.(`Opening debrief for ${b.student}`)}>Debrief ›</button></td>
+            </tr>
+          )
+        })}
+      </tbody></table>
     </div>
   )
 }
