@@ -353,10 +353,13 @@ export function FleetView({ aircraft, bookings, subTab = 0, onAddAircraft, onDel
   onOpenAircraft?: (a: Aircraft) => void;
 }) {
   if (subTab === 1) {
+    // Derive AOG count from the live fleet so the "IN SHOP" delta reflects
+    // actual grounded aircraft instead of the previous hardcoded "1 AOG".
+    const aogCount = aircraft.filter(a => a.status === 'ground').length
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">IN SHOP</div><div className="stat-v">{MAINT_EVENTS.filter(m => m.status === 'in_shop' || m.status === 'awaiting_parts').length}</div><div className="stat-delta neg">1 AOG</div></div>
+          <div className="stat"><div className="stat-k mono">IN SHOP</div><div className="stat-v">{MAINT_EVENTS.filter(m => m.status === 'in_shop' || m.status === 'awaiting_parts').length}</div><div className={aogCount > 0 ? 'stat-delta neg' : 'stat-delta dim'}>{aogCount > 0 ? `${aogCount} AOG` : 'no AOG'}</div></div>
           <div className="stat"><div className="stat-k mono">DUE · 14 DAYS</div><div className="stat-v">{MAINT_EVENTS.filter(m => m.status === 'upcoming').length}</div><div className="stat-delta warn">schedule now</div></div>
           <div className="stat"><div className="stat-k mono">MTD · SPEND</div><div className="stat-v">$3,736.20</div><div className="stat-delta dim mono">2 events</div></div>
           <div className="stat"><div className="stat-k mono">UPTIME · 30D</div><div className="stat-v">94.1%</div><div className="stat-delta pos">▴ 2.3 pp</div></div>
@@ -424,12 +427,17 @@ export function FleetView({ aircraft, bookings, subTab = 0, onAddAircraft, onDel
             const delta = deltas[i]
             const until = untils[i]
             const util = utils[i]
+            // "Last flight" has no persisted column on the aircraft row yet
+            // (Aircraft type only carries tail/model/hobbs/status/etc.), so
+            // we show an em-dash rather than the previous synthetic date
+            // string, which invented a hard-coded April 2026 date that went
+            // stale immediately after the demo seed.
             return (
               <tr key={a.tail}>
                 <td><span className="mono strong">{a.tail}</span></td>
                 <td className="dim">{a.model}</td>
                 <td className="right mono strong">{a.hobbs.toFixed(1)}</td>
-                <td className="right mono dim">{delta > 0 ? `2026-04-${22 - (i % 3)}` : '—'}</td>
+                <td className="right mono dim">—</td>
                 <td className={`right mono ${delta > 0 ? 'pos' : 'dim'}`}>{delta > 0 ? `+${delta.toFixed(1)}` : '—'}</td>
                 <td className="mono dim">{typeof until === 'number' ? `${until.toFixed(1)} h` : until}</td>
                 <td><div className="progress"><div className="progress-fill" style={{ width: `${util * 100}%` }} /><span className="progress-txt mono">{Math.round(util * 100)}%</span></div></td>
