@@ -389,13 +389,34 @@ export function FleetView({ aircraft, bookings, subTab = 0, onAddAircraft, onDel
     const deltas = [11.4, 8.2, 0.0, 9.6, 0.0]
     const untils: Array<number | string> = [49.7, 30.4, '—', 21.9, '—']
     const utils = [0.82, 0.58, 0.0, 0.71, 0.0]
+    // Derive TOP UTILIZED / IDLE from the live fleet so deleted or newly-added
+    // aircraft are reflected. TOP = highest hobbs among non-grounded aircraft;
+    // IDLE = any grounded (AOG) aircraft, else the lowest-hobbs aircraft.
+    const nonGrounded = aircraft.filter(a => a.status !== 'ground')
+    const topAircraft = nonGrounded.reduce<Aircraft | null>(
+      (top, a) => (!top || a.hobbs > top.hobbs) ? a : top, null
+    )
+    const topIdx = topAircraft ? aircraft.findIndex(a => a.tail === topAircraft.tail) : -1
+    const topWeeklyHrs = topIdx >= 0 && deltas[topIdx] != null ? deltas[topIdx] : null
+    const aog = aircraft.find(a => a.status === 'ground')
+    const idleAircraft = aog || aircraft.reduce<Aircraft | null>(
+      (lo, a) => (!lo || a.hobbs < lo.hobbs) ? a : lo, null
+    )
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">FLEET TOTAL</div><div className="stat-v">{aircraft.reduce((s, a) => s + a.hobbs, 0).toFixed(1)} h</div><div className="stat-delta pos">+36.4 MTD</div></div>
           <div className="stat"><div className="stat-k mono">UTILIZATION · 7D</div><div className="stat-v">62%</div><div className="stat-delta pos">▴ 4 pp</div></div>
-          <div className="stat"><div className="stat-k mono">TOP UTILIZED</div><div className="stat-v">N428MF</div><div className="stat-delta dim mono">11.4 h · wk</div></div>
-          <div className="stat"><div className="stat-k mono">IDLE · 14D</div><div className="stat-v">N219MF</div><div className="stat-delta neg">AOG</div></div>
+          <div className="stat">
+            <div className="stat-k mono">TOP UTILIZED</div>
+            <div className="stat-v">{topAircraft?.tail || '—'}</div>
+            <div className="stat-delta dim mono">{topWeeklyHrs != null && topWeeklyHrs > 0 ? `${topWeeklyHrs.toFixed(1)} h · wk` : '—'}</div>
+          </div>
+          <div className="stat">
+            <div className="stat-k mono">IDLE · 14D</div>
+            <div className="stat-v">{idleAircraft?.tail || '—'}</div>
+            <div className={`stat-delta ${aog ? 'neg' : 'dim'}`}>{aog ? 'AOG' : (idleAircraft ? 'low hours' : '—')}</div>
+          </div>
         </div>
         <div className="sect-head"><h3>Hobbs by aircraft</h3></div>
         <table className="dt"><thead><tr><th>Tail</th><th>Model</th><th className="right">Hobbs</th><th className="right">Last flight</th><th className="right">Δ · 7d</th><th>Until next insp.</th><th>Utilization</th></tr></thead><tbody>

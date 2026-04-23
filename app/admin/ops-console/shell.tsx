@@ -577,8 +577,9 @@ export function IconRail({ view, onView }: { view: string; onView: (v: string) =
   )
 }
 
-export function DocNav({ view }: { view: string }) {
+export function DocNav({ view, docOverride }: { view: string; docOverride?: string }) {
   const meta = VIEW_META[view] || { title: view, doc: '', tabs: [] }
+  const doc = docOverride ?? meta.doc
   return (
     <div className="doc-nav">
       <div className="doc-crumbs mono">
@@ -589,7 +590,7 @@ export function DocNav({ view }: { view: string }) {
         <span>{meta.title}</span>
       </div>
       <div className="doc-spacer" />
-      <span className="doc-meta mono dim">{meta.doc}</span>
+      <span className="doc-meta mono dim">{doc}</span>
     </div>
   )
 }

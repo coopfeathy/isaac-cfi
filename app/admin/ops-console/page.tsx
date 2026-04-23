@@ -738,6 +738,39 @@ export default function OpsConsolePage() {
   }
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark')
 
+  // Live subtitle for DocNav. Replaces the static VIEW_META.doc strings for
+  // views backed by DB/live state so the header never shows stale counts
+  // (e.g. "5 aircraft · 1 AOG" after fleet changes). Returns undefined for
+  // views where we don't have better information than the static default.
+  const docOverride = useMemo<string | undefined>(() => {
+    if (view === 'fleet') {
+      const n = aircraft.length
+      const aog = aircraft.filter(a => a.status === 'ground').length
+      const acLabel = `${n} aircraft`
+      return aog > 0 ? `${acLabel} · ${aog} AOG` : acLabel
+    }
+    if (view === 'students') {
+      const active = students.filter(s => s.status === 'active').length
+      const prospect = students.filter(s => s.status === 'pending').length
+      if (active === 0 && prospect === 0) return `${students.length} total`
+      const parts: string[] = []
+      if (active > 0) parts.push(`${active} active`)
+      if (prospect > 0) parts.push(`${prospect} prospect${prospect === 1 ? '' : 's'}`)
+      return parts.join(' · ')
+    }
+    if (view === 'requests') {
+      const n = slotRequests.length
+      const stale = slotRequests.filter(r => (r.ageH ?? 0) > 48).length
+      if (n === 0) return 'no pending requests'
+      return stale > 0 ? `${n} pending · ${stale} stale` : `${n} pending`
+    }
+    if (view === 'integrity') {
+      const open = alerts.filter(a => !a.resolved).length
+      return open === 0 ? 'all clear' : `${open} open`
+    }
+    return undefined
+  }, [view, aircraft, students, slotRequests, alerts])
+
   const renderView = () => {
     if (loading) return <div className="view-pad"><Skeleton lines={8} /></div>
     switch (view) {
@@ -778,7 +811,7 @@ export default function OpsConsolePage() {
         <main className="main">
           <IconRail view={view} onView={(v) => { setView(v); setSubTab(0) }} />
           <div className="main-inner">
-            <DocNav view={view} />
+            <DocNav view={view} docOverride={docOverride} />
             <SubTabs view={view} active={subTab} onActive={setSubTab} />
             {view === 'schedule' && (
               <Toolbar
