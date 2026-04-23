@@ -797,9 +797,17 @@ export function OpsPulse({ alerts, bookings, aircraftCount, airportIcao = 'KPNE'
   const liveTime = now && locale ? formatTimeShort(now, locale.tz) : '— —'
   const metar = useMetar(airportIcao)
   const weatherLine = formatMetar(metar, airportIcao)
+  // Current tick index on the 07:00 → 19:00 / 30-min grid. Falls back to tick 5
+  // (09:30) on first paint before `useNow` resolves, so SSR/hydration matches.
+  const currentTick = useMemo(() => {
+    if (!now) return 5
+    const mins = now.getHours() * 60 + now.getMinutes()
+    return Math.max(0, Math.min(TICKS.length - 1, (mins - 7 * 60) / 30))
+  }, [now])
   const inFlight = bookings.filter(b => b.status === 'in_flight')
   const nextUp = bookings
-    .filter(b => b.status === 'booked' && b.start >= 5 && b.start <= 10)
+    // Next 2 hours = 4 half-hour ticks from the real current time.
+    .filter(b => b.status === 'booked' && b.start >= currentTick && b.start <= currentTick + 4)
     .sort((a, b) => a.start - b.start)
     .slice(0, 3)
   const openAlerts = alerts.filter(a => !a.resolved)
@@ -833,7 +841,7 @@ export function OpsPulse({ alerts, bookings, aircraftCount, airportIcao = 'KPNE'
           {inFlight.map(b => {
             const cfi = INSTRUCTORS.find(c => c.id === b.cfi) || null
             const eta = TICKS[b.end]
-            const elapsed = (5 - b.start) * 30
+            const elapsed = (currentTick - b.start) * 30
             const totalMin = (b.end - b.start) * 30
             const pct = Math.min(100, Math.max(0, (elapsed / totalMin) * 100))
             return (
@@ -857,7 +865,7 @@ export function OpsPulse({ alerts, bookings, aircraftCount, airportIcao = 'KPNE'
           {nextUp.map(b => {
             const cfi = INSTRUCTORS.find(c => c.id === b.cfi)
             const start = TICKS[b.start]
-            const minsOut = (b.start - 5) * 30
+            const minsOut = Math.max(0, Math.round((b.start - currentTick) * 30))
             return (
               <div key={b.id} className="pulse-dep" onClick={() => onSelBooking(b.id)}>
                 <div className="pd-time">

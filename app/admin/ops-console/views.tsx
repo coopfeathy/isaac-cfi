@@ -337,7 +337,7 @@ export function ScheduleBoard({ aircraft, bookings, zoom, viewDate, selBookingId
           ))}
         </div>
         <span className="mono dim foot-right">
-          {aircraft.length} aircraft · {bookings.length} bookings · {bookings.filter(b => !b.paid && b.status !== 'maint' && b.status !== 'aog').length} unpaid · sync 09:12
+          {aircraft.length} aircraft · {bookings.length} bookings · {bookings.filter(b => !b.paid && b.status !== 'maint' && b.status !== 'aog').length} unpaid · sync {now ? `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}` : '—:—'}
         </span>
       </div>
     </div>
