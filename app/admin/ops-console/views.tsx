@@ -466,13 +466,23 @@ export function FleetView({ aircraft, bookings, subTab = 0, onAddAircraft, onDel
   }
 
   if (subTab === 3) {
+    // Derive the squawk-log tiles from the SQUAWKS table rather than inventing
+    // numbers. The previous "RESOLVED · 30D: 14" was flat-out wrong (only 2
+    // resolved in the seed), and "1 major" / "MTBF 86 h" drifted whenever the
+    // log changed. We drop MTBF entirely — it would require engine-hours
+    // history we don't persist — and replace it with an honest MAJOR count.
+    const openSquawks = SQUAWKS.filter(s => s.status === 'open')
+    const openMajor = openSquawks.filter(s => s.severity === 'major').length
+    const deferredCount = SQUAWKS.filter(s => s.status === 'deferred').length
+    const resolvedCount = SQUAWKS.filter(s => s.status === 'resolved').length
+    const majorCount = SQUAWKS.filter(s => s.severity === 'major').length
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">OPEN</div><div className="stat-v">{SQUAWKS.filter(s => s.status === 'open').length}</div><div className="stat-delta warn">1 major</div></div>
-          <div className="stat"><div className="stat-k mono">DEFERRED</div><div className="stat-v">{SQUAWKS.filter(s => s.status === 'deferred').length}</div><div className="stat-delta dim">within MEL</div></div>
-          <div className="stat"><div className="stat-k mono">RESOLVED · 30D</div><div className="stat-v">14</div><div className="stat-delta pos">avg 2.1d</div></div>
-          <div className="stat"><div className="stat-k mono">MTBF · FLEET</div><div className="stat-v">86 h</div><div className="stat-delta pos">▴ 12 h</div></div>
+          <div className="stat"><div className="stat-k mono">OPEN</div><div className="stat-v">{openSquawks.length}</div><div className={openMajor > 0 ? 'stat-delta warn' : 'stat-delta dim'}>{openMajor > 0 ? `${openMajor} major` : 'all minor'}</div></div>
+          <div className="stat"><div className="stat-k mono">DEFERRED</div><div className="stat-v">{deferredCount}</div><div className="stat-delta dim">within MEL</div></div>
+          <div className="stat"><div className="stat-k mono">RESOLVED</div><div className="stat-v">{resolvedCount}</div><div className="stat-delta dim">in log</div></div>
+          <div className="stat"><div className="stat-k mono">MAJOR · ALL</div><div className="stat-v">{majorCount}</div><div className={majorCount > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{majorCount > 0 ? 'severity flag' : 'none'}</div></div>
         </div>
         <div className="sect-head"><h3>Squawk log</h3><span className="mono dim">{SQUAWKS.length}</span></div>
         <table className="dt"><thead><tr><th>ID</th><th>Tail</th><th>Item</th><th>Severity</th><th>Reported</th><th>By</th><th>Status</th><th></th></tr></thead><tbody>
@@ -1152,7 +1162,7 @@ export function SyllabusView({ subTab = 0, students = [] }: { subTab?: number; s
     // row format intact while making the tiles honest.
     const parseH = (s: string) => parseFloat(s) || 0
     const totalLessons = SYLLABUS.reduce((t, c) => t + c.lessons, 0)
-    const courseCount = SYLLABUS.length
+    const courseCount: number = SYLLABUS.length
     const totalFlight = LESSONS.reduce((t, l) => t + parseH(l.dur), 0)
     const totalGround = LESSONS.reduce((t, l) => t + parseH(l.ground), 0)
     const avgDuration = LESSONS.length > 0 ? totalFlight / LESSONS.length : 0
