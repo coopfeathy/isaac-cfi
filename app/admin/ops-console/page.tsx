@@ -10,7 +10,8 @@ import {
   EMPTY_FILTERS, type Filters,
 } from './shell'
 import {
-  ScheduleBoard, FleetView, StudentsView, IntegrityView, RequestsView, DispatchView,
+  ScheduleBoard, ScheduleTimeline, ScheduleCalendar, ScheduleCapacity,
+  FleetView, StudentsView, IntegrityView, RequestsView, DispatchView,
   BillingView, SyllabusView, OnboardingView, PayoutsView, ExpensesView, DebriefsView,
   Skeleton, EmptyState, type Student, type Aircraft,
 } from './views'
@@ -33,6 +34,7 @@ declare global {
 
 type Booking = {
   id: string; code?: string; tail: string; start: number; end: number; student: string;
+  studentId?: string | null; aircraftId?: string | null;
   cfi: string | null; cfiInitials?: string | null; lesson: string; status: string; paid: boolean | null;
 }
 type AlertRow = { id: string; sev: string; code: string; msg: string; ts: string; resolved: boolean }
@@ -269,9 +271,11 @@ export default function OpsConsolePage() {
       id: ev.id,
       code: ev.code,
       tail: ev.tail,
+      aircraftId: ev.aircraftId,
       start: ev.start,
       end: ev.end,
       student: ev.student,
+      studentId: ev.studentId,
       cfi: ev.cfiId,
       cfiInitials: ev.cfi,
       lesson: ev.lesson,
@@ -737,11 +741,16 @@ export default function OpsConsolePage() {
   const renderView = () => {
     if (loading) return <div className="view-pad"><Skeleton lines={8} /></div>
     switch (view) {
-      case 'schedule':   return <ScheduleBoard aircraft={aircraft} bookings={visibleBookings} zoom={zoom} viewDate={date} selBookingId={selBooking} onSelBooking={setSelBooking} onEmptySlotClick={handleEmptySlotClick} onAddAircraft={handleAddAircraft} onDeleteAircraft={handleDeleteAircraft} onMoveBooking={handleMoveBooking} onResizeBookingRequest={handleResizeBookingRequest} />
+      case 'schedule': {
+        if (subTab === 1) return <ScheduleTimeline bookings={visibleBookings} />
+        if (subTab === 2) return <ScheduleCalendar bookings={visibleBookings} viewDate={date} />
+        if (subTab === 3) return <ScheduleCapacity bookings={visibleBookings} aircraft={aircraft} />
+        return <ScheduleBoard aircraft={aircraft} bookings={visibleBookings} zoom={zoom} viewDate={date} selBookingId={selBooking} onSelBooking={setSelBooking} onEmptySlotClick={handleEmptySlotClick} onAddAircraft={handleAddAircraft} onDeleteAircraft={handleDeleteAircraft} onMoveBooking={handleMoveBooking} onResizeBookingRequest={handleResizeBookingRequest} />
+      }
       case 'fleet':      return <FleetView aircraft={aircraft} bookings={displayBookings} subTab={subTab} onAddAircraft={handleAddAircraft} onDeleteAircraft={handleDeleteAircraft} onOpenAircraft={(a) => setModal({ kind: 'aircraft', payload: a })} />
       case 'students':   return <StudentsView students={students} subTab={subTab} onDelete={handleDeleteStudent} onAddStudent={handleAddStudent} />
-      case 'integrity':  return <IntegrityView alerts={alerts} onResolve={handleResolve} />
-      case 'requests':   return <RequestsView requests={slotRequests} onApprove={handleApproveRequest} onDecline={handleDeclineRequest} />
+      case 'integrity':  return <IntegrityView alerts={alerts} subTab={subTab} onResolve={handleResolve} />
+      case 'requests':   return <RequestsView requests={slotRequests} subTab={subTab} onApprove={handleApproveRequest} onDecline={handleDeclineRequest} />
       case 'dispatch':   return <DispatchView subTab={subTab} />
       case 'syllabus':   return <SyllabusView subTab={subTab} />
       case 'onboarding': return <OnboardingView />
@@ -796,6 +805,9 @@ export default function OpsConsolePage() {
         <Inspector
           bookings={displayBookings}
           bookingId={selBooking}
+          aircraft={aircraft}
+          instructors={instructors}
+          students={studentOptions}
           onClear={() => setSelBooking(null)}
           onEditBooking={handleEditBooking}
           onReassign={(b) => setModal({ kind: 'reassign', payload: b })}

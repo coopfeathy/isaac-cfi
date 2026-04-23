@@ -816,3 +816,58 @@ html:has(.ops-console-root) body::-webkit-scrollbar { width: 0; height: 0; displ
   .ops-console-root .app { grid-template-columns: 216px 1fr 280px; }
   .ops-console-root .env-pill { display: none; }
 }
+
+/* ═══════ Subtab views (Timeline / Calendar / Capacity / Squawks tables) ═══════ */
+.ops-console-root .lane-empty { display: flex; align-items: center; height: 100%; padding-left: 12px; font-size: 11px; letter-spacing: 0.04em; color: var(--fg-3); }
+
+.ops-console-root .cal-wrap { background: var(--bg-1); border: 1px solid var(--line-1); border-radius: var(--radius); overflow: hidden; }
+.ops-console-root .cal-head { display: grid; grid-template-columns: 64px repeat(7, 1fr); border-bottom: 1px solid var(--line-2); background: var(--bg-2); }
+.ops-console-root .cal-gutter { border-right: 1px solid var(--line-1); }
+.ops-console-root .cal-day-head { padding: 10px 12px; border-right: 1px solid var(--line-1); }
+.ops-console-root .cal-day-head:last-child { border-right: 0; }
+.ops-console-root .cal-day-head.today { background: var(--accent-bg); }
+.ops-console-root .cal-day-name { font-size: 10px; letter-spacing: 0.1em; color: var(--fg-2); }
+.ops-console-root .cal-day-date { font-size: 14px; color: var(--fg-0); font-weight: 600; margin-top: 2px; }
+.ops-console-root .cal-day-count { font-size: 10px; margin-top: 4px; }
+.ops-console-root .cal-grid { display: grid; grid-template-columns: 64px repeat(7, 1fr); position: relative; }
+.ops-console-root .cal-grid .cal-gutter { display: flex; flex-direction: column; }
+.ops-console-root .cal-hr { display: flex; align-items: flex-start; justify-content: flex-end; padding: 4px 8px 0 0; font-size: 10px; color: var(--fg-2); border-bottom: 1px solid var(--line-1); }
+.ops-console-root .cal-col { position: relative; border-right: 1px solid var(--line-1); }
+.ops-console-root .cal-col:last-child { border-right: 0; }
+.ops-console-root .cal-col.today { background: var(--accent-bg); }
+.ops-console-root .cal-cell { border-bottom: 1px solid var(--line-1); }
+.ops-console-root .cal-bk {
+  position: absolute; left: 3px; right: 3px;
+  border: 1px solid; border-radius: 4px; padding: 4px 6px;
+  font-size: 10px; line-height: 1.25; overflow: hidden; z-index: 2;
+}
+.ops-console-root .cal-bk-time { font-size: 9px; opacity: 0.7; }
+.ops-console-root .cal-bk-student { font-weight: 600; font-size: 11px; color: inherit; margin-top: 1px; }
+.ops-console-root .cal-bk-meta { font-size: 9px; opacity: 0.7; margin-top: 1px; }
+.ops-console-root .cal-fake-layer { position: absolute; inset: 0; pointer-events: none; }
+.ops-console-root .cal-fake-bk { position: absolute; background: var(--bg-3); border: 1px solid var(--line-1); border-radius: 4px; opacity: 0.45; }
+
+.ops-console-root .cap-table { display: flex; flex-direction: column; gap: 8px; background: var(--bg-1); border: 1px solid var(--line-1); border-radius: var(--radius); padding: 12px; }
+.ops-console-root .cap-row { display: grid; grid-template-columns: 180px 1fr; align-items: center; gap: 16px; padding: 6px 0; border-bottom: 1px solid var(--line-1); }
+.ops-console-root .cap-row:last-child { border-bottom: 0; }
+.ops-console-root .cap-label { display: flex; flex-direction: column; gap: 2px; font-size: 11px; }
+.ops-console-root .cap-label .strong { font-size: 12px; color: var(--fg-0); }
+.ops-console-root .cap-bar-wrap { display: flex; flex-direction: column; gap: 4px; }
+.ops-console-root .cap-strip { display: grid; grid-template-columns: repeat(24, 1fr); gap: 1px; height: 18px; }
+.ops-console-root .cap-slot { border: 1px solid; border-radius: 1px; }
+.ops-console-root .cap-meta { display: flex; justify-content: space-between; font-size: 10px; color: var(--fg-2); }
+.ops-console-root .cap-heat { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; background: var(--bg-1); border: 1px solid var(--line-1); border-radius: var(--radius); padding: 12px; margin-top: 8px; }
+.ops-console-root .heat-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.ops-console-root .heat-bar-wrap { width: 100%; height: 80px; display: flex; align-items: flex-end; background: var(--bg-2); border-radius: 4px; overflow: hidden; }
+.ops-console-root .heat-bar { width: 100%; transition: height 0.3s; }
+.ops-console-root .heat-label { font-size: 10px; color: var(--fg-2); }
+.ops-console-root .heat-val { font-size: 10px; color: var(--fg-2); }
+
+.ops-console-root .bk-chip {
+  position: absolute; top: 6px; bottom: 6px;
+  border: 1px solid; border-radius: 4px; padding: 4px 6px;
+  font-size: 10px; line-height: 1.2; overflow: hidden; z-index: 2;
+}
+.ops-console-root .bk-id { font-size: 9.5px; opacity: 0.75; }
+.ops-console-root .bk-student { font-weight: 600; font-size: 11px; color: inherit; }
+.ops-console-root .bk-lesson { font-size: 9.5px; opacity: 0.7; margin-top: 1px; }

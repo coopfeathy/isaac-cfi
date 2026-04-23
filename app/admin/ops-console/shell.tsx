@@ -7,6 +7,7 @@ import { TREE, VIEW_META, AIRCRAFT, INSTRUCTORS, STUDENTS, STATUS, TICKS, type T
 
 type Booking = {
   id: string; code?: string; tail: string; start: number; end: number; student: string;
+  studentId?: string | null; aircraftId?: string | null;
   cfi: string | null; cfiInitials?: string | null; lesson: string; status: string; paid: boolean | null;
 }
 type AlertRow = { id: string; sev: string; code: string; msg: string; ts: string; resolved: boolean }
@@ -655,8 +656,11 @@ function SectionHead({ children }: { children: ReactNode }) {
   return <div className="ins-sect-head"><span className="mono">{children}</span></div>
 }
 
-export function Inspector({ bookings, bookingId, onClear, onEditBooking, onReassign, onCancel }: {
+export function Inspector({ bookings, bookingId, aircraft, instructors, students, onClear, onEditBooking, onReassign, onCancel }: {
   bookings: Booking[]; bookingId: string | null;
+  aircraft?: Array<{ id?: string; tail: string; model: string; status?: string }>;
+  instructors?: Array<{ id: string; name: string; initials: string }>;
+  students?: Array<{ id: string; name: string }>;
   onClear: () => void;
   onEditBooking: (id: string, patch: Partial<Booking>) => void;
   onReassign: (b: Booking) => void;
@@ -685,9 +689,25 @@ export function Inspector({ bookings, bookingId, onClear, onEditBooking, onReass
       </aside>
     )
   }
-  const ac = AIRCRAFT.find(a => a.tail === b.tail)
-  const cfi = INSTRUCTORS.find(c => c.id === b.cfi)
-  const stu = STUDENTS.find(s => s.name === b.student)
+  // Prefer live-prop lookups (Supabase-backed) with seed-data fallback so that
+  // real bookings — whose UUIDs don't match the seed ids — still resolve.
+  const liveAc = aircraft?.find(a => (b.aircraftId && a.id === b.aircraftId) || a.tail === b.tail)
+  const ac = liveAc ?? AIRCRAFT.find(a => a.tail === b.tail)
+  const liveCfi = instructors?.find(c => c.id === b.cfi)
+  const cfi = liveCfi
+    ? { id: liveCfi.id, name: liveCfi.name, ratings: [] as string[] }
+    : INSTRUCTORS.find(c => c.id === b.cfi)
+  const cfiDisplay = liveCfi
+    ? liveCfi.name
+    : cfi
+      ? `${cfi.name}${cfi.ratings.length ? ` (${cfi.ratings.join('/')})` : ''}`
+      : b.cfiInitials
+        ? `CFI ${b.cfiInitials}`
+        : '—'
+  const liveStu = students?.find(s => (b.studentId && s.id === b.studentId) || s.name === b.student)
+  const stu = liveStu ?? STUDENTS.find(s => s.name === b.student)
+  const studentIdDisplay = b.studentId || stu?.id || '—'
+  const cfiIdDisplay = b.cfi || cfi?.id || '—'
   const s = STATUS[b.status]
   const parseT = (str: string) => {
     const [h, m] = str.split(':').map(Number)
@@ -731,19 +751,32 @@ export function Inspector({ bookings, bookingId, onClear, onEditBooking, onReass
       <Field label="Duration" value={`${((b.end - b.start) * 0.5).toFixed(1)} h`} mono />
       <SectionHead>PARTIES</SectionHead>
       <Field label="Student" value={b.student} />
-      <Field label="Student ID" value={stu?.id || '—'} mono />
-      <Field label="Instructor" value={cfi ? `${cfi.name} (${cfi.ratings.join('/')})` : '—'} />
-      <Field label="CFI ID" value={cfi?.id || '—'} mono />
+      <Field label="Student ID" value={studentIdDisplay} mono />
+      <Field label="Instructor" value={cfiDisplay} />
+      <Field label="CFI ID" value={cfiIdDisplay} mono />
       <SectionHead>BILLING</SectionHead>
       <Field label="Rate" value="$215.00 / hr" mono />
       <Field label="Est. total" value={`$${(215 * (b.end - b.start) * 0.5).toFixed(2)}`} mono />
-      <Field label="Invoice" value={b.paid ? 'INV-7712 · paid' : 'INV-7718 · open'} mono kind={b.paid ? 'pos' : 'warn'} />
-      <Field label="Deposit" value={b.paid ? '$100.00' : '—'} mono />
+      <Field
+        label="Invoice"
+        value={b.paid === true ? 'INV-7712 · paid' : b.paid === false ? 'INV-7718 · open' : 'not invoiced'}
+        mono
+        kind={b.paid === true ? 'pos' : b.paid === false ? 'warn' : 'dim'}
+      />
+      <Field
+        label="Deposit"
+        value={b.paid === true ? '$100.00' : b.paid === false ? '$0.00' : '—'}
+        mono
+      />
       <SectionHead>SYSTEM</SectionHead>
       <Field label="Source" value="web · booking flow" mono />
       <Field label="Created" value="2026-04-18 14:22 PDT" mono />
       <Field label="CalDAV" value="synced · iCloud" mono kind="pos" />
-      <Field label="Stripe" value={b.paid ? 'pi_3Oq…xR7' : '—'} mono />
+      <Field
+        label="Stripe"
+        value={b.paid === true ? 'pi_3Oq…xR7' : b.paid === false ? 'awaiting charge' : '—'}
+        mono
+      />
       <div className="ins-actions">
         <button className="btn-ghost" onClick={() => onReassign(b)}>Reassign</button>
         <button className="btn-danger" onClick={() => onCancel(b)}>Cancel</button>

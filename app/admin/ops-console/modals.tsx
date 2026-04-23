@@ -7,6 +7,7 @@ import type { Aircraft, Student } from './views'
 
 type Booking = {
   id: string; tail: string; start: number; end: number; student: string;
+  studentId?: string | null; aircraftId?: string | null;
   cfi: string | null; cfiInitials?: string | null; lesson: string; status: string; paid: boolean | null;
 }
 
@@ -293,6 +294,9 @@ export function AircraftDetailModal({ aircraft, bookings, onClose, onSave, onNew
   const [nextInsp, setNextInsp] = useState(aircraft.nextInsp ?? '—')
   const [status, setStatus] = useState(aircraft.status || 'active')
   const [saving, setSaving] = useState(false)
+  // Editing is gated behind "Open full record" — the initial view shows a
+  // read-only summary so the most common path (look-up) stays lightweight.
+  const [mode, setMode] = useState<'view' | 'edit'>('view')
 
   const hobbsNum = Number(hobbs)
   const dirty =
@@ -341,14 +345,20 @@ export function AircraftDetailModal({ aircraft, bookings, onClose, onSave, onNew
               <I name="plus" /> New slot
             </button>
           )}
-          <button
-            className="btn-primary"
-            disabled={!valid || !dirty || saving}
-            style={(!valid || !dirty || saving) ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
-            onClick={handleSave}
-          >
-            {saving ? 'Saving…' : dirty ? 'Save changes' : 'No changes'}
-          </button>
+          {mode === 'view' ? (
+            <button className="btn-primary" onClick={() => setMode('edit')}>
+              Open full record ›
+            </button>
+          ) : (
+            <button
+              className="btn-primary"
+              disabled={!valid || !dirty || saving}
+              style={(!valid || !dirty || saving) ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+              onClick={handleSave}
+            >
+              {saving ? 'Saving…' : dirty ? 'Save changes' : 'No changes'}
+            </button>
+          )}
         </>
       }
     >
@@ -362,37 +372,50 @@ export function AircraftDetailModal({ aircraft, bookings, onClose, onSave, onNew
           <span className="chip chip-muted mono">TODAY {today.length}</span>
         </div>
       </div>
-      <div className="ins-sect-head"><span className="mono">IDENTITY</span></div>
-      <div className="f-row">
-        <label className="f-label mono">Model</label>
-        <input className="f-input" value={model} onChange={e => setModel(e.target.value)} placeholder="Grumman AA-5A Cheetah" />
-      </div>
-      <div className="f-row">
-        <label className="f-label mono">Home base</label>
-        <input className="f-input mono" value={homeBase} onChange={e => setHomeBase(e.target.value.toUpperCase())} placeholder="KPNE" maxLength={4} />
-      </div>
-      <div className="ins-sect-head"><span className="mono">TIMES &amp; INSPECTIONS</span></div>
-      <div className="f-row">
-        <label className="f-label mono">Tach total</label>
-        <input className="f-input mono" value={hobbs} onChange={e => setHobbs(e.target.value)} inputMode="decimal" placeholder="1234.5" />
-      </div>
-      <div className="f-row">
-        <label className="f-label mono">Next inspection</label>
-        <input className="f-input" value={nextInsp} onChange={e => setNextInsp(e.target.value)} placeholder="100h @ 1300 or Annual 08/15" />
-      </div>
-      <div className="f-row">
-        <label className="f-label mono">Bookings today</label>
-        <div className="f-val mono">{today.length} <span className="dim">· live</span></div>
-      </div>
-      <div className="ins-sect-head"><span className="mono">MAINTENANCE STATUS</span></div>
-      <div className="f-row">
-        <label className="f-label mono">Status</label>
-        <select className="f-input" value={status} onChange={e => setStatus(e.target.value)}>
-          <option value="active">Active</option>
-          <option value="squawk">Squawk</option>
-          <option value="ground">AOG / Ground</option>
-        </select>
-      </div>
+      {mode === 'view' ? (
+        <>
+          <div className="ins-sect-head"><span className="mono">TIMES &amp; INSPECTIONS</span></div>
+          <div className="f-row"><label className="f-label mono">Model</label><div className="f-val">{aircraft.model}</div></div>
+          <div className="f-row"><label className="f-label mono">Home base</label><div className="f-val mono">{aircraft.homeBase ?? 'KPNE'}</div></div>
+          <div className="f-row"><label className="f-label mono">Tach total</label><div className="f-val mono">{aircraft.hobbs.toFixed(1)} h</div></div>
+          <div className="f-row"><label className="f-label mono">Next inspection</label><div className="f-val mono">{aircraft.nextInsp}</div></div>
+          <div className="f-row"><label className="f-label mono">Bookings today</label><div className="f-val mono">{today.length}</div></div>
+        </>
+      ) : (
+        <>
+          <div className="ins-sect-head"><span className="mono">IDENTITY</span></div>
+          <div className="f-row">
+            <label className="f-label mono">Model</label>
+            <input className="f-input" value={model} onChange={e => setModel(e.target.value)} placeholder="Grumman AA-5A Cheetah" />
+          </div>
+          <div className="f-row">
+            <label className="f-label mono">Home base</label>
+            <input className="f-input mono" value={homeBase} onChange={e => setHomeBase(e.target.value.toUpperCase())} placeholder="KPNE" maxLength={4} />
+          </div>
+          <div className="ins-sect-head"><span className="mono">TIMES &amp; INSPECTIONS</span></div>
+          <div className="f-row">
+            <label className="f-label mono">Tach total</label>
+            <input className="f-input mono" value={hobbs} onChange={e => setHobbs(e.target.value)} inputMode="decimal" placeholder="1234.5" />
+          </div>
+          <div className="f-row">
+            <label className="f-label mono">Next inspection</label>
+            <input className="f-input" value={nextInsp} onChange={e => setNextInsp(e.target.value)} placeholder="100h @ 1300 or Annual 08/15" />
+          </div>
+          <div className="f-row">
+            <label className="f-label mono">Bookings today</label>
+            <div className="f-val mono">{today.length} <span className="dim">· live</span></div>
+          </div>
+          <div className="ins-sect-head"><span className="mono">MAINTENANCE STATUS</span></div>
+          <div className="f-row">
+            <label className="f-label mono">Status</label>
+            <select className="f-input" value={status} onChange={e => setStatus(e.target.value)}>
+              <option value="active">Active</option>
+              <option value="squawk">Squawk</option>
+              <option value="ground">AOG / Ground</option>
+            </select>
+          </div>
+        </>
+      )}
       <div className="ins-sect-head"><span className="mono">OPEN SQUAWKS</span></div>
       {openSquawks.length === 0
         ? <div className="f-val dim">None</div>

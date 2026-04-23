@@ -12,6 +12,7 @@ import {
 
 type Booking = {
   id: string; code?: string; tail: string; start: number; end: number; student: string;
+  studentId?: string | null; aircraftId?: string | null;
   cfi: string | null; cfiInitials?: string | null; lesson: string; status: string; paid: boolean | null;
 }
 type AlertRow = { id: string; sev: string; code: string; msg: string; ts: string; resolved: boolean }
@@ -665,7 +666,10 @@ export function StudentsView({ students, subTab = 0, onDelete, onAddStudent }: {
   )
 }
 
-export function IntegrityView({ alerts, onResolve }: { alerts: AlertRow[]; onResolve: (id: string) => void }) {
+export function IntegrityView({ alerts, subTab = 0, onResolve }: { alerts: AlertRow[]; subTab?: number; onResolve: (id: string) => void }) {
+  if (subTab === 1) return <IntegrityRules />
+  if (subTab === 2) return <IntegrityRuns />
+  if (subTab === 3) return <IntegritySnapshots />
   const open = alerts.filter(a => !a.resolved)
   return (
     <div className="view-pad">
@@ -703,11 +707,15 @@ export type OpsSlotRequest = {
   cfiPref: string; ageH: number; status: 'pending' | 'approved' | 'denied';
 }
 
-export function RequestsView({ requests, onApprove, onDecline }: {
+export function RequestsView({ requests, subTab = 0, onApprove, onDecline }: {
   requests: OpsSlotRequest[];
+  subTab?: number;
   onApprove: (r: OpsSlotRequest) => void;
   onDecline: (r: OpsSlotRequest) => void;
 }) {
+  if (subTab === 1) return <RequestsFilters />
+  if (subTab === 2) return <RequestsRules />
+  if (subTab === 3) return <RequestsArchive />
   if (requests.length === 0) {
     return (
       <div className="view-pad">
@@ -1468,6 +1476,456 @@ export function DebriefsView() {
         sub="All 42 debriefs in the last 30 days are complete."
         cta={<button className="btn-primary">Generate weekly report</button>}
       />
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Schedule sub-views (Timeline / Calendar / Capacity)
+// ═══════════════════════════════════════════════════════════════
+
+function slotToTime(s: number): string {
+  const mins = s * 30 + 7 * 60
+  return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`
+}
+
+// Per-CFI swimlane timeline — each CFI is a row, bookings laid out by time.
+export function ScheduleTimeline({ bookings }: { bookings: Booking[] }) {
+  const TICK_PX = 44
+  const LABEL_W = 168
+  const ROW_H = 58
+  const assignedCount = bookings.filter(b => b.cfi || b.cfiInitials).length
+
+  return (
+    <div className="view-pad">
+      <div className="sect-head"><h3>Instructor timeline</h3><span className="mono dim">{assignedCount} assigned</span></div>
+      <div className="canvas-wrap">
+        <div className="canvas-scroll">
+          <div className="board">
+            <div className="board-header">
+              <div className="board-corner" style={{ width: LABEL_W }}><span className="mono dim">INSTRUCTOR / TIME</span></div>
+              <div className="board-ticks">
+                {TICKS.map((t, i) => (
+                  <div key={i} className={`tick ${i % 2 === 0 ? 'tick-major' : 'tick-minor'}`} style={{ width: TICK_PX }}>
+                    <span className="mono">{i % 2 === 0 ? t : ''}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {INSTRUCTORS.map(cfi => {
+              const rows = bookings
+                .filter(b => b.cfi === cfi.id || b.cfiInitials === cfi.initials)
+                .slice()
+                .sort((a, b) => a.start - b.start)
+              const hours = rows.reduce((acc, b) => acc + (b.end - b.start) / 2, 0)
+              return (
+                <div key={cfi.id} className="board-row" style={{ height: ROW_H }}>
+                  <div className="row-label" style={{ width: LABEL_W }}>
+                    <div className="row-label-top">
+                      <Avatar cfi={cfi} />
+                      <span className="mono row-tail">{cfi.name}</span>
+                    </div>
+                    <div className="row-label-bot mono dim">{cfi.ratings.join(' · ')} · {hours.toFixed(1)}h today</div>
+                  </div>
+                  <div className="row-track" style={{ position: 'relative' }}>
+                    {TICKS.slice(0, -1).map((_, i) => <div key={i} className={`cell ${i % 2 === 0 ? 'cell-major' : ''}`} style={{ width: TICK_PX }} />)}
+                    {rows.map(b => {
+                      const s = STATUS[b.status]
+                      return (
+                        <div key={b.id} className="bk-chip"
+                          style={{ left: b.start * TICK_PX, width: (b.end - b.start) * TICK_PX - 2, background: s.fill, borderColor: s.stroke, color: s.text }}
+                          title={`${b.code ?? b.id} · ${b.student}`}>
+                          <div className="bk-id mono">{b.code ?? b.id}</div>
+                          <div className="bk-student">{b.student}</div>
+                          <div className="bk-lesson mono">{b.lesson}</div>
+                        </div>
+                      )
+                    })}
+                    {rows.length === 0 && <div className="lane-empty mono">— no lessons assigned —</div>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Week view — 7 days × 12 hours, viewDate is highlighted as "today".
+export function ScheduleCalendar({ bookings, viewDate }: { bookings: Booking[]; viewDate?: Date }) {
+  const today = viewDate || new Date()
+  // Monday of the viewed week.
+  const monday = new Date(today)
+  const dow = (today.getDay() + 6) % 7 // 0 = Mon
+  monday.setDate(today.getDate() - dow)
+  monday.setHours(0, 0, 0, 0)
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const DAYS = DAY_NAMES.map((name, i) => {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    const isToday = d.toDateString() === today.toDateString()
+    return { key: name.toLowerCase(), name, date: `${MONTHS[d.getMonth()]} ${d.getDate()}`, today: isToday, dateObj: d }
+  })
+
+  // Simple deterministic fake distribution for non-today days until week-wide
+  // schedule fetch lands.
+  const fakeCounts: Record<string, number> = { mon: 11, tue: 14, wed: bookings.length, thu: 12, fri: 15, sat: 18, sun: 9 }
+  DAYS.forEach(d => { if (d.today) fakeCounts[d.key] = bookings.length })
+  const HOUR_PX = 36
+  const START_H = 7
+  const END_H = 19
+  const HOURS = Array.from({ length: END_H - START_H + 1 }, (_, i) => START_H + i)
+  const totalBookings = Object.values(fakeCounts).reduce((a, b) => a + b, 0)
+  const weekLabel = `Week of ${MONTHS[monday.getMonth()]} ${monday.getDate()}, ${monday.getFullYear()}`
+
+  return (
+    <div className="view-pad">
+      <div className="sect-head">
+        <h3>{weekLabel}</h3>
+        <span className="mono dim">{totalBookings} bookings this week</span>
+      </div>
+      <div className="cal-wrap">
+        <div className="cal-head">
+          <div className="cal-gutter" />
+          {DAYS.map(d => (
+            <div key={d.key} className={`cal-day-head ${d.today ? 'today' : ''}`}>
+              <div className="cal-day-name mono">{d.name}</div>
+              <div className="cal-day-date">{d.date}</div>
+              <div className="cal-day-count mono dim">{fakeCounts[d.key]} bookings</div>
+            </div>
+          ))}
+        </div>
+        <div className="cal-grid" style={{ height: HOURS.length * HOUR_PX }}>
+          <div className="cal-gutter">
+            {HOURS.map(h => (
+              <div key={h} className="cal-hr mono" style={{ height: HOUR_PX }}>
+                {String(h).padStart(2, '0')}:00
+              </div>
+            ))}
+          </div>
+          {DAYS.map(d => (
+            <div key={d.key} className={`cal-col ${d.today ? 'today' : ''}`}>
+              {HOURS.map(h => <div key={h} className="cal-cell" style={{ height: HOUR_PX }} />)}
+              {d.today && bookings.map(b => {
+                const startMin = b.start * 30 + 7 * 60
+                const endMin = b.end * 30 + 7 * 60
+                const top = ((startMin - START_H * 60) / 60) * HOUR_PX
+                const height = ((endMin - startMin) / 60) * HOUR_PX - 2
+                const s = STATUS[b.status]
+                const initials = b.cfiInitials || INSTRUCTORS.find(c => c.id === b.cfi)?.initials
+                return (
+                  <div key={b.id} className="cal-bk" style={{ top, height, background: s.fill, borderColor: s.stroke, color: s.text }}>
+                    <div className="cal-bk-time mono">{slotToTime(b.start)}</div>
+                    <div className="cal-bk-student">{b.student}</div>
+                    <div className="cal-bk-meta mono">{b.tail}{initials ? ` · ${initials}` : ''}</div>
+                  </div>
+                )
+              })}
+              {!d.today && (
+                <div className="cal-fake-layer">
+                  {Array.from({ length: fakeCounts[d.key] }).map((_, i) => {
+                    const top = 20 + (i * 28) % (HOURS.length * HOUR_PX - 60)
+                    const height = 40 + (i * 13) % 40
+                    const left = 4 + (i % 2) * 4
+                    return <div key={i} className="cal-fake-bk" style={{ top, height, left, right: left + 8 }} />
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Utilization per aircraft + per-hour heat-strip.
+export function ScheduleCapacity({ bookings, aircraft }: { bookings: Booking[]; aircraft: Aircraft[] }) {
+  const HOURS = 12 // 07:00-19:00
+  const SLOTS = 24
+  const acRows = aircraft.map(ac => {
+    const bk = bookings.filter(b => b.tail === ac.tail)
+    const slotsBooked = bk.reduce((a, b) => a + (b.end - b.start), 0)
+    return { ac, bk, util: Math.min(1, slotsBooked / SLOTS), hours: slotsBooked / 2 }
+  })
+  const hourDemand = Array.from({ length: HOURS }, (_, h) => {
+    const startSlot = h * 2
+    const endSlot = startSlot + 2
+    return bookings.filter(b => b.start < endSlot && b.end > startSlot).length
+  })
+  const maxDemand = Math.max(...hourDemand, 1)
+  const cfiRows = INSTRUCTORS.map(cfi => {
+    const bk = bookings.filter(b => b.cfi === cfi.id || b.cfiInitials === cfi.initials)
+    const hours = bk.reduce((a, b) => a + (b.end - b.start) / 2, 0)
+    return { cfi, bk, hours, util: Math.min(1, hours / 8) }
+  })
+  const fleetUtil = acRows.length > 0 ? Math.round(acRows.reduce((a, r) => a + r.util, 0) / acRows.length * 100) : 0
+  const peakIdx = hourDemand.indexOf(maxDemand)
+  const groundHours = ((aircraft.length * SLOTS - acRows.reduce((a, r) => a + r.bk.reduce((x, y) => x + (y.end - y.start), 0), 0)) / 2)
+
+  return (
+    <div className="view-pad">
+      <div className="stat-grid">
+        <div className="stat"><div className="stat-k mono">FLEET UTILIZATION</div><div className="stat-v">{fleetUtil}%</div><div className="stat-delta dim">avg across {acRows.length} aircraft</div></div>
+        <div className="stat"><div className="stat-k mono">PEAK HOUR</div><div className="stat-v">{String(7 + peakIdx).padStart(2, '0')}:00</div><div className="stat-delta dim">{maxDemand} concurrent</div></div>
+        <div className="stat"><div className="stat-k mono">CFI HOURS</div><div className="stat-v">{cfiRows.reduce((a, r) => a + r.hours, 0).toFixed(1)}h</div><div className="stat-delta dim">across {cfiRows.length} instructors</div></div>
+        <div className="stat"><div className="stat-k mono">UNASSIGNED</div><div className="stat-v">{bookings.filter(b => !b.cfi && !b.cfiInitials && b.status !== 'maint').length}</div><div className="stat-delta dim">bookings without CFI</div></div>
+        <div className="stat"><div className="stat-k mono">GROUND TIME</div><div className="stat-v">{groundHours.toFixed(1)}h</div><div className="stat-delta dim">available capacity</div></div>
+      </div>
+
+      <div className="sect-head"><h3>Aircraft utilization</h3><span className="mono dim">07:00 – 19:00</span></div>
+      <div className="cap-table">
+        {acRows.map(({ ac, bk, util, hours }) => (
+          <div key={ac.tail} className="cap-row">
+            <div className="cap-label">
+              <div className="mono strong">{ac.tail}</div>
+              <div className="mono dim">{ac.model}</div>
+            </div>
+            <div className="cap-bar-wrap">
+              <div className="cap-strip">
+                {Array.from({ length: SLOTS }).map((_, s) => {
+                  const booked = bk.find(b => s >= b.start && s < b.end)
+                  const stat = booked ? STATUS[booked.status] : null
+                  return <div key={s} className="cap-slot" style={{ background: stat ? stat.fill : 'transparent', borderColor: stat ? stat.stroke : 'var(--line-1)' }} />
+                })}
+              </div>
+              <div className="cap-meta">
+                <span className="mono">{hours.toFixed(1)}h · {bk.length} bookings</span>
+                <span className="mono strong">{Math.round(util * 100)}%</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="sect-head"><h3>Hourly demand</h3><span className="mono dim">Concurrent bookings per hour</span></div>
+      <div className="cap-heat">
+        {hourDemand.map((d, h) => (
+          <div key={h} className="heat-col">
+            <div className="heat-bar-wrap">
+              <div className="heat-bar" style={{ height: `${(d / maxDemand) * 100}%`, background: d >= maxDemand ? 'var(--accent)' : d >= maxDemand * 0.6 ? 'var(--teal-1)' : 'var(--bg-3)' }} />
+            </div>
+            <div className="heat-label mono">{String(7 + h).padStart(2, '0')}</div>
+            <div className="heat-val mono dim">{d}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
+function RequestsFilters() {
+  const FILTERS = [
+    { id: 'f_01', name: 'PPL · Not yet soloed', scope: 'Student', active: true, hits: 24 },
+    { id: 'f_02', name: 'Instrument-rated · dual only', scope: 'Lesson', active: true, hits: 8 },
+    { id: 'f_03', name: 'Preferred AM (07:00–11:00)', scope: 'Time', active: false, hits: 17 },
+    { id: 'f_04', name: 'Requires tailwheel endorsement', scope: 'Rating', active: true, hits: 2 },
+    { id: 'f_05', name: 'CFII-only (Isaac, Darius)', scope: 'CFI', active: false, hits: 11 },
+    { id: 'f_06', name: 'New students · first 5 lessons', scope: 'Student', active: true, hits: 6 },
+  ]
+  return (
+    <div className="view-pad">
+      <div className="sect-head"><h3>Saved filters</h3><button className="btn-primary"><I name="plus" /> New filter</button></div>
+      <table className="dt"><thead><tr><th>Name</th><th>Scope</th><th className="right">Matches</th><th>Status</th><th></th></tr></thead><tbody>
+        {FILTERS.map(f => (
+          <tr key={f.id}>
+            <td className="strong">{f.name}</td>
+            <td><Badge kind="muted">{f.scope}</Badge></td>
+            <td className="right mono">{f.hits}</td>
+            <td>{f.active ? <Badge kind="ok">ACTIVE</Badge> : <Badge kind="muted">OFF</Badge>}</td>
+            <td className="right"><button className="btn-ghost">Edit ›</button></td>
+          </tr>
+        ))}
+      </tbody></table>
+    </div>
+  )
+}
+
+function RequestsRules() {
+  const RULES = [
+    { id: 'r_01', name: 'Auto-approve renewal lessons',           trigger: 'on:create',   action: 'approve if student.hours > 40',  runs: 142, enabled: true },
+    { id: 'r_02', name: 'Alert CFI when preferred slot unavail',  trigger: 'on:conflict', action: 'notify cfi.pref',                 runs: 38,  enabled: true },
+    { id: 'r_03', name: 'Escalate stale > 48h',                   trigger: 'schedule',    action: 'tag urgent + email dispatch',     runs: 11,  enabled: true },
+    { id: 'r_04', name: 'Decline if aircraft in MX window',       trigger: 'on:create',   action: 'decline + suggest alternates',    runs: 4,   enabled: false },
+    { id: 'r_05', name: 'Block student balance < $0',             trigger: 'on:create',   action: 'hold + route to billing',         runs: 2,   enabled: true },
+  ]
+  return (
+    <div className="view-pad">
+      <div className="sect-head"><h3>Approval rules</h3><button className="btn-primary"><I name="plus" /> New rule</button></div>
+      <table className="dt"><thead><tr><th>Rule</th><th>Trigger</th><th>Action</th><th className="right">Runs</th><th>Status</th><th></th></tr></thead><tbody>
+        {RULES.map(r => (
+          <tr key={r.id}>
+            <td className="strong">{r.name}</td>
+            <td className="mono dim">{r.trigger}</td>
+            <td className="dim">{r.action}</td>
+            <td className="right mono">{r.runs}</td>
+            <td>{r.enabled ? <Badge kind="ok">ON</Badge> : <Badge kind="muted">OFF</Badge>}</td>
+            <td className="right"><button className="btn-ghost">Edit ›</button></td>
+          </tr>
+        ))}
+      </tbody></table>
+    </div>
+  )
+}
+
+function RequestsArchive() {
+  const ARCHIVE = [
+    { id: 'SR-2201', student: 'Chen Park',    outcome: 'approved' as const,  ts: '22 Apr 08:14', cfi: 'Isaac M.',  lesson: 'PPL-11' },
+    { id: 'SR-2202', student: 'Hana Kim',     outcome: 'approved' as const,  ts: '22 Apr 07:02', cfi: 'Reena N.',  lesson: 'CPL-02' },
+    { id: 'SR-2203', student: 'J. Whitaker',  outcome: 'declined' as const,  ts: '21 Apr 19:40', cfi: 'Darius P.', lesson: 'IR-04' },
+    { id: 'SR-2204', student: 'L. Petrov',    outcome: 'expired' as const,   ts: '21 Apr 14:00', cfi: '—',         lesson: 'Discovery' },
+    { id: 'SR-2205', student: 'M. Ortiz',     outcome: 'approved' as const,  ts: '21 Apr 09:55', cfi: 'Reena N.',  lesson: 'PPL-12' },
+    { id: 'SR-2206', student: 'T. Okafor',    outcome: 'approved' as const,  ts: '20 Apr 16:22', cfi: 'Darius P.', lesson: 'PPL-18' },
+    { id: 'SR-2207', student: 'Priya Rao',    outcome: 'declined' as const,  ts: '20 Apr 11:08', cfi: 'Isaac M.',  lesson: 'PPL-14' },
+  ]
+  const badge = (o: 'approved' | 'declined' | 'expired') =>
+    o === 'approved' ? <Badge kind="ok">APPROVED</Badge>
+    : o === 'declined' ? <Badge kind="error">DECLINED</Badge>
+    : <Badge kind="muted">EXPIRED</Badge>
+  return (
+    <div className="view-pad">
+      <div className="stat-grid">
+        <div className="stat"><div className="stat-k mono">30-DAY APPROVED</div><div className="stat-v">142</div><div className="stat-delta pos">94% approval</div></div>
+        <div className="stat"><div className="stat-k mono">30-DAY DECLINED</div><div className="stat-v">6</div><div className="stat-delta dim">—</div></div>
+        <div className="stat"><div className="stat-k mono">EXPIRED</div><div className="stat-v">3</div><div className="stat-delta neg">▴ 1 this week</div></div>
+        <div className="stat"><div className="stat-k mono">AVG TIME TO APPROVE</div><div className="stat-v">12m</div><div className="stat-delta pos">▾ 4m since last week</div></div>
+      </div>
+      <div className="sect-head"><h3>Archive · last 30 days</h3></div>
+      <table className="dt"><thead><tr><th>ID</th><th>Student</th><th>Lesson</th><th>CFI</th><th>Outcome</th><th className="right">Timestamp</th><th></th></tr></thead><tbody>
+        {ARCHIVE.map(a => (
+          <tr key={a.id}>
+            <td className="mono">{a.id}</td>
+            <td className="strong">{a.student}</td>
+            <td className="dim">{a.lesson}</td>
+            <td className="dim">{a.cfi}</td>
+            <td>{badge(a.outcome)}</td>
+            <td className="right mono dim">{a.ts}</td>
+            <td className="right"><button className="btn-ghost">Restore ›</button></td>
+          </tr>
+        ))}
+      </tbody></table>
+    </div>
+  )
+}
+
+
+function IntegrityRules() {
+  const RULES = [
+    { id: 'INT-01', name: 'Paid but unbooked > 24h',         sev: 'warn'  as const, fires: 14, enabled: true  },
+    { id: 'INT-02', name: 'Booked but unpaid at T-24h',      sev: 'warn'  as const, fires: 38, enabled: true  },
+    { id: 'INT-03', name: 'Aircraft double-booked',          sev: 'error' as const, fires: 2,  enabled: true  },
+    { id: 'INT-04', name: 'CFI double-booked',               sev: 'error' as const, fires: 3,  enabled: true  },
+    { id: 'INT-05', name: 'Webhook delivery failure',        sev: 'error' as const, fires: 11, enabled: true  },
+    { id: 'INT-06', name: 'CalDAV drift > 5 min',            sev: 'warn'  as const, fires: 4,  enabled: true  },
+    { id: 'INT-07', name: 'Pending slot > 48h',              sev: 'info'  as const, fires: 22, enabled: true  },
+    { id: 'INT-08', name: 'Tach regression (clock rollback)', sev: 'error' as const, fires: 0,  enabled: false },
+    { id: 'INT-09', name: 'Student balance < –$100',          sev: 'warn'  as const, fires: 5,  enabled: true  },
+    { id: 'INT-10', name: 'Endorsement expires < 30d',        sev: 'info'  as const, fires: 9,  enabled: true  },
+  ]
+  const sevBadge = (s: 'error' | 'warn' | 'info') =>
+    s === 'error' ? <Badge kind="error">ERROR</Badge>
+    : s === 'warn' ? <Badge kind="warn">WARN</Badge>
+    : <Badge kind="info">INFO</Badge>
+  const enabledCount = RULES.filter(r => r.enabled).length
+  return (
+    <div className="view-pad">
+      <div className="sect-head"><h3>Integrity rules</h3><span className="mono dim">{RULES.length} rules · {enabledCount} enabled</span></div>
+      <table className="dt"><thead><tr><th>ID</th><th>Rule</th><th>Severity</th><th className="right">Fires (30d)</th><th>Status</th><th></th></tr></thead><tbody>
+        {RULES.map(r => (
+          <tr key={r.id}>
+            <td className="mono">{r.id}</td>
+            <td className="strong">{r.name}</td>
+            <td>{sevBadge(r.sev)}</td>
+            <td className="right mono">{r.fires}</td>
+            <td>{r.enabled ? <Badge kind="ok">ON</Badge> : <Badge kind="muted">OFF</Badge>}</td>
+            <td className="right"><button className="btn-ghost">Configure ›</button></td>
+          </tr>
+        ))}
+      </tbody></table>
+    </div>
+  )
+}
+
+function IntegrityRuns() {
+  const RUNS = [
+    { id: 'run_9142', ts: '22 Apr 09:12', dur: 840,  checks: 10, fired: 5, status: 'ok'    as const },
+    { id: 'run_9141', ts: '22 Apr 09:00', dur: 812,  checks: 10, fired: 4, status: 'ok'    as const },
+    { id: 'run_9140', ts: '22 Apr 08:48', dur: 790,  checks: 10, fired: 6, status: 'ok'    as const },
+    { id: 'run_9139', ts: '22 Apr 08:36', dur: 901,  checks: 10, fired: 4, status: 'slow'  as const },
+    { id: 'run_9138', ts: '22 Apr 08:24', dur: 804,  checks: 10, fired: 3, status: 'ok'    as const },
+    { id: 'run_9137', ts: '22 Apr 08:12', dur: 2140, checks: 10, fired: 3, status: 'error' as const },
+    { id: 'run_9136', ts: '22 Apr 08:00', dur: 815,  checks: 10, fired: 3, status: 'ok'    as const },
+    { id: 'run_9135', ts: '22 Apr 07:48', dur: 798,  checks: 10, fired: 2, status: 'ok'    as const },
+    { id: 'run_9134', ts: '22 Apr 07:36', dur: 802,  checks: 10, fired: 2, status: 'ok'    as const },
+    { id: 'run_9133', ts: '22 Apr 07:24', dur: 850,  checks: 10, fired: 1, status: 'ok'    as const },
+  ]
+  const statusBadge = (s: 'ok' | 'slow' | 'error') =>
+    s === 'ok' ? <Badge kind="ok">OK</Badge>
+    : s === 'slow' ? <Badge kind="warn">SLOW</Badge>
+    : <Badge kind="error">ERROR</Badge>
+  return (
+    <div className="view-pad">
+      <div className="stat-grid">
+        <div className="stat"><div className="stat-k mono">RUNS TODAY</div><div className="stat-v">46</div><div className="stat-delta dim">every 12 min</div></div>
+        <div className="stat"><div className="stat-k mono">AVG DURATION</div><div className="stat-v">847ms</div><div className="stat-delta pos">▾ 40ms vs yesterday</div></div>
+        <div className="stat"><div className="stat-k mono">SUCCESS RATE</div><div className="stat-v">97.8%</div><div className="stat-delta dim">1 error in last 50</div></div>
+        <div className="stat"><div className="stat-k mono">ALERTS GENERATED</div><div className="stat-v">32</div><div className="stat-delta dim">today</div></div>
+      </div>
+      <div className="sect-head"><h3>Recent runs</h3></div>
+      <table className="dt"><thead><tr><th>Run ID</th><th className="right">When</th><th className="right">Duration</th><th className="right">Checks</th><th className="right">Fired</th><th>Status</th><th></th></tr></thead><tbody>
+        {RUNS.map(r => (
+          <tr key={r.id}>
+            <td className="mono">{r.id}</td>
+            <td className="right mono dim">{r.ts}</td>
+            <td className="right mono">{r.dur}ms</td>
+            <td className="right mono">{r.checks}</td>
+            <td className="right mono">{r.fired}</td>
+            <td>{statusBadge(r.status)}</td>
+            <td className="right"><button className="btn-ghost">Trace ›</button></td>
+          </tr>
+        ))}
+      </tbody></table>
+    </div>
+  )
+}
+
+function IntegritySnapshots() {
+  const SNAPS = [
+    { id: 'snap_224', ts: '22 Apr 09:00', kind: 'Daily',  size: '412 KB', records: 1482, verified: true },
+    { id: 'snap_223', ts: '22 Apr 00:00', kind: 'Daily',  size: '408 KB', records: 1480, verified: true },
+    { id: 'snap_222', ts: '21 Apr 00:00', kind: 'Daily',  size: '401 KB', records: 1471, verified: true },
+    { id: 'snap_221', ts: '20 Apr 00:00', kind: 'Daily',  size: '395 KB', records: 1464, verified: true },
+    { id: 'snap_220', ts: '19 Apr 21:42', kind: 'Manual', size: '392 KB', records: 1460, verified: true },
+    { id: 'snap_219', ts: '19 Apr 00:00', kind: 'Daily',  size: '388 KB', records: 1454, verified: true },
+    { id: 'snap_218', ts: '18 Apr 00:00', kind: 'Daily',  size: '380 KB', records: 1441, verified: true },
+    { id: 'snap_217', ts: '17 Apr 00:00', kind: 'Daily',  size: '372 KB', records: 1428, verified: false },
+  ]
+  return (
+    <div className="view-pad">
+      <div className="sect-head">
+        <h3>System snapshots</h3>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn-ghost"><I name="check" /> Verify chain</button>
+          <button className="btn-primary"><I name="plus" /> Snapshot now</button>
+        </div>
+      </div>
+      <table className="dt"><thead><tr><th>ID</th><th className="right">Taken</th><th>Kind</th><th className="right">Records</th><th className="right">Size</th><th>Integrity</th><th></th></tr></thead><tbody>
+        {SNAPS.map(s => (
+          <tr key={s.id}>
+            <td className="mono">{s.id}</td>
+            <td className="right mono dim">{s.ts}</td>
+            <td><Badge kind={s.kind === 'Manual' ? 'info' : 'muted'}>{s.kind.toUpperCase()}</Badge></td>
+            <td className="right mono">{s.records}</td>
+            <td className="right mono dim">{s.size}</td>
+            <td>{s.verified ? <Badge kind="ok">VERIFIED</Badge> : <Badge kind="warn">UNVERIFIED</Badge>}</td>
+            <td className="right"><button className="btn-ghost">Restore ›</button></td>
+          </tr>
+        ))}
+      </tbody></table>
     </div>
   )
 }
