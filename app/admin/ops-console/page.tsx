@@ -783,7 +783,7 @@ export default function OpsConsolePage() {
       }
       case 'fleet':      return <FleetView aircraft={aircraft} bookings={displayBookings} subTab={subTab} onAddAircraft={handleAddAircraft} onDeleteAircraft={handleDeleteAircraft} onOpenAircraft={(a) => setModal({ kind: 'aircraft', payload: a })} />
       case 'students':   return <StudentsView students={students} subTab={subTab} onDelete={handleDeleteStudent} onAddStudent={handleAddStudent} />
-      case 'integrity':  return <IntegrityView alerts={alerts} subTab={subTab} onResolve={handleResolve} />
+      case 'integrity':  return <IntegrityView alerts={alerts} bookings={displayBookings} slotRequests={slotRequests} subTab={subTab} onResolve={handleResolve} />
       case 'requests':   return <RequestsView requests={slotRequests} subTab={subTab} onApprove={handleApproveRequest} onDecline={handleDeclineRequest} />
       case 'dispatch':   return <DispatchView subTab={subTab} />
       case 'syllabus':   return <SyllabusView subTab={subTab} />

@@ -687,19 +687,32 @@ export function StudentsView({ students, subTab = 0, onDelete, onAddStudent }: {
   )
 }
 
-export function IntegrityView({ alerts, subTab = 0, onResolve }: { alerts: AlertRow[]; subTab?: number; onResolve: (id: string) => void }) {
+export function IntegrityView({ alerts, bookings = [], slotRequests = [], subTab = 0, onResolve }: {
+  alerts: AlertRow[];
+  bookings?: Booking[];
+  slotRequests?: OpsSlotRequest[];
+  subTab?: number;
+  onResolve: (id: string) => void;
+}) {
   if (subTab === 1) return <IntegrityRules />
   if (subTab === 2) return <IntegrityRuns />
   if (subTab === 3) return <IntegritySnapshots />
   const open = alerts.filter(a => !a.resolved)
+  // Stat counts are derived from live data instead of hardcoded placeholders so
+  // the Integrity dashboard reflects the actual alerts/bookings/slot-requests.
+  const stalePending = slotRequests.filter(r => r.status === 'pending' && (r.ageH ?? 0) > 48).length
+  const paidUnbooked = open.filter(a => a.code?.startsWith('BI-104')).length
+  const bookedUnpaid = bookings.filter(b => b.status !== 'cancelled' && b.paid === false).length
+  const webhookFailures = open.filter(a => a.code?.startsWith('WH-')).length
+  const lastCaldavAlert = [...alerts].reverse().find(a => a.code?.startsWith('CAL-'))
   return (
     <div className="view-pad">
       <div className="stat-grid">
-        <div className="stat"><div className="stat-k mono">STALE PENDING</div><div className="stat-v">3</div><div className="stat-delta pos">▾ 2 since 06:00</div></div>
-        <div className="stat"><div className="stat-k mono">PAID / UNBOOKED</div><div className="stat-v">1</div><div className="stat-delta neg">▴ 1 since 00:00</div></div>
-        <div className="stat"><div className="stat-k mono">BOOKED / UNPAID</div><div className="stat-v">2</div><div className="stat-delta dim">no change</div></div>
-        <div className="stat"><div className="stat-k mono">WEBHOOK FAILURES</div><div className="stat-v">2</div><div className="stat-delta neg">▴ 2 since 08:00</div></div>
-        <div className="stat"><div className="stat-k mono">CALDAV SYNC</div><div className="stat-v">OK</div><div className="stat-delta dim mono">last 09:12</div></div>
+        <div className="stat"><div className="stat-k mono">STALE PENDING</div><div className="stat-v">{stalePending}</div><div className="stat-delta dim">requests &gt; 48h</div></div>
+        <div className="stat"><div className="stat-k mono">PAID / UNBOOKED</div><div className="stat-v">{paidUnbooked}</div><div className="stat-delta dim">BI-104 alerts</div></div>
+        <div className="stat"><div className="stat-k mono">BOOKED / UNPAID</div><div className="stat-v">{bookedUnpaid}</div><div className="stat-delta dim">active bookings</div></div>
+        <div className="stat"><div className="stat-k mono">WEBHOOK FAILURES</div><div className="stat-v">{webhookFailures}</div><div className="stat-delta dim">open WH alerts</div></div>
+        <div className="stat"><div className="stat-k mono">CALDAV SYNC</div><div className="stat-v">{lastCaldavAlert ? 'OK' : '—'}</div><div className="stat-delta dim mono">{lastCaldavAlert ? `last ${lastCaldavAlert.ts}` : 'no sync logged'}</div></div>
       </div>
       <div className="sect-head"><h3>Alerts</h3><span className="mono dim">{open.length} open</span></div>
       {open.length === 0 ? <EmptyState icon="check" title="All clear" sub="No open integrity alerts." /> : (
@@ -1027,15 +1040,18 @@ export function BillingView({ subTab = 0 }: { subTab?: number }) {
     )
   }
 
-  const totalOpen = INVOICES.filter(i => i.status !== 'paid').reduce((s, i) => s + (i.total - i.paid), 0)
+  const openInvoices = INVOICES.filter(i => i.status !== 'paid')
+  const totalOpen = openInvoices.reduce((s, i) => s + (i.total - i.paid), 0)
   const totalPaid = INVOICES.filter(i => i.status === 'paid').reduce((s, i) => s + i.paid, 0)
+  const overdueInvoices = INVOICES.filter(i => i.status === 'overdue')
+  const overdueAmount = overdueInvoices.reduce((s, i) => s + (i.total - i.paid), 0)
   return (
     <div className="view-pad">
       <div className="stat-grid">
-        <div className="stat"><div className="stat-k mono">OPEN A/R</div><div className="stat-v">${totalOpen.toFixed(2)}</div><div className="stat-delta dim">4 invoices</div></div>
-        <div className="stat"><div className="stat-k mono">COLLECTED · MTD</div><div className="stat-v">${totalPaid.toFixed(2)}</div><div className="stat-delta pos">▴ 18% vs last</div></div>
-        <div className="stat"><div className="stat-k mono">OVERDUE</div><div className="stat-v">1</div><div className="stat-delta neg">$645.00</div></div>
-        <div className="stat"><div className="stat-k mono">AUTOPAY</div><div className="stat-v">62%</div><div className="stat-delta pos mono">+3 this week</div></div>
+        <div className="stat"><div className="stat-k mono">OPEN A/R</div><div className="stat-v">${totalOpen.toFixed(2)}</div><div className="stat-delta dim">{openInvoices.length} invoice{openInvoices.length === 1 ? '' : 's'}</div></div>
+        <div className="stat"><div className="stat-k mono">COLLECTED · MTD</div><div className="stat-v">${totalPaid.toFixed(2)}</div><div className="stat-delta dim">{INVOICES.filter(i => i.status === 'paid').length} paid</div></div>
+        <div className="stat"><div className="stat-k mono">OVERDUE</div><div className="stat-v">{overdueInvoices.length}</div><div className={overdueInvoices.length ? 'stat-delta neg' : 'stat-delta dim'}>{overdueInvoices.length ? `$${overdueAmount.toFixed(2)}` : 'none'}</div></div>
+        <div className="stat"><div className="stat-k mono">AUTOPAY</div><div className="stat-v">{INVOICES.length ? `${Math.round(INVOICES.filter(i => i.stripe).length / INVOICES.length * 100)}%` : '—'}</div><div className="stat-delta dim mono">{INVOICES.filter(i => i.stripe).length} of {INVOICES.length}</div></div>
       </div>
       <div className="sect-head"><h3>Invoices</h3><span className="mono dim">{INVOICES.length} total</span></div>
       <table className="dt"><thead><tr><th>Invoice</th><th>Student</th><th className="right">Total</th><th className="right">Paid</th><th>Issued</th><th>Due</th><th>Status</th><th>Stripe</th><th></th></tr></thead><tbody>
