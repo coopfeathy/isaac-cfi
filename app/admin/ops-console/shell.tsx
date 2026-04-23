@@ -431,7 +431,7 @@ function TreeNode({ node, depth, selected, onSelect, expanded, toggleExpand }: {
   )
 }
 
-export function Sidebar({ selected, onSelect, filters, setFilters, onSync, aircraft, students, instructors }: {
+export function Sidebar({ selected, onSelect, filters, setFilters, onSync, aircraft, students, instructors, bookings, slotRequests, alerts }: {
   selected: string | null;
   onSelect: (n: TreeNodeData) => void;
   filters: Filters;
@@ -446,6 +446,11 @@ export function Sidebar({ selected, onSelect, filters, setFilters, onSync, aircr
   // Live instructor directory. Threaded down into FilterPanel so the CFI filter
   // chips reflect actual instructors instead of the seed trio.
   instructors?: Array<{ id: string; name: string }>;
+  // Live counts for the Operations group badges. Keeps the sidebar's badge
+  // pills in sync with reality instead of showing the static TREE seed values.
+  bookings?: Array<{ status: string }>;
+  slotRequests?: Array<{ ageH?: number }>;
+  alerts?: Array<{ resolved: boolean }>;
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [q, setQ] = useState('')
@@ -476,6 +481,14 @@ export function Sidebar({ selected, onSelect, filters, setFilters, onSync, aircr
       sub: s.phase,
       kind: 'student',
     }))
+    // Live badge counts for the Operations group. These replace the static
+    // TREE seed badges ("14", "3", "2", "!") so the sidebar reflects the
+    // current fleet/queue state instead of the values from the design handoff.
+    const bk = bookings ?? []
+    const scheduleBadge = bk.filter(b => b.status !== 'maint' && b.status !== 'aog').length
+    const pendingReq = (slotRequests ?? []).length
+    const dispatchReady = bk.filter(b => b.status === 'booked' || b.status === 'in_flight').length
+    const openAlerts = (alerts ?? []).filter(a => !a.resolved).length
     return TREE.map(n => {
       if (n.id === 'fleet-g') {
         const nonAircraft = (n.children || []).filter(c => c.kind !== 'aircraft')
@@ -485,9 +498,31 @@ export function Sidebar({ selected, onSelect, filters, setFilters, onSync, aircr
         const nonStudent = (n.children || []).filter(c => c.kind !== 'student')
         return { ...n, count: stuList.length, children: [...nonStudent, ...studentChildren] }
       }
+      if (n.id === 'ops') {
+        const children = (n.children || []).map(c => {
+          if (c.id === 'schedule') {
+            return { ...c, badge: scheduleBadge > 0 ? String(scheduleBadge) : null }
+          }
+          if (c.id === 'slot-requests') {
+            return { ...c, badge: pendingReq > 0 ? String(pendingReq) : null }
+          }
+          if (c.id === 'dispatch') {
+            return { ...c, badge: dispatchReady > 0 ? String(dispatchReady) : null }
+          }
+          if (c.id === 'integrity') {
+            return {
+              ...c,
+              badge: openAlerts > 0 ? '!' : null,
+              badgeKind: openAlerts > 0 ? 'warn' : null,
+            }
+          }
+          return c
+        })
+        return { ...n, children }
+      }
       return n
     })
-  }, [aircraft, students])
+  }, [aircraft, students, bookings, slotRequests, alerts])
   const filtered = useMemo(() => {
     if (!q) return liveTree
     const ql = q.toLowerCase()

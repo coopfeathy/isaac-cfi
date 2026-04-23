@@ -744,6 +744,13 @@ export default function OpsConsolePage() {
   // (e.g. "5 aircraft · 1 AOG" after fleet changes). Returns undefined for
   // views where we don't have better information than the static default.
   const docOverride = useMemo<string | undefined>(() => {
+    if (view === 'schedule') {
+      // Reflect the actual viewed date + flyable booking count so the header
+      // never goes stale (the VIEW_META default was pinned to "22 Apr 2026").
+      const flyable = visibleBookings.filter(b => b.status !== 'maint' && b.status !== 'aog').length
+      const label = `Daily ops · ${formatDateLabel(date)}`
+      return flyable > 0 ? `${label} · ${flyable} booking${flyable === 1 ? '' : 's'}` : label
+    }
     if (view === 'fleet') {
       const n = aircraft.length
       const aog = aircraft.filter(a => a.status === 'ground').length
@@ -770,7 +777,7 @@ export default function OpsConsolePage() {
       return open === 0 ? 'all clear' : `${open} open`
     }
     return undefined
-  }, [view, aircraft, students, slotRequests, alerts])
+  }, [view, aircraft, students, slotRequests, alerts, date, visibleBookings])
 
   const renderView = () => {
     if (loading) return <div className="view-pad"><Skeleton lines={8} /></div>
@@ -809,6 +816,9 @@ export default function OpsConsolePage() {
           aircraft={aircraft}
           students={students}
           instructors={instructors}
+          bookings={displayBookings}
+          slotRequests={slotRequests}
+          alerts={alerts}
         />
         <main className="main">
           <IconRail view={view} onView={(v) => { setView(v); setSubTab(0) }} />
