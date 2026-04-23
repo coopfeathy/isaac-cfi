@@ -12,7 +12,10 @@ type AircraftRow = {
   registration: string
   model: string
   status: string | null
+  hobbs: number | string | null
 }
+
+const SELECT_COLS = 'id, registration, model, status, hobbs'
 
 function rowToOps(row: AircraftRow): OpsAircraft & { id: string } {
   return {
@@ -20,8 +23,10 @@ function rowToOps(row: AircraftRow): OpsAircraft & { id: string } {
     tail: row.registration,
     model: row.model,
     status: row.status ?? 'active',
-    // Not yet wired: hobbs requires joining aircraft_hours, nextInsp isn't in DB.
-    hobbs: 0,
+    // `hobbs` is numeric in Postgres; the JS driver surfaces it as string or
+    // number depending on client version — coerce defensively.
+    hobbs: Number(row.hobbs ?? 0),
+    // Not yet wired: nextInsp isn't in DB.
     nextInsp: '—',
   }
 }
@@ -29,21 +34,22 @@ function rowToOps(row: AircraftRow): OpsAircraft & { id: string } {
 export async function listAircraft(): Promise<Array<OpsAircraft & { id: string }>> {
   const { data, error } = await supabase
     .from('aircraft')
-    .select('id, registration, model, status')
+    .select(SELECT_COLS)
     .order('registration', { ascending: true })
   if (error) throw error
-  return (data ?? []).map(rowToOps)
+  return (data ?? []).map(r => rowToOps(r as AircraftRow))
 }
 
-export async function createAircraft(input: { tail: string; model: string; status: string }): Promise<OpsAircraft & { id: string }> {
+export async function createAircraft(input: { tail: string; model: string; status: string; hobbs?: number }): Promise<OpsAircraft & { id: string }> {
   const { data, error } = await supabase
     .from('aircraft')
     .insert({
       registration: input.tail,
       model: input.model,
       status: input.status,
+      hobbs: input.hobbs ?? 0,
     })
-    .select('id, registration, model, status')
+    .select(SELECT_COLS)
     .single()
   if (error) throw error
   return rowToOps(data as AircraftRow)
@@ -54,18 +60,19 @@ export async function deleteAircraft(id: string): Promise<void> {
   if (error) throw error
 }
 
-// Only the DB-backed columns (`registration`, `model`, `status`) are persisted.
-// Tach/next-inspection/home-base live in-memory for now (no DB columns yet).
-export async function updateAircraft(id: string, patch: { tail?: string; model?: string; status?: string }): Promise<OpsAircraft & { id: string }> {
-  const row: Record<string, string> = {}
+// DB-backed columns: `registration`, `model`, `status`, `hobbs`.
+// Next-inspection/home-base still live in-memory (no DB columns yet).
+export async function updateAircraft(id: string, patch: { tail?: string; model?: string; status?: string; hobbs?: number }): Promise<OpsAircraft & { id: string }> {
+  const row: Record<string, string | number> = {}
   if (patch.tail != null) row.registration = patch.tail
   if (patch.model != null) row.model = patch.model
   if (patch.status != null) row.status = patch.status
+  if (patch.hobbs != null) row.hobbs = patch.hobbs
   const { data, error } = await supabase
     .from('aircraft')
     .update(row)
     .eq('id', id)
-    .select('id, registration, model, status')
+    .select(SELECT_COLS)
     .single()
   if (error) throw error
   return rowToOps(data as AircraftRow)

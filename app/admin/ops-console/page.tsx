@@ -467,7 +467,7 @@ export default function OpsConsolePage() {
   const handleAddAircraft = () => setModal({ kind: 'newAircraft' })
   const handleCreateAircraft = async (data: { tail: string; model: string; hobbs: number; nextInsp: string; status: string }) => {
     try {
-      const created = await createAircraft({ tail: data.tail, model: data.model, status: data.status })
+      const created = await createAircraft({ tail: data.tail, model: data.model, status: data.status, hobbs: data.hobbs })
       setAircraft(list => [...list, created])
       setModal(null)
       showToast(`${created.tail} added to fleet`, 'ok')
@@ -517,15 +517,16 @@ export default function OpsConsolePage() {
   const handleSaveAircraft = async (patch: Partial<Aircraft> & { tail: string }) => {
     const current = aircraft.find(a => a.tail === patch.tail)
     if (!current) return
-    // Persist only the DB-backed columns. Tach/next-insp/home-base live in-memory
+    // Persist only the DB-backed columns. Next-insp/home-base live in-memory
     // until we add columns for them.
     if (current.id) {
       const persistedChanged =
         (patch.model != null && patch.model !== current.model) ||
-        (patch.status != null && patch.status !== current.status)
+        (patch.status != null && patch.status !== current.status) ||
+        (patch.hobbs != null && patch.hobbs !== current.hobbs)
       if (persistedChanged) {
         try {
-          await updateAircraft(current.id, { model: patch.model, status: patch.status })
+          await updateAircraft(current.id, { model: patch.model, status: patch.status, hobbs: patch.hobbs })
         } catch (err) {
           console.error('[ops-console] updateAircraft failed:', err)
           showToast(`Failed to save ${patch.tail} — ${(err as Error).message || 'unknown error'}`, 'error')
