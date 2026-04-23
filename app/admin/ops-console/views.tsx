@@ -389,57 +389,73 @@ export function FleetView({ aircraft, bookings, subTab = 0, onAddAircraft, onDel
   }
 
   if (subTab === 2) {
-    const deltas = [11.4, 8.2, 0.0, 9.6, 0.0]
-    const untils: Array<number | string> = [49.7, 30.4, '—', 21.9, '—']
-    const utils = [0.82, 0.58, 0.0, 0.71, 0.0]
-    // Derive TOP UTILIZED / IDLE from the live fleet so deleted or newly-added
-    // aircraft are reflected. TOP = highest hobbs among non-grounded aircraft;
-    // IDLE = any grounded (AOG) aircraft, else the lowest-hobbs aircraft.
+    // Per-aircraft utilization derived from today's live bookings (slotsBooked
+    // / SLOTS) instead of the previously hardcoded `utils` array that was
+    // index-aligned to a 5-aircraft seed and produced nonsense whenever the
+    // fleet changed. SLOTS matches ScheduleCapacity's day definition (24 × 30m
+    // blocks spanning 07:00-19:00).
+    const SLOTS = 24
+    const utilByTail = new Map<string, number>()
+    aircraft.forEach(a => {
+      const slotsBooked = bookings
+        .filter(b => b.tail === a.tail && b.status !== 'cancelled')
+        .reduce((sum, b) => sum + (b.end - b.start), 0)
+      utilByTail.set(a.tail, Math.min(1, slotsBooked / SLOTS))
+    })
+    // Fleet-wide utilization for today (avg across the roster). Replaces the
+    // previous hardcoded "62% · ▴ 4 pp". We can't honestly show a 7-day number
+    // until history is persisted, so the tile is relabeled "TODAY".
+    const fleetUtilToday = aircraft.length === 0
+      ? 0
+      : Array.from(utilByTail.values()).reduce((a, b) => a + b, 0) / aircraft.length
+    // Derive TOP UTILIZED / IDLE from today's live utilization. TOP = highest
+    // utilization among non-grounded aircraft; IDLE = any grounded (AOG)
+    // aircraft, else the lowest-utilization aircraft.
     const nonGrounded = aircraft.filter(a => a.status !== 'ground')
     const topAircraft = nonGrounded.reduce<Aircraft | null>(
-      (top, a) => (!top || a.hobbs > top.hobbs) ? a : top, null
+      (top, a) => (!top || (utilByTail.get(a.tail) ?? 0) > (utilByTail.get(top.tail) ?? 0)) ? a : top,
+      null,
     )
-    const topIdx = topAircraft ? aircraft.findIndex(a => a.tail === topAircraft.tail) : -1
-    const topWeeklyHrs = topIdx >= 0 && deltas[topIdx] != null ? deltas[topIdx] : null
+    const topUtil = topAircraft ? (utilByTail.get(topAircraft.tail) ?? 0) : 0
     const aog = aircraft.find(a => a.status === 'ground')
-    const idleAircraft = aog || aircraft.reduce<Aircraft | null>(
-      (lo, a) => (!lo || a.hobbs < lo.hobbs) ? a : lo, null
+    const idleAircraft = aog || nonGrounded.reduce<Aircraft | null>(
+      (lo, a) => (!lo || (utilByTail.get(a.tail) ?? 0) < (utilByTail.get(lo.tail) ?? 0)) ? a : lo,
+      null,
     )
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">FLEET TOTAL</div><div className="stat-v">{aircraft.reduce((s, a) => s + a.hobbs, 0).toFixed(1)} h</div><div className="stat-delta pos">+36.4 MTD</div></div>
-          <div className="stat"><div className="stat-k mono">UTILIZATION · 7D</div><div className="stat-v">62%</div><div className="stat-delta pos">▴ 4 pp</div></div>
+          <div className="stat"><div className="stat-k mono">FLEET TOTAL</div><div className="stat-v">{aircraft.reduce((s, a) => s + a.hobbs, 0).toFixed(1)} h</div><div className="stat-delta dim mono">{aircraft.length} aircraft</div></div>
+          <div className="stat"><div className="stat-k mono">UTILIZATION · TODAY</div><div className="stat-v">{Math.round(fleetUtilToday * 100)}%</div><div className="stat-delta dim mono">avg across fleet</div></div>
           <div className="stat">
             <div className="stat-k mono">TOP UTILIZED</div>
             <div className="stat-v">{topAircraft?.tail || '—'}</div>
-            <div className="stat-delta dim mono">{topWeeklyHrs != null && topWeeklyHrs > 0 ? `${topWeeklyHrs.toFixed(1)} h · wk` : '—'}</div>
+            <div className="stat-delta dim mono">{topAircraft && topUtil > 0 ? `${Math.round(topUtil * 100)}% today` : '—'}</div>
           </div>
           <div className="stat">
-            <div className="stat-k mono">IDLE · 14D</div>
+            <div className="stat-k mono">IDLE · TODAY</div>
             <div className="stat-v">{idleAircraft?.tail || '—'}</div>
-            <div className={`stat-delta ${aog ? 'neg' : 'dim'}`}>{aog ? 'AOG' : (idleAircraft ? 'low hours' : '—')}</div>
+            <div className={`stat-delta ${aog ? 'neg' : 'dim'}`}>{aog ? 'AOG' : (idleAircraft ? 'no bookings' : '—')}</div>
           </div>
         </div>
         <div className="sect-head"><h3>Hobbs by aircraft</h3></div>
         <table className="dt"><thead><tr><th>Tail</th><th>Model</th><th className="right">Hobbs</th><th className="right">Last flight</th><th className="right">Δ · 7d</th><th>Until next insp.</th><th>Utilization</th></tr></thead><tbody>
-          {aircraft.map((a, i) => {
-            const delta = deltas[i]
-            const until = untils[i]
-            const util = utils[i]
-            // "Last flight" has no persisted column on the aircraft row yet
-            // (Aircraft type only carries tail/model/hobbs/status/etc.), so
-            // we show an em-dash rather than the previous synthetic date
-            // string, which invented a hard-coded April 2026 date that went
-            // stale immediately after the demo seed.
+          {aircraft.map(a => {
+            // "Last flight" and "Δ · 7d" both require persisted hobbs history
+            // that the current Aircraft row doesn't carry, so we show em-dashes
+            // instead of inventing numbers. "Until next insp." passes through
+            // the free-text `nextInsp` string (e.g. "100h @ 3002" or "Annual
+            // 06/12") rather than the old index-aligned hour countdown that
+            // belonged to whatever aircraft happened to sit at that row.
+            const util = utilByTail.get(a.tail) ?? 0
             return (
               <tr key={a.tail}>
                 <td><span className="mono strong">{a.tail}</span></td>
                 <td className="dim">{a.model}</td>
                 <td className="right mono strong">{a.hobbs.toFixed(1)}</td>
                 <td className="right mono dim">—</td>
-                <td className={`right mono ${delta > 0 ? 'pos' : 'dim'}`}>{delta > 0 ? `+${delta.toFixed(1)}` : '—'}</td>
-                <td className="mono dim">{typeof until === 'number' ? `${until.toFixed(1)} h` : until}</td>
+                <td className="right mono dim">—</td>
+                <td className="mono dim">{a.nextInsp || '—'}</td>
                 <td><div className="progress"><div className="progress-fill" style={{ width: `${util * 100}%` }} /><span className="progress-txt mono">{Math.round(util * 100)}%</span></div></td>
               </tr>
             )
@@ -1723,24 +1739,26 @@ export function ScheduleCalendar({ bookings, viewDate }: { bookings: Booking[]; 
     return { key: name.toLowerCase(), name, date: `${MONTHS[d.getMonth()]} ${d.getDate()}`, today: isToday, dateObj: d }
   })
 
-  // Simple deterministic fake distribution for non-today days until week-wide
-  // schedule fetch lands. Today's count is always the live `bookings.length`;
-  // every other day uses a static seed so the week-view doesn't mislabel a
-  // random weekday with today's actual count.
-  const fakeCounts: Record<string, number> = { mon: 11, tue: 14, wed: 13, thu: 12, fri: 15, sat: 18, sun: 9 }
-  DAYS.forEach(d => { if (d.today) fakeCounts[d.key] = bookings.length })
+  // Week view only fetches today's bookings right now — week-wide schedule
+  // fetch isn't wired yet. Previously this view invented a hardcoded weekday
+  // distribution (mon=11, tue=14, …) and rendered fake placeholder booking
+  // rectangles on non-today columns, which displayed plausible-looking but
+  // entirely fabricated counts in the header ("84 bookings this week") and
+  // grid. We now show only today's live bookings and leave other days blank
+  // until week-wide data is available, so the header count and per-day tally
+  // remain honest.
   const HOUR_PX = 36
   const START_H = 7
   const END_H = 19
   const HOURS = Array.from({ length: END_H - START_H + 1 }, (_, i) => START_H + i)
-  const totalBookings = Object.values(fakeCounts).reduce((a, b) => a + b, 0)
+  const todayBookingCount = bookings.length
   const weekLabel = `Week of ${MONTHS[monday.getMonth()]} ${monday.getDate()}, ${monday.getFullYear()}`
 
   return (
     <div className="view-pad">
       <div className="sect-head">
         <h3>{weekLabel}</h3>
-        <span className="mono dim">{totalBookings} bookings this week</span>
+        <span className="mono dim">{todayBookingCount} booking{todayBookingCount === 1 ? '' : 's'} today</span>
       </div>
       <div className="cal-wrap">
         <div className="cal-head">
@@ -1749,7 +1767,7 @@ export function ScheduleCalendar({ bookings, viewDate }: { bookings: Booking[]; 
             <div key={d.key} className={`cal-day-head ${d.today ? 'today' : ''}`}>
               <div className="cal-day-name mono">{d.name}</div>
               <div className="cal-day-date">{d.date}</div>
-              <div className="cal-day-count mono dim">{fakeCounts[d.key]} bookings</div>
+              <div className="cal-day-count mono dim">{d.today ? `${todayBookingCount} booking${todayBookingCount === 1 ? '' : 's'}` : '—'}</div>
             </div>
           ))}
         </div>
@@ -1779,16 +1797,6 @@ export function ScheduleCalendar({ bookings, viewDate }: { bookings: Booking[]; 
                   </div>
                 )
               })}
-              {!d.today && (
-                <div className="cal-fake-layer">
-                  {Array.from({ length: fakeCounts[d.key] }).map((_, i) => {
-                    const top = 20 + (i * 28) % (HOURS.length * HOUR_PX - 60)
-                    const height = 40 + (i * 13) % 40
-                    const left = 4 + (i % 2) * 4
-                    return <div key={i} className="cal-fake-bk" style={{ top, height, left, right: left + 8 }} />
-                  })}
-                </div>
-              )}
             </div>
           ))}
         </div>
