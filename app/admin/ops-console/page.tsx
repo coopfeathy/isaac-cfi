@@ -776,8 +776,27 @@ export default function OpsConsolePage() {
       const open = alerts.filter(a => !a.resolved).length
       return open === 0 ? 'all clear' : `${open} open`
     }
+    if (view === 'onboarding') {
+      // OnboardingView is driven by live students with status === 'pending';
+      // mirror its row count here so the header never lies about the funnel.
+      const pending = students.filter(s => s.status === 'pending').length
+      return pending === 0 ? 'no prospects' : `${pending} prospect${pending === 1 ? '' : 's'}`
+    }
+    if (view === 'debriefs') {
+      // DebriefsView renders completed + in-flight bookings for the viewed
+      // day. The default "Recent 30 days" copy never reflected that, so
+      // surface the same day-scoped count the view is actually displaying.
+      const completed = displayBookings.filter(b => b.status === 'completed').length
+      const inFlight = displayBookings.filter(b => b.status === 'in_flight').length
+      const total = completed + inFlight
+      if (total === 0) return 'no flights today'
+      const parts: string[] = []
+      if (completed > 0) parts.push(`${completed} signed`)
+      if (inFlight > 0) parts.push(`${inFlight} in flight`)
+      return parts.join(' · ')
+    }
     return undefined
-  }, [view, aircraft, students, slotRequests, alerts, date, visibleBookings])
+  }, [view, aircraft, students, slotRequests, alerts, date, visibleBookings, displayBookings])
 
   const renderView = () => {
     if (loading) return <div className="view-pad"><Skeleton lines={8} /></div>
