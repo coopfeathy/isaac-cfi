@@ -337,7 +337,7 @@ export function ScheduleBoard({ aircraft, bookings, zoom, viewDate, selBookingId
           ))}
         </div>
         <span className="mono dim foot-right">
-          {aircraft.length} aircraft · {bookings.length} bookings · {bookings.filter(b => !b.paid && b.status !== 'maint' && b.status !== 'aog').length} unpaid · sync {now ? `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}` : '—:—'}
+          {aircraft.length} aircraft · {bookings.filter(b => b.status !== 'maint' && b.status !== 'aog').length} bookings · {bookings.filter(b => !b.paid && b.status !== 'maint' && b.status !== 'aog').length} unpaid · sync {now ? `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}` : '—:—'}
         </span>
       </div>
     </div>
@@ -730,6 +730,12 @@ export function IntegrityView({ alerts, bookings = [], slotRequests = [], subTab
   const bookedUnpaid = bookings.filter(b => b.status !== 'cancelled' && b.paid === false).length
   const webhookFailures = open.filter(a => a.code?.startsWith('WH-')).length
   const lastCaldavAlert = [...alerts].reverse().find(a => a.code?.startsWith('CAL-'))
+  // CalDAV status: only report "OK" when the most recent CAL- alert is an
+  // informational/success entry (or has been resolved). An unresolved warn/err
+  // CAL- alert indicates a sync failure and should surface as "ERR" so the
+  // tile doesn't mask a real problem behind a green label.
+  const caldavOk = !!lastCaldavAlert && (lastCaldavAlert.resolved || lastCaldavAlert.sev === 'info')
+  const caldavStatus = !lastCaldavAlert ? '—' : caldavOk ? 'OK' : 'ERR'
   return (
     <div className="view-pad">
       <div className="stat-grid">
@@ -737,7 +743,7 @@ export function IntegrityView({ alerts, bookings = [], slotRequests = [], subTab
         <div className="stat"><div className="stat-k mono">PAID / UNBOOKED</div><div className="stat-v">{paidUnbooked}</div><div className="stat-delta dim">BI-104 alerts</div></div>
         <div className="stat"><div className="stat-k mono">BOOKED / UNPAID</div><div className="stat-v">{bookedUnpaid}</div><div className="stat-delta dim">active bookings</div></div>
         <div className="stat"><div className="stat-k mono">WEBHOOK FAILURES</div><div className="stat-v">{webhookFailures}</div><div className="stat-delta dim">open WH alerts</div></div>
-        <div className="stat"><div className="stat-k mono">CALDAV SYNC</div><div className="stat-v">{lastCaldavAlert ? 'OK' : '—'}</div><div className="stat-delta dim mono">{lastCaldavAlert ? `last ${lastCaldavAlert.ts}` : 'no sync logged'}</div></div>
+        <div className="stat"><div className="stat-k mono">CALDAV SYNC</div><div className="stat-v">{caldavStatus}</div><div className={`stat-delta mono ${lastCaldavAlert && !caldavOk ? 'neg' : 'dim'}`}>{lastCaldavAlert ? `last ${lastCaldavAlert.ts}` : 'no sync logged'}</div></div>
       </div>
       <div className="sect-head"><h3>Alerts</h3><span className="mono dim">{open.length} open</span></div>
       {open.length === 0 ? <EmptyState icon="check" title="All clear" sub="No open integrity alerts." /> : (
