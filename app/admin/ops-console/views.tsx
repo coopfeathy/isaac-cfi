@@ -530,15 +530,32 @@ export function FleetView({ aircraft, bookings, subTab = 0, onAddAircraft, onDel
 export function StudentsView({ students, subTab = 0, onDelete, onAddStudent }: { students: Student[]; subTab?: number; onDelete: (s: Student) => void; onAddStudent?: () => void }) {
   if (subTab === 1) {
     // PROGRESS
+    // Stat tiles are derived from the live roster so they stay correct as
+    // students are added/removed (previously "CHECKRIDE READY" and
+    // "STALLED > 14D" were hardcoded to 1 / 2 regardless of the roster).
     const avgPct = students.length === 0 ? 0 : Math.round(students.reduce((t, s) => t + s.progress, 0) / students.length * 100)
+    const activeStudents = students.filter(s => s.status === 'active')
+    const checkrideReady = activeStudents.filter(s =>
+      s.phase.toLowerCase().includes('checkride') || s.progress >= 0.95
+    )
+    const nowTs = Date.now()
+    const stalled = activeStudents.filter(s => {
+      if (!s.lastLesson || s.lastLesson === '—') return false
+      const lessonTs = Date.parse(s.lastLesson)
+      if (Number.isNaN(lessonTs)) return false
+      return (nowTs - lessonTs) / 86_400_000 > 14
+    })
+    const checkrideLabel = checkrideReady.length === 0
+      ? 'none ready'
+      : checkrideReady.length === 1 ? checkrideReady[0].name : `${checkrideReady.length} students`
     const nextUpBank = ['PPL-15 XC Dual', 'PPL-13 Night', 'PPL-18 Ckr', 'PPL-10 Stalls', 'IR-05 Holds', 'PPL-22 Flight Test', 'CPL-03 Complex', 'Disc Intro', 'IR-08 ILS']
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">ACTIVE LEARNERS</div><div className="stat-v">{students.filter(s => s.status === 'active').length}</div><div className="stat-delta pos">▴ 1 this week</div></div>
-          <div className="stat"><div className="stat-k mono">AVG COMPLETION</div><div className="stat-v">{avgPct}%</div><div className="stat-delta pos">▴ 3 pp</div></div>
-          <div className="stat"><div className="stat-k mono">CHECKRIDE READY</div><div className="stat-v">1</div><div className="stat-delta dim">T. Okafor</div></div>
-          <div className="stat"><div className="stat-k mono">STALLED &gt; 14D</div><div className="stat-v">2</div><div className="stat-delta warn">need outreach</div></div>
+          <div className="stat"><div className="stat-k mono">ACTIVE LEARNERS</div><div className="stat-v">{activeStudents.length}</div><div className="stat-delta dim">of {students.length} total</div></div>
+          <div className="stat"><div className="stat-k mono">AVG COMPLETION</div><div className="stat-v">{avgPct}%</div><div className="stat-delta dim">across roster</div></div>
+          <div className="stat"><div className="stat-k mono">CHECKRIDE READY</div><div className="stat-v">{checkrideReady.length}</div><div className="stat-delta dim">{checkrideLabel}</div></div>
+          <div className="stat"><div className="stat-k mono">STALLED &gt; 14D</div><div className="stat-v">{stalled.length}</div><div className={`stat-delta ${stalled.length > 0 ? 'warn' : 'pos'}`}>{stalled.length > 0 ? 'need outreach' : 'all engaged'}</div></div>
         </div>
         <div className="sect-head"><h3>Syllabus progress</h3></div>
         <table className="dt"><thead><tr><th>Student</th><th>Phase</th><th>Progress</th><th className="right">Lessons</th><th className="right">Hours</th><th className="right">Last</th><th>Next up</th></tr></thead><tbody>

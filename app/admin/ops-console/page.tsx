@@ -832,7 +832,7 @@ export default function OpsConsolePage() {
         <OpsPulse
           alerts={alerts}
           bookings={visibleBookings}
-          aircraftCount={aircraft.length}
+          aircraft={aircraft}
           airportIcao="KPNE"
           onSelBooking={setSelBooking}
           onJumpView={(v) => { setView(v); setSubTab(0) }}

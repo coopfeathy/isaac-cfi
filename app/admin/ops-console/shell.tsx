@@ -798,8 +798,8 @@ export function Inspector({ bookings, bookingId, aircraft, instructors, students
 }
 
 // ────────── Ops Pulse ──────────
-export function OpsPulse({ alerts, bookings, aircraftCount, airportIcao = 'KPNE', onSelBooking, onJumpView }: {
-  alerts: AlertRow[]; bookings: Booking[]; aircraftCount?: number; airportIcao?: string;
+export function OpsPulse({ alerts, bookings, aircraft, aircraftCount, airportIcao = 'KPNE', onSelBooking, onJumpView }: {
+  alerts: AlertRow[]; bookings: Booking[]; aircraft?: Array<{ status: string }>; aircraftCount?: number; airportIcao?: string;
   onSelBooking: (id: string) => void; onJumpView: (v: string) => void;
 }) {
   const now = useNow()
@@ -823,6 +823,14 @@ export function OpsPulse({ alerts, bookings, aircraftCount, airportIcao = 'KPNE'
   const openAlerts = alerts.filter(a => !a.resolved)
   const errorCt = openAlerts.filter(a => a.sev === 'error').length
   const warnCt = openAlerts.filter(a => a.sev === 'warn').length
+  // Aircraft health for the pulse header. Previously this showed
+  // `aircraftCount - errorCt`, which incorrectly treated any error alert
+  // (billing, webhook, CalDAV, etc.) as a grounded airplane. Derive the
+  // airworthy count from actual aircraft status when available.
+  const fleetTotal = aircraft?.length ?? aircraftCount ?? 1
+  const fleetAirworthy = aircraft
+    ? aircraft.filter(a => a.status !== 'ground').length
+    : Math.max(0, (aircraftCount ?? 1) - errorCt)
 
   // Route an alert to whichever workspace is best suited to resolve it, based
   // on its code prefix. Everything else falls back to the Integrity view.
@@ -866,7 +874,7 @@ export function OpsPulse({ alerts, bookings, aircraftCount, airportIcao = 'KPNE'
         <span className="mono pulse-title">OPS PULSE</span>
         <span className="mono dim">LIVE · {liveTime}</span>
         <span className="pulse-health">
-          <span className="sl sl-green" /><span className="mono dim">{Math.max(0, (aircraftCount ?? 1) - errorCt)}/{aircraftCount ?? 1} AIRCRAFT</span>
+          <span className="sl sl-green" /><span className="mono dim">{fleetAirworthy}/{fleetTotal} AIRCRAFT</span>
           <span className="pulse-sep">·</span>
           <span className="mono"><b className={errorCt ? 'neg' : 'dim'}>{errorCt}</b> ERR</span>
           <span className="mono"><b className={warnCt ? 'warn' : 'dim'}>{warnCt}</b> WRN</span>
