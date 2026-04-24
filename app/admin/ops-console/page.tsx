@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import './ops-console.css'
-import { INITIAL_BOOKINGS, INITIAL_ALERTS, STUDENTS, type TreeNodeData } from './data'
+import { INITIAL_BOOKINGS, INITIAL_ALERTS, STUDENTS, INVOICES, type TreeNodeData } from './data'
 import { supabase } from '@/lib/supabase'
 import {
   Sidebar, TopBar, IconRail, DocNav, SubTabs, Toolbar, Inspector, OpsPulse,
@@ -793,6 +793,16 @@ export default function OpsConsolePage() {
       if (booked > 0) parts.push(`${booked} ready`)
       if (inFlight > 0) parts.push(`${inFlight} in flight`)
       return parts.join(' · ')
+    }
+    if (view === 'billing') {
+      // BillingView is still backed by the INVOICES seed constant, but the
+      // VIEW_META default ("6 invoices · 2 overdue") is out-of-sync with the
+      // data — only one invoice has status 'overdue'. Derive the header from
+      // the actual list so the count can never drift from the table below.
+      const n: number = INVOICES.length
+      const overdue = INVOICES.filter(i => i.status === 'overdue').length
+      const label = `${n} invoice${n === 1 ? '' : 's'}`
+      return overdue > 0 ? `${label} · ${overdue} overdue` : label
     }
     if (view === 'debriefs') {
       // DebriefsView renders completed + in-flight bookings for the viewed
