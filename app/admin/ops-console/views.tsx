@@ -1116,13 +1116,33 @@ export function BillingView({ subTab = 0 }: { subTab?: number }) {
 
   if (subTab === 3) {
     const totalExposed = DISPUTES.filter(d => d.status !== 'won').reduce((t, d) => t + d.amount, 0)
+    // Earliest "respond by" across disputes that still need a response. The
+    // tile previously hardcoded "respond by 04/26" which went stale the
+    // moment the earliest due date changed. Picks the soonest date from the
+    // DISPUTES list; em-dashes out if nothing is open.
+    const needsResponse = DISPUTES.filter(d => d.status === 'needs_response' && (d.due as string) !== '—')
+    const earliestDue = needsResponse
+      .map(d => d.due as string)
+      .sort()[0]
+    const earliestLabel = earliestDue
+      ? `respond by ${earliestDue.slice(5).replace('-', '/')}`
+      : 'no open disputes'
+    // Win rate over *resolved* disputes (won vs lost). Pending ones
+    // (needs_response / under_review) are excluded from both sides so the
+    // rate can't be distorted by outstanding cases. The tile used to
+    // hardcode "67% · 2 of 3", which never matched the seed data
+    // (DISPUTES currently has 1 won, 0 lost, 2 pending).
+    const wonCount = DISPUTES.filter(d => d.status === 'won').length
+    const lostCount = DISPUTES.filter(d => (d.status as string) === 'lost').length
+    const resolvedCount = wonCount + lostCount
+    const winRate = resolvedCount > 0 ? Math.round((wonCount / resolvedCount) * 100) : null
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">OPEN</div><div className="stat-v">{DISPUTES.filter(d => d.status === 'needs_response').length}</div><div className="stat-delta neg">needs response</div></div>
           <div className="stat"><div className="stat-k mono">UNDER REVIEW</div><div className="stat-v">{DISPUTES.filter(d => d.status === 'under_review').length}</div><div className="stat-delta dim">Stripe processing</div></div>
-          <div className="stat"><div className="stat-k mono">AT RISK</div><div className="stat-v">${totalExposed.toFixed(2)}</div><div className="stat-delta warn">respond by 04/26</div></div>
-          <div className="stat"><div className="stat-k mono">WIN RATE · 90D</div><div className="stat-v">67%</div><div className="stat-delta pos">2 of 3</div></div>
+          <div className="stat"><div className="stat-k mono">AT RISK</div><div className="stat-v">${totalExposed.toFixed(2)}</div><div className={needsResponse.length ? 'stat-delta warn' : 'stat-delta dim'}>{earliestLabel}</div></div>
+          <div className="stat"><div className="stat-k mono">WIN RATE · 90D</div><div className="stat-v">{winRate === null ? '—' : `${winRate}%`}</div><div className={resolvedCount === 0 ? 'stat-delta dim' : 'stat-delta pos'}>{resolvedCount === 0 ? 'no resolved disputes' : `${wonCount} of ${resolvedCount}`}</div></div>
         </div>
         <div className="sect-head"><h3>Disputes</h3><span className="mono dim">{DISPUTES.length} total</span></div>
         <table className="dt"><thead><tr><th>ID</th><th>Invoice</th><th>Student</th><th className="right">Amount</th><th>Reason</th><th>Respond by</th><th>Status</th><th></th></tr></thead><tbody>
