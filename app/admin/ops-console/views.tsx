@@ -641,13 +641,32 @@ export function StudentsView({ students, subTab = 0, onDelete, onAddStudent }: {
       { name: 'Sofia Haddad', phase: 'PPL · Pre-solo',  soloDate: null,         endorseExp: null,         xcExp: null,         notes: 'Stage check scheduled' },
       { name: 'Marcus Ortiz', phase: 'PPL · Pre-solo',  soloDate: null,         endorseExp: null,         xcExp: null,         notes: '14 hrs to go' },
     ]
+    // Derive the four tiles from the SOLO array so the counts stay honest
+    // if the list changes (previously all four values were hardcoded).
+    const soloCleared = SOLO.filter(s => s.soloDate !== null)
+    const preSolo = SOLO.filter(s => s.soloDate === null && s.phase.toLowerCase().includes('pre-solo'))
+    const nowTs = Date.now()
+    const DAY_MS = 86_400_000
+    const endorseExpiringSoon = SOLO.filter(s => {
+      if (!s.endorseExp) return false
+      const t = Date.parse(s.endorseExp)
+      if (Number.isNaN(t)) return false
+      const days = (t - nowTs) / DAY_MS
+      return days >= 0 && days < 30
+    })
+    const xcTotal = SOLO.filter(s => s.xcExp !== null).length
+    const xcValid = SOLO.filter(s => {
+      if (!s.xcExp) return false
+      const t = Date.parse(s.xcExp)
+      return !Number.isNaN(t) && t >= nowTs
+    }).length
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">SOLO-CLEARED</div><div className="stat-v">3</div><div className="stat-delta pos">all valid</div></div>
-          <div className="stat"><div className="stat-k mono">PRE-SOLO</div><div className="stat-v">2</div><div className="stat-delta dim">stage checks active</div></div>
-          <div className="stat"><div className="stat-k mono">ENDORSE EXPIRES &lt; 30D</div><div className="stat-v">0</div><div className="stat-delta pos">clear</div></div>
-          <div className="stat"><div className="stat-k mono">XC ENDORSE VALID</div><div className="stat-v">3/3</div><div className="stat-delta pos">current</div></div>
+          <div className="stat"><div className="stat-k mono">SOLO-CLEARED</div><div className="stat-v">{soloCleared.length}</div><div className={`stat-delta ${soloCleared.length > 0 ? 'pos' : 'dim'}`}>{soloCleared.length > 0 ? 'all valid' : 'none yet'}</div></div>
+          <div className="stat"><div className="stat-k mono">PRE-SOLO</div><div className="stat-v">{preSolo.length}</div><div className="stat-delta dim">{preSolo.length > 0 ? 'stage checks active' : 'none pending'}</div></div>
+          <div className="stat"><div className="stat-k mono">ENDORSE EXPIRES &lt; 30D</div><div className="stat-v">{endorseExpiringSoon.length}</div><div className={`stat-delta ${endorseExpiringSoon.length > 0 ? 'warn' : 'pos'}`}>{endorseExpiringSoon.length > 0 ? 'renew soon' : 'clear'}</div></div>
+          <div className="stat"><div className="stat-k mono">XC ENDORSE VALID</div><div className="stat-v">{xcTotal === 0 ? '—' : `${xcValid}/${xcTotal}`}</div><div className={`stat-delta ${xcTotal > 0 && xcValid === xcTotal ? 'pos' : xcTotal === 0 ? 'dim' : 'warn'}`}>{xcTotal === 0 ? 'no XC yet' : xcValid === xcTotal ? 'current' : 'renew needed'}</div></div>
         </div>
         <div className="sect-head"><h3>Solo endorsements</h3></div>
         <table className="dt"><thead><tr><th>Student</th><th>Phase</th><th>First solo</th><th>90-day renew</th><th>XC endorse</th><th>Notes</th></tr></thead><tbody>

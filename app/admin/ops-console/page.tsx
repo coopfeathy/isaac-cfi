@@ -782,6 +782,18 @@ export default function OpsConsolePage() {
       const pending = students.filter(s => s.status === 'pending').length
       return pending === 0 ? 'no prospects' : `${pending} prospect${pending === 1 ? '' : 's'}`
     }
+    if (view === 'dispatch') {
+      // Default tab renders readiness cards; derive ready/in-flight counts
+      // from today's actual bookings so the header never shows the stale
+      // "3 ready · 1 in flight" copy from VIEW_META.
+      const inFlight = displayBookings.filter(b => b.status === 'in_flight').length
+      const booked = displayBookings.filter(b => b.status === 'booked').length
+      if (inFlight === 0 && booked === 0) return 'no flights queued'
+      const parts: string[] = []
+      if (booked > 0) parts.push(`${booked} ready`)
+      if (inFlight > 0) parts.push(`${inFlight} in flight`)
+      return parts.join(' · ')
+    }
     if (view === 'debriefs') {
       // DebriefsView renders completed + in-flight bookings for the viewed
       // day. The default "Recent 30 days" copy never reflected that, so
