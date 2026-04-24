@@ -356,13 +356,30 @@ export function FleetView({ aircraft, bookings, subTab = 0, onAddAircraft, onDel
     // Derive AOG count from the live fleet so the "IN SHOP" delta reflects
     // actual grounded aircraft instead of the previous hardcoded "1 AOG".
     const aogCount = aircraft.filter(a => a.status === 'ground').length
+    // MTD maintenance spend — sum EXPENSES in the Maintenance/Parts categories
+    // whose `date` falls inside the current calendar month. Replaces the
+    // previous hardcoded "$3,736.20 · 2 events" which stayed constant even
+    // when the underlying expense ledger changed.
+    const todayDate = new Date()
+    const curMonthKey = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}`
+    const mtdMaint = EXPENSES.filter(e =>
+      (e.category === 'Maintenance' || e.category === 'Parts') && e.date.startsWith(curMonthKey)
+    )
+    const mtdMaintSpend = mtdMaint.reduce((s, e) => s + e.amount, 0)
+    // Fleet uptime — previously "94.1% · ▴ 2.3 pp" was invented (no history is
+    // persisted to compute a 30-day trend). Derive a current-state uptime from
+    // the live roster: non-grounded aircraft / total. The tile is relabeled
+    // "UPTIME · NOW" to reflect what it actually measures.
+    const fleetUptimeNow = aircraft.length === 0
+      ? null
+      : (aircraft.filter(a => a.status !== 'ground').length / aircraft.length)
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">IN SHOP</div><div className="stat-v">{MAINT_EVENTS.filter(m => m.status === 'in_shop' || m.status === 'awaiting_parts').length}</div><div className={aogCount > 0 ? 'stat-delta neg' : 'stat-delta dim'}>{aogCount > 0 ? `${aogCount} AOG` : 'no AOG'}</div></div>
           <div className="stat"><div className="stat-k mono">DUE · 14 DAYS</div><div className="stat-v">{MAINT_EVENTS.filter(m => m.status === 'upcoming').length}</div><div className="stat-delta warn">schedule now</div></div>
-          <div className="stat"><div className="stat-k mono">MTD · SPEND</div><div className="stat-v">$3,736.20</div><div className="stat-delta dim mono">2 events</div></div>
-          <div className="stat"><div className="stat-k mono">UPTIME · 30D</div><div className="stat-v">94.1%</div><div className="stat-delta pos">▴ 2.3 pp</div></div>
+          <div className="stat"><div className="stat-k mono">MTD · SPEND</div><div className="stat-v">${mtdMaintSpend.toFixed(2)}</div><div className="stat-delta dim mono">{mtdMaint.length} event{mtdMaint.length === 1 ? '' : 's'}</div></div>
+          <div className="stat"><div className="stat-k mono">UPTIME · NOW</div><div className="stat-v">{fleetUptimeNow === null ? '—' : `${Math.round(fleetUptimeNow * 100)}%`}</div><div className={aogCount > 0 ? 'stat-delta neg' : 'stat-delta dim'}>{fleetUptimeNow === null ? '—' : (aogCount > 0 ? `${aogCount} grounded` : 'all flying')}</div></div>
         </div>
         <div className="sect-head"><h3>Maintenance schedule</h3><span className="mono dim">{MAINT_EVENTS.length} events</span></div>
         <table className="dt"><thead><tr><th>ID</th><th>Tail</th><th>Type</th><th className="right">Hobbs now</th><th className="right">Due @</th><th>Due date</th><th>Status</th><th></th></tr></thead><tbody>
@@ -1043,13 +1060,23 @@ export function BillingView({ subTab = 0 }: { subTab?: number }) {
 
   if (subTab === 2) {
     const totalCredit = CREDITS.reduce((t, c) => t + c.balance, 0)
+    // ISSUED · MTD — derived from CREDITS whose `issued` date falls in the
+    // current calendar month. Previously hardcoded "$962.50 · ▴ 12%" which
+    // didn't move when credits were added or removed.
+    const todayDate = new Date()
+    const curMonthKey = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}`
+    const issuedMtd = CREDITS.filter(c => c.issued.startsWith(curMonthKey))
+    const issuedMtdTotal = issuedMtd.reduce((s, c) => s + c.balance, 0)
+    // REDEEMED / EXPIRED — we don't persist a credit ledger yet, so these are
+    // shown as em-dashes instead of the fabricated "$487.00 · 6 uses" /
+    // "$0.00 · —" placeholders the tile used to display.
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">OUTSTANDING</div><div className="stat-v">${totalCredit.toFixed(2)}</div><div className="stat-delta dim">{CREDITS.length} accounts</div></div>
-          <div className="stat"><div className="stat-k mono">ISSUED · MTD</div><div className="stat-v">$962.50</div><div className="stat-delta pos">▴ 12%</div></div>
-          <div className="stat"><div className="stat-k mono">REDEEMED · MTD</div><div className="stat-v">$487.00</div><div className="stat-delta dim">6 uses</div></div>
-          <div className="stat"><div className="stat-k mono">EXPIRED · 30D</div><div className="stat-v">$0.00</div><div className="stat-delta dim">—</div></div>
+          <div className="stat"><div className="stat-k mono">ISSUED · MTD</div><div className="stat-v">${issuedMtdTotal.toFixed(2)}</div><div className="stat-delta dim mono">{issuedMtd.length} credit{issuedMtd.length === 1 ? '' : 's'}</div></div>
+          <div className="stat"><div className="stat-k mono">REDEEMED · MTD</div><div className="stat-v">—</div><div className="stat-delta dim">no ledger yet</div></div>
+          <div className="stat"><div className="stat-k mono">EXPIRED · 30D</div><div className="stat-v">—</div><div className="stat-delta dim">no expiry data</div></div>
         </div>
         <div className="sect-head"><h3>Credit balances</h3><span className="mono dim">{CREDITS.length} accounts</span></div>
         <table className="dt"><thead><tr><th>ID</th><th>Student</th><th className="right">Balance</th><th>Source</th><th>Issued</th><th></th></tr></thead><tbody>
