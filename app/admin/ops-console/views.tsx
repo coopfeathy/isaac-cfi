@@ -933,13 +933,19 @@ export function DispatchView({ subTab = 0 }: { subTab?: number }) {
       { id: 'PX-400', booking: 'BK-20483', student: 'Hana Kim',     tail: 'N902MF', cfi: 'cfi_01', land: '08:14', tach: 1.8, fuelBurn: 8.9,  squawk: 'Transponder sticky', status: 'review'  },
       { id: 'PX-399', booking: 'BK-20480', student: 'E. Bergström', tail: 'N733MF', cfi: 'cfi_02', land: '07:46', tach: 1.2, fuelBurn: 7.6,  squawk: 'EGT gauge erratic',  status: 'flagged' },
     ]
+    // DEBRIEFS PENDING — derived from POSTFLIGHT statuses instead of the
+    // previously hardcoded "1". Anything not yet `signed` (in `review` or
+    // `flagged`) is still waiting on CFI sign-off; today that's 2 (PX-400 +
+    // PX-399), not 1. The TACH delta is also pulled from the row count so
+    // it stays accurate if a flight is added/removed.
+    const pendingDebriefs = POSTFLIGHT.filter(p => p.status !== 'signed')
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">TODAY · LANDED</div><div className="stat-v">{POSTFLIGHT.length}</div><div className="stat-delta pos">+1 vs yday</div></div>
           <div className="stat"><div className="stat-k mono">FUEL BURN</div><div className="stat-v">{POSTFLIGHT.reduce((s, p) => s + p.fuelBurn, 0).toFixed(1)} gal</div><div className="stat-delta dim">avg 9.3 g/h</div></div>
-          <div className="stat"><div className="stat-k mono">TACH · TOTAL</div><div className="stat-v">{POSTFLIGHT.reduce((s, p) => s + p.tach, 0).toFixed(1)} h</div><div className="stat-delta dim">4 flights</div></div>
-          <div className="stat"><div className="stat-k mono">DEBRIEFS PENDING</div><div className="stat-v">1</div><div className="stat-delta warn">&gt;24h</div></div>
+          <div className="stat"><div className="stat-k mono">TACH · TOTAL</div><div className="stat-v">{POSTFLIGHT.reduce((s, p) => s + p.tach, 0).toFixed(1)} h</div><div className="stat-delta dim">{POSTFLIGHT.length} flights</div></div>
+          <div className="stat"><div className="stat-k mono">DEBRIEFS PENDING</div><div className="stat-v">{pendingDebriefs.length}</div><div className={pendingDebriefs.length > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{pendingDebriefs.length > 0 ? 'awaiting CFI sign-off' : 'all signed'}</div></div>
         </div>
         <div className="sect-head"><h3>Post-flight close-out</h3></div>
         <table className="dt"><thead><tr><th>ID</th><th>Booking</th><th>Student</th><th>Tail</th><th>Landed</th><th className="right">Tach</th><th className="right">Fuel gal</th><th>Squawk</th><th>Status</th><th></th></tr></thead><tbody>
@@ -1502,13 +1508,28 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
       { id: 'tr_1Oq9Tk', date: '2026-04-08', amount: 5870.50, dest: 'Wells Fargo · …4812', method: 'ACH',     status: 'paid',       eta: '2026-04-10' },
       { id: 'tr_1Oq3Bv', date: '2026-04-01', amount: 4412.00, dest: 'Wells Fargo · …4812', method: 'ACH',     status: 'paid',       eta: '2026-04-03' },
     ]
+    // Derive the transfer tiles from TRA instead of the hardcoded
+    // "$500.00 · 1 transfer / 0 / 2.1 d" placeholders. The AVG SETTLE figure
+    // was the most visibly wrong — every paid ACH transfer in the table
+    // settles in exactly 2 days, so the "2.1 d" was off. IN TRANSIT count,
+    // INSTANT MTD total, and FAILED count are now all derived too so they
+    // stay honest if rows change.
+    const inTransit = TRA.filter(t => t.status === 'in_transit')
+    const inTransitTotal = inTransit.reduce((s, t) => s + t.amount, 0)
+    const monthKey = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` })()
+    const instantMtd = TRA.filter(t => t.method === 'Instant' && t.date.startsWith(monthKey))
+    const instantMtdTotal = instantMtd.reduce((s, t) => s + t.amount, 0)
+    const failedRecent = TRA.filter(t => t.status === 'failed')
+    const achPaid = TRA.filter(t => t.status === 'paid' && t.method === 'ACH')
+    const settleDays = achPaid.map(t => Math.round((new Date(t.eta).getTime() - new Date(t.date).getTime()) / 86_400_000))
+    const avgSettle = settleDays.length > 0 ? settleDays.reduce((s, d) => s + d, 0) / settleDays.length : 0
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">IN TRANSIT</div><div className="stat-v">${TRA.filter(t => t.status === 'in_transit').reduce((s, t) => s + t.amount, 0).toFixed(2)}</div><div className="stat-delta dim">1 transfer</div></div>
-          <div className="stat"><div className="stat-k mono">INSTANT · MTD</div><div className="stat-v">$500.00</div><div className="stat-delta dim">1 transfer</div></div>
-          <div className="stat"><div className="stat-k mono">FAILED · 30D</div><div className="stat-v">0</div><div className="stat-delta pos">—</div></div>
-          <div className="stat"><div className="stat-k mono">AVG SETTLE</div><div className="stat-v">2.1 d</div><div className="stat-delta pos">ACH</div></div>
+          <div className="stat"><div className="stat-k mono">IN TRANSIT</div><div className="stat-v">${inTransitTotal.toFixed(2)}</div><div className="stat-delta dim">{inTransit.length} transfer{inTransit.length === 1 ? '' : 's'}</div></div>
+          <div className="stat"><div className="stat-k mono">INSTANT · MTD</div><div className="stat-v">${instantMtdTotal.toFixed(2)}</div><div className="stat-delta dim">{instantMtd.length} transfer{instantMtd.length === 1 ? '' : 's'}</div></div>
+          <div className="stat"><div className="stat-k mono">FAILED · 30D</div><div className="stat-v">{failedRecent.length}</div><div className={failedRecent.length > 0 ? 'stat-delta neg' : 'stat-delta pos'}>{failedRecent.length > 0 ? 'review needed' : '—'}</div></div>
+          <div className="stat"><div className="stat-k mono">AVG SETTLE</div><div className="stat-v">{avgSettle.toFixed(1)} d</div><div className="stat-delta pos">ACH</div></div>
         </div>
         <div className="sect-head"><h3>Bank transfers</h3></div>
         <table className="dt"><thead><tr><th>Transfer ID</th><th>Date</th><th className="right">Amount</th><th>Destination</th><th>Method</th><th>Status</th><th>ETA</th></tr></thead><tbody>
