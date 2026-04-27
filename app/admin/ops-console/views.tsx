@@ -1661,11 +1661,25 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
   }
 
   // PAYOUTS (default)
+  // IN FLIGHT was hardcoded "$8,420.14 · arrives 04/24" but every PAYOUTS row
+  // has `status: 'paid'` — that money has already landed in the bank, nothing
+  // is actually in flight. The hardcoded number happened to match the most
+  // recent (already-paid) payout, which is misleading. Derive from PAYOUTS
+  // rows whose status is not yet `paid` so the tile stays correct as new
+  // pending/in_transit payouts come through.
+  const inFlightPayouts = PAYOUTS.filter(p => p.status !== 'paid')
+  const inFlightTotal = inFlightPayouts.reduce((s, p) => s + p.amount, 0)
+  const earliestArrival = inFlightPayouts
+    .map(p => p.arrival)
+    .sort()[0]
+  const earliestArrivalLabel = earliestArrival
+    ? `arrives ${earliestArrival.slice(5).replace('-', '/')}`
+    : 'none in transit'
   return (
     <div className="view-pad">
       <div className="stat-grid">
         <div className="stat"><div className="stat-k mono">LAST 30D</div><div className="stat-v">${total.toFixed(2)}</div><div className="stat-delta pos">▴ $2,420 vs prev</div></div>
-        <div className="stat"><div className="stat-k mono">IN FLIGHT</div><div className="stat-v">$8,420.14</div><div className="stat-delta dim mono">arrives 04/24</div></div>
+        <div className="stat"><div className="stat-k mono">IN FLIGHT</div><div className="stat-v">${inFlightTotal.toFixed(2)}</div><div className={inFlightPayouts.length ? 'stat-delta dim mono' : 'stat-delta dim'}>{earliestArrivalLabel}</div></div>
         <div className="stat"><div className="stat-k mono">FEES · 30D</div><div className="stat-v">$962.03</div><div className="stat-delta dim">3.0% eff.</div></div>
         <div className="stat"><div className="stat-k mono">AVAILABLE</div><div className="stat-v">$1,204.22</div><div className="stat-delta pos">instant OK</div></div>
       </div>
@@ -1696,12 +1710,19 @@ export function ExpensesView({ subTab = 0 }: { subTab?: number }) {
     // CATEGORIES
     const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1])
     const budget: Record<string, number> = { Fuel: 3200, Maintenance: 4500, Insurance: 1200, Hangar: 2800, Parts: 800 }
+    // OVER BUDGET was hardcoded "0 · YTD" but the byCat and budget objects
+    // sitting right next to it already have everything needed to compute it.
+    // The tile would have stayed at "0" forever even if Maintenance ran past
+    // its $4,500 cap. Derive the count from category-vs-budget so the tile
+    // moves the moment a category trips its budget. Flip tone to warn when
+    // anything is over.
+    const overBudgetCats = cats.filter(([k, v]) => budget[k] !== undefined && v > budget[k])
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">CATEGORIES</div><div className="stat-v">{cats.length}</div><div className="stat-delta dim">tracked</div></div>
           <div className="stat"><div className="stat-k mono">TOP · MAINT</div><div className="stat-v">${byCat.Maintenance?.toFixed(0) ?? 0}</div><div className="stat-delta neg">72% of budget</div></div>
-          <div className="stat"><div className="stat-k mono">OVER BUDGET</div><div className="stat-v">0</div><div className="stat-delta pos">YTD</div></div>
+          <div className="stat"><div className="stat-k mono">OVER BUDGET</div><div className="stat-v">{overBudgetCats.length}</div><div className={overBudgetCats.length > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{overBudgetCats.length > 0 ? `${overBudgetCats.map(([k]) => k).join(', ')}` : 'YTD'}</div></div>
           <div className="stat"><div className="stat-k mono">UNCATEGORIZED</div><div className="stat-v">0</div><div className="stat-delta pos">clean</div></div>
         </div>
         <div className="sect-head"><h3>Spend by category</h3></div>
