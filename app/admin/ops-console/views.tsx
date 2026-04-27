@@ -708,7 +708,11 @@ export function StudentsView({ students, subTab = 0, onDelete, onAddStudent }: {
           <div className="stat"><div className="stat-k mono">ACTIVE HOLDS</div><div className="stat-v">{HOLDS.length}</div><div className={blocking.length > 0 ? 'stat-delta neg' : 'stat-delta pos'}>{blocking.length > 0 ? `${blocking.length} blocking dispatch` : 'none blocking'}</div></div>
           <div className="stat"><div className="stat-k mono">BALANCE HOLDS</div><div className="stat-v">{blocking.length}</div><div className={blockingTotal > 0 ? 'stat-delta warn' : 'stat-delta dim'}>{blockingTotal > 0 ? `$${blockingTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}</div></div>
           <div className="stat"><div className="stat-k mono">DOC HOLDS</div><div className="stat-v">{HOLDS.filter(h => h.reason.toLowerCase().includes('medical')).length}</div><div className="stat-delta dim">medicals</div></div>
-          <div className="stat"><div className="stat-k mono">RESOLVED · 7D</div><div className="stat-v">5</div><div className="stat-delta pos">avg 1.8 d</div></div>
+          {/* RESOLVED · 7D was hardcoded "5" / "avg 1.8 d" but there is no
+             resolved-holds dataset (HOLDS only contains currently-active rows
+             above) — every claim there was made up. Show an honest dash + the
+             reason until a resolution log is wired up. */}
+          <div className="stat"><div className="stat-k mono">RESOLVED · 7D</div><div className="stat-v">—</div><div className="stat-delta dim">no resolution log</div></div>
         </div>
         <div className="sect-head"><h3>Hold list</h3><span className="mono dim">cannot dispatch while active</span></div>
         <table className="dt"><thead><tr><th>Student</th><th>Reason</th><th className="right">Amount</th><th className="right">Age</th><th>Action</th><th>Severity</th><th></th></tr></thead><tbody>
@@ -901,13 +905,21 @@ export function DispatchView({ subTab = 0 }: { subTab?: number }) {
     // rows so this stays honest if a row is added/removed or items toggle.
     const prepRows = PREFLIGHT.filter(p => p.stage === 'prep')
     const prepOpen = prepRows.reduce((s, p) => s + Object.values(p.items).filter(v => !v).length, 0)
+    // AVG BRIEF was hardcoded "22 min · trailing 7d" — there is no historical
+    // briefing-time log to derive that from (PREFLIGHT only contains today's
+    // 4 active rows above). Replace with a QUEUE tile that's actually
+    // derivable from the same source: rows still in `queue` stage waiting
+    // for a CFI to pick them up, plus how many checklist items remain open
+    // across them. Stays honest if rows transition stages or items toggle.
+    const queueRows = PREFLIGHT.filter(p => p.stage === 'queue')
+    const queueOpen = queueRows.reduce((s, p) => s + Object.values(p.items).filter(v => !v).length, 0)
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">IN BRIEF</div><div className="stat-v">{PREFLIGHT.filter(p => p.stage === 'brief').length}</div><div className="stat-delta dim">active CFI time</div></div>
           <div className="stat"><div className="stat-k mono">READY · TO LAUNCH</div><div className="stat-v">{PREFLIGHT.filter(p => p.stage === 'ready').length}</div><div className="stat-delta pos">on time</div></div>
           <div className="stat"><div className="stat-k mono">PREP</div><div className="stat-v">{prepRows.length}</div><div className={prepOpen > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{prepOpen > 0 ? `${prepOpen} item${prepOpen === 1 ? '' : 's'} open` : 'all checked'}</div></div>
-          <div className="stat"><div className="stat-k mono">AVG BRIEF</div><div className="stat-v">22 min</div><div className="stat-delta dim">trailing 7d</div></div>
+          <div className="stat"><div className="stat-k mono">QUEUE</div><div className="stat-v">{queueRows.length}</div><div className={queueRows.length > 0 ? 'stat-delta dim' : 'stat-delta pos'}>{queueRows.length > 0 ? `${queueOpen} item${queueOpen === 1 ? '' : 's'} pending` : 'none waiting'}</div></div>
         </div>
         <div className="sect-head"><h3>Pre-flight checklist</h3><span className="mono dim">{PREFLIGHT.length} active</span></div>
         <table className="dt"><thead><tr><th>ID</th><th>Booking</th><th>Student</th><th>Tail</th><th>WX</th><th>NOTAM</th><th>W&amp;B</th><th>Fuel</th><th>Docs</th><th>Stage</th><th></th></tr></thead><tbody>
