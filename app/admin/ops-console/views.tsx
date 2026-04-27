@@ -968,13 +968,24 @@ export function DispatchView({ subTab = 0 }: { subTab?: number }) {
 
   if (subTab === 3) {
     // SQUAWKS (dispatch-filtered view)
+    // Derive the dispatch squawk tiles from the SQUAWKS table + MAINT_EVENTS
+    // instead of the hardcoded "2 / 1 / 3 / 1" placeholders. Previously the
+    // BLOCKING LAUNCH delta even named the wrong tail ("N733MF · EGT" — that
+    // squawk is minor; the actually-blocking one is SQ-116 on N219MF).
+    const openSquawks = SQUAWKS.filter(s => s.status === 'open')
+    const blocking = openSquawks.filter(s => s.severity === 'major')
+    const blockingLabel = blocking.length > 0
+      ? `${blocking[0].tail} · ${blocking[0].item.split(/[·,]/)[0].trim()}`
+      : 'none'
+    const handedToMx = MAINT_EVENTS.filter(m => m.status === 'in_shop' || m.status === 'awaiting_parts')
+    const deferEligible = openSquawks.filter(s => s.severity === 'minor')
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">TODAY · NEW</div><div className="stat-v">2</div><div className="stat-delta warn">from line</div></div>
-          <div className="stat"><div className="stat-k mono">BLOCKING LAUNCH</div><div className="stat-v">1</div><div className="stat-delta neg">N733MF · EGT</div></div>
-          <div className="stat"><div className="stat-k mono">HANDED TO MX</div><div className="stat-v">3</div><div className="stat-delta pos">work orders open</div></div>
-          <div className="stat"><div className="stat-k mono">DEFER-ELIGIBLE</div><div className="stat-v">1</div><div className="stat-delta dim">within MEL</div></div>
+          <div className="stat"><div className="stat-k mono">OPEN</div><div className="stat-v">{openSquawks.length}</div><div className={openSquawks.length > 0 ? 'stat-delta warn' : 'stat-delta dim'}>{openSquawks.length > 0 ? 'from line' : 'all clear'}</div></div>
+          <div className="stat"><div className="stat-k mono">BLOCKING LAUNCH</div><div className="stat-v">{blocking.length}</div><div className={blocking.length > 0 ? 'stat-delta neg' : 'stat-delta pos'}>{blockingLabel}</div></div>
+          <div className="stat"><div className="stat-k mono">HANDED TO MX</div><div className="stat-v">{handedToMx.length}</div><div className={handedToMx.length > 0 ? 'stat-delta dim' : 'stat-delta pos'}>{handedToMx.length > 0 ? 'work orders open' : 'no MX backlog'}</div></div>
+          <div className="stat"><div className="stat-k mono">DEFER-ELIGIBLE</div><div className="stat-v">{deferEligible.length}</div><div className="stat-delta dim">within MEL</div></div>
         </div>
         <div className="sect-head"><h3>Dispatch squawks</h3><span className="mono dim">live from cockpit reports</span></div>
         <table className="dt"><thead><tr><th>ID</th><th>Tail</th><th>Item</th><th>Severity</th><th>Reported</th><th>By</th><th>Status</th><th></th></tr></thead><tbody>
@@ -1306,13 +1317,27 @@ export function SyllabusView({ subTab = 0, students = [] }: { subTab?: number; s
       { id: 'EN-198', kind: 'Complex aircraft',     student: 'Hana Kim',   cfi: 'Isaac M.',  issued: '2026-01-08', exp: '—',          status: 'active' },
       { id: 'EN-182', kind: '14 CFR 61.87 Solo',    student: 'G. Linden',  cfi: 'Reena N.',  issued: '2025-10-14', exp: '2026-01-14', status: 'expired' },
     ]
+    // EXPIRE < 30D and ISSUED · MTD — derived from the END list instead of
+    // the previously hardcoded "0 / clear" and "4 / ▴ 1 vs avg" placeholders.
+    // The MTD count was egregiously wrong (only EN-202 was issued in the
+    // current month, not 4). Endorsements with no expiry ("—") are skipped.
+    const today = new Date()
+    const in30 = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
+    const monthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+    const expiringSoon = END.filter(e => {
+      if (e.status !== 'active' || !e.exp || e.exp === '—') return false
+      const expDate = new Date(e.exp)
+      if (Number.isNaN(expDate.getTime())) return false
+      return expDate >= today && expDate <= in30
+    })
+    const issuedMtd = END.filter(e => e.issued.startsWith(monthKey))
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">ACTIVE</div><div className="stat-v">{END.filter(e => e.status === 'active').length}</div><div className="stat-delta pos">all current</div></div>
-          <div className="stat"><div className="stat-k mono">EXPIRE &lt; 30D</div><div className="stat-v">0</div><div className="stat-delta pos">clear</div></div>
+          <div className="stat"><div className="stat-k mono">EXPIRE &lt; 30D</div><div className="stat-v">{expiringSoon.length}</div><div className={expiringSoon.length > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{expiringSoon.length > 0 ? 'renew soon' : 'clear'}</div></div>
           <div className="stat"><div className="stat-k mono">EXPIRED</div><div className="stat-v">{END.filter(e => e.status === 'expired').length}</div><div className="stat-delta dim">archived</div></div>
-          <div className="stat"><div className="stat-k mono">ISSUED · MTD</div><div className="stat-v">4</div><div className="stat-delta pos">▴ 1 vs avg</div></div>
+          <div className="stat"><div className="stat-k mono">ISSUED · MTD</div><div className="stat-v">{issuedMtd.length}</div><div className="stat-delta dim mono">{issuedMtd.length === 0 ? 'none this month' : `this month`}</div></div>
         </div>
         <div className="sect-head"><h3>Instructor endorsements</h3><span className="mono dim">FAA log</span></div>
         <table className="dt"><thead><tr><th>ID</th><th>Endorsement</th><th>Student</th><th>CFI</th><th>Issued</th><th>Expires</th><th>Status</th><th></th></tr></thead><tbody>
