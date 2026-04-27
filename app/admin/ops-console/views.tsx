@@ -2171,10 +2171,18 @@ function RequestsArchive() {
     o === 'approved' ? <Badge kind="ok">APPROVED</Badge>
     : o === 'declined' ? <Badge kind="error">DECLINED</Badge>
     : <Badge kind="muted">EXPIRED</Badge>
+  // 30-DAY APPROVED was hardcoded "142 · 94% approval" but the ARCHIVE
+  // array right below has the actual outcomes — only ~5 approvals are
+  // visible. Derive the count + approval% from ARCHIVE so the tile stays
+  // honest as rows are added/removed.
+  const approvedCount = ARCHIVE.filter(a => a.outcome === 'approved').length
+  const approvalPct = ARCHIVE.length > 0
+    ? Math.round((approvedCount / ARCHIVE.length) * 100)
+    : 0
   return (
     <div className="view-pad">
       <div className="stat-grid">
-        <div className="stat"><div className="stat-k mono">30-DAY APPROVED</div><div className="stat-v">142</div><div className="stat-delta pos">94% approval</div></div>
+        <div className="stat"><div className="stat-k mono">30-DAY APPROVED</div><div className="stat-v">{approvedCount}</div><div className={approvalPct >= 80 ? 'stat-delta pos' : 'stat-delta dim'}>{ARCHIVE.length > 0 ? `${approvalPct}% approval` : '—'}</div></div>
         <div className="stat"><div className="stat-k mono">30-DAY DECLINED</div><div className="stat-v">6</div><div className="stat-delta dim">—</div></div>
         <div className="stat"><div className="stat-k mono">EXPIRED</div><div className="stat-v">3</div><div className="stat-delta neg">▴ 1 this week</div></div>
         <div className="stat"><div className="stat-k mono">AVG TIME TO APPROVE</div><div className="stat-v">12m</div><div className="stat-delta pos">▾ 4m since last week</div></div>
@@ -2252,11 +2260,18 @@ function IntegrityRuns() {
     s === 'ok' ? <Badge kind="ok">OK</Badge>
     : s === 'slow' ? <Badge kind="warn">SLOW</Badge>
     : <Badge kind="error">ERROR</Badge>
+  // AVG DURATION was hardcoded "847ms · ▾ 40ms vs yesterday" but the RUNS
+  // array right below this tile has real `dur` values for each run — and
+  // the actual mean across the 10 visible runs is ~955ms, not 847ms. Derive
+  // it from RUNS so it stays correct as runs are added/removed.
+  const avgDur = RUNS.length > 0
+    ? Math.round(RUNS.reduce((s, r) => s + r.dur, 0) / RUNS.length)
+    : 0
   return (
     <div className="view-pad">
       <div className="stat-grid">
         <div className="stat"><div className="stat-k mono">RUNS TODAY</div><div className="stat-v">46</div><div className="stat-delta dim">every 12 min</div></div>
-        <div className="stat"><div className="stat-k mono">AVG DURATION</div><div className="stat-v">847ms</div><div className="stat-delta pos">▾ 40ms vs yesterday</div></div>
+        <div className="stat"><div className="stat-k mono">AVG DURATION</div><div className="stat-v">{avgDur}ms</div><div className="stat-delta dim">across {RUNS.length} runs</div></div>
         <div className="stat"><div className="stat-k mono">SUCCESS RATE</div><div className="stat-v">97.8%</div><div className="stat-delta dim">1 error in last 50</div></div>
         <div className="stat"><div className="stat-k mono">ALERTS GENERATED</div><div className="stat-v">32</div><div className="stat-delta dim">today</div></div>
       </div>
