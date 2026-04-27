@@ -1355,7 +1355,17 @@ export function SyllabusView({ subTab = 0, students = [] }: { subTab?: number; s
           <div className="stat"><div className="stat-k mono">THIS WEEK</div><div className="stat-v">{thisWeekCount}</div><div className={`stat-delta ${weekDeltaTone}`}>{weekDeltaLabel}</div></div>
           <div className="stat"><div className="stat-k mono">MEETS / EXCEEDS</div><div className="stat-v">{mpCount}</div><div className="stat-delta pos">{mpPct}%</div></div>
           <div className="stat"><div className="stat-k mono">UNSATISFACTORY</div><div className="stat-v">{DEB.filter(d => d.grade === 'UP').length}</div><div className="stat-delta warn">repeat scheduled</div></div>
-          <div className="stat"><div className="stat-k mono">AVG TIME-TO-SIGN</div><div className="stat-v">4 h</div><div className="stat-delta pos">SLA ≤ 24h</div></div>
+          {/* AVG TIME-TO-SIGN was hardcoded "4 h · SLA ≤ 24h" but DEB rows
+             carry no `signed`/`signedAt` field — there is no signing-time
+             history to average. Replace with a FLAGGED tile derived from
+             the `flag` boolean that DEB rows actually carry, so it stays
+             honest as rows are added/resolved. */}
+          {(() => {
+            const flagged = DEB.filter(d => d.flag).length
+            return (
+              <div className="stat"><div className="stat-k mono">FLAGGED</div><div className="stat-v">{flagged}</div><div className={flagged > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{flagged > 0 ? `${flagged} need follow-up` : 'none'}</div></div>
+            )
+          })()}
         </div>
         <div className="sect-head"><h3>Recent debriefs</h3></div>
         <table className="dt"><thead><tr><th>ID</th><th>Student</th><th>Lesson</th><th>CFI</th><th>Date</th><th>Grade</th><th>Note</th><th></th></tr></thead><tbody>
@@ -1758,7 +1768,12 @@ export function ExpensesView({ subTab = 0 }: { subTab?: number }) {
           <div className="stat"><div className="stat-k mono">ATTACHED</div><div className="stat-v">{EXPENSES.length}/{EXPENSES.length}</div><div className="stat-delta pos">100% covered</div></div>
           <div className="stat"><div className="stat-k mono">OCR · PENDING</div><div className="stat-v">0</div><div className="stat-delta pos">processed</div></div>
           <div className="stat"><div className="stat-k mono">FLAGGED</div><div className="stat-v">0</div><div className="stat-delta dim">—</div></div>
-          <div className="stat"><div className="stat-k mono">STORAGE</div><div className="stat-v">42 MB</div><div className="stat-delta dim">S3 · encrypted</div></div>
+          {/* STORAGE was hardcoded "42 MB · S3 · encrypted" but EXPENSES rows
+             carry no file-size or storage metadata — every receipt filename
+             below is also synthesized from the expense id at render time. We
+             have no real bytes-on-disk number to show. Show an honest dash
+             until a storage feed is wired up. */}
+          <div className="stat"><div className="stat-k mono">STORAGE</div><div className="stat-v">—</div><div className="stat-delta dim">no storage feed</div></div>
         </div>
         <div className="sect-head"><h3>Receipt archive</h3></div>
         <table className="dt"><thead><tr><th>Expense</th><th>Vendor</th><th className="right">Amount</th><th>Date</th><th>File</th><th>OCR status</th><th></th></tr></thead><tbody>
