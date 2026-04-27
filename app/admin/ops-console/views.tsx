@@ -1538,6 +1538,14 @@ export function OnboardingView({ students = [] }: { students?: Student[] }) {
 
 export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
   const total = PAYOUTS.reduce((s, p) => s + p.amount, 0)
+  // FEES · 30D was hardcoded "$962.03 · 3.0% eff." — that number happens to be
+  // the exact sum of `fees` across the 5 PAYOUTS rows today, but it's frozen:
+  // adding a 6th payout (or removing one) would leave the tile lying about
+  // total fees while the table beneath it shows the new reality. Derive the
+  // sum and the effective rate from PAYOUTS so this tile and the recent
+  // payouts table can never disagree.
+  const feesTotal = PAYOUTS.reduce((s, p) => s + p.fees, 0)
+  const effRate = total > 0 ? (feesTotal / total) * 100 : 0
 
   if (subTab === 1) {
     // BALANCES
@@ -1680,7 +1688,7 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
       <div className="stat-grid">
         <div className="stat"><div className="stat-k mono">LAST 30D</div><div className="stat-v">${total.toFixed(2)}</div><div className="stat-delta pos">▴ $2,420 vs prev</div></div>
         <div className="stat"><div className="stat-k mono">IN FLIGHT</div><div className="stat-v">${inFlightTotal.toFixed(2)}</div><div className={inFlightPayouts.length ? 'stat-delta dim mono' : 'stat-delta dim'}>{earliestArrivalLabel}</div></div>
-        <div className="stat"><div className="stat-k mono">FEES · 30D</div><div className="stat-v">$962.03</div><div className="stat-delta dim">3.0% eff.</div></div>
+        <div className="stat"><div className="stat-k mono">FEES · 30D</div><div className="stat-v">${feesTotal.toFixed(2)}</div><div className="stat-delta dim">{effRate.toFixed(1)}% eff.</div></div>
         <div className="stat"><div className="stat-k mono">AVAILABLE</div><div className="stat-v">$1,204.22</div><div className="stat-delta pos">instant OK</div></div>
       </div>
       <div className="sect-head"><h3>Recent payouts</h3><span className="mono dim">{PAYOUTS.length}</span></div>
@@ -2288,12 +2296,25 @@ function IntegrityRuns() {
   const avgDur = RUNS.length > 0
     ? Math.round(RUNS.reduce((s, r) => s + r.dur, 0) / RUNS.length)
     : 0
+  // SUCCESS RATE was hardcoded "97.8% · 1 error in last 50" but the table
+  // below only renders the 10 RUNS in this array — there is no "last 50"
+  // anywhere in scope. Of those 10, one is `error` and one is `slow`, so the
+  // real non-error rate is 90%, not 97.8%. Subtitle was also fabricated
+  // ("1 error in last 50"). Derive both from RUNS so the tile stays honest
+  // as runs are added or removed.
+  const errorRuns = RUNS.filter(r => r.status === 'error').length
+  const successRate = RUNS.length > 0
+    ? ((RUNS.length - errorRuns) / RUNS.length) * 100
+    : 0
+  const successSub = RUNS.length === 0
+    ? '—'
+    : `${errorRuns} ${errorRuns === 1 ? 'error' : 'errors'} in last ${RUNS.length}`
   return (
     <div className="view-pad">
       <div className="stat-grid">
         <div className="stat"><div className="stat-k mono">RUNS TODAY</div><div className="stat-v">46</div><div className="stat-delta dim">every 12 min</div></div>
         <div className="stat"><div className="stat-k mono">AVG DURATION</div><div className="stat-v">{avgDur}ms</div><div className="stat-delta dim">across {RUNS.length} runs</div></div>
-        <div className="stat"><div className="stat-k mono">SUCCESS RATE</div><div className="stat-v">97.8%</div><div className="stat-delta dim">1 error in last 50</div></div>
+        <div className="stat"><div className="stat-k mono">SUCCESS RATE</div><div className="stat-v">{successRate.toFixed(1)}%</div><div className={errorRuns > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{successSub}</div></div>
         <div className="stat"><div className="stat-k mono">ALERTS GENERATED</div><div className="stat-v">32</div><div className="stat-delta dim">today</div></div>
       </div>
       <div className="sect-head"><h3>Recent runs</h3></div>
