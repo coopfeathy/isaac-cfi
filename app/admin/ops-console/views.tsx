@@ -693,11 +693,20 @@ export function StudentsView({ students, subTab = 0, onDelete, onAddStudent }: {
       { student: 'Hana Kim',     reason: 'Subscription past-due',  amount: '$49.00',    days: 2,  action: 'Retry Stripe charge',  sev: 'warn' },
       { student: 'Clara Mendez', reason: 'Pending medical review', amount: null,        days: 3,  action: 'Await FAA',            sev: 'info' },
     ]
+    // Holds tile derivations. Two of these were hardcoded:
+    //   - "1 blocking dispatch" assumed exactly one `error`-sev hold
+    //   - "$1,240.00" assumed Marcus Ortiz was the only blocking row
+    // Both are now derived from HOLDS so the tiles stay honest if a hold
+    // is added, resolved, or upgraded/downgraded in severity. The blocking
+    // total parses the displayed "$1,240.00" strings back to numbers so
+    // the source of truth stays the same single HOLDS array.
+    const blocking = HOLDS.filter(h => h.sev === 'error')
+    const blockingTotal = blocking.reduce((s, h) => s + (h.amount ? Number(h.amount.replace(/[^0-9.]/g, '')) : 0), 0)
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">ACTIVE HOLDS</div><div className="stat-v">{HOLDS.length}</div><div className="stat-delta neg">1 blocking dispatch</div></div>
-          <div className="stat"><div className="stat-k mono">BALANCE HOLDS</div><div className="stat-v">{HOLDS.filter(h => h.sev === 'error').length}</div><div className="stat-delta warn">$1,240.00</div></div>
+          <div className="stat"><div className="stat-k mono">ACTIVE HOLDS</div><div className="stat-v">{HOLDS.length}</div><div className={blocking.length > 0 ? 'stat-delta neg' : 'stat-delta pos'}>{blocking.length > 0 ? `${blocking.length} blocking dispatch` : 'none blocking'}</div></div>
+          <div className="stat"><div className="stat-k mono">BALANCE HOLDS</div><div className="stat-v">{blocking.length}</div><div className={blockingTotal > 0 ? 'stat-delta warn' : 'stat-delta dim'}>{blockingTotal > 0 ? `$${blockingTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}</div></div>
           <div className="stat"><div className="stat-k mono">DOC HOLDS</div><div className="stat-v">{HOLDS.filter(h => h.reason.toLowerCase().includes('medical')).length}</div><div className="stat-delta dim">medicals</div></div>
           <div className="stat"><div className="stat-k mono">RESOLVED · 7D</div><div className="stat-v">5</div><div className="stat-delta pos">avg 1.8 d</div></div>
         </div>
@@ -886,12 +895,18 @@ export function DispatchView({ subTab = 0 }: { subTab?: number }) {
       { id: 'PF-121', booking: 'BK-20494', student: 'T. Okafor',    tail: 'N511MF', cfi: 'cfi_03', items: { wx: false, notams: false, wb: false, fuel: false, docs: false }, stage: 'queue' },
     ] as const
     const Cell = ({ ok }: { ok: boolean }) => <td>{ok ? <span className="check-box ok"><I name="check" size={10} /></span> : <span className="check-box" />}</td>
+    // PREP delta — "2 items open" was hardcoded, but the only `prep`-stage
+    // row (PF-120) has 3 unchecked checklist items (notams, wb, fuel), not 2.
+    // Derive the count from the actual unchecked items across all `prep`
+    // rows so this stays honest if a row is added/removed or items toggle.
+    const prepRows = PREFLIGHT.filter(p => p.stage === 'prep')
+    const prepOpen = prepRows.reduce((s, p) => s + Object.values(p.items).filter(v => !v).length, 0)
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">IN BRIEF</div><div className="stat-v">{PREFLIGHT.filter(p => p.stage === 'brief').length}</div><div className="stat-delta dim">active CFI time</div></div>
           <div className="stat"><div className="stat-k mono">READY · TO LAUNCH</div><div className="stat-v">{PREFLIGHT.filter(p => p.stage === 'ready').length}</div><div className="stat-delta pos">on time</div></div>
-          <div className="stat"><div className="stat-k mono">PREP</div><div className="stat-v">{PREFLIGHT.filter(p => p.stage === 'prep').length}</div><div className="stat-delta warn">2 items open</div></div>
+          <div className="stat"><div className="stat-k mono">PREP</div><div className="stat-v">{prepRows.length}</div><div className={prepOpen > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{prepOpen > 0 ? `${prepOpen} item${prepOpen === 1 ? '' : 's'} open` : 'all checked'}</div></div>
           <div className="stat"><div className="stat-k mono">AVG BRIEF</div><div className="stat-v">22 min</div><div className="stat-delta dim">trailing 7d</div></div>
         </div>
         <div className="sect-head"><h3>Pre-flight checklist</h3><span className="mono dim">{PREFLIGHT.length} active</span></div>
