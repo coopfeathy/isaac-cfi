@@ -954,11 +954,19 @@ export function DispatchView({ subTab = 0 }: { subTab?: number }) {
     // PX-399), not 1. The TACH delta is also pulled from the row count so
     // it stays accurate if a flight is added/removed.
     const pendingDebriefs = POSTFLIGHT.filter(p => p.status !== 'signed')
+    // FUEL BURN avg-rate delta — "avg 9.3 g/h" was hardcoded, but the
+    // actual fleet-wide rate across today's POSTFLIGHT rows is
+    // 37.1 gal / 6.4 h ≈ 5.8 g/h (a Skyhawk burns ~6 g/h, not 9.3).
+    // Derive it from the same rows that feed the gal total + tach total
+    // so all three tiles stay consistent.
+    const totalFuel = POSTFLIGHT.reduce((s, p) => s + p.fuelBurn, 0)
+    const totalTach = POSTFLIGHT.reduce((s, p) => s + p.tach, 0)
+    const avgFuelRate = totalTach > 0 ? totalFuel / totalTach : 0
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">TODAY · LANDED</div><div className="stat-v">{POSTFLIGHT.length}</div><div className="stat-delta pos">+1 vs yday</div></div>
-          <div className="stat"><div className="stat-k mono">FUEL BURN</div><div className="stat-v">{POSTFLIGHT.reduce((s, p) => s + p.fuelBurn, 0).toFixed(1)} gal</div><div className="stat-delta dim">avg 9.3 g/h</div></div>
+          <div className="stat"><div className="stat-k mono">TODAY · LANDED</div><div className="stat-v">{POSTFLIGHT.length}</div><div className="stat-delta dim">{POSTFLIGHT.length === 1 ? 'flight' : 'flights'} closed</div></div>
+          <div className="stat"><div className="stat-k mono">FUEL BURN</div><div className="stat-v">{totalFuel.toFixed(1)} gal</div><div className="stat-delta dim">{avgFuelRate > 0 ? `avg ${avgFuelRate.toFixed(1)} g/h` : '—'}</div></div>
           <div className="stat"><div className="stat-k mono">TACH · TOTAL</div><div className="stat-v">{POSTFLIGHT.reduce((s, p) => s + p.tach, 0).toFixed(1)} h</div><div className="stat-delta dim">{POSTFLIGHT.length} flights</div></div>
           <div className="stat"><div className="stat-k mono">DEBRIEFS PENDING</div><div className="stat-v">{pendingDebriefs.length}</div><div className={pendingDebriefs.length > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{pendingDebriefs.length > 0 ? 'awaiting CFI sign-off' : 'all signed'}</div></div>
         </div>
@@ -1301,11 +1309,39 @@ export function SyllabusView({ subTab = 0, students = [] }: { subTab?: number; s
       { id: 'DB-838', student: 'Hana Kim',     lesson: 'CPL-02 Cmcl Man.',    cfi: 'Isaac M.',  date: '2026-04-17', grade: 'MP', flag: false, note: 'Chandelles symmetrical.' },
     ]
     const grBadge = (g: string) => g === 'MP' ? <Badge kind="ok">MP</Badge> : g === 'SP' ? <Badge kind="info">SP</Badge> : <Badge kind="warn">UP</Badge>
+    // THIS WEEK tile — both the count (5) and delta ("+2 vs prev") were
+    // hardcoded. "5" was just DEB.length, but DEB spans two ISO weeks:
+    //   week of Mon 2026-04-20: DB-842 (04-20), DB-841 (04-22) → 2
+    //   week of Mon 2026-04-13: DB-840/839/838 (04-19/18/17)   → 3
+    // So as of 2026-04-27 the real "this week" count is 2 (down 1 vs
+    // prev). Anchor the window to the most-recent debrief date so the
+    // tile stays correct as DEB changes.
+    const debDates = DEB.map(d => new Date(d.date + 'T00:00:00')).sort((a, b) => b.getTime() - a.getTime())
+    const anchor = debDates[0] ?? new Date()
+    // Start of ISO week (Mon) for the anchor.
+    const dow = (anchor.getDay() + 6) % 7 // 0 = Mon
+    const weekStart = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() - dow)
+    const prevStart = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() - 7)
+    const inWeek = (d: Date, start: Date) => {
+      const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7)
+      return d >= start && d < end
+    }
+    const thisWeekCount = debDates.filter(d => inWeek(d, weekStart)).length
+    const prevWeekCount = debDates.filter(d => inWeek(d, prevStart)).length
+    const weekDelta = thisWeekCount - prevWeekCount
+    const weekDeltaLabel = prevWeekCount === 0 && thisWeekCount === 0
+      ? 'no recent activity'
+      : weekDelta === 0
+        ? 'flat vs prev'
+        : `${weekDelta > 0 ? '+' : ''}${weekDelta} vs prev`
+    const weekDeltaTone = weekDelta > 0 ? 'pos' : weekDelta < 0 ? 'warn' : 'dim'
+    const mpCount = DEB.filter(d => d.grade === 'MP').length
+    const mpPct = DEB.length > 0 ? Math.round(mpCount / DEB.length * 100) : 0
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">THIS WEEK</div><div className="stat-v">{DEB.length}</div><div className="stat-delta pos">+2 vs prev</div></div>
-          <div className="stat"><div className="stat-k mono">MEETS / EXCEEDS</div><div className="stat-v">{DEB.filter(d => d.grade === 'MP').length}</div><div className="stat-delta pos">{Math.round(DEB.filter(d => d.grade === 'MP').length / DEB.length * 100)}%</div></div>
+          <div className="stat"><div className="stat-k mono">THIS WEEK</div><div className="stat-v">{thisWeekCount}</div><div className={`stat-delta ${weekDeltaTone}`}>{weekDeltaLabel}</div></div>
+          <div className="stat"><div className="stat-k mono">MEETS / EXCEEDS</div><div className="stat-v">{mpCount}</div><div className="stat-delta pos">{mpPct}%</div></div>
           <div className="stat"><div className="stat-k mono">UNSATISFACTORY</div><div className="stat-v">{DEB.filter(d => d.grade === 'UP').length}</div><div className="stat-delta warn">repeat scheduled</div></div>
           <div className="stat"><div className="stat-k mono">AVG TIME-TO-SIGN</div><div className="stat-v">4 h</div><div className="stat-delta pos">SLA ≤ 24h</div></div>
         </div>
