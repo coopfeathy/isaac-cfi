@@ -1536,26 +1536,56 @@ export function OnboardingView({ students = [] }: { students?: Student[] }) {
   )
 }
 
+// Lifted from inside the BALANCES subTab so the main Payouts subview's
+// AVAILABLE tile can reference the same Available bucket instead of
+// hardcoding "$1,204.22" — see PayoutsView main return below.
+const STRIPE_BALANCE = [
+  { bucket: 'Available',       amount: 1204.22, currency: 'USD', note: 'Instant-payout eligible' },
+  { bucket: 'Pending',         amount: 8420.14, currency: 'USD', note: 'Arrives 04/24 · T+2' },
+  { bucket: 'In transit',      amount:  620.00, currency: 'USD', note: 'ACH rail · bank review' },
+  { bucket: 'Reserve',         amount: 2500.00, currency: 'USD', note: 'Platform reserve · 30d rolling' },
+  { bucket: 'Disputed (held)', amount:  645.00, currency: 'USD', note: 'INV-7709 · Sofia Haddad' },
+]
+
 export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
-  const total = PAYOUTS.reduce((s, p) => s + p.amount, 0)
-  // FEES · 30D was hardcoded "$962.03 · 3.0% eff." — that number happens to be
-  // the exact sum of `fees` across the 5 PAYOUTS rows today, but it's frozen:
-  // adding a 6th payout (or removing one) would leave the tile lying about
-  // total fees while the table beneath it shows the new reality. Derive the
-  // sum and the effective rate from PAYOUTS so this tile and the recent
-  // payouts table can never disagree.
+  // LAST 30D was using the full PAYOUTS sum (all 5 rows, including the
+  // 2026-03-25 row that's outside the 30-day window) while the label
+  // promised "LAST 30D" — and the subtitle "▴ $2,420 vs prev" was a
+  // fabricated delta with no backing data. Compute a real trailing-30-day
+  // window vs the prior 30-day window from PAYOUTS dates so the value
+  // matches the label and the delta moves with the data. `feesTotal` /
+  // `effRate` were derived from PAYOUTS in a prior commit so they keep
+  // covering the whole array — they feed the FEES · 30D tile which
+  // already has its own honesty story.
+  const totalAmount = PAYOUTS.reduce((s, p) => s + p.amount, 0)
   const feesTotal = PAYOUTS.reduce((s, p) => s + p.fees, 0)
-  const effRate = total > 0 ? (feesTotal / total) * 100 : 0
+  const effRate = totalAmount > 0 ? (feesTotal / totalAmount) * 100 : 0
+  const dayMs = 86_400_000
+  const now = Date.now()
+  const last30Cutoff = now - 30 * dayMs
+  const prev30Cutoff = now - 60 * dayMs
+  const last30Total = PAYOUTS
+    .filter(p => new Date(p.date).getTime() >= last30Cutoff)
+    .reduce((s, p) => s + p.amount, 0)
+  const prev30Total = PAYOUTS
+    .filter(p => {
+      const t = new Date(p.date).getTime()
+      return t >= prev30Cutoff && t < last30Cutoff
+    })
+    .reduce((s, p) => s + p.amount, 0)
+  const delta30 = last30Total - prev30Total
+  const has30dDelta = prev30Total > 0
+  const delta30Label = has30dDelta
+    ? `${delta30 >= 0 ? '▴' : '▾'} $${Math.abs(delta30).toFixed(2)} vs prev`
+    : (last30Total > 0 ? 'no prior period' : '—')
+  const delta30Tone = !has30dDelta
+    ? 'stat-delta dim'
+    : delta30 >= 0 ? 'stat-delta pos' : 'stat-delta neg'
 
   if (subTab === 1) {
-    // BALANCES
-    const BAL = [
-      { bucket: 'Available',       amount: 1204.22, currency: 'USD', note: 'Instant-payout eligible' },
-      { bucket: 'Pending',         amount: 8420.14, currency: 'USD', note: 'Arrives 04/24 · T+2' },
-      { bucket: 'In transit',      amount:  620.00, currency: 'USD', note: 'ACH rail · bank review' },
-      { bucket: 'Reserve',         amount: 2500.00, currency: 'USD', note: 'Platform reserve · 30d rolling' },
-      { bucket: 'Disputed (held)', amount:  645.00, currency: 'USD', note: 'INV-7709 · Sofia Haddad' },
-    ]
+    // BALANCES — uses the lifted STRIPE_BALANCE so the main subview's
+    // AVAILABLE tile shows the same Available bucket value.
+    const BAL = STRIPE_BALANCE
     return (
       <div className="view-pad">
         <div className="stat-grid">
@@ -1693,10 +1723,10 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
   return (
     <div className="view-pad">
       <div className="stat-grid">
-        <div className="stat"><div className="stat-k mono">LAST 30D</div><div className="stat-v">${total.toFixed(2)}</div><div className="stat-delta pos">▴ $2,420 vs prev</div></div>
+        <div className="stat"><div className="stat-k mono">LAST 30D</div><div className="stat-v">${last30Total.toFixed(2)}</div><div className={delta30Tone}>{delta30Label}</div></div>
         <div className="stat"><div className="stat-k mono">IN FLIGHT</div><div className="stat-v">${inFlightTotal.toFixed(2)}</div><div className={inFlightPayouts.length ? 'stat-delta dim mono' : 'stat-delta dim'}>{earliestArrivalLabel}</div></div>
         <div className="stat"><div className="stat-k mono">FEES · 30D</div><div className="stat-v">${feesTotal.toFixed(2)}</div><div className="stat-delta dim">{effRate.toFixed(1)}% eff.</div></div>
-        <div className="stat"><div className="stat-k mono">AVAILABLE</div><div className="stat-v">$1,204.22</div><div className="stat-delta pos">instant OK</div></div>
+        <div className="stat"><div className="stat-k mono">AVAILABLE</div><div className="stat-v">${STRIPE_BALANCE[0].amount.toFixed(2)}</div><div className="stat-delta pos">instant OK</div></div>
       </div>
       <div className="sect-head"><h3>Recent payouts</h3><span className="mono dim">{PAYOUTS.length}</span></div>
       <table className="dt"><thead><tr><th>Payout ID</th><th>Date</th><th className="right">Amount</th><th className="right">Fees</th><th className="right">Txns</th><th>Status</th><th>Arrives</th></tr></thead><tbody>
