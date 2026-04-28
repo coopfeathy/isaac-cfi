@@ -815,6 +815,29 @@ export function IntegrityView({ alerts, bookings = [], slotRequests = [], subTab
   const paidUnbooked = open.filter(a => a.code?.startsWith('BI-104')).length
   const bookedUnpaid = bookings.filter(b => b.status !== 'cancelled' && b.paid === false).length
   const webhookFailures = open.filter(a => a.code?.startsWith('WH-')).length
+  // PAID / UNBOOKED tile previously hardcoded `stat-delta dim` with subtitle
+  // "BI-104 alerts" — same label-not-metric pattern as the recently-fixed
+  // Payouts AVG SETTLE "ACH" / Receipts ATTACHED tiles. "BI-104 alerts" just
+  // names the alert code; it never moves with data and adds no signal. Worse,
+  // this tile is a real billing-integrity flag (money received with no booking
+  // tracked) so a non-zero count is a reconciliation gap, not a dim
+  // informational state. Tone neg when paidUnbooked > 0 to surface the gap;
+  // else dim with the honest "no orphan payments" empty state.
+  const paidUnbookedTone = paidUnbooked > 0 ? 'stat-delta neg' : 'stat-delta dim'
+  const paidUnbookedSub = paidUnbooked > 0 ? 'needs reconciliation' : 'no orphan payments'
+  // BOOKED / UNPAID tile previously hardcoded `stat-delta dim` with subtitle
+  // "active bookings". Two issues. First, the subtitle is wrong about what
+  // the value is — `bookedUnpaid` counts UNPAID active bookings, not active
+  // bookings overall, so "3 active bookings" was actively misleading (the 3
+  // is unpaid, not active total). Second, this is revenue-at-risk — a
+  // non-zero count is a billing-action signal, not a dim informational state,
+  // same fragility class as the recently-fixed Disputes OPEN / Maintenance
+  // DUE · 14D work. Surface a denominator so the share is interpretable
+  // ("4 of 18 active") and tone warn only when something is actually unpaid,
+  // else go positive with "all paid".
+  const activeBookings = bookings.filter(b => b.status !== 'cancelled').length
+  const bookedUnpaidTone = bookedUnpaid > 0 ? 'stat-delta warn' : 'stat-delta pos'
+  const bookedUnpaidSub = bookedUnpaid > 0 ? `of ${activeBookings} active` : 'all paid'
   const lastCaldavAlert = [...alerts].reverse().find(a => a.code?.startsWith('CAL-'))
   // CalDAV status: only report "OK" when the most recent CAL- alert is an
   // informational/success entry (or has been resolved). An unresolved warn/err
@@ -826,8 +849,8 @@ export function IntegrityView({ alerts, bookings = [], slotRequests = [], subTab
     <div className="view-pad">
       <div className="stat-grid">
         <div className="stat"><div className="stat-k mono">STALE PENDING</div><div className="stat-v">{stalePending}</div><div className="stat-delta dim">requests &gt; 48h</div></div>
-        <div className="stat"><div className="stat-k mono">PAID / UNBOOKED</div><div className="stat-v">{paidUnbooked}</div><div className="stat-delta dim">BI-104 alerts</div></div>
-        <div className="stat"><div className="stat-k mono">BOOKED / UNPAID</div><div className="stat-v">{bookedUnpaid}</div><div className="stat-delta dim">active bookings</div></div>
+        <div className="stat"><div className="stat-k mono">PAID / UNBOOKED</div><div className="stat-v">{paidUnbooked}</div><div className={paidUnbookedTone}>{paidUnbookedSub}</div></div>
+        <div className="stat"><div className="stat-k mono">BOOKED / UNPAID</div><div className="stat-v">{bookedUnpaid}</div><div className={bookedUnpaidTone}>{bookedUnpaidSub}</div></div>
         <div className="stat"><div className="stat-k mono">WEBHOOK FAILURES</div><div className="stat-v">{webhookFailures}</div><div className="stat-delta dim">open WH alerts</div></div>
         <div className="stat"><div className="stat-k mono">CALDAV SYNC</div><div className="stat-v">{caldavStatus}</div><div className={`stat-delta mono ${lastCaldavAlert && !caldavOk ? 'neg' : 'dim'}`}>{lastCaldavAlert ? `last ${lastCaldavAlert.ts}` : 'no sync logged'}</div></div>
       </div>
