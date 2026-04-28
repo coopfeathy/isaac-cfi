@@ -1119,13 +1119,37 @@ export function DispatchView({ subTab = 0 }: { subTab?: number }) {
       : 'none'
     const handedToMx = MAINT_EVENTS.filter(m => m.status === 'in_shop' || m.status === 'awaiting_parts')
     const deferEligible = openSquawks.filter(s => s.severity === 'minor')
+    // DEFER-ELIGIBLE tile previously hardcoded `stat-delta dim` with
+    // subtitle "within MEL" — same exact label-not-metric pattern just
+    // removed from the Squawks DEFERRED tile (commit c12f3dd) and the
+    // Holds DOC HOLDS / Squawks RESOLVED / Integrity PAID-UNBOOKED tiles
+    // before that. "within MEL" restates the regulatory category every
+    // minor open squawk belongs to by definition (FAR 91.213 / the MEL
+    // is what makes minor squawks deferrable in the first place), so the
+    // subtitle never moved with data and added no signal. These rows are
+    // *still open* squawks pending the dispatcher's defer-or-fix call —
+    // a stale entry here is a working-queue escalation in the same
+    // fragility class as the deferred-too-long one the DEFERRED tile now
+    // tones warn for. Mirror that fix's shape: oldest age from the
+    // `reported` date, warn past the 30-day MEL Category-A guideline
+    // (since once MEL-deferred the same clock applies anyway), else dim
+    // with "oldest Nd", pos with "none eligible" on empty.
+    const oldestEligibleDays = deferEligible.length > 0
+      ? Math.max(...deferEligible.map(s => Math.floor((Date.now() - new Date(s.reported).getTime()) / 86_400_000)))
+      : 0
+    const eligibleTone = deferEligible.length === 0
+      ? 'stat-delta pos'
+      : (oldestEligibleDays > 30 ? 'stat-delta warn' : 'stat-delta dim')
+    const eligibleSub = deferEligible.length === 0
+      ? 'none eligible'
+      : `oldest ${oldestEligibleDays}d`
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">OPEN</div><div className="stat-v">{openSquawks.length}</div><div className={openSquawks.length > 0 ? 'stat-delta warn' : 'stat-delta dim'}>{openSquawks.length > 0 ? 'from line' : 'all clear'}</div></div>
           <div className="stat"><div className="stat-k mono">BLOCKING LAUNCH</div><div className="stat-v">{blocking.length}</div><div className={blocking.length > 0 ? 'stat-delta neg' : 'stat-delta pos'}>{blockingLabel}</div></div>
           <div className="stat"><div className="stat-k mono">HANDED TO MX</div><div className="stat-v">{handedToMx.length}</div><div className={handedToMx.length > 0 ? 'stat-delta dim' : 'stat-delta pos'}>{handedToMx.length > 0 ? 'work orders open' : 'no MX backlog'}</div></div>
-          <div className="stat"><div className="stat-k mono">DEFER-ELIGIBLE</div><div className="stat-v">{deferEligible.length}</div><div className="stat-delta dim">within MEL</div></div>
+          <div className="stat"><div className="stat-k mono">DEFER-ELIGIBLE</div><div className="stat-v">{deferEligible.length}</div><div className={eligibleTone}>{eligibleSub}</div></div>
         </div>
         <div className="sect-head"><h3>Dispatch squawks</h3><span className="mono dim">live from cockpit reports</span></div>
         <table className="dt"><thead><tr><th>ID</th><th>Tail</th><th>Item</th><th>Severity</th><th>Reported</th><th>By</th><th>Status</th><th></th></tr></thead><tbody>
@@ -1307,11 +1331,32 @@ export function BillingView({ subTab = 0 }: { subTab?: number }) {
     const openDisputes = DISPUTES.filter(d => d.status === 'needs_response')
     const openTone = openDisputes.length > 0 ? 'stat-delta neg' : 'stat-delta dim'
     const openSubtitle = openDisputes.length > 0 ? 'needs response' : 'none open'
+    // UNDER REVIEW tile previously hardcoded `stat-delta dim` with
+    // subtitle "Stripe processing" — same label-not-metric pattern as
+    // the just-fixed Squawks DEFERRED "within MEL" / Endorsements
+    // EXPIRED "archived" / Squawks RESOLVED "in log" tiles. "Stripe
+    // processing" just restates the implementation detail that
+    // chargeback adjudication runs on Stripe's rails (true of every
+    // under_review row by definition), and never moves with data. The
+    // tile next door (AT RISK) already carries the cross-bucket dollar
+    // exposure including under_review, but this tile's count had no
+    // dollar context — yet under-review disputes are exactly when funds
+    // are *held* by the issuer pending decision, so $-held is the
+    // signal a dispatcher actually wants here. Compute the held amount
+    // across rows and surface it; tone stays dim because under_review
+    // is a holding pattern (the response was already submitted), not an
+    // action signal — empty state goes pos with "none in review".
+    const underReview = DISPUTES.filter(d => d.status === 'under_review')
+    const underReviewHeld = underReview.reduce((t, d) => t + d.amount, 0)
+    const underReviewTone = underReview.length === 0 ? 'stat-delta pos' : 'stat-delta dim'
+    const underReviewSub = underReview.length === 0
+      ? 'none in review'
+      : `$${underReviewHeld.toFixed(2)} held`
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">OPEN</div><div className="stat-v">{openDisputes.length}</div><div className={openTone}>{openSubtitle}</div></div>
-          <div className="stat"><div className="stat-k mono">UNDER REVIEW</div><div className="stat-v">{DISPUTES.filter(d => d.status === 'under_review').length}</div><div className="stat-delta dim">Stripe processing</div></div>
+          <div className="stat"><div className="stat-k mono">UNDER REVIEW</div><div className="stat-v">{underReview.length}</div><div className={underReviewTone}>{underReviewSub}</div></div>
           <div className="stat"><div className="stat-k mono">AT RISK</div><div className="stat-v">${totalExposed.toFixed(2)}</div><div className={needsResponse.length ? 'stat-delta warn' : 'stat-delta dim'}>{earliestLabel}</div></div>
           <div className="stat"><div className="stat-k mono">WIN RATE · 90D</div><div className="stat-v">{winRate === null ? '—' : `${winRate}%`}</div><div className={resolvedCount === 0 ? 'stat-delta dim' : 'stat-delta pos'}>{resolvedCount === 0 ? 'no resolved disputes' : `${wonCount} of ${resolvedCount}`}</div></div>
         </div>
