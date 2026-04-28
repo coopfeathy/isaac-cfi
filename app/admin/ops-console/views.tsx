@@ -1711,8 +1711,17 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
     return (
       <div className="view-pad">
         <div className="stat-grid">
+          {/* AVAILABLE was hardcoded `stat-delta pos` with subtitle "instant
+             OK". Two issues, same flavour as the recently-fixed Receipts
+             ATTACHED / Payouts AVG SETTLE / Debriefs MEETS·EXCEEDS tiles.
+             First, "instant OK" is a label, not a metric — it never moves,
+             so it adds no information. Second, when availableAmt is 0 the
+             tile rendered "$0.00 · instant OK" in green-pos tone, which
+             reads as a healthy state when the truth is "nothing to pay
+             out." Tone pos only when there's a non-zero available balance,
+             else go dim with the honest "no balance" empty state. */}
           <div className="stat"><div className="stat-k mono">TOTAL BALANCE</div><div className="stat-v">${BAL.reduce((t, b) => t + b.amount, 0).toFixed(2)}</div><div className="stat-delta dim">all buckets</div></div>
-          <div className="stat"><div className="stat-k mono">AVAILABLE</div><div className="stat-v">${availableAmt.toFixed(2)}</div><div className="stat-delta pos">instant OK</div></div>
+          <div className="stat"><div className="stat-k mono">AVAILABLE</div><div className="stat-v">${availableAmt.toFixed(2)}</div><div className={availableAmt > 0 ? 'stat-delta pos' : 'stat-delta dim'}>{availableAmt > 0 ? 'instant-payout eligible' : 'no balance'}</div></div>
           <div className="stat"><div className="stat-k mono">PENDING</div><div className="stat-v">${pendingAmt.toFixed(2)}</div><div className="stat-delta dim">T+2</div></div>
           <div className="stat"><div className="stat-k mono">HELD</div><div className="stat-v">${heldAmt.toFixed(2)}</div><div className="stat-delta warn">reserve + dispute</div></div>
         </div>
@@ -1762,7 +1771,16 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
           <div className="stat"><div className="stat-k mono">IN TRANSIT</div><div className="stat-v">${inTransitTotal.toFixed(2)}</div><div className="stat-delta dim">{inTransit.length} transfer{inTransit.length === 1 ? '' : 's'}</div></div>
           <div className="stat"><div className="stat-k mono">INSTANT · MTD</div><div className="stat-v">${instantMtdTotal.toFixed(2)}</div><div className="stat-delta dim">{instantMtd.length} transfer{instantMtd.length === 1 ? '' : 's'}</div></div>
           <div className="stat"><div className="stat-k mono">FAILED · 30D</div><div className="stat-v">{failedRecent.length}</div><div className={failedRecent.length > 0 ? 'stat-delta neg' : 'stat-delta pos'}>{failedRecent.length > 0 ? 'review needed' : '—'}</div></div>
-          <div className="stat"><div className="stat-k mono">AVG SETTLE</div><div className="stat-v">{avgSettle.toFixed(1)} d</div><div className="stat-delta pos">ACH</div></div>
+          {/* AVG SETTLE was `stat-delta pos · ACH` hardcoded. "ACH" is a
+             label not a metric (same pattern as the just-fixed AVAILABLE
+             "instant OK" tiles a row up, and Receipts ATTACHED before
+             that), and when no ACH transfers have settled (achPaid empty)
+             avgSettle is forced to 0, so the tile rendered "0.0 d · ACH"
+             in green-pos tone — a dishonest read of an empty state. Tone
+             pos only when there's an actual ACH cohort to summarise; else
+             go dim with "no ACH paid · 30D" so the empty state surfaces
+             unambiguously. */}
+          <div className="stat"><div className="stat-k mono">AVG SETTLE</div><div className="stat-v">{achPaid.length > 0 ? `${avgSettle.toFixed(1)} d` : '—'}</div><div className={achPaid.length > 0 ? 'stat-delta pos' : 'stat-delta dim'}>{achPaid.length > 0 ? `ACH · n=${achPaid.length}` : 'no ACH paid · 30D'}</div></div>
         </div>
         <div className="sect-head"><h3>Bank transfers</h3></div>
         <table className="dt"><thead><tr><th>Transfer ID</th><th>Date</th><th className="right">Amount</th><th>Destination</th><th>Method</th><th>Status</th><th>ETA</th></tr></thead><tbody>
@@ -1875,7 +1893,12 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
         <div className="stat"><div className="stat-k mono">LAST 30D</div><div className="stat-v">${last30Total.toFixed(2)}</div><div className={delta30Tone}>{delta30Label}</div></div>
         <div className="stat"><div className="stat-k mono">IN FLIGHT</div><div className="stat-v">${inFlightTotal.toFixed(2)}</div><div className={inFlightPayouts.length ? 'stat-delta dim mono' : 'stat-delta dim'}>{earliestArrivalLabel}</div></div>
         <div className="stat"><div className="stat-k mono">FEES · 30D</div><div className="stat-v">${feesTotal.toFixed(2)}</div><div className="stat-delta dim">{effRate.toFixed(1)}% eff.</div></div>
-        <div className="stat"><div className="stat-k mono">AVAILABLE</div><div className="stat-v">${(STRIPE_BALANCE.find(b => b.bucket === 'Available')?.amount ?? 0).toFixed(2)}</div><div className="stat-delta pos">instant OK</div></div>
+        {/* Mirror the BALANCES sub-tab fix one tile above: "instant OK" is
+           a label not a metric, and `stat-delta pos` lies green when the
+           Available bucket is $0 (nothing to pay out is not a positive
+           state). Tone pos only when there's a non-zero available
+           balance; else go dim with "no balance". */}
+        <div className="stat"><div className="stat-k mono">AVAILABLE</div><div className="stat-v">${(STRIPE_BALANCE.find(b => b.bucket === 'Available')?.amount ?? 0).toFixed(2)}</div><div className={(STRIPE_BALANCE.find(b => b.bucket === 'Available')?.amount ?? 0) > 0 ? 'stat-delta pos' : 'stat-delta dim'}>{(STRIPE_BALANCE.find(b => b.bucket === 'Available')?.amount ?? 0) > 0 ? 'instant-payout eligible' : 'no balance'}</div></div>
       </div>
       <div className="sect-head"><h3>Recent payouts</h3><span className="mono dim">{PAYOUTS.length}</span></div>
       <table className="dt"><thead><tr><th>Payout ID</th><th>Date</th><th className="right">Amount</th><th className="right">Fees</th><th className="right">Txns</th><th>Status</th><th>Arrives</th></tr></thead><tbody>
