@@ -1432,11 +1432,23 @@ export function SyllabusView({ subTab = 0, students = [] }: { subTab?: number; s
       ? 'none'
       : `${upPct}% of debriefs`
     const upTone = upCount > 0 ? 'stat-delta warn' : 'stat-delta pos'
+    // MEETS / EXCEEDS tile previously hardcoded `stat-delta pos` with a bare
+    // `{mpPct}%` subtitle. When DEB.length === 0 the tile rendered "0" with
+    // a green "0%" — the same dishonest-tone pattern as the just-fixed
+    // UNSATISFACTORY tile next to it (and the earlier Disputes OPEN /
+    // Endorsements ACTIVE / Maintenance DUE · 14 DAYS / Syllabus IN PROGRESS
+    // work). A bare "0%" also reads as a failure rather than an empty-state.
+    // Tone pos and show the share only when MP grades actually exist; else
+    // go dim with "no debriefs" so the empty state is unambiguous.
+    const mpTone = mpCount > 0 ? 'stat-delta pos' : 'stat-delta dim'
+    const mpSubtitle = DEB.length === 0
+      ? 'no debriefs'
+      : `${mpPct}% of debriefs`
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">THIS WEEK</div><div className="stat-v">{thisWeekCount}</div><div className={`stat-delta ${weekDeltaTone}`}>{weekDeltaLabel}</div></div>
-          <div className="stat"><div className="stat-k mono">MEETS / EXCEEDS</div><div className="stat-v">{mpCount}</div><div className="stat-delta pos">{mpPct}%</div></div>
+          <div className="stat"><div className="stat-k mono">MEETS / EXCEEDS</div><div className="stat-v">{mpCount}</div><div className={mpTone}>{mpSubtitle}</div></div>
           <div className="stat"><div className="stat-k mono">UNSATISFACTORY</div><div className="stat-v">{upCount}</div><div className={upTone}>{upSubtitle}</div></div>
           {/* AVG TIME-TO-SIGN was hardcoded "4 h · SLA ≤ 24h" but DEB rows
              carry no `signed`/`signedAt` field — there is no signing-time
@@ -2023,7 +2035,19 @@ export function ExpensesView({ subTab = 0 }: { subTab?: number }) {
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">ATTACHED</div><div className="stat-v">{EXPENSES.length}/{EXPENSES.length}</div><div className="stat-delta pos">100% covered</div></div>
+          {/* ATTACHED was hardcoded "{EXPENSES.length}/{EXPENSES.length}" with
+             a green "100% covered" subtitle. Two issues. First, the value
+             was a tautology — N/N for every N — so it ALWAYS rendered as
+             "5/5 · 100% covered" no matter what the real receipt-attachment
+             state was, the worst kind of dishonest-tile failure (it can't
+             ever be wrong about itself, only about reality). Second, EXPENSES
+             rows in data.ts carry no `receipt` / `attached` / file metadata —
+             same fragility class as STORAGE / OCR · PENDING / FLAGGED in
+             this same row, which were already cleaned up to the honest "no
+             feed" / "no review queue" treatment. Until an attachments feed
+             is wired up there is no truthful coverage number to show. Mirror
+             the neighbour tiles' dim "no feed" pattern. */}
+          <div className="stat"><div className="stat-k mono">ATTACHED</div><div className="stat-v">—</div><div className="stat-delta dim">no attachment feed</div></div>
           {/* OCR · PENDING was hardcoded "0 · processed" and FLAGGED was
              hardcoded "0 · —", but EXPENSES rows carry no OCR status or
              flag fields (see data.ts) — every receipt row in the table
