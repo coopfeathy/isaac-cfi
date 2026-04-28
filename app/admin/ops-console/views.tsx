@@ -725,12 +725,33 @@ export function StudentsView({ students, subTab = 0, onDelete, onAddStudent }: {
     // the source of truth stays the same single HOLDS array.
     const blocking = HOLDS.filter(h => h.sev === 'error')
     const blockingTotal = blocking.reduce((s, h) => s + (h.amount ? Number(h.amount.replace(/[^0-9.]/g, '')) : 0), 0)
+    // DOC HOLDS tile previously hardcoded `stat-delta dim` with subtitle
+    // "medicals" — same label-not-metric pattern as the recently-fixed
+    // Integrity PAID/UNBOOKED "BI-104 alerts" and Squawks RESOLVED "in log"
+    // tiles. "medicals" just restates the tile name (the tile already
+    // filters on reason.includes('medical')); it never moves with data and
+    // adds no signal. Split the doc holds into actionable (sev='warn',
+    // school can chase the student to upload / submit) vs awaiting
+    // (sev='info', FAA-side processing where nothing's owed by us). Tone
+    // warn when any actionable medical hold is outstanding — these block
+    // student dispatch the same way balance holds do, same fragility class
+    // as the recently-fixed BOOKED/UNPAID and Disputes OPEN tiles. Subtitle
+    // communicates state ("1 actionable" / "all awaiting FAA" / "no medical
+    // holds") rather than restating the category.
+    const docHolds = HOLDS.filter(h => h.reason.toLowerCase().includes('medical'))
+    const docActionable = docHolds.filter(h => h.sev === 'warn' || h.sev === 'error').length
+    const docHoldsTone = docActionable > 0 ? 'stat-delta warn' : 'stat-delta dim'
+    const docHoldsSub = docHolds.length === 0
+      ? 'no medical holds'
+      : docActionable > 0
+        ? `${docActionable} actionable`
+        : 'all awaiting FAA'
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">ACTIVE HOLDS</div><div className="stat-v">{HOLDS.length}</div><div className={blocking.length > 0 ? 'stat-delta neg' : 'stat-delta pos'}>{blocking.length > 0 ? `${blocking.length} blocking dispatch` : 'none blocking'}</div></div>
           <div className="stat"><div className="stat-k mono">BALANCE HOLDS</div><div className="stat-v">{blocking.length}</div><div className={blockingTotal > 0 ? 'stat-delta warn' : 'stat-delta dim'}>{blockingTotal > 0 ? `$${blockingTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}</div></div>
-          <div className="stat"><div className="stat-k mono">DOC HOLDS</div><div className="stat-v">{HOLDS.filter(h => h.reason.toLowerCase().includes('medical')).length}</div><div className="stat-delta dim">medicals</div></div>
+          <div className="stat"><div className="stat-k mono">DOC HOLDS</div><div className="stat-v">{docHolds.length}</div><div className={docHoldsTone}>{docHoldsSub}</div></div>
           {/* RESOLVED · 7D was hardcoded "5" / "avg 1.8 d" but there is no
              resolved-holds dataset (HOLDS only contains currently-active rows
              above) — every claim there was made up. Show an honest dash + the
