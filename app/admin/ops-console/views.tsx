@@ -1638,11 +1638,18 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
       { period: '2026-02',       gross: 36448.00, fees: 1093.44, net: 35354.56, eff: 0.0300 },
       { period: '2026-01',       gross: 29770.00, fees:  910.21, net: 28859.79, eff: 0.0306 },
     ]
+    // FEES · MTD subtitle "3.02% eff." was hardcoded — it happens to match
+    // FEES[0].eff today, but updating the MTD row's gross/fees would leave
+    // the tile lying about the effective rate while the table beneath shows
+    // the new reality. Derive from FEES[0] so the tile and the table can
+    // never disagree. Same story for FEES · YTD: "4 periods" was hardcoded
+    // but is just FEES.length — adding/removing a period would desync it.
+    const mtdEffPct = FEES[0].eff * 100
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">FEES · MTD</div><div className="stat-v">${FEES[0].fees.toFixed(2)}</div><div className="stat-delta dim">3.02% eff.</div></div>
-          <div className="stat"><div className="stat-k mono">FEES · YTD</div><div className="stat-v">${FEES.reduce((s, f) => s + f.fees, 0).toFixed(2)}</div><div className="stat-delta dim">4 periods</div></div>
+          <div className="stat"><div className="stat-k mono">FEES · MTD</div><div className="stat-v">${FEES[0].fees.toFixed(2)}</div><div className="stat-delta dim">{mtdEffPct.toFixed(2)}% eff.</div></div>
+          <div className="stat"><div className="stat-k mono">FEES · YTD</div><div className="stat-v">${FEES.reduce((s, f) => s + f.fees, 0).toFixed(2)}</div><div className="stat-delta dim">{FEES.length} period{FEES.length === 1 ? '' : 's'}</div></div>
           {(() => {
             const openDisputes = DISPUTES.filter(d => d.status !== 'won')
             const openDisputesAmount = openDisputes.reduce((s, d) => s + d.amount, 0)
@@ -1769,8 +1776,18 @@ export function ExpensesView({ subTab = 0 }: { subTab?: number }) {
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">ACTIVE VENDORS</div><div className="stat-v">{vendors.length}</div><div className="stat-delta dim">30-day window</div></div>
           <div className="stat"><div className="stat-k mono">TOP VENDOR</div><div className="stat-v">{vendors[0]?.[0] ?? '—'}</div><div className="stat-delta dim mono">${vendors[0]?.[1].total.toFixed(0) ?? 0}</div></div>
-          <div className="stat"><div className="stat-k mono">NET-30 OUTSTANDING</div><div className="stat-v">$2,800.00</div><div className="stat-delta dim">Mather Field</div></div>
-          <div className="stat"><div className="stat-k mono">1099 ELIGIBLE</div><div className="stat-v">2</div><div className="stat-delta dim">W-9 on file</div></div>
+          {/* NET-30 OUTSTANDING was hardcoded "$2,800.00 · Mather Field". The
+             $2,800 happens to equal the EX-3304 Hangar/Mather Field expense,
+             but EXPENSES rows carry no payment status, due date, or A/P
+             metadata — that hangar charge could already be paid. We have no
+             way to know what is actually outstanding. Show an honest dash
+             until an A/P feed is wired up (same pattern as the STORAGE tile
+             on the Receipts subtab below). */}
+          <div className="stat"><div className="stat-k mono">NET-30 OUTSTANDING</div><div className="stat-v">—</div><div className="stat-delta dim">no A/P feed</div></div>
+          {/* 1099 ELIGIBLE was hardcoded "2 · W-9 on file" but EXPENSES rows
+             carry no W-9 / 1099 metadata anywhere. Pure fabrication — same
+             honest-dash pattern as STORAGE / NET-30 above. */}
+          <div className="stat"><div className="stat-k mono">1099 ELIGIBLE</div><div className="stat-v">—</div><div className="stat-delta dim">no W-9 records</div></div>
         </div>
         <div className="sect-head"><h3>Vendor ledger</h3></div>
         <table className="dt"><thead><tr><th>Vendor</th><th>Category</th><th className="right">Invoices</th><th className="right">YTD</th><th>Last charge</th><th></th></tr></thead><tbody>
