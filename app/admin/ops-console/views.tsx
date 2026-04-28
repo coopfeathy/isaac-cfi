@@ -1099,13 +1099,21 @@ export function BillingView({ subTab = 0 }: { subTab?: number }) {
     const canceledSubs = SUBSCRIPTIONS.filter(s => s.status === 'canceled')
     const activeMrr = activeSubs.reduce((t, s) => t + s.mrr, 0)
     const pastDueAmount = pastDueSubs.reduce((t, s) => t + s.mrr, 0)
+    // ACTIVE / MRR / CANCELED subtitles were all hardcoded "—" placeholders,
+    // but every value needed to make them honest is already in scope. Match
+    // the "X of Y total" pattern used by ACTIVE LEARNERS in StudentsView so
+    // each tile actually carries a delta the reader can reason about, and
+    // surface ARR for MRR (annualized = MRR × 12) so the recurring-revenue
+    // tile communicates the metric finance teams actually plan against.
+    const totalSubs = SUBSCRIPTIONS.length
+    const activeArr = activeMrr * 12
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">ACTIVE</div><div className="stat-v">{activeSubs.length}</div><div className="stat-delta dim">—</div></div>
-          <div className="stat"><div className="stat-k mono">MRR</div><div className="stat-v">${activeMrr.toFixed(2)}</div><div className="stat-delta dim">—</div></div>
+          <div className="stat"><div className="stat-k mono">ACTIVE</div><div className="stat-v">{activeSubs.length}</div><div className="stat-delta dim">of {totalSubs} total</div></div>
+          <div className="stat"><div className="stat-k mono">MRR</div><div className="stat-v">${activeMrr.toFixed(2)}</div><div className="stat-delta dim mono">${activeArr.toFixed(0)} ARR</div></div>
           <div className="stat"><div className="stat-k mono">PAST DUE</div><div className="stat-v">{pastDueSubs.length}</div><div className={pastDueSubs.length ? 'stat-delta neg mono' : 'stat-delta dim mono'}>{pastDueSubs.length ? `$${pastDueAmount.toFixed(2)}` : '—'}</div></div>
-          <div className="stat"><div className="stat-k mono">CANCELED</div><div className="stat-v">{canceledSubs.length}</div><div className="stat-delta dim">—</div></div>
+          <div className="stat"><div className="stat-k mono">CANCELED</div><div className="stat-v">{canceledSubs.length}</div><div className="stat-delta dim">of {totalSubs} total</div></div>
         </div>
         <div className="sect-head"><h3>Subscriptions</h3><span className="mono dim">{SUBSCRIPTIONS.length} total</span></div>
         <table className="dt"><thead><tr><th>ID</th><th>Student</th><th>Plan</th><th className="right">MRR</th><th>Renews</th><th>Status</th><th></th></tr></thead><tbody>
@@ -1221,14 +1229,24 @@ export function BillingView({ subTab = 0 }: { subTab?: number }) {
 
   const openInvoices = INVOICES.filter(i => i.status !== 'paid')
   const totalOpen = openInvoices.reduce((s, i) => s + (i.total - i.paid), 0)
-  const totalPaid = INVOICES.filter(i => i.status === 'paid').reduce((s, i) => s + i.paid, 0)
+  // COLLECTED · MTD was summing every paid invoice regardless of date —
+  // the label promised "MTD" but the math never filtered by month, so the
+  // tile would happily report a year's worth of paid invoices as "this
+  // month" the moment older paid rows landed. Today's seed accidentally
+  // matches because every paid invoice was issued in 2026-04, but that
+  // breaks the second a paid invoice from a prior month enters the seed.
+  // Filter on the invoice's `issued` date so the value matches the label.
+  const todayDate = new Date()
+  const curMonthKey = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, '0')}`
+  const paidThisMonth = INVOICES.filter(i => i.status === 'paid' && i.issued.startsWith(curMonthKey))
+  const totalPaidMtd = paidThisMonth.reduce((s, i) => s + i.paid, 0)
   const overdueInvoices = INVOICES.filter(i => i.status === 'overdue')
   const overdueAmount = overdueInvoices.reduce((s, i) => s + (i.total - i.paid), 0)
   return (
     <div className="view-pad">
       <div className="stat-grid">
         <div className="stat"><div className="stat-k mono">OPEN A/R</div><div className="stat-v">${totalOpen.toFixed(2)}</div><div className="stat-delta dim">{openInvoices.length} invoice{openInvoices.length === 1 ? '' : 's'}</div></div>
-        <div className="stat"><div className="stat-k mono">COLLECTED · MTD</div><div className="stat-v">${totalPaid.toFixed(2)}</div><div className="stat-delta dim">{INVOICES.filter(i => i.status === 'paid').length} paid</div></div>
+        <div className="stat"><div className="stat-k mono">COLLECTED · MTD</div><div className="stat-v">${totalPaidMtd.toFixed(2)}</div><div className="stat-delta dim">{paidThisMonth.length} paid this month</div></div>
         <div className="stat"><div className="stat-k mono">OVERDUE</div><div className="stat-v">{overdueInvoices.length}</div><div className={overdueInvoices.length ? 'stat-delta neg' : 'stat-delta dim'}>{overdueInvoices.length ? `$${overdueAmount.toFixed(2)}` : 'none'}</div></div>
         <div className="stat"><div className="stat-k mono">AUTOPAY</div><div className="stat-v">{INVOICES.length ? `${Math.round(INVOICES.filter(i => i.stripe).length / INVOICES.length * 100)}%` : '—'}</div><div className="stat-delta dim mono">{INVOICES.filter(i => i.stripe).length} of {INVOICES.length}</div></div>
       </div>
