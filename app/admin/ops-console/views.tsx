@@ -1051,10 +1051,29 @@ export function DispatchView({ subTab = 0 }: { subTab?: number }) {
     const readyRows = PREFLIGHT.filter(p => p.stage === 'ready')
     const readySubtitle = `${readyRows.length} of ${PREFLIGHT.length} active`
     const readyTone = readyRows.length > 0 ? 'stat-delta pos' : 'stat-delta dim'
+    // IN BRIEF tile previously hardcoded `stat-delta dim` with subtitle
+    // "active CFI time" — same dishonest-label / never-moves-with-data
+    // pattern as the recently-fixed READY · TO LAUNCH "on time" /
+    // Aircraft UTILIZATION "avg across fleet" / Syllabus AVG DURATION
+    // "flight time" tiles. The intent of the label was to communicate
+    // that a briefing in progress = CFI is engaged, but the subtitle
+    // stayed identical whether 0, 1, or 4 rows were in brief and whether
+    // they were spread across many CFIs or piled on one. The actually
+    // useful disclosure here is *how many distinct CFIs* are tied up
+    // briefing — that exposes briefing-load concentration (one CFI
+    // running three briefs at once is a scheduling red flag the bare
+    // count hides). Match the language shape of the other dispatch
+    // tiles: dim to "no briefings" when zero rows are in brief so a "0"
+    // doesn't claim CFI time was spent.
+    const briefRows = PREFLIGHT.filter(p => p.stage === 'brief')
+    const briefCfis = new Set(briefRows.map(p => p.cfi).filter(Boolean)).size
+    const inBriefSub = briefRows.length === 0
+      ? 'no briefings'
+      : `${briefCfis} CFI${briefCfis === 1 ? '' : 's'} engaged`
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">IN BRIEF</div><div className="stat-v">{PREFLIGHT.filter(p => p.stage === 'brief').length}</div><div className="stat-delta dim">active CFI time</div></div>
+          <div className="stat"><div className="stat-k mono">IN BRIEF</div><div className="stat-v">{briefRows.length}</div><div className="stat-delta dim">{inBriefSub}</div></div>
           <div className="stat"><div className="stat-k mono">READY · TO LAUNCH</div><div className="stat-v">{readyRows.length}</div><div className={readyTone}>{readySubtitle}</div></div>
           <div className="stat"><div className="stat-k mono">PREP</div><div className="stat-v">{prepRows.length}</div><div className={prepOpen > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{prepOpen > 0 ? `${prepOpen} item${prepOpen === 1 ? '' : 's'} open` : 'all checked'}</div></div>
           <div className="stat"><div className="stat-k mono">QUEUE</div><div className="stat-v">{queueRows.length}</div><div className={queueRows.length > 0 ? 'stat-delta dim' : 'stat-delta pos'}>{queueRows.length > 0 ? `${queueOpen} item${queueOpen === 1 ? '' : 's'} pending` : 'none waiting'}</div></div>
@@ -2202,10 +2221,32 @@ export function ExpensesView({ subTab = 0 }: { subTab?: number }) {
     const uncategorizedLabel = uncategorizedCount > 0
       ? `${uncategorizedCount === 1 ? 'entry' : 'entries'} need cat.`
       : 'clean'
+    // CATEGORIES tile previously hardcoded `stat-delta dim` with subtitle
+    // "tracked" — same dishonest-label / never-moves-with-data pattern as
+    // the recently-fixed Aircraft UTILIZATION "avg across fleet" /
+    // Syllabus AVG DURATION "flight time" / Endorsements ACTIVE "all
+    // current" / Payouts TOTAL BALANCE "all buckets" tiles. The "tracked"
+    // label just restated that cats.length counts categories — whether
+    // the value was 1 or 12, whether every category had a budget set or
+    // none did, the subtitle stayed identical and added no signal. The
+    // actually useful disclosure here is *budget coverage*: how many of
+    // the categories that have appeared in EXPENSES actually have a
+    // budget defined in the `budget` map sitting two lines above. The
+    // moment a new EXPENSES row introduces a category that wasn't pre-
+    // budgeted (e.g. a one-off Avionics spend), this tile flags the gap
+    // — exactly the kind of bookkeeping disclosure the page is meant to
+    // surface, the same shape of "X of Y" sub already used by ACTIVE
+    // LEARNERS / TOTAL BALANCE / IN PROGRESS. Empty roster dims to "—"
+    // so a "0" doesn't claim 0-of-0 budget coverage as if a real ratio
+    // were computed.
+    const budgetedCats = cats.filter(([k]) => budget[k] !== undefined).length
+    const categoriesSub = cats.length === 0
+      ? '—'
+      : `${budgetedCats} of ${cats.length} budgeted`
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">CATEGORIES</div><div className="stat-v">{cats.length}</div><div className="stat-delta dim">tracked</div></div>
+          <div className="stat"><div className="stat-k mono">CATEGORIES</div><div className="stat-v">{cats.length}</div><div className="stat-delta dim">{categoriesSub}</div></div>
           <div className="stat"><div className="stat-k mono">TOP · MAINT</div><div className="stat-v">${maintSpend.toFixed(0)}</div><div className={maintTone}>{maintBudget > 0 ? `${maintPct}% of budget` : 'no budget set'}</div></div>
           <div className="stat"><div className="stat-k mono">OVER BUDGET</div><div className="stat-v">{overBudgetCats.length}</div><div className={overBudgetCats.length > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{overBudgetCats.length > 0 ? `${overBudgetCats.map(([k]) => k).join(', ')}` : 'YTD'}</div></div>
           <div className="stat"><div className="stat-k mono">UNCATEGORIZED</div><div className="stat-v">{uncategorizedCount}</div><div className={uncategorizedTone}>{uncategorizedLabel}</div></div>
