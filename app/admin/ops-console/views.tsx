@@ -1205,10 +1205,22 @@ export function BillingView({ subTab = 0 }: { subTab?: number }) {
     const lostCount = DISPUTES.filter(d => (d.status as string) === 'lost').length
     const resolvedCount = wonCount + lostCount
     const winRate = resolvedCount > 0 ? Math.round((wonCount / resolvedCount) * 100) : null
+    // OPEN tile previously hardcoded `stat-delta neg` with subtitle
+    // "needs response". Two problems: (1) when zero disputes are in the
+    // needs_response state, the tile still glows red and says "needs
+    // response" — the literal opposite of the truth; (2) the AT RISK
+    // tile next door already conditions both its tone and its
+    // "respond by …"/"no open disputes" subtitle on `needsResponse.length`,
+    // so OPEN was the only tile in the row that lied when the queue
+    // was empty. Mirror that pattern: tone red and say "needs response"
+    // only when something actually does, else go dim with "none open".
+    const openDisputes = DISPUTES.filter(d => d.status === 'needs_response')
+    const openTone = openDisputes.length > 0 ? 'stat-delta neg' : 'stat-delta dim'
+    const openSubtitle = openDisputes.length > 0 ? 'needs response' : 'none open'
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">OPEN</div><div className="stat-v">{DISPUTES.filter(d => d.status === 'needs_response').length}</div><div className="stat-delta neg">needs response</div></div>
+          <div className="stat"><div className="stat-k mono">OPEN</div><div className="stat-v">{openDisputes.length}</div><div className={openTone}>{openSubtitle}</div></div>
           <div className="stat"><div className="stat-k mono">UNDER REVIEW</div><div className="stat-v">{DISPUTES.filter(d => d.status === 'under_review').length}</div><div className="stat-delta dim">Stripe processing</div></div>
           <div className="stat"><div className="stat-k mono">AT RISK</div><div className="stat-v">${totalExposed.toFixed(2)}</div><div className={needsResponse.length ? 'stat-delta warn' : 'stat-delta dim'}>{earliestLabel}</div></div>
           <div className="stat"><div className="stat-k mono">WIN RATE · 90D</div><div className="stat-v">{winRate === null ? '—' : `${winRate}%`}</div><div className={resolvedCount === 0 ? 'stat-delta dim' : 'stat-delta pos'}>{resolvedCount === 0 ? 'no resolved disputes' : `${wonCount} of ${resolvedCount}`}</div></div>
@@ -1376,12 +1388,32 @@ export function SyllabusView({ subTab = 0, students = [] }: { subTab?: number; s
     const weekDeltaTone = weekDelta > 0 ? 'pos' : weekDelta < 0 ? 'warn' : 'dim'
     const mpCount = DEB.filter(d => d.grade === 'MP').length
     const mpPct = DEB.length > 0 ? Math.round(mpCount / DEB.length * 100) : 0
+    // UNSATISFACTORY tile previously hardcoded `stat-delta warn` with
+    // subtitle "repeat scheduled". Two issues: (1) when zero UP grades
+    // exist the tile still glows orange and claims a repeat is on the
+    // books — the literal opposite of the truth, and a copy-paste of
+    // the same fragility class fixed for Endorsements ACTIVE / Disputes
+    // OPEN; (2) DEB rows carry a `flag` boolean and a freeform `note`,
+    // but no `repeatScheduled` (or `followUpAt`) field — so even when
+    // upCount > 0, "repeat scheduled" was an editorial claim, not a
+    // metric. The neighbour FLAGGED tile already does the honest thing
+    // (warn + "X need follow-up" when > 0, pos + "none" when 0) over
+    // the same data. Mirror that pattern with a UP-share subtitle that
+    // gives the reviewer a sense of magnitude (1-of-5 vs 3-of-5 hits
+    // very differently) and only tones warn when there's actually
+    // something unsatisfactory to flag.
+    const upCount = DEB.filter(d => d.grade === 'UP').length
+    const upPct = DEB.length > 0 ? Math.round((upCount / DEB.length) * 100) : 0
+    const upSubtitle = upCount === 0
+      ? 'none'
+      : `${upPct}% of debriefs`
+    const upTone = upCount > 0 ? 'stat-delta warn' : 'stat-delta pos'
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">THIS WEEK</div><div className="stat-v">{thisWeekCount}</div><div className={`stat-delta ${weekDeltaTone}`}>{weekDeltaLabel}</div></div>
           <div className="stat"><div className="stat-k mono">MEETS / EXCEEDS</div><div className="stat-v">{mpCount}</div><div className="stat-delta pos">{mpPct}%</div></div>
-          <div className="stat"><div className="stat-k mono">UNSATISFACTORY</div><div className="stat-v">{DEB.filter(d => d.grade === 'UP').length}</div><div className="stat-delta warn">repeat scheduled</div></div>
+          <div className="stat"><div className="stat-k mono">UNSATISFACTORY</div><div className="stat-v">{upCount}</div><div className={upTone}>{upSubtitle}</div></div>
           {/* AVG TIME-TO-SIGN was hardcoded "4 h · SLA ≤ 24h" but DEB rows
              carry no `signed`/`signedAt` field — there is no signing-time
              history to average. Replace with a FLAGGED tile derived from
