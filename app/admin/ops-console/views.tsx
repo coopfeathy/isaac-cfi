@@ -913,11 +913,20 @@ export function DispatchView({ subTab = 0 }: { subTab?: number }) {
     // across them. Stays honest if rows transition stages or items toggle.
     const queueRows = PREFLIGHT.filter(p => p.stage === 'queue')
     const queueOpen = queueRows.reduce((s, p) => s + Object.values(p.items).filter(v => !v).length, 0)
+    // READY · TO LAUNCH subtitle was hardcoded "on time" — that's a label,
+    // not a metric. It says nothing about the actual state and stays
+    // green-positive even when zero rows are ready (which is the opposite
+    // of "on time"). Surface "X of Y ready" so the tile communicates
+    // ready-rate against today's active pre-flights, and only treat it as
+    // positive when at least one row has reached `ready`.
+    const readyRows = PREFLIGHT.filter(p => p.stage === 'ready')
+    const readySubtitle = `${readyRows.length} of ${PREFLIGHT.length} active`
+    const readyTone = readyRows.length > 0 ? 'stat-delta pos' : 'stat-delta dim'
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">IN BRIEF</div><div className="stat-v">{PREFLIGHT.filter(p => p.stage === 'brief').length}</div><div className="stat-delta dim">active CFI time</div></div>
-          <div className="stat"><div className="stat-k mono">READY · TO LAUNCH</div><div className="stat-v">{PREFLIGHT.filter(p => p.stage === 'ready').length}</div><div className="stat-delta pos">on time</div></div>
+          <div className="stat"><div className="stat-k mono">READY · TO LAUNCH</div><div className="stat-v">{readyRows.length}</div><div className={readyTone}>{readySubtitle}</div></div>
           <div className="stat"><div className="stat-k mono">PREP</div><div className="stat-v">{prepRows.length}</div><div className={prepOpen > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{prepOpen > 0 ? `${prepOpen} item${prepOpen === 1 ? '' : 's'} open` : 'all checked'}</div></div>
           <div className="stat"><div className="stat-k mono">QUEUE</div><div className="stat-v">{queueRows.length}</div><div className={queueRows.length > 0 ? 'stat-delta dim' : 'stat-delta pos'}>{queueRows.length > 0 ? `${queueOpen} item${queueOpen === 1 ? '' : 's'} pending` : 'none waiting'}</div></div>
         </div>
@@ -1607,14 +1616,26 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
   if (subTab === 1) {
     // BALANCES — uses the lifted STRIPE_BALANCE so the main subview's
     // AVAILABLE tile shows the same Available bucket value.
+    //
+    // The AVAILABLE / PENDING / HELD tiles previously read STRIPE_BALANCE
+    // by hardcoded array index (BAL[0], BAL[1], BAL[3] + BAL[4]). That's
+    // brittle: any reorder of STRIPE_BALANCE — adding a new bucket, sorting
+    // by amount, etc. — would silently mislabel every tile (e.g. "AVAILABLE"
+    // would suddenly show the Pending bucket's $8,420 if rows shifted).
+    // Look up each bucket by name instead so the tiles stay correct
+    // regardless of array order, and fall back to 0 if a bucket is missing.
     const BAL = STRIPE_BALANCE
+    const bucketAmount = (name: string) => BAL.find(b => b.bucket === name)?.amount ?? 0
+    const availableAmt = bucketAmount('Available')
+    const pendingAmt = bucketAmount('Pending')
+    const heldAmt = bucketAmount('Reserve') + bucketAmount('Disputed (held)')
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">TOTAL BALANCE</div><div className="stat-v">${BAL.reduce((t, b) => t + b.amount, 0).toFixed(2)}</div><div className="stat-delta dim">all buckets</div></div>
-          <div className="stat"><div className="stat-k mono">AVAILABLE</div><div className="stat-v">${BAL[0].amount.toFixed(2)}</div><div className="stat-delta pos">instant OK</div></div>
-          <div className="stat"><div className="stat-k mono">PENDING</div><div className="stat-v">${BAL[1].amount.toFixed(2)}</div><div className="stat-delta dim">T+2</div></div>
-          <div className="stat"><div className="stat-k mono">HELD</div><div className="stat-v">${(BAL[3].amount + BAL[4].amount).toFixed(2)}</div><div className="stat-delta warn">reserve + dispute</div></div>
+          <div className="stat"><div className="stat-k mono">AVAILABLE</div><div className="stat-v">${availableAmt.toFixed(2)}</div><div className="stat-delta pos">instant OK</div></div>
+          <div className="stat"><div className="stat-k mono">PENDING</div><div className="stat-v">${pendingAmt.toFixed(2)}</div><div className="stat-delta dim">T+2</div></div>
+          <div className="stat"><div className="stat-k mono">HELD</div><div className="stat-v">${heldAmt.toFixed(2)}</div><div className="stat-delta warn">reserve + dispute</div></div>
         </div>
         <div className="sect-head"><h3>Stripe balance by bucket</h3></div>
         <table className="dt"><thead><tr><th>Bucket</th><th className="right">Amount</th><th>Currency</th><th>Note</th><th></th></tr></thead><tbody>
@@ -1759,7 +1780,7 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
         <div className="stat"><div className="stat-k mono">LAST 30D</div><div className="stat-v">${last30Total.toFixed(2)}</div><div className={delta30Tone}>{delta30Label}</div></div>
         <div className="stat"><div className="stat-k mono">IN FLIGHT</div><div className="stat-v">${inFlightTotal.toFixed(2)}</div><div className={inFlightPayouts.length ? 'stat-delta dim mono' : 'stat-delta dim'}>{earliestArrivalLabel}</div></div>
         <div className="stat"><div className="stat-k mono">FEES · 30D</div><div className="stat-v">${feesTotal.toFixed(2)}</div><div className="stat-delta dim">{effRate.toFixed(1)}% eff.</div></div>
-        <div className="stat"><div className="stat-k mono">AVAILABLE</div><div className="stat-v">${STRIPE_BALANCE[0].amount.toFixed(2)}</div><div className="stat-delta pos">instant OK</div></div>
+        <div className="stat"><div className="stat-k mono">AVAILABLE</div><div className="stat-v">${(STRIPE_BALANCE.find(b => b.bucket === 'Available')?.amount ?? 0).toFixed(2)}</div><div className="stat-delta pos">instant OK</div></div>
       </div>
       <div className="sect-head"><h3>Recent payouts</h3><span className="mono dim">{PAYOUTS.length}</span></div>
       <table className="dt"><thead><tr><th>Payout ID</th><th>Date</th><th className="right">Amount</th><th className="right">Fees</th><th className="right">Txns</th><th>Status</th><th>Arrives</th></tr></thead><tbody>
