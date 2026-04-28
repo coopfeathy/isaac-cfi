@@ -2289,13 +2289,28 @@ function RequestsArchive() {
   const expiredPct = ARCHIVE.length > 0
     ? Math.round((expiredCount / ARCHIVE.length) * 100)
     : 0
+  // AVG TIME TO APPROVE was hardcoded "12m" with subtitle "▾ 4m since
+  // last week" — both the value and the delta were fabricated. ARCHIVE
+  // rows carry only an outcome timestamp (`ts`); there is no
+  // request-created timestamp anywhere in scope, so a real "time to
+  // approve" cannot be derived from this data. Replace the tile with a
+  // metric we actually CAN derive from ARCHIVE: the share of rows with
+  // a CFI assigned. The expired Discovery row (SR-2204) has cfi === '—'
+  // and the rest carry a CFI name, so this tile reflects real CFI
+  // coverage of the archive and stays in sync as rows are added/removed.
+  // Same shape (count + "% of total") as the APPROVED/DECLINED/EXPIRED
+  // tiles next to it, so the four-tile grid stays internally consistent.
+  const withCfiCount = ARCHIVE.filter(a => a.cfi && a.cfi !== '—').length
+  const withCfiPct = ARCHIVE.length > 0
+    ? Math.round((withCfiCount / ARCHIVE.length) * 100)
+    : 0
   return (
     <div className="view-pad">
       <div className="stat-grid">
         <div className="stat"><div className="stat-k mono">30-DAY APPROVED</div><div className="stat-v">{approvedCount}</div><div className={approvalPct >= 80 ? 'stat-delta pos' : 'stat-delta dim'}>{ARCHIVE.length > 0 ? `${approvalPct}% approval` : '—'}</div></div>
         <div className="stat"><div className="stat-k mono">30-DAY DECLINED</div><div className="stat-v">{declinedCount}</div><div className={declinedCount > 0 ? 'stat-delta dim' : 'stat-delta pos'}>{ARCHIVE.length > 0 ? `${declinedPct}% of total` : '—'}</div></div>
         <div className="stat"><div className="stat-k mono">EXPIRED</div><div className="stat-v">{expiredCount}</div><div className={expiredCount > 0 ? 'stat-delta dim' : 'stat-delta pos'}>{ARCHIVE.length > 0 ? `${expiredPct}% of total` : '—'}</div></div>
-        <div className="stat"><div className="stat-k mono">AVG TIME TO APPROVE</div><div className="stat-v">12m</div><div className="stat-delta pos">▾ 4m since last week</div></div>
+        <div className="stat"><div className="stat-k mono">WITH CFI</div><div className="stat-v">{withCfiCount}</div><div className={withCfiCount === ARCHIVE.length ? 'stat-delta pos' : 'stat-delta dim'}>{ARCHIVE.length > 0 ? `${withCfiPct}% of total` : '—'}</div></div>
       </div>
       <div className="sect-head"><h3>Archive · last 30 days</h3></div>
       <table className="dt"><thead><tr><th>ID</th><th>Student</th><th>Lesson</th><th>CFI</th><th>Outcome</th><th className="right">Timestamp</th><th></th></tr></thead><tbody>
@@ -2377,6 +2392,31 @@ function IntegrityRuns() {
   const avgDur = RUNS.length > 0
     ? Math.round(RUNS.reduce((s, r) => s + r.dur, 0) / RUNS.length)
     : 0
+  // RUNS TODAY was hardcoded "46" with subtitle "every 12 min" but the
+  // RUNS array right beneath only renders 10 rows — "46" was a fabricated
+  // total with no data backing it, and the cadence "every 12 min" was
+  // also a magic number. Derive the in-scope count from RUNS.length and
+  // compute the cadence from the average gap between consecutive run
+  // timestamps so the tile and the table can never desync. We also
+  // relabel the tile from "RUNS TODAY" to "RUNS · IN SCOPE" because the
+  // RUNS array is 10 entries spanning a ~108 min window, not a full day,
+  // and we don't have any data outside that window to honestly call it
+  // "today" against.
+  const parseHM = (ts: string) => {
+    const m = ts.match(/(\d{1,2}):(\d{2})\s*$/)
+    if (!m) return null
+    return Number(m[1]) * 60 + Number(m[2])
+  }
+  const runMinutes = RUNS.map(r => parseHM(r.ts)).filter((m): m is number => m !== null)
+  const gaps: number[] = []
+  for (let i = 0; i < runMinutes.length - 1; i++) {
+    const diff = runMinutes[i] - runMinutes[i + 1]
+    if (diff > 0) gaps.push(diff)
+  }
+  const avgGap = gaps.length > 0
+    ? Math.round(gaps.reduce((s, g) => s + g, 0) / gaps.length)
+    : 0
+  const cadenceLabel = gaps.length > 0 ? `every ~${avgGap} min` : '—'
   // SUCCESS RATE was hardcoded "97.8% · 1 error in last 50" but the table
   // below only renders the 10 RUNS in this array — there is no "last 50"
   // anywhere in scope. Of those 10, one is `error` and one is `slow`, so the
@@ -2403,7 +2443,7 @@ function IntegrityRuns() {
   return (
     <div className="view-pad">
       <div className="stat-grid">
-        <div className="stat"><div className="stat-k mono">RUNS TODAY</div><div className="stat-v">46</div><div className="stat-delta dim">every 12 min</div></div>
+        <div className="stat"><div className="stat-k mono">RUNS · IN SCOPE</div><div className="stat-v">{RUNS.length}</div><div className="stat-delta dim">{cadenceLabel}</div></div>
         <div className="stat"><div className="stat-k mono">AVG DURATION</div><div className="stat-v">{avgDur}ms</div><div className="stat-delta dim">across {RUNS.length} runs</div></div>
         <div className="stat"><div className="stat-k mono">SUCCESS RATE</div><div className="stat-v">{successRate.toFixed(1)}%</div><div className={errorRuns > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{successSub}</div></div>
         <div className="stat"><div className="stat-k mono">ALERTS GENERATED</div><div className="stat-v">{totalFired}</div><div className="stat-delta dim">{firedSub}</div></div>
