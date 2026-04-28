@@ -1707,7 +1707,30 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
     const bucketAmount = (name: string) => BAL.find(b => b.bucket === name)?.amount ?? 0
     const availableAmt = bucketAmount('Available')
     const pendingAmt = bucketAmount('Pending')
-    const heldAmt = bucketAmount('Reserve') + bucketAmount('Disputed (held)')
+    const reserveAmt = bucketAmount('Reserve')
+    const disputedHeldAmt = bucketAmount('Disputed (held)')
+    const heldAmt = reserveAmt + disputedHeldAmt
+    // HELD subtitle previously hardcoded "reserve + dispute" — a label, not
+    // a metric, same flavour as the just-fixed AVAILABLE "instant OK" and
+    // AVG SETTLE "ACH" tiles. Surface the actual reserve / disputed split
+    // so the subtitle is metric-bearing (each component is independently
+    // interpretable), and only fall back to a single label when one of
+    // the two sub-buckets is empty.
+    const heldSub = heldAmt > 0
+      ? (reserveAmt > 0 && disputedHeldAmt > 0
+          ? `reserve $${reserveAmt.toFixed(0)} · disputed $${disputedHeldAmt.toFixed(0)}`
+          : reserveAmt > 0
+            ? `reserve $${reserveAmt.toFixed(0)}`
+            : `disputed $${disputedHeldAmt.toFixed(0)}`)
+      : 'no holds'
+    // PENDING subtitle previously hardcoded "T+2" — same pattern as the
+    // "instant OK" / "ACH" labels: a fixed string that never moves with
+    // data and renders "$0.00 · T+2" on an empty Pending bucket, where
+    // the "T+2" promise is meaningless because nothing is settling. Tone
+    // is dim either way (Pending is informational, not a positive or
+    // alarm state), but the subtitle should at least disappear when the
+    // bucket is empty so the tile reads honestly.
+    const pendingSub = pendingAmt > 0 ? 'T+2 ACH' : 'no pending'
     return (
       <div className="view-pad">
         <div className="stat-grid">
@@ -1722,8 +1745,8 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
              else go dim with the honest "no balance" empty state. */}
           <div className="stat"><div className="stat-k mono">TOTAL BALANCE</div><div className="stat-v">${BAL.reduce((t, b) => t + b.amount, 0).toFixed(2)}</div><div className="stat-delta dim">all buckets</div></div>
           <div className="stat"><div className="stat-k mono">AVAILABLE</div><div className="stat-v">${availableAmt.toFixed(2)}</div><div className={availableAmt > 0 ? 'stat-delta pos' : 'stat-delta dim'}>{availableAmt > 0 ? 'instant-payout eligible' : 'no balance'}</div></div>
-          <div className="stat"><div className="stat-k mono">PENDING</div><div className="stat-v">${pendingAmt.toFixed(2)}</div><div className="stat-delta dim">T+2</div></div>
-          <div className="stat"><div className="stat-k mono">HELD</div><div className="stat-v">${heldAmt.toFixed(2)}</div><div className="stat-delta warn">reserve + dispute</div></div>
+          <div className="stat"><div className="stat-k mono">PENDING</div><div className="stat-v">${pendingAmt.toFixed(2)}</div><div className="stat-delta dim">{pendingSub}</div></div>
+          <div className="stat"><div className="stat-k mono">HELD</div><div className="stat-v">${heldAmt.toFixed(2)}</div><div className={heldAmt > 0 ? 'stat-delta warn' : 'stat-delta dim'}>{heldSub}</div></div>
         </div>
         <div className="sect-head"><h3>Stripe balance by bucket</h3></div>
         <table className="dt"><thead><tr><th>Bucket</th><th className="right">Amount</th><th>Currency</th><th>Note</th><th></th></tr></thead><tbody>
