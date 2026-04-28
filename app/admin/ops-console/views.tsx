@@ -1675,6 +1675,17 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
     // never disagree. Same story for FEES · YTD: "4 periods" was hardcoded
     // but is just FEES.length — adding/removing a period would desync it.
     const mtdEffPct = FEES[0].eff * 100
+    // REFUND · COST was hardcoded "$0.30" with subtitle "minimal" — that's
+    // Stripe's per-charge fixed fee, not a value derived from any data in
+    // scope. There is no refunds feed anywhere here, so the tile was both
+    // a magic number and editorial. Replace with NET · MTD = gross - fees
+    // for the current month, which IS derivable from FEES[0] (the same row
+    // that powers the FEES · MTD tile next to it) and complements the
+    // three other dollar-shaped tiles in this grid. Now the four tiles
+    // collectively answer: how much did we charge (FEES · MTD), how much
+    // YTD (FEES · YTD), how much is at risk (DISPUTES · MTD), and how
+    // much actually landed (NET · MTD).
+    const netMtd = FEES[0].net
     return (
       <div className="view-pad">
         <div className="stat-grid">
@@ -1687,7 +1698,7 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
               <div className="stat"><div className="stat-k mono">DISPUTES · MTD</div><div className="stat-v">${openDisputesAmount.toFixed(2)}</div><div className={openDisputes.length ? 'stat-delta warn' : 'stat-delta dim'}>{openDisputes.length ? `${openDisputes.length} raised` : 'none'}</div></div>
             )
           })()}
-          <div className="stat"><div className="stat-k mono">REFUND · COST</div><div className="stat-v">$0.30</div><div className="stat-delta pos">minimal</div></div>
+          <div className="stat"><div className="stat-k mono">NET · MTD</div><div className="stat-v">${netMtd.toFixed(2)}</div><div className="stat-delta pos">after fees</div></div>
         </div>
         <div className="sect-head"><h3>Fee breakdown by period</h3></div>
         <table className="dt"><thead><tr><th>Period</th><th className="right">Gross volume</th><th className="right">Fees</th><th className="right">Net</th><th className="right">Effective rate</th></tr></thead><tbody>
@@ -1777,13 +1788,29 @@ export function ExpensesView({ subTab = 0 }: { subTab?: number }) {
     const maintTone = maintPct >= 100 ? 'stat-delta neg'
       : maintPct >= 80 ? 'stat-delta warn'
       : 'stat-delta dim'
+    // UNCATEGORIZED was hardcoded "0" with subtitle "clean" — that happens
+    // to be true today (every EXPENSES row has a real category), but the
+    // tile would stay stuck at "0" forever even if a row was added with
+    // category === '' or category === 'Uncategorized'. The whole point of
+    // an UNCATEGORIZED tile is to surface bookkeeping cleanup work, so it
+    // must move with the data. Derive it from EXPENSES so a missing /
+    // empty / "Uncategorized" category trips the tile, and flip the tone
+    // to warn when anything needs reclassifying.
+    const uncategorizedCount = EXPENSES.filter(e => {
+      const c = (e.category ?? '').trim().toLowerCase()
+      return c === '' || c === 'uncategorized' || c === 'other'
+    }).length
+    const uncategorizedTone = uncategorizedCount > 0 ? 'stat-delta warn' : 'stat-delta pos'
+    const uncategorizedLabel = uncategorizedCount > 0
+      ? `${uncategorizedCount === 1 ? 'entry' : 'entries'} need cat.`
+      : 'clean'
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">CATEGORIES</div><div className="stat-v">{cats.length}</div><div className="stat-delta dim">tracked</div></div>
           <div className="stat"><div className="stat-k mono">TOP · MAINT</div><div className="stat-v">${maintSpend.toFixed(0)}</div><div className={maintTone}>{maintBudget > 0 ? `${maintPct}% of budget` : 'no budget set'}</div></div>
           <div className="stat"><div className="stat-k mono">OVER BUDGET</div><div className="stat-v">{overBudgetCats.length}</div><div className={overBudgetCats.length > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{overBudgetCats.length > 0 ? `${overBudgetCats.map(([k]) => k).join(', ')}` : 'YTD'}</div></div>
-          <div className="stat"><div className="stat-k mono">UNCATEGORIZED</div><div className="stat-v">0</div><div className="stat-delta pos">clean</div></div>
+          <div className="stat"><div className="stat-k mono">UNCATEGORIZED</div><div className="stat-v">{uncategorizedCount}</div><div className={uncategorizedTone}>{uncategorizedLabel}</div></div>
         </div>
         <div className="sect-head"><h3>Spend by category</h3></div>
         <table className="dt"><thead><tr><th>Category</th><th className="right">YTD</th><th className="right">Budget</th><th>Utilization</th><th className="right">% of spend</th></tr></thead><tbody>
