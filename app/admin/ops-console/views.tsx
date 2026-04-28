@@ -910,6 +910,49 @@ export function IntegrityView({ alerts, bookings = [], slotRequests = [], subTab
   const paidUnbooked = open.filter(a => a.code?.startsWith('BI-104')).length
   const bookedUnpaid = bookings.filter(b => b.status !== 'cancelled' && b.paid === false).length
   const webhookFailures = open.filter(a => a.code?.startsWith('WH-')).length
+  // STALE PENDING tile previously hardcoded `stat-delta dim` with subtitle
+  // "requests > 48h" — same dishonest-label / never-moves-with-data pattern
+  // as the recently-fixed Dispatch IN BRIEF "active CFI time" / Expenses
+  // CATEGORIES "tracked" tiles. The subtitle just restated the tile's own
+  // definition (STALE PENDING already means "pending older than 48h"); it
+  // stayed identical whether 0, 1, or 7 requests were stuck and whether a
+  // single old request was the entire pending queue or a small fraction of
+  // it. The actually useful disclosure here is the *share* of pending that
+  // is stale — a denominator like "of X pending" (same shape as the already
+  // honest BOOKED / UNPAID "of X active" sub two lines down) so a "3" can
+  // be read as 3 of 4 (queue fundamentally jammed) vs 3 of 30 (a few
+  // stragglers in a healthy pipeline). And because a non-zero stalePending
+  // is a request-triage signal, not a dim informational state, tone warn
+  // when any exists — same fragility class as the BOOKED / UNPAID warn-on-
+  // gap treatment. Dim to "no stale requests" when zero so a "0" doesn't
+  // claim a 0-of-N stale ratio against an empty queue.
+  const totalPending = slotRequests.filter(r => r.status === 'pending').length
+  const stalePendingTone = stalePending > 0 ? 'stat-delta warn' : 'stat-delta dim'
+  const stalePendingSub = stalePending === 0
+    ? (totalPending === 0 ? 'no pending requests' : 'no stale requests')
+    : `of ${totalPending} pending`
+  // WEBHOOK FAILURES tile previously hardcoded `stat-delta dim` with
+  // subtitle "open WH alerts" — same dishonest-label pattern as the
+  // recently-fixed Integrity PAID / UNBOOKED "BI-104 alerts" tile. The sub
+  // just named the alert code prefix this tile already filters by; it
+  // never moved with data and added no signal. Worse, an open WH- alert
+  // means an external integration is actively dropping events — that's a
+  // reconciliation/integration brokenness signal in the same neg-tone
+  // class as PAID / UNBOOKED, not a dim informational state. Two issues
+  // the bare count hides: (1) one flaky webhook alerting many times reads
+  // the same as several distinct webhooks all broken, and (2) you can't
+  // tell at a glance how recent the most recent breakage is. Surface the
+  // count of *distinct* WH- codes affected — that exposes whether the
+  // failure is concentrated on one source vs spread across the integration
+  // surface ("3 across 1 source" = one flapper to fix, "3 across 3
+  // sources" = wider outage). Tone neg when any exist; dim to "no failures
+  // open" when zero so a "0" doesn't claim full delivery health (we only
+  // know no alerts are open, not that every webhook is delivering).
+  const whCodes = new Set(open.filter(a => a.code?.startsWith('WH-')).map(a => a.code)).size
+  const webhookFailuresTone = webhookFailures > 0 ? 'stat-delta neg' : 'stat-delta dim'
+  const webhookFailuresSub = webhookFailures === 0
+    ? 'no failures open'
+    : `across ${whCodes} source${whCodes === 1 ? '' : 's'}`
   // PAID / UNBOOKED tile previously hardcoded `stat-delta dim` with subtitle
   // "BI-104 alerts" — same label-not-metric pattern as the recently-fixed
   // Payouts AVG SETTLE "ACH" / Receipts ATTACHED tiles. "BI-104 alerts" just
@@ -943,10 +986,10 @@ export function IntegrityView({ alerts, bookings = [], slotRequests = [], subTab
   return (
     <div className="view-pad">
       <div className="stat-grid">
-        <div className="stat"><div className="stat-k mono">STALE PENDING</div><div className="stat-v">{stalePending}</div><div className="stat-delta dim">requests &gt; 48h</div></div>
+        <div className="stat"><div className="stat-k mono">STALE PENDING</div><div className="stat-v">{stalePending}</div><div className={stalePendingTone}>{stalePendingSub}</div></div>
         <div className="stat"><div className="stat-k mono">PAID / UNBOOKED</div><div className="stat-v">{paidUnbooked}</div><div className={paidUnbookedTone}>{paidUnbookedSub}</div></div>
         <div className="stat"><div className="stat-k mono">BOOKED / UNPAID</div><div className="stat-v">{bookedUnpaid}</div><div className={bookedUnpaidTone}>{bookedUnpaidSub}</div></div>
-        <div className="stat"><div className="stat-k mono">WEBHOOK FAILURES</div><div className="stat-v">{webhookFailures}</div><div className="stat-delta dim">open WH alerts</div></div>
+        <div className="stat"><div className="stat-k mono">WEBHOOK FAILURES</div><div className="stat-v">{webhookFailures}</div><div className={webhookFailuresTone}>{webhookFailuresSub}</div></div>
         <div className="stat"><div className="stat-k mono">CALDAV SYNC</div><div className="stat-v">{caldavStatus}</div><div className={`stat-delta mono ${lastCaldavAlert && !caldavOk ? 'neg' : 'dim'}`}>{lastCaldavAlert ? `last ${lastCaldavAlert.ts}` : 'no sync logged'}</div></div>
       </div>
       <div className="sect-head"><h3>Alerts</h3><span className="mono dim">{open.length} open</span></div>
