@@ -1553,20 +1553,24 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
   // promised "LAST 30D" — and the subtitle "▴ $2,420 vs prev" was a
   // fabricated delta with no backing data. Compute a real trailing-30-day
   // window vs the prior 30-day window from PAYOUTS dates so the value
-  // matches the label and the delta moves with the data. `feesTotal` /
-  // `effRate` were derived from PAYOUTS in a prior commit so they keep
-  // covering the whole array — they feed the FEES · 30D tile which
-  // already has its own honesty story.
-  const totalAmount = PAYOUTS.reduce((s, p) => s + p.amount, 0)
-  const feesTotal = PAYOUTS.reduce((s, p) => s + p.fees, 0)
-  const effRate = totalAmount > 0 ? (feesTotal / totalAmount) * 100 : 0
+  // matches the label and the delta moves with the data.
+  //
+  // FEES · 30D and its "X.X% eff." subtitle had the same shape of bug: a
+  // prior fix replaced a hardcoded "$962.03 · 3.0% eff." with a sum across
+  // *all* PAYOUTS rows, but the tile's label still promises a 30-day
+  // window. With today's seed data the 2026-03-25 payout sits outside that
+  // window, so the tile was over-counting fees by $216.77 (and the
+  // effective rate was being computed against the wrong gross). Derive
+  // fees and the effective rate from the same 30-day window the LAST 30D
+  // tile uses so the two tiles in the same grid can't disagree.
   const dayMs = 86_400_000
   const now = Date.now()
   const last30Cutoff = now - 30 * dayMs
   const prev30Cutoff = now - 60 * dayMs
-  const last30Total = PAYOUTS
-    .filter(p => new Date(p.date).getTime() >= last30Cutoff)
-    .reduce((s, p) => s + p.amount, 0)
+  const last30Payouts = PAYOUTS.filter(p => new Date(p.date).getTime() >= last30Cutoff)
+  const last30Total = last30Payouts.reduce((s, p) => s + p.amount, 0)
+  const feesTotal = last30Payouts.reduce((s, p) => s + p.fees, 0)
+  const effRate = last30Total > 0 ? (feesTotal / last30Total) * 100 : 0
   const prev30Total = PAYOUTS
     .filter(p => {
       const t = new Date(p.date).getTime()
@@ -1843,10 +1847,24 @@ export function ExpensesView({ subTab = 0 }: { subTab?: number }) {
       if (e.date > VEN[e.vendor].last) VEN[e.vendor].last = e.date
     })
     const vendors = Object.entries(VEN).sort((a, b) => b[1].total - a[1].total)
+    // ACTIVE VENDORS subtitle was hardcoded "30-day window" but the count
+    // above (`vendors.length`) is computed from *every* EXPENSES row with
+    // no date filter at all. Today every seed expense happens to fall
+    // within the last 30 days, so the count and the subtitle accidentally
+    // line up — but adding a single older expense (or letting the seed
+    // dates roll past 30 days) would leave the tile claiming a 30-day
+    // window for a number that's actually all-time. Compute a real 30-day
+    // count alongside the all-time count and surface both, so the tile's
+    // value and its subtitle stay in agreement as data ages.
+    const dayMs = 86_400_000
+    const cutoff30 = Date.now() - 30 * dayMs
+    const vendorsLast30 = new Set(
+      EXPENSES.filter(e => new Date(e.date).getTime() >= cutoff30).map(e => e.vendor)
+    )
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">ACTIVE VENDORS</div><div className="stat-v">{vendors.length}</div><div className="stat-delta dim">30-day window</div></div>
+          <div className="stat"><div className="stat-k mono">ACTIVE VENDORS</div><div className="stat-v">{vendorsLast30.size}</div><div className="stat-delta dim">30-day window · {vendors.length} all-time</div></div>
           <div className="stat"><div className="stat-k mono">TOP VENDOR</div><div className="stat-v">{vendors[0]?.[0] ?? '—'}</div><div className="stat-delta dim mono">${vendors[0]?.[1].total.toFixed(0) ?? 0}</div></div>
           {/* NET-30 OUTSTANDING was hardcoded "$2,800.00 · Mather Field". The
              $2,800 happens to equal the EX-3304 Hangar/Mather Field expense,
