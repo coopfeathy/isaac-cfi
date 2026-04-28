@@ -39,8 +39,46 @@ const nextConfig = {
             value: 'strict-origin-when-cross-origin'
           },
           {
+            // Defense-in-depth: explicitly deny browser features the site
+            // doesn't use, so a future supply-chain compromise (third-party
+            // script / widget) can't silently access them. `geolocation=(self)`
+            // is allowed so first-party code can use it (e.g. nearest-airport
+            // helpers); everything else is fully denied.
             key: 'Permissions-Policy',
-            value: 'geolocation=(self), microphone=()'
+            value: [
+              'accelerometer=()',
+              'ambient-light-sensor=()',
+              'autoplay=(self)',
+              'battery=()',
+              'browsing-topics=()',
+              'camera=()',
+              'cross-origin-isolated=()',
+              'display-capture=()',
+              'document-domain=()',
+              'encrypted-media=()',
+              'execution-while-not-rendered=()',
+              'execution-while-out-of-viewport=()',
+              'fullscreen=(self)',
+              'geolocation=(self)',
+              'gyroscope=()',
+              'hid=()',
+              'idle-detection=()',
+              'interest-cohort=()',
+              'keyboard-map=()',
+              'magnetometer=()',
+              'microphone=()',
+              'midi=()',
+              'navigation-override=()',
+              'payment=()',
+              'picture-in-picture=()',
+              'publickey-credentials-get=()',
+              'screen-wake-lock=()',
+              'serial=()',
+              'sync-xhr=()',
+              'usb=()',
+              'web-share=(self)',
+              'xr-spatial-tracking=()'
+            ].join(', ')
           },
         ],
       },
