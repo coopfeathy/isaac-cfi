@@ -1884,8 +1884,15 @@ export function ExpensesView({ subTab = 0 }: { subTab?: number }) {
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">ATTACHED</div><div className="stat-v">{EXPENSES.length}/{EXPENSES.length}</div><div className="stat-delta pos">100% covered</div></div>
-          <div className="stat"><div className="stat-k mono">OCR · PENDING</div><div className="stat-v">0</div><div className="stat-delta pos">processed</div></div>
-          <div className="stat"><div className="stat-k mono">FLAGGED</div><div className="stat-v">0</div><div className="stat-delta dim">—</div></div>
+          {/* OCR · PENDING was hardcoded "0 · processed" and FLAGGED was
+             hardcoded "0 · —", but EXPENSES rows carry no OCR status or
+             flag fields (see data.ts) — every receipt row in the table
+             below is also rendered with a static "PARSED" badge regardless
+             of state. Until an OCR pipeline is wired up there is no real
+             pending/flagged count to show. Mirror the STORAGE tile's
+             honest "no feed" treatment. */}
+          <div className="stat"><div className="stat-k mono">OCR · PENDING</div><div className="stat-v">—</div><div className="stat-delta dim">no OCR feed</div></div>
+          <div className="stat"><div className="stat-k mono">FLAGGED</div><div className="stat-v">—</div><div className="stat-delta dim">no review queue</div></div>
           {/* STORAGE was hardcoded "42 MB · S3 · encrypted" but EXPENSES rows
              carry no file-size or storage metadata — every receipt filename
              below is also synthesized from the expense id at render time. We
