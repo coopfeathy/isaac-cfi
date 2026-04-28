@@ -663,12 +663,33 @@ export function StudentsView({ students, subTab = 0, onDelete, onAddStudent }: {
     const checkrideLabel = checkrideReady.length === 0
       ? 'none ready'
       : checkrideReady.length === 1 ? checkrideReady[0].name : `${checkrideReady.length} students`
+    // AVG COMPLETION tile previously hardcoded `stat-delta dim` with subtitle
+    // "across roster" — same dishonest-label / never-moves-with-data pattern
+    // as the recently-fixed Aircraft UTILIZATION · TODAY "avg across fleet"
+    // and Syllabus AVG DURATION "flight time" tiles. The `%` value IS by
+    // definition the average across the full roster (computed by dividing by
+    // students.length on the line above), so the subtitle just restated the
+    // methodology of the cell next to it. Whether the avg was 0%, 30%, or
+    // 90%, whether the roster had 1 student or 50, and whether the avg was
+    // being dragged down by a pile of zero-progress new sign-ups, the
+    // subtitle stayed identical and added no signal. The actually-useful
+    // disclosure here is how many students have actually started — students
+    // with progress > 0 vs the full denominator. With 4 brand-new students
+    // who haven't flown yet sitting at 0% next to 8 active learners, the
+    // avg looks artificially low; surfacing "8 of 12 started" exposes that
+    // the avg is a roster-wide read and not a working-students read. Empty
+    // roster dims to "—" so a 0% over zero students doesn't claim to have
+    // been averaged across anything.
+    const startedCount = students.filter(s => s.progress > 0).length
+    const avgCompletionSub = students.length === 0
+      ? '—'
+      : `${startedCount} of ${students.length} started`
     const nextUpBank = ['PPL-15 XC Dual', 'PPL-13 Night', 'PPL-18 Ckr', 'PPL-10 Stalls', 'IR-05 Holds', 'PPL-22 Flight Test', 'CPL-03 Complex', 'Disc Intro', 'IR-08 ILS']
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">ACTIVE LEARNERS</div><div className="stat-v">{activeStudents.length}</div><div className="stat-delta dim">of {students.length} total</div></div>
-          <div className="stat"><div className="stat-k mono">AVG COMPLETION</div><div className="stat-v">{avgPct}%</div><div className="stat-delta dim">across roster</div></div>
+          <div className="stat"><div className="stat-k mono">AVG COMPLETION</div><div className="stat-v">{avgPct}%</div><div className="stat-delta dim">{avgCompletionSub}</div></div>
           <div className="stat"><div className="stat-k mono">CHECKRIDE READY</div><div className="stat-v">{checkrideReady.length}</div><div className="stat-delta dim">{checkrideLabel}</div></div>
           <div className="stat"><div className="stat-k mono">STALLED &gt; 14D</div><div className="stat-v">{stalled.length}</div><div className={`stat-delta ${stalled.length > 0 ? 'warn' : 'pos'}`}>{stalled.length > 0 ? 'need outreach' : 'all engaged'}</div></div>
         </div>
@@ -1902,6 +1923,28 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
     // alarm state), but the subtitle should at least disappear when the
     // bucket is empty so the tile reads honestly.
     const pendingSub = pendingAmt > 0 ? 'T+2 ACH' : 'no pending'
+    // TOTAL BALANCE tile previously hardcoded `stat-delta dim` with subtitle
+    // "all buckets" — same dishonest-label / never-moves-with-data pattern
+    // as the recently-fixed Aircraft UTILIZATION · TODAY "avg across fleet"
+    // / Syllabus AVG DURATION "flight time" / Endorsements ACTIVE "all
+    // current" tiles. The dollar value IS by definition the sum across all
+    // BAL buckets (computed by `BAL.reduce(...)` on the same line), so the
+    // subtitle just restated the methodology of the cell next to it.
+    // Whether the total was $0 or $13,389.36, whether 5 of 5 buckets were
+    // funded or 1 of 5 was carrying everything, the subtitle stayed
+    // identical and added no signal. Surface the share of buckets actually
+    // carrying funds — the same shape used by the FLEET TOTAL "{n}
+    // aircraft" sub on the Aircraft view's first tile, but counting only
+    // funded buckets. With "Available" + "Disputed (held)" both empty
+    // post-payout, the total stays the same but "3 of 5 funded" tells you
+    // the balance has consolidated into fewer buckets — useful signal that
+    // the bare "all buckets" label hid. Empty/zero-only state dims to "—"
+    // so a $0.00 total doesn't claim to have summed across "all buckets"
+    // as if the denominator were doing work.
+    const fundedBuckets = BAL.filter(b => b.amount > 0).length
+    const totalBalanceSub = BAL.length === 0 || fundedBuckets === 0
+      ? '—'
+      : `${fundedBuckets} of ${BAL.length} funded`
     return (
       <div className="view-pad">
         <div className="stat-grid">
@@ -1914,7 +1957,7 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
              reads as a healthy state when the truth is "nothing to pay
              out." Tone pos only when there's a non-zero available balance,
              else go dim with the honest "no balance" empty state. */}
-          <div className="stat"><div className="stat-k mono">TOTAL BALANCE</div><div className="stat-v">${BAL.reduce((t, b) => t + b.amount, 0).toFixed(2)}</div><div className="stat-delta dim">all buckets</div></div>
+          <div className="stat"><div className="stat-k mono">TOTAL BALANCE</div><div className="stat-v">${BAL.reduce((t, b) => t + b.amount, 0).toFixed(2)}</div><div className="stat-delta dim">{totalBalanceSub}</div></div>
           <div className="stat"><div className="stat-k mono">AVAILABLE</div><div className="stat-v">${availableAmt.toFixed(2)}</div><div className={availableAmt > 0 ? 'stat-delta pos' : 'stat-delta dim'}>{availableAmt > 0 ? 'instant-payout eligible' : 'no balance'}</div></div>
           <div className="stat"><div className="stat-k mono">PENDING</div><div className="stat-v">${pendingAmt.toFixed(2)}</div><div className="stat-delta dim">{pendingSub}</div></div>
           <div className="stat"><div className="stat-k mono">HELD</div><div className="stat-v">${heldAmt.toFixed(2)}</div><div className={heldAmt > 0 ? 'stat-delta warn' : 'stat-delta dim'}>{heldSub}</div></div>
