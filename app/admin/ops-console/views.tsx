@@ -450,11 +450,29 @@ export function FleetView({ aircraft, bookings, subTab = 0, onAddAircraft, onDel
       (lo, a) => (!lo || (utilByTail.get(a.tail) ?? 0) < (utilByTail.get(lo.tail) ?? 0)) ? a : lo,
       null,
     )
+    // UTILIZATION · TODAY tile previously hardcoded `stat-delta dim mono` with
+    // subtitle "avg across fleet" — a label that just restated the methodology
+    // (the `%` value IS by definition an average across the fleet) and never
+    // moved with data. Same fragility class as the recently-fixed Squawks
+    // DEFER-ELIGIBLE "within MEL" / Endorsements ACTIVE "all current" / Payouts
+    // NET · MTD "after fees" / Subscriptions ACTIVE "all current" tiles: a
+    // bare descriptor that stayed the same shape whether the % was 0%, 40%, or
+    // 100%, whether the fleet had 1 aircraft or 12, and whether an AOG was
+    // dragging the avg toward zero. Surface the denominator that actually
+    // matters here — how many aircraft are flying any block today vs the full
+    // fleet — so the tile discloses *what* is being averaged. With one AOG +
+    // four idle planes, fleetUtilToday will read ~10% with subtitle "1 of 6 in
+    // use", which is a very different story than "avg across fleet" pretending
+    // the % is a clean fleet-wide measure.
+    const inUse = Array.from(utilByTail.values()).filter(u => u > 0).length
+    const utilSub = aircraft.length === 0
+      ? '—'
+      : `${inUse} of ${aircraft.length} in use`
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">FLEET TOTAL</div><div className="stat-v">{aircraft.reduce((s, a) => s + a.hobbs, 0).toFixed(1)} h</div><div className="stat-delta dim mono">{aircraft.length} aircraft</div></div>
-          <div className="stat"><div className="stat-k mono">UTILIZATION · TODAY</div><div className="stat-v">{Math.round(fleetUtilToday * 100)}%</div><div className="stat-delta dim mono">avg across fleet</div></div>
+          <div className="stat"><div className="stat-k mono">UTILIZATION · TODAY</div><div className="stat-v">{Math.round(fleetUtilToday * 100)}%</div><div className="stat-delta dim mono">{utilSub}</div></div>
           <div className="stat">
             <div className="stat-k mono">TOP UTILIZED</div>
             <div className="stat-v">{topAircraft?.tail || '—'}</div>
@@ -1472,12 +1490,27 @@ export function SyllabusView({ subTab = 0, students = [] }: { subTab?: number; s
     const inProgressSub = inProgress > 0
       ? `${inProgress} of ${LESSONS.length} active`
       : 'none active'
+    // AVG DURATION tile previously hardcoded `stat-delta dim` with subtitle
+    // "flight time" — a redundant label, not a metric. The "h" suffix on the
+    // value already says it's hours, and the GROUND · RATIO tile next door
+    // already discloses that the avg here excludes ground time, so "flight
+    // time" added zero signal and never moved with data. Same dishonest-label
+    // pattern just fixed on Endorsements ACTIVE "all current" / Payouts NET ·
+    // MTD "after fees" / Squawks DEFER-ELIGIBLE "within MEL". Surface the
+    // sample size instead — `avgDuration` divides by `LESSONS.length`, so the
+    // denominator behind the average is the meaningful disclosure here. Match
+    // the shape of TOTAL LESSONS' "{n} courses" sub on the same row, and dim
+    // to '—' when the lesson library is empty (avoids "0.0 h · 0 lessons"
+    // implying we sampled zero rows to produce a real number).
+    const avgDurationSub = LESSONS.length === 0
+      ? '—'
+      : `${LESSONS.length} lesson${LESSONS.length === 1 ? '' : 's'}`
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">TOTAL LESSONS</div><div className="stat-v">{totalLessons}</div><div className="stat-delta dim">{courseCount} course{courseCount === 1 ? '' : 's'}</div></div>
           <div className="stat"><div className="stat-k mono">IN PROGRESS</div><div className="stat-v">{inProgress}</div><div className={inProgressTone}>{inProgressSub}</div></div>
-          <div className="stat"><div className="stat-k mono">AVG DURATION</div><div className="stat-v">{avgDuration.toFixed(1)} h</div><div className="stat-delta dim">flight time</div></div>
+          <div className="stat"><div className="stat-k mono">AVG DURATION</div><div className="stat-v">{avgDuration.toFixed(1)} h</div><div className="stat-delta dim">{avgDurationSub}</div></div>
           <div className="stat"><div className="stat-k mono">GROUND · RATIO</div><div className="stat-v">{groundRatio.toFixed(2)}</div><div className="stat-delta dim">hrs per flight hr</div></div>
         </div>
         <div className="sect-head"><h3>Lesson library</h3><span className="mono dim">{LESSONS.length} shown</span></div>
