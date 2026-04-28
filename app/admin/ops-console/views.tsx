@@ -1732,11 +1732,26 @@ export function ExpensesView({ subTab = 0 }: { subTab?: number }) {
     // moves the moment a category trips its budget. Flip tone to warn when
     // anything is over.
     const overBudgetCats = cats.filter(([k, v]) => budget[k] !== undefined && v > budget[k])
+    // TOP · MAINT subtitle was hardcoded "72% of budget" but the byCat and
+    // budget objects sitting right above already have everything needed to
+    // compute it. The hardcoded value happens to roughly match today
+    // (3250 / 4500 ≈ 72.2%), but it would stay stuck at "72%" forever even
+    // as Maintenance spend climbs toward (or past) the $4,500 cap. Derive
+    // the % so the subtitle moves with the actual data, and flip the tone
+    // to warn/neg only when it crosses thresholds that matter.
+    const maintSpend = byCat.Maintenance ?? 0
+    const maintBudget = budget.Maintenance ?? 0
+    const maintPct = maintBudget > 0
+      ? Math.round((maintSpend / maintBudget) * 100)
+      : 0
+    const maintTone = maintPct >= 100 ? 'stat-delta neg'
+      : maintPct >= 80 ? 'stat-delta warn'
+      : 'stat-delta dim'
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">CATEGORIES</div><div className="stat-v">{cats.length}</div><div className="stat-delta dim">tracked</div></div>
-          <div className="stat"><div className="stat-k mono">TOP · MAINT</div><div className="stat-v">${byCat.Maintenance?.toFixed(0) ?? 0}</div><div className="stat-delta neg">72% of budget</div></div>
+          <div className="stat"><div className="stat-k mono">TOP · MAINT</div><div className="stat-v">${maintSpend.toFixed(0)}</div><div className={maintTone}>{maintBudget > 0 ? `${maintPct}% of budget` : 'no budget set'}</div></div>
           <div className="stat"><div className="stat-k mono">OVER BUDGET</div><div className="stat-v">{overBudgetCats.length}</div><div className={overBudgetCats.length > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{overBudgetCats.length > 0 ? `${overBudgetCats.map(([k]) => k).join(', ')}` : 'YTD'}</div></div>
           <div className="stat"><div className="stat-k mono">UNCATEGORIZED</div><div className="stat-v">0</div><div className="stat-delta pos">clean</div></div>
         </div>
@@ -2233,12 +2248,23 @@ function RequestsArchive() {
   const declinedPct = ARCHIVE.length > 0
     ? Math.round((declinedCount / ARCHIVE.length) * 100)
     : 0
+  // EXPIRED was hardcoded "3" with subtitle "▴ 1 this week" but the ARCHIVE
+  // array right beneath only has 1 expired row (SR-2204) — the tile was
+  // already lying about its own table. The "▴ 1 this week" subtitle implies
+  // a week-over-week delta that isn't backed by any data here. Mirror the
+  // APPROVED / DECLINED tiles next to it: derive the count from ARCHIVE and
+  // express the subtitle as a "% of total" so the trio stays consistent and
+  // can never desync as rows are added/removed.
+  const expiredCount = ARCHIVE.filter(a => a.outcome === 'expired').length
+  const expiredPct = ARCHIVE.length > 0
+    ? Math.round((expiredCount / ARCHIVE.length) * 100)
+    : 0
   return (
     <div className="view-pad">
       <div className="stat-grid">
         <div className="stat"><div className="stat-k mono">30-DAY APPROVED</div><div className="stat-v">{approvedCount}</div><div className={approvalPct >= 80 ? 'stat-delta pos' : 'stat-delta dim'}>{ARCHIVE.length > 0 ? `${approvalPct}% approval` : '—'}</div></div>
         <div className="stat"><div className="stat-k mono">30-DAY DECLINED</div><div className="stat-v">{declinedCount}</div><div className={declinedCount > 0 ? 'stat-delta dim' : 'stat-delta pos'}>{ARCHIVE.length > 0 ? `${declinedPct}% of total` : '—'}</div></div>
-        <div className="stat"><div className="stat-k mono">EXPIRED</div><div className="stat-v">3</div><div className="stat-delta neg">▴ 1 this week</div></div>
+        <div className="stat"><div className="stat-k mono">EXPIRED</div><div className="stat-v">{expiredCount}</div><div className={expiredCount > 0 ? 'stat-delta dim' : 'stat-delta pos'}>{ARCHIVE.length > 0 ? `${expiredPct}% of total` : '—'}</div></div>
         <div className="stat"><div className="stat-k mono">AVG TIME TO APPROVE</div><div className="stat-v">12m</div><div className="stat-delta pos">▾ 4m since last week</div></div>
       </div>
       <div className="sect-head"><h3>Archive · last 30 days</h3></div>
