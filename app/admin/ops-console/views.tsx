@@ -373,11 +373,22 @@ export function FleetView({ aircraft, bookings, subTab = 0, onAddAircraft, onDel
     const fleetUptimeNow = aircraft.length === 0
       ? null
       : (aircraft.filter(a => a.status !== 'ground').length / aircraft.length)
+    // DUE · 14 DAYS tile previously hardcoded `stat-delta warn` with subtitle
+    // "schedule now". When zero events were in the upcoming state the tile
+    // still glowed orange and instructed the viewer to schedule something —
+    // the literal opposite of the truth. Mirror the IN SHOP / UPTIME · NOW
+    // pattern next door: tone warn and say "schedule now" only when there's
+    // actually something due, else go dim with "none upcoming". Same
+    // fragility class as the recently-fixed Disputes OPEN and Endorsements
+    // ACTIVE tiles.
+    const upcomingMaint = MAINT_EVENTS.filter(m => m.status === 'upcoming').length
+    const upcomingTone = upcomingMaint > 0 ? 'stat-delta warn' : 'stat-delta dim'
+    const upcomingSub = upcomingMaint > 0 ? 'schedule now' : 'none upcoming'
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">IN SHOP</div><div className="stat-v">{MAINT_EVENTS.filter(m => m.status === 'in_shop' || m.status === 'awaiting_parts').length}</div><div className={aogCount > 0 ? 'stat-delta neg' : 'stat-delta dim'}>{aogCount > 0 ? `${aogCount} AOG` : 'no AOG'}</div></div>
-          <div className="stat"><div className="stat-k mono">DUE · 14 DAYS</div><div className="stat-v">{MAINT_EVENTS.filter(m => m.status === 'upcoming').length}</div><div className="stat-delta warn">schedule now</div></div>
+          <div className="stat"><div className="stat-k mono">DUE · 14 DAYS</div><div className="stat-v">{upcomingMaint}</div><div className={upcomingTone}>{upcomingSub}</div></div>
           <div className="stat"><div className="stat-k mono">MTD · SPEND</div><div className="stat-v">${mtdMaintSpend.toFixed(2)}</div><div className="stat-delta dim mono">{mtdMaint.length} event{mtdMaint.length === 1 ? '' : 's'}</div></div>
           <div className="stat"><div className="stat-k mono">UPTIME · NOW</div><div className="stat-v">{fleetUptimeNow === null ? '—' : `${Math.round(fleetUptimeNow * 100)}%`}</div><div className={aogCount > 0 ? 'stat-delta neg' : 'stat-delta dim'}>{fleetUptimeNow === null ? '—' : (aogCount > 0 ? `${aogCount} grounded` : 'all flying')}</div></div>
         </div>
@@ -1324,11 +1335,24 @@ export function SyllabusView({ subTab = 0, students = [] }: { subTab?: number; s
     const totalGround = LESSONS.reduce((t, l) => t + parseH(l.ground), 0)
     const avgDuration = LESSONS.length > 0 ? totalFlight / LESSONS.length : 0
     const groundRatio = totalFlight > 0 ? totalGround / totalFlight : 0
+    // IN PROGRESS tile previously hardcoded `stat-delta pos` with subtitle
+    // "across fleet". When zero lessons had `active > 0` the tile still glowed
+    // green and claimed coverage across the fleet — same dishonest-tone
+    // pattern as the recently-fixed Disputes OPEN, Endorsements ACTIVE, and
+    // Maintenance DUE · 14 DAYS tiles. Tone pos and say "across fleet" only
+    // when something is actually in progress, else go dim with "none active".
+    // Add a denominator-style sub so a reviewer sees magnitude (1-of-12 vs
+    // 8-of-12 lessons in progress are very different stories).
+    const inProgress = LESSONS.filter(l => l.active > 0).length
+    const inProgressTone = inProgress > 0 ? 'stat-delta pos' : 'stat-delta dim'
+    const inProgressSub = inProgress > 0
+      ? `${inProgress} of ${LESSONS.length} active`
+      : 'none active'
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">TOTAL LESSONS</div><div className="stat-v">{totalLessons}</div><div className="stat-delta dim">{courseCount} course{courseCount === 1 ? '' : 's'}</div></div>
-          <div className="stat"><div className="stat-k mono">IN PROGRESS</div><div className="stat-v">{LESSONS.filter(l => l.active > 0).length}</div><div className="stat-delta pos">across fleet</div></div>
+          <div className="stat"><div className="stat-k mono">IN PROGRESS</div><div className="stat-v">{inProgress}</div><div className={inProgressTone}>{inProgressSub}</div></div>
           <div className="stat"><div className="stat-k mono">AVG DURATION</div><div className="stat-v">{avgDuration.toFixed(1)} h</div><div className="stat-delta dim">flight time</div></div>
           <div className="stat"><div className="stat-k mono">GROUND · RATIO</div><div className="stat-v">{groundRatio.toFixed(2)}</div><div className="stat-delta dim">hrs per flight hr</div></div>
         </div>
