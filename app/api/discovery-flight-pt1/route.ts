@@ -1,5 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { NextRequest, NextResponse } from 'next/server'
+import { Resend } from 'resend'
+import { emailTemplates } from '@/lib/resend'
 
 function mergeSection(existingNotes: string | null, sectionTitle: string, sectionBody: string): string {
   const escapedTitle = sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -77,6 +79,35 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to save form data' },
         { status: 500 }
       )
+    }
+
+    // Owner alert — fire-and-forget, never blocks the response
+    try {
+      if (process.env.RESEND_API_KEY) {
+        const resend = new Resend(process.env.RESEND_API_KEY)
+        const tpl = emailTemplates.prospectAdminAlert({
+          stage: 'Funnel Step 1 complete (basics)',
+          email,
+          details: [
+            { label: 'Name', value: `${firstName} ${lastName}`.trim() },
+            { label: 'Phone', value: phoneNumber },
+            { label: 'Date of Birth', value: dateOfBirth },
+            { label: 'Citizenship', value: citizenship },
+            { label: 'Training Objective', value: trainingObjective },
+            { label: 'Training Start', value: trainingStart },
+            { label: 'For Someone Else', value: String(isForSomeoneElse) },
+            { label: 'Agreed to SMS', value: String(agreeToSMS) },
+          ],
+        })
+        await resend.emails.send({
+          from: 'Merlin Flight Training <noreply@merlinflighttraining.com>',
+          to: ['MerlinFlightTraining@gmail.com'],
+          subject: tpl.subject,
+          html: tpl.html,
+        })
+      }
+    } catch (alertErr) {
+      console.error('Owner prospect alert failed (prospect saved):', alertErr)
     }
 
     return NextResponse.json(

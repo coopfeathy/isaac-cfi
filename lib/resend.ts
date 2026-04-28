@@ -389,4 +389,46 @@ export const emailTemplates = {
       <p>Blue skies,<br/>Merlin Flight Training</p>
     `),
   }),
+
+  // Owner-facing alert when someone signs up / progresses through the prospect funnel.
+  // Sent to MerlinFlightTraining@gmail.com so Isaac knows ASAP.
+  prospectAdminAlert: (payload: {
+    stage: string
+    email: string
+    details: Array<{ label: string; value: string }>
+  }) => {
+    const safeEmail = String(payload.email)
+    const rows = payload.details
+      .filter((d) => d.value !== undefined && d.value !== null && String(d.value).trim() !== '')
+      .map(
+        (d) => `
+          <tr>
+            <td style="padding: 8px 12px; border-bottom: 1px solid ${brand.borderColor}; color: ${brand.mutedText}; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; width: 40%; vertical-align: top;">${d.label}</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid ${brand.borderColor}; color: ${brand.dark}; font-size: 14px; vertical-align: top;">${d.value}</td>
+          </tr>`,
+      )
+      .join('')
+    return {
+      subject: `[Prospect] ${payload.stage} — ${safeEmail}`,
+      html: emailWrapper(`
+        <h1 style="color: ${brand.dark}; margin: 0 0 8px 0; font-size: 22px;">New Prospect Activity</h1>
+        <div style="width: 40px; height: 3px; background: ${brand.gold}; margin-bottom: 20px;"></div>
+        <div style="background: ${brand.lightBg}; border-left: 4px solid ${brand.gold}; padding: 14px 18px; border-radius: 0 6px 6px 0; margin: 0 0 20px 0;">
+          <p style="margin: 0; font-size: 13px; color: ${brand.mutedText}; text-transform: uppercase; letter-spacing: 0.5px;">Stage</p>
+          <p style="margin: 4px 0 0 0; font-size: 16px; font-weight: 700; color: ${brand.dark};">${payload.stage}</p>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; margin: 0 0 24px 0;">
+          <tr>
+            <td style="padding: 8px 12px; border-bottom: 1px solid ${brand.borderColor}; color: ${brand.mutedText}; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; width: 40%; vertical-align: top;">Email</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid ${brand.borderColor}; color: ${brand.dark}; font-size: 14px; vertical-align: top;"><a href="mailto:${safeEmail}" style="color: ${brand.dark};">${safeEmail}</a></td>
+          </tr>
+          ${rows}
+        </table>
+        <div style="text-align: center; margin: 24px 0 8px 0;">
+          <a href="https://merlinflighttraining.com/admin/prospects" style="display: inline-block; background: ${brand.gold}; color: ${brand.dark}; font-weight: 700; text-decoration: none; padding: 10px 24px; border-radius: 6px; font-size: 14px;">Open in Admin</a>
+        </div>
+        <p style="color: ${brand.mutedText}; font-size: 12px; margin-top: 20px;">You're receiving this because you asked to be notified whenever someone signs up as a prospect.</p>
+      `),
+    }
+  },
 }

@@ -1,5 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { NextRequest, NextResponse } from 'next/server'
+import { Resend } from 'resend'
+import { emailTemplates } from '@/lib/resend'
 
 function mergeSection(existingNotes: string | null, sectionTitle: string, sectionBody: string): string {
   const escapedTitle = sectionTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -63,6 +65,43 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to save form data' },
         { status: 500 }
       )
+    }
+
+    // Owner alert — fire-and-forget, never blocks the response.
+    // At this point the prospect has accumulated all 3 funnel steps in `notes`.
+    try {
+      if (process.env.RESEND_API_KEY) {
+        const { data: fullProspect } = await supabase
+          .from('prospects')
+          .select('full_name, phone, meeting_location, notes')
+          .eq('email', email)
+          .maybeSingle()
+
+        const resend = new Resend(process.env.RESEND_API_KEY)
+        const tpl = emailTemplates.prospectAdminAlert({
+          stage: 'Funnel complete (all 3 steps)',
+          email,
+          details: [
+            { label: 'Name', value: fullProspect?.full_name ?? '' },
+            { label: 'Phone', value: fullProspect?.phone ?? '' },
+            { label: 'Preferred Location', value: selectedLocation },
+            {
+              label: 'Funnel Notes',
+              value: fullProspect?.notes
+                ? `<pre style="white-space: pre-wrap; font-family: inherit; margin: 0;">${fullProspect.notes}</pre>`
+                : '',
+            },
+          ],
+        })
+        await resend.emails.send({
+          from: 'Merlin Flight Training <noreply@merlinflighttraining.com>',
+          to: ['MerlinFlightTraining@gmail.com'],
+          subject: tpl.subject,
+          html: tpl.html,
+        })
+      }
+    } catch (alertErr) {
+      console.error('Owner prospect alert failed (prospect saved):', alertErr)
     }
 
     return NextResponse.json(

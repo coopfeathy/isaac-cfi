@@ -206,6 +206,39 @@ export async function POST(request: NextRequest) {
     console.error('Start training confirmation email failed (prospect saved):', emailErr)
   }
 
+  // ---- Owner alert (best-effort, never blocks the response) -------------
+  try {
+    if (process.env.RESEND_API_KEY) {
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      const checklist = [
+        `TSA: ${requirementsChecklist.tsa ? 'yes' : 'no'}`,
+        `Medical: ${requirementsChecklist.medical ? 'yes' : 'no'}`,
+        `Student Cert: ${requirementsChecklist['student-cert'] ? 'yes' : 'no'}`,
+        `Enrollment: ${requirementsChecklist.enrollment ? 'yes' : 'no'}`,
+      ].join(' &middot; ')
+      const tpl = emailTemplates.prospectAdminAlert({
+        stage: existingProspect ? 'Start Training intake (returning prospect)' : 'Start Training intake (new prospect)',
+        email,
+        details: [
+          { label: 'Name', value: fullName.trim() },
+          { label: 'Phone', value: phone.trim() },
+          { label: 'Preferred Location', value: preferredLocation },
+          { label: 'Earliest Start', value: earliestStart },
+          { label: 'Student Notes', value: notes?.trim() ?? '' },
+          { label: 'Self-Reported Checklist', value: checklist },
+        ],
+      })
+      await resend.emails.send({
+        from: 'Merlin Flight Training <noreply@merlinflighttraining.com>',
+        to: ['MerlinFlightTraining@gmail.com'],
+        subject: tpl.subject,
+        html: tpl.html,
+      })
+    }
+  } catch (alertErr) {
+    console.error('Owner prospect alert failed (intake saved):', alertErr)
+  }
+
   return NextResponse.json(
     {
       message: 'Training intake saved successfully',

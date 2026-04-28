@@ -91,6 +91,29 @@ export async function POST(request: NextRequest) {
       } catch (emailErr) {
         console.error('Day-0 email failed (prospect saved):', emailErr)
       }
+
+      // Owner alert — fire-and-forget, never blocks the response
+      try {
+        if (process.env.RESEND_API_KEY) {
+          const resend = new Resend(process.env.RESEND_API_KEY)
+          const tpl = emailTemplates.prospectAdminAlert({
+            stage: 'New signup (email only)',
+            email,
+            details: [
+              { label: 'Source', value: 'discovery_flight (step 0)' },
+              { label: 'Submitted', value: new Date().toISOString() },
+            ],
+          })
+          await resend.emails.send({
+            from: 'Merlin Flight Training <noreply@merlinflighttraining.com>',
+            to: ['MerlinFlightTraining@gmail.com'],
+            subject: tpl.subject,
+            html: tpl.html,
+          })
+        }
+      } catch (alertErr) {
+        console.error('Owner prospect alert failed (prospect saved):', alertErr)
+      }
     }
 
     return NextResponse.json(
