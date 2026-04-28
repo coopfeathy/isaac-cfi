@@ -2225,11 +2225,19 @@ function RequestsArchive() {
   const approvalPct = ARCHIVE.length > 0
     ? Math.round((approvedCount / ARCHIVE.length) * 100)
     : 0
+  // 30-DAY DECLINED was hardcoded "6" but ARCHIVE only has 2 declined rows
+  // visible (SR-2203, SR-2207). The number was already lying about its own
+  // table directly beneath. Derive from ARCHIVE so the tile and the archive
+  // table can never disagree, matching the APPROVED tile next to it.
+  const declinedCount = ARCHIVE.filter(a => a.outcome === 'declined').length
+  const declinedPct = ARCHIVE.length > 0
+    ? Math.round((declinedCount / ARCHIVE.length) * 100)
+    : 0
   return (
     <div className="view-pad">
       <div className="stat-grid">
         <div className="stat"><div className="stat-k mono">30-DAY APPROVED</div><div className="stat-v">{approvedCount}</div><div className={approvalPct >= 80 ? 'stat-delta pos' : 'stat-delta dim'}>{ARCHIVE.length > 0 ? `${approvalPct}% approval` : '—'}</div></div>
-        <div className="stat"><div className="stat-k mono">30-DAY DECLINED</div><div className="stat-v">6</div><div className="stat-delta dim">—</div></div>
+        <div className="stat"><div className="stat-k mono">30-DAY DECLINED</div><div className="stat-v">{declinedCount}</div><div className={declinedCount > 0 ? 'stat-delta dim' : 'stat-delta pos'}>{ARCHIVE.length > 0 ? `${declinedPct}% of total` : '—'}</div></div>
         <div className="stat"><div className="stat-k mono">EXPIRED</div><div className="stat-v">3</div><div className="stat-delta neg">▴ 1 this week</div></div>
         <div className="stat"><div className="stat-k mono">AVG TIME TO APPROVE</div><div className="stat-v">12m</div><div className="stat-delta pos">▾ 4m since last week</div></div>
       </div>
@@ -2326,13 +2334,23 @@ function IntegrityRuns() {
   const successSub = RUNS.length === 0
     ? '—'
     : `${errorRuns} ${errorRuns === 1 ? 'error' : 'errors'} in last ${RUNS.length}`
+  // ALERTS GENERATED was hardcoded "32 · today" but the RUNS array beneath
+  // carries a `fired` count per run — sum of those is 33, not 32, so the
+  // tile was already off-by-one against its own table. Subtitle "today" was
+  // also wrong: the runs span 07:24→09:12, not a full day. Derive the alert
+  // total from RUNS.fired and label the window by the run-count actually in
+  // scope, matching the AVG DURATION / SUCCESS RATE tiles next to it.
+  const totalFired = RUNS.reduce((s, r) => s + r.fired, 0)
+  const firedSub = RUNS.length === 0
+    ? '—'
+    : `across last ${RUNS.length} run${RUNS.length === 1 ? '' : 's'}`
   return (
     <div className="view-pad">
       <div className="stat-grid">
         <div className="stat"><div className="stat-k mono">RUNS TODAY</div><div className="stat-v">46</div><div className="stat-delta dim">every 12 min</div></div>
         <div className="stat"><div className="stat-k mono">AVG DURATION</div><div className="stat-v">{avgDur}ms</div><div className="stat-delta dim">across {RUNS.length} runs</div></div>
         <div className="stat"><div className="stat-k mono">SUCCESS RATE</div><div className="stat-v">{successRate.toFixed(1)}%</div><div className={errorRuns > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{successSub}</div></div>
-        <div className="stat"><div className="stat-k mono">ALERTS GENERATED</div><div className="stat-v">32</div><div className="stat-delta dim">today</div></div>
+        <div className="stat"><div className="stat-k mono">ALERTS GENERATED</div><div className="stat-v">{totalFired}</div><div className="stat-delta dim">{firedSub}</div></div>
       </div>
       <div className="sect-head"><h3>Recent runs</h3></div>
       <table className="dt"><thead><tr><th>Run ID</th><th className="right">When</th><th className="right">Duration</th><th className="right">Checks</th><th className="right">Fired</th><th>Status</th><th></th></tr></thead><tbody>
