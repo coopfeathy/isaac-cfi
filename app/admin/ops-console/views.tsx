@@ -1437,10 +1437,21 @@ export function SyllabusView({ subTab = 0, students = [] }: { subTab?: number; s
       return expDate >= today && expDate <= in30
     })
     const issuedMtd = END.filter(e => e.issued.startsWith(monthKey))
+    // ACTIVE subtitle "all current" was a hardcoded label, not a metric.
+    // It stayed green-positive even when zero endorsements were active —
+    // the opposite of "all current" — and it was also conceptually wrong:
+    // an "active" endorsement can still be expiring in the next 30 days
+    // (the tile next to it counts those). Replace with an "X of Y total"
+    // shape that mirrors how SUBSCRIPTIONS · ACTIVE and STUDENTS · ACTIVE
+    // express the same idea elsewhere in the console, and only tone it
+    // positive when at least one endorsement is actually active.
+    const activeEnd = END.filter(e => e.status === 'active')
+    const activeSubtitle = `of ${END.length} total`
+    const activeTone = activeEnd.length > 0 ? 'stat-delta pos' : 'stat-delta dim'
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">ACTIVE</div><div className="stat-v">{END.filter(e => e.status === 'active').length}</div><div className="stat-delta pos">all current</div></div>
+          <div className="stat"><div className="stat-k mono">ACTIVE</div><div className="stat-v">{activeEnd.length}</div><div className={activeTone}>{activeSubtitle}</div></div>
           <div className="stat"><div className="stat-k mono">EXPIRE &lt; 30D</div><div className="stat-v">{expiringSoon.length}</div><div className={expiringSoon.length > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{expiringSoon.length > 0 ? 'renew soon' : 'clear'}</div></div>
           <div className="stat"><div className="stat-k mono">EXPIRED</div><div className="stat-v">{END.filter(e => e.status === 'expired').length}</div><div className="stat-delta dim">archived</div></div>
           <div className="stat"><div className="stat-k mono">ISSUED · MTD</div><div className="stat-v">{issuedMtd.length}</div><div className="stat-delta dim mono">{issuedMtd.length === 0 ? 'none this month' : `this month`}</div></div>
@@ -1714,25 +1725,41 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
     // FEES · MTD subtitle "3.02% eff." was hardcoded — it happens to match
     // FEES[0].eff today, but updating the MTD row's gross/fees would leave
     // the tile lying about the effective rate while the table beneath shows
-    // the new reality. Derive from FEES[0] so the tile and the table can
+    // the new reality. Derive from the MTD row so the tile and the table can
     // never disagree. Same story for FEES · YTD: "4 periods" was hardcoded
     // but is just FEES.length — adding/removing a period would desync it.
-    const mtdEffPct = FEES[0].eff * 100
+    //
+    // Previously the MTD row was located via FEES[0] — a hardcoded array
+    // index. That's fragile in the same way STRIPE_BALANCE[0] was: any
+    // reorder of FEES (sorting newest-last, inserting a closed-out April
+    // row above the in-progress May MTD row, etc.) would silently swap the
+    // MTD tile to a prior period's numbers while the row label still said
+    // "MTD". Look up the MTD entry by matching its period string instead,
+    // and fall back to a zeroed sentinel if no MTD row exists yet, so the
+    // tiles stay correct regardless of array order or whether the month
+    // has been opened.
+    const mtdRow = FEES.find(f => f.period.includes('MTD')) ?? { gross: 0, fees: 0, net: 0, eff: 0 }
+    const mtdEffPct = mtdRow.eff * 100
     // REFUND · COST was hardcoded "$0.30" with subtitle "minimal" — that's
     // Stripe's per-charge fixed fee, not a value derived from any data in
     // scope. There is no refunds feed anywhere here, so the tile was both
     // a magic number and editorial. Replace with NET · MTD = gross - fees
-    // for the current month, which IS derivable from FEES[0] (the same row
-    // that powers the FEES · MTD tile next to it) and complements the
+    // for the current month, which IS derivable from the MTD row (the same
+    // row that powers the FEES · MTD tile next to it) and complements the
     // three other dollar-shaped tiles in this grid. Now the four tiles
     // collectively answer: how much did we charge (FEES · MTD), how much
     // YTD (FEES · YTD), how much is at risk (DISPUTES · MTD), and how
     // much actually landed (NET · MTD).
-    const netMtd = FEES[0].net
+    const netMtd = mtdRow.net
+    // NET · MTD subtitle "after fees" is a label, not a metric — it stays
+    // green-positive even when net is zero (no MTD row yet, or a fully
+    // refunded/disputed month). Tone the tile dim when there's nothing to
+    // celebrate so the green check only fires when net actually landed.
+    const netMtdTone = netMtd > 0 ? 'stat-delta pos' : 'stat-delta dim'
     return (
       <div className="view-pad">
         <div className="stat-grid">
-          <div className="stat"><div className="stat-k mono">FEES · MTD</div><div className="stat-v">${FEES[0].fees.toFixed(2)}</div><div className="stat-delta dim">{mtdEffPct.toFixed(2)}% eff.</div></div>
+          <div className="stat"><div className="stat-k mono">FEES · MTD</div><div className="stat-v">${mtdRow.fees.toFixed(2)}</div><div className="stat-delta dim">{mtdEffPct.toFixed(2)}% eff.</div></div>
           <div className="stat"><div className="stat-k mono">FEES · YTD</div><div className="stat-v">${FEES.reduce((s, f) => s + f.fees, 0).toFixed(2)}</div><div className="stat-delta dim">{FEES.length} period{FEES.length === 1 ? '' : 's'}</div></div>
           {(() => {
             const openDisputes = DISPUTES.filter(d => d.status !== 'won')
@@ -1741,7 +1768,7 @@ export function PayoutsView({ subTab = 0 }: { subTab?: number }) {
               <div className="stat"><div className="stat-k mono">DISPUTES · MTD</div><div className="stat-v">${openDisputesAmount.toFixed(2)}</div><div className={openDisputes.length ? 'stat-delta warn' : 'stat-delta dim'}>{openDisputes.length ? `${openDisputes.length} raised` : 'none'}</div></div>
             )
           })()}
-          <div className="stat"><div className="stat-k mono">NET · MTD</div><div className="stat-v">${netMtd.toFixed(2)}</div><div className="stat-delta pos">after fees</div></div>
+          <div className="stat"><div className="stat-k mono">NET · MTD</div><div className="stat-v">${netMtd.toFixed(2)}</div><div className={netMtdTone}>after fees</div></div>
         </div>
         <div className="sect-head"><h3>Fee breakdown by period</h3></div>
         <table className="dt"><thead><tr><th>Period</th><th className="right">Gross volume</th><th className="right">Fees</th><th className="right">Net</th><th className="right">Effective rate</th></tr></thead><tbody>
