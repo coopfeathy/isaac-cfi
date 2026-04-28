@@ -501,9 +501,32 @@ export function FleetView({ aircraft, bookings, subTab = 0, onAddAircraft, onDel
     // history we don't persist — and replace it with an honest MAJOR count.
     const openSquawks = SQUAWKS.filter(s => s.status === 'open')
     const openMajor = openSquawks.filter(s => s.severity === 'major').length
-    const deferredCount = SQUAWKS.filter(s => s.status === 'deferred').length
+    const deferredSquawks = SQUAWKS.filter(s => s.status === 'deferred')
+    const deferredCount = deferredSquawks.length
     const resolvedCount = SQUAWKS.filter(s => s.status === 'resolved').length
     const majorCount = SQUAWKS.filter(s => s.severity === 'major').length
+    // DEFERRED tile previously hardcoded `stat-delta dim` with subtitle
+    // "within MEL" — same label-not-metric pattern as the recently-fixed
+    // Squawks RESOLVED "in log" / Integrity PAID-UNBOOKED "BI-104 alerts"
+    // / Payouts AVG SETTLE "ACH" / Receipts ATTACHED tiles. "within MEL"
+    // just restates the regulatory category every deferred squawk belongs
+    // to by definition; it never moves with data and adds no signal.
+    // Worse, FAA MEL deferrals carry repair-interval limits — a stale
+    // deferral is an active maintenance escalation, not a dim
+    // informational state, same fragility class as the recently-fixed
+    // Maintenance DUE·14D and Disputes OPEN tiles which were quietly dim
+    // on real-action states. Compute the oldest deferral age from the
+    // `reported` date and tone warn past the 30-day MEL Category-A
+    // guideline; else dim with the age, and pos on empty.
+    const oldestDeferredDays = deferredCount > 0
+      ? Math.max(...deferredSquawks.map(s => Math.floor((Date.now() - new Date(s.reported).getTime()) / 86_400_000)))
+      : 0
+    const deferredTone = deferredCount === 0
+      ? 'stat-delta pos'
+      : (oldestDeferredDays > 30 ? 'stat-delta warn' : 'stat-delta dim')
+    const deferredSub = deferredCount === 0
+      ? 'none deferred'
+      : `oldest ${oldestDeferredDays}d`
     // RESOLVED tile previously hardcoded `stat-delta dim` with subtitle
     // "in log" — same label-not-metric pattern as the recently-fixed Payouts
     // AVG SETTLE "ACH" / Receipts ATTACHED "100% covered" / Integrity PAID
@@ -520,7 +543,7 @@ export function FleetView({ aircraft, bookings, subTab = 0, onAddAircraft, onDel
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">OPEN</div><div className="stat-v">{openSquawks.length}</div><div className={openMajor > 0 ? 'stat-delta warn' : 'stat-delta dim'}>{openMajor > 0 ? `${openMajor} major` : 'all minor'}</div></div>
-          <div className="stat"><div className="stat-k mono">DEFERRED</div><div className="stat-v">{deferredCount}</div><div className="stat-delta dim">within MEL</div></div>
+          <div className="stat"><div className="stat-k mono">DEFERRED</div><div className="stat-v">{deferredCount}</div><div className={deferredTone}>{deferredSub}</div></div>
           <div className="stat"><div className="stat-k mono">RESOLVED</div><div className="stat-v">{resolvedCount}</div><div className="stat-delta dim">{resolvedSub}</div></div>
           <div className="stat"><div className="stat-k mono">MAJOR · ALL</div><div className="stat-v">{majorCount}</div><div className={majorCount > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{majorCount > 0 ? 'severity flag' : 'none'}</div></div>
         </div>
@@ -1572,12 +1595,26 @@ export function SyllabusView({ subTab = 0, students = [] }: { subTab?: number; s
     const activeEnd = END.filter(e => e.status === 'active')
     const activeSubtitle = `of ${END.length} total`
     const activeTone = activeEnd.length > 0 ? 'stat-delta pos' : 'stat-delta dim'
+    // EXPIRED tile previously hardcoded `stat-delta dim` with subtitle
+    // "archived" — same label-not-metric pattern as the recently-fixed
+    // Squawks DEFERRED "within MEL" / Squawks RESOLVED "in log" / Holds
+    // DOC HOLDS "medicals" tiles. "archived" just restates an
+    // implementation detail (status === 'expired' rows live in the
+    // historical log) and never moves with data. Surface a denominator
+    // ("of N total") so the share is interpretable, mirroring the ACTIVE
+    // tile next door which the recent Endorsements ACTIVE fix already
+    // shaped this way. Tone stays dim because expired endorsements are a
+    // neutral historical metric, not an action signal — empty state goes
+    // pos with "none expired" since that is positive.
+    const expiredEnd = END.filter(e => e.status === 'expired')
+    const expiredTone = expiredEnd.length === 0 ? 'stat-delta pos' : 'stat-delta dim'
+    const expiredSub = expiredEnd.length === 0 ? 'none expired' : `of ${END.length} total`
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">ACTIVE</div><div className="stat-v">{activeEnd.length}</div><div className={activeTone}>{activeSubtitle}</div></div>
           <div className="stat"><div className="stat-k mono">EXPIRE &lt; 30D</div><div className="stat-v">{expiringSoon.length}</div><div className={expiringSoon.length > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{expiringSoon.length > 0 ? 'renew soon' : 'clear'}</div></div>
-          <div className="stat"><div className="stat-k mono">EXPIRED</div><div className="stat-v">{END.filter(e => e.status === 'expired').length}</div><div className="stat-delta dim">archived</div></div>
+          <div className="stat"><div className="stat-k mono">EXPIRED</div><div className="stat-v">{expiredEnd.length}</div><div className={expiredTone}>{expiredSub}</div></div>
           <div className="stat"><div className="stat-k mono">ISSUED · MTD</div><div className="stat-v">{issuedMtd.length}</div><div className="stat-delta dim mono">{issuedMtd.length === 0 ? 'none this month' : `this month`}</div></div>
         </div>
         <div className="sect-head"><h3>Instructor endorsements</h3><span className="mono dim">FAA log</span></div>
