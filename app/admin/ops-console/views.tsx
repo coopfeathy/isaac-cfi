@@ -504,12 +504,24 @@ export function FleetView({ aircraft, bookings, subTab = 0, onAddAircraft, onDel
     const deferredCount = SQUAWKS.filter(s => s.status === 'deferred').length
     const resolvedCount = SQUAWKS.filter(s => s.status === 'resolved').length
     const majorCount = SQUAWKS.filter(s => s.severity === 'major').length
+    // RESOLVED tile previously hardcoded `stat-delta dim` with subtitle
+    // "in log" — same label-not-metric pattern as the recently-fixed Payouts
+    // AVG SETTLE "ACH" / Receipts ATTACHED "100% covered" / Integrity PAID
+    // UNBOOKED "BI-104 alerts" tiles. "in log" just restates that the count
+    // came from the squawk log; it never moves with data and adds no signal.
+    // Surface a denominator ("4 of 12 total") so the share is interpretable
+    // and the tile communicates progress rather than a tautology. Tone stays
+    // dim because resolved is a neutral historical metric, not an action
+    // signal. Empty state is honest "no log entries" rather than "in log".
+    const resolvedSub = SQUAWKS.length > 0
+      ? `of ${SQUAWKS.length} total`
+      : 'no log entries'
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">OPEN</div><div className="stat-v">{openSquawks.length}</div><div className={openMajor > 0 ? 'stat-delta warn' : 'stat-delta dim'}>{openMajor > 0 ? `${openMajor} major` : 'all minor'}</div></div>
           <div className="stat"><div className="stat-k mono">DEFERRED</div><div className="stat-v">{deferredCount}</div><div className="stat-delta dim">within MEL</div></div>
-          <div className="stat"><div className="stat-k mono">RESOLVED</div><div className="stat-v">{resolvedCount}</div><div className="stat-delta dim">in log</div></div>
+          <div className="stat"><div className="stat-k mono">RESOLVED</div><div className="stat-v">{resolvedCount}</div><div className="stat-delta dim">{resolvedSub}</div></div>
           <div className="stat"><div className="stat-k mono">MAJOR · ALL</div><div className="stat-v">{majorCount}</div><div className={majorCount > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{majorCount > 0 ? 'severity flag' : 'none'}</div></div>
         </div>
         <div className="sect-head"><h3>Squawk log</h3><span className="mono dim">{SQUAWKS.length}</span></div>
