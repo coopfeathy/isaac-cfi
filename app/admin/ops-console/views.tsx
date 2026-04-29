@@ -2505,13 +2505,52 @@ export function DebriefsView({ bookings = [] }: { bookings?: Booking[] }) {
   // everything is closed; dim with "of N today" otherwise.
   const signedSub = completed.length === total ? 'all signed today' : `of ${total} today`
   const signedTone = completed.length === total && total > 0 ? 'stat-delta pos' : 'stat-delta dim'
+  // IN FLIGHT tile previously hardcoded `stat-delta dim` with subtitle
+  // "awaiting landing" — same dishonest-label / never-moves-with-data
+  // pattern as the recently-fixed LANDED · SIGNED tile right next to it.
+  // The subtitle just restated the tile's own definition (IN FLIGHT means,
+  // by definition, "awaiting landing"); it stayed identical at every count
+  // and added zero new signal. The actually useful disclosure is *which CFIs
+  // are still airborne* — a "3" with three different CFIs in the air is a
+  // very different staffing picture than a "3" with one CFI flying
+  // back-to-back. And the all-down moment is a workflow-pivot worth
+  // telegraphing: once IN FLIGHT goes to 0, the rest of the day is purely
+  // sign-off work, no more landings expected. Pos tone with "all down for
+  // today" when zero airborne (and the day had flights — handled by the
+  // total === 0 early-return above). Dim with the distinct-CFI count
+  // otherwise. Same shape as Dispatch IN BRIEF "n CFI(s)" subtitles.
+  const inFlightCfis = new Set(inFlight.map(b => b.cfi).filter(Boolean)).size
+  const inFlightSub = inFlight.length === 0
+    ? 'all down for today'
+    : `${inFlightCfis} CFI${inFlightCfis === 1 ? '' : 's'} airborne`
+  const inFlightTone = inFlight.length === 0 ? 'stat-delta pos' : 'stat-delta dim'
+  // ASSIGNED CFIS tile previously hardcoded `stat-delta dim` with subtitle
+  // "with debriefs" — same dishonest-label / never-moves-with-data pattern.
+  // The subtitle just restated the view context (the entire DebriefsView is
+  // about debriefs); a "1" and a "3" both read "with debriefs" identically,
+  // even though those represent very different staffing days (one CFI
+  // covering the whole flight line vs the full roster engaged). The
+  // actually useful disclosure is the *share of the roster* engaged today —
+  // same "of N total" shape as Students ACTIVE LEARNERS "of N total" and
+  // Subscriptions ACTIVE "of N total". Tone pos when the full roster is
+  // engaged on today's flights (a "whole-team day" signal worth
+  // telegraphing — same logic as Endorsements ACTIVE pos when nonzero);
+  // dim otherwise (a partial roster is normal, not an alert state — Schedule
+  // CFI HOURS already discloses workload distribution).
+  const assignedCfis = new Set([...completed, ...inFlight].map(b => b.cfi).filter(Boolean)).size
+  const assignedSub = INSTRUCTORS.length > 0
+    ? `of ${INSTRUCTORS.length} roster`
+    : '—'
+  const assignedTone = assignedCfis === INSTRUCTORS.length && INSTRUCTORS.length > 0
+    ? 'stat-delta pos'
+    : 'stat-delta dim'
   return (
     <div className="view-pad">
       <div className="stat-grid">
         <div className="stat"><div className="stat-k mono">LANDED · SIGNED</div><div className="stat-v">{completed.length}</div><div className={signedTone}>{signedSub}</div></div>
-        <div className="stat"><div className="stat-k mono">IN FLIGHT</div><div className="stat-v">{inFlight.length}</div><div className="stat-delta dim">awaiting landing</div></div>
+        <div className="stat"><div className="stat-k mono">IN FLIGHT</div><div className="stat-v">{inFlight.length}</div><div className={inFlightTone}>{inFlightSub}</div></div>
         <div className="stat"><div className="stat-k mono">TOTAL TODAY</div><div className="stat-v">{total}</div><div className="stat-delta dim">flights tracked</div></div>
-        <div className="stat"><div className="stat-k mono">ASSIGNED CFIS</div><div className="stat-v">{new Set([...completed, ...inFlight].map(b => b.cfi).filter(Boolean)).size}</div><div className="stat-delta dim">with debriefs</div></div>
+        <div className="stat"><div className="stat-k mono">ASSIGNED CFIS</div><div className="stat-v">{assignedCfis}</div><div className={assignedTone}>{assignedSub}</div></div>
       </div>
       <div className="sect-head"><h3>Debriefs</h3><span className="mono dim">{total} active today</span></div>
       <table className="dt"><thead><tr><th>Booking</th><th>Student</th><th>Tail</th><th>Lesson</th><th>CFI</th><th>Status</th><th></th></tr></thead><tbody>
