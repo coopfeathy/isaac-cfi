@@ -244,7 +244,7 @@ function StartTrainingContent() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/book-lesson"
+              href="https://app.merlinflighttraining.com/book-lesson"
               className="min-h-[56px] inline-flex items-center justify-center px-8 py-4 text-base sm:text-lg bg-golden text-black font-bold rounded-lg shadow-lg hover:bg-yellow-500 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
             >
               Book My First Lesson →
@@ -392,7 +392,7 @@ function StartTrainingContent() {
                   reach out within one business day to lock in your first lesson.
                 </p>
                 <Link
-                  href="/book-lesson"
+                  href="https://app.merlinflighttraining.com/book-lesson"
                   className="min-h-[52px] inline-flex items-center justify-center px-8 py-3 bg-golden text-black font-bold rounded-lg shadow-lg hover:bg-yellow-500 hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
                 >
                   Book My First Lesson Now
@@ -531,7 +531,7 @@ function StartTrainingContent() {
                     {submitting ? 'Saving…' : 'Start My Training'}
                   </button>
                   <Link
-                    href="/book-lesson"
+                    href="https://app.merlinflighttraining.com/book-lesson"
                     className="flex-1 min-h-[56px] inline-flex items-center justify-center px-8 py-4 bg-transparent text-white border-2 border-golden/50 hover:border-golden hover:bg-golden/10 font-semibold rounded-lg transition-all duration-300"
                   >
                     Or: Book Lesson on Calendar

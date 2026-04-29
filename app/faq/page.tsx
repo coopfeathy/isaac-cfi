@@ -290,7 +290,7 @@ export default function FAQ() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/schedule"
+              href="https://app.merlinflighttraining.com/schedule"
               className="inline-block px-10 py-4 font-bold text-lg bg-golden text-darkText rounded-lg hover:bg-opacity-90 transition-all duration-300"
             >
               Schedule a Call

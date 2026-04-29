@@ -369,7 +369,7 @@ export default function Home() {
                 Book Your Discovery Flight
               </Link>
               <Link
-                href="/schedule"
+                href="https://app.merlinflighttraining.com/schedule"
                 className="flex-1 px-6 py-4 border-2 border-black text-black font-semibold rounded-lg hover:border-golden hover:text-golden transition-all duration-300 text-center"
               >
                 Check Availability
@@ -679,7 +679,7 @@ export default function Home() {
             Browse available slots and book your next adventure today.
           </p>
           <Link
-            href="/schedule"
+            href="https://app.merlinflighttraining.com/schedule"
             className="inline-block w-full sm:w-auto px-10 sm:px-14 py-4 sm:py-5 bg-golden text-black font-bold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-golden/50 text-base sm:text-lg relative overflow-hidden group mx-4"
           >
             <span className="relative z-10">View Schedule</span>

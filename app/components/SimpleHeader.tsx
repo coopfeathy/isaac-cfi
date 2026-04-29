@@ -118,7 +118,7 @@ export default function SimpleHeader() {
               <>
                 {isAdmin && (
                   <li>
-                    <Link href="/admin" style={{ color: '#C59A2A', fontWeight: 600, textDecoration: 'none' }}>
+                    <Link href="https://app.merlinflighttraining.com/admin" style={{ color: '#C59A2A', fontWeight: 600, textDecoration: 'none' }}>
                       Admin
                     </Link>
                   </li>
@@ -146,7 +146,7 @@ export default function SimpleHeader() {
             ) : (
               <li>
                 <Link
-                  href="/login"
+                  href="https://app.merlinflighttraining.com/login"
                   style={{
                     backgroundColor: '#000',
                     color: '#fff',
@@ -222,7 +222,7 @@ export default function SimpleHeader() {
                   {isAdmin && (
                     <li>
                       <Link 
-                        href="/admin" 
+                        href="https://app.merlinflighttraining.com/admin" 
                         onClick={() => setMobileMenuOpen(false)}
                         style={{ 
                           color: '#C59A2A', 
@@ -271,7 +271,7 @@ export default function SimpleHeader() {
               ) : (
                 <li>
                   <Link 
-                    href="/login" 
+                    href="https://app.merlinflighttraining.com/login" 
                     onClick={() => setMobileMenuOpen(false)}
                     style={{ 
                       backgroundColor: '#000', 

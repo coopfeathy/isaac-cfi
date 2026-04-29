@@ -37,7 +37,7 @@ const Footer = () => {
             <h4 className="text-base sm:text-lg font-semibold mb-4 sm:mb-6 text-golden">Quick Links</h4>
             <ul className="space-y-2 sm:space-y-3">
               <li>
-                <Link href="/schedule" className="text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base">
+                <Link href="https://app.merlinflighttraining.com/schedule" className="text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base">
                   Schedule a Flight
                 </Link>
               </li>

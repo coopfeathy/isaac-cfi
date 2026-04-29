@@ -175,7 +175,7 @@ export default function LearnPage() {
             View Private Pilot Timeline
           </Link>
           <Link
-            href="/onboarding"
+            href="https://app.merlinflighttraining.com/onboarding"
             style={{
               display: "inline-block",
               border: "1px solid #111827",
@@ -263,7 +263,7 @@ export default function LearnPage() {
             </div>
 
             <Link
-              href="/documents"
+              href="https://app.merlinflighttraining.com/documents"
               style={{
                 display: "inline-block",
                 backgroundColor: "#C59A2A",
@@ -295,7 +295,7 @@ export default function LearnPage() {
           >
             <p style={{ margin: 0 }}>
               Sign in to see courses and progress. {" "}
-              <Link href="/login" style={{ color: "#1E40AF", textDecoration: "underline" }}>
+              <Link href="https://app.merlinflighttraining.com/login" style={{ color: "#1E40AF", textDecoration: "underline" }}>
                 Sign in here
               </Link>
               {" "}to track your training in real time.

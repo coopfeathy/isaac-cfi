@@ -171,7 +171,7 @@ export default function DiscoveryFlight() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link
-                href="/schedule"
+                href="https://app.merlinflighttraining.com/schedule"
                 className="w-full sm:w-auto px-10 py-4 text-lg font-bold text-darkText rounded-lg bg-golden hover:bg-opacity-90 transition-all duration-300"
               >
                 Book Your Discovery Flight

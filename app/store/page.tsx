@@ -658,7 +658,7 @@ export default function StorePage() {
               View Packages ↑
             </a>
             <Link
-              href="/schedule"
+              href="https://app.merlinflighttraining.com/schedule"
               className="inline-flex items-center justify-center bg-white/10 text-white font-semibold py-3 px-8 rounded-xl border border-white/20 hover:bg-white/20 transition-colors duration-200"
               aria-label="Book a discovery flight"
             >

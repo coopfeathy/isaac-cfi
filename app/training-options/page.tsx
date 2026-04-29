@@ -252,7 +252,7 @@ export default function TrainingOptionsPage() {
           </div>
 
           <div className="mt-10 flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <Link href="/schedule" className="w-full sm:w-auto px-6 py-3 bg-golden text-black font-semibold rounded-lg text-center hover:bg-yellow-500 transition-colors">
+            <Link href="https://app.merlinflighttraining.com/schedule" className="w-full sm:w-auto px-6 py-3 bg-golden text-black font-semibold rounded-lg text-center hover:bg-yellow-500 transition-colors">
               Book a Slot
             </Link>
             <Link href="/support" className="w-full sm:w-auto px-6 py-3 border border-gray-500 text-white font-semibold rounded-lg text-center hover:border-golden hover:text-golden transition-colors">

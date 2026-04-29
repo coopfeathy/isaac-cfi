@@ -40,7 +40,7 @@ export default function AircraftDocumentsPage() {
 
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
-              href="/schedule"
+              href="https://app.merlinflighttraining.com/schedule"
               className="inline-block bg-golden hover:bg-golden/90 text-black font-bold py-3 px-6 rounded-lg transition-colors text-center"
             >
               Book a Flight Session

@@ -190,7 +190,7 @@ export default function PrivatePilotTimelinePage() {
             Back to Learn
           </Link>
           <Link
-            href="/schedule"
+            href="https://app.merlinflighttraining.com/schedule"
             className="inline-block rounded-lg border border-golden px-6 py-3 font-semibold text-golden hover:bg-golden hover:text-black"
           >
             Book a Flight Lesson

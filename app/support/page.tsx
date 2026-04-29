@@ -166,7 +166,7 @@ export default function SupportPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
             <Link
-              href="/schedule"
+              href="https://app.merlinflighttraining.com/schedule"
               className="group bg-gray-50 hover:bg-golden/5 border border-gray-100 hover:border-golden/40 rounded-2xl p-6 transition-all duration-200"
             >
               <div className="w-10 h-10 bg-golden/10 rounded-lg flex items-center justify-center mb-3 group-hover:bg-golden/20 transition-colors">
@@ -434,7 +434,7 @@ export default function SupportPage() {
               Pricing
             </Link>
             <Link
-              href="/schedule"
+              href="https://app.merlinflighttraining.com/schedule"
               className="inline-flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors"
             >
               Schedule a Flight

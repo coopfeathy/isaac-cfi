@@ -193,7 +193,7 @@ export default function AircraftPage() {
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <Link
-                  href="/schedule"
+                  href="https://app.merlinflighttraining.com/schedule"
                   className="inline-block bg-golden hover:bg-golden/90 text-black font-bold py-3 px-6 rounded-lg transition-colors text-center w-full sm:w-auto"
                 >
                   Book a Flight Session
@@ -234,7 +234,7 @@ export default function AircraftPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/schedule"
+              href="https://app.merlinflighttraining.com/schedule"
               className="inline-block px-10 py-4 font-bold text-lg rounded-lg bg-golden text-darkText hover:bg-golden/90 transition-colors duration-300"
             >
               Book a Flight Session
