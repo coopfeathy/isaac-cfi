@@ -2683,6 +2683,48 @@ export function ScheduleCapacity({ bookings, aircraft }: { bookings: Booking[]; 
   const fleetUtil = acRows.length > 0 ? Math.round(acRows.reduce((a, r) => a + r.util, 0) / acRows.length * 100) : 0
   const peakIdx = hourDemand.indexOf(maxDemand)
   const groundHours = ((aircraft.length * SLOTS - acRows.reduce((a, r) => a + r.bk.reduce((x, y) => x + (y.end - y.start), 0), 0)) / 2)
+  // UNASSIGNED tile previously hardcoded `stat-delta dim` with subtitle
+  // "bookings without CFI" — same dishonest-label / never-moves-with-data
+  // pattern as the recently-fixed Integrity STALE PENDING "requests > 48h"
+  // tile. The subtitle just restated the tile's own definition (UNASSIGNED
+  // already means "bookings without a CFI"); it stayed identical whether 0,
+  // 1, or 7 bookings had no instructor and whether a single unassigned was
+  // the entire day or a small fraction of it. A "3" reads the same whether
+  // you have 3 unassigned out of 3 bookings (entire day un-staffed) or 3
+  // out of 30 (small staffing gap). The actually useful disclosure is the
+  // *share* of today's bookings that are unassigned — a denominator like
+  // "of X active" (same shape as Integrity STALE PENDING "of X pending")
+  // so the count can be read against the workload it sits inside. And
+  // because a non-zero unassigned count is a staffing-gap signal, not a
+  // dim informational state, tone warn when any exist — same fragility
+  // class as STALE PENDING's warn-when-non-zero treatment. Dim to "all
+  // assigned" when zero (or "no bookings today" if the day is empty) so a
+  // "0" doesn't claim a 0-of-N ratio against an empty schedule.
+  const unassignedCount = bookings.filter(b => !b.cfi && !b.cfiInitials && b.status !== 'maint').length
+  const activeBookings = bookings.filter(b => b.status !== 'maint').length
+  const unassignedTone = unassignedCount > 0 ? 'stat-delta warn' : 'stat-delta dim'
+  const unassignedSub = unassignedCount === 0
+    ? (activeBookings === 0 ? 'no bookings today' : 'all assigned')
+    : `of ${activeBookings} active`
+  // GROUND TIME tile previously hardcoded `stat-delta dim` with subtitle
+  // "available capacity" — same label-not-metric pattern as the recently-
+  // fixed Integrity WEBHOOK FAILURES "open WH alerts" tile. The sub just
+  // named what the value already is (GROUND TIME *is* available capacity);
+  // it never moved with data and added no signal. A bare "12.5h" reads the
+  // same whether you have 1 aircraft on the line (mostly idle) or 5
+  // aircraft (mostly busy with some gaps) — wildly different fleet states.
+  // Surface the count of total fleet-hours available for the day as a
+  // denominator so the idle figure can be read as a share: 12h of 24
+  // (half-utilized two-aircraft fleet) vs 12h of 60 (heavily-utilized
+  // five-aircraft fleet). Tone stays dim — ground time isn't a problem
+  // state on its own (FLEET UTILIZATION already telegraphs whether the
+  // fleet is under-booked); it's a denominator-context tile, not an alert
+  // tile. Dim to "no aircraft on roster" when the fleet itself is empty so
+  // a "0.0h" doesn't claim 0-of-0 idle capacity against an empty fleet.
+  const totalFleetHours = aircraft.length * (SLOTS / 2)
+  const groundTimeSub = totalFleetHours > 0
+    ? `of ${totalFleetHours.toFixed(0)} fleet-hrs`
+    : 'no aircraft on roster'
 
   return (
     <div className="view-pad">
@@ -2690,8 +2732,8 @@ export function ScheduleCapacity({ bookings, aircraft }: { bookings: Booking[]; 
         <div className="stat"><div className="stat-k mono">FLEET UTILIZATION</div><div className="stat-v">{fleetUtil}%</div><div className="stat-delta dim">avg across {acRows.length} aircraft</div></div>
         <div className="stat"><div className="stat-k mono">PEAK HOUR</div><div className="stat-v">{String(7 + peakIdx).padStart(2, '0')}:00</div><div className="stat-delta dim">{maxDemand} concurrent</div></div>
         <div className="stat"><div className="stat-k mono">CFI HOURS</div><div className="stat-v">{cfiRows.reduce((a, r) => a + r.hours, 0).toFixed(1)}h</div><div className="stat-delta dim">across {cfiRows.length} instructors</div></div>
-        <div className="stat"><div className="stat-k mono">UNASSIGNED</div><div className="stat-v">{bookings.filter(b => !b.cfi && !b.cfiInitials && b.status !== 'maint').length}</div><div className="stat-delta dim">bookings without CFI</div></div>
-        <div className="stat"><div className="stat-k mono">GROUND TIME</div><div className="stat-v">{groundHours.toFixed(1)}h</div><div className="stat-delta dim">available capacity</div></div>
+        <div className="stat"><div className="stat-k mono">UNASSIGNED</div><div className="stat-v">{unassignedCount}</div><div className={unassignedTone}>{unassignedSub}</div></div>
+        <div className="stat"><div className="stat-k mono">GROUND TIME</div><div className="stat-v">{groundHours.toFixed(1)}h</div><div className="stat-delta dim">{groundTimeSub}</div></div>
       </div>
 
       <div className="sect-head"><h3>Aircraft utilization</h3><span className="mono dim">07:00 – 19:00</span></div>
