@@ -1174,12 +1174,27 @@ export function DispatchView({ subTab = 0 }: { subTab?: number }) {
     const totalFuel = POSTFLIGHT.reduce((s, p) => s + p.fuelBurn, 0)
     const totalTach = POSTFLIGHT.reduce((s, p) => s + p.tach, 0)
     const avgFuelRate = totalTach > 0 ? totalFuel / totalTach : 0
+    // TACH · TOTAL tile previously hardcoded the subtitle to
+    // "{POSTFLIGHT.length} flights" — same dishonest-label / never-moves-
+    // -with-data pattern as the recently-fixed Schedule UNASSIGNED + GROUND
+    // TIME tiles. Worse here, the count it surfaces is *literally identical*
+    // to the value of the TODAY · LANDED tile sitting two cells to its left
+    // (both are POSTFLIGHT.length), so the subtitle re-states the neighbor's
+    // primary value instead of disclosing anything new. The actually useful
+    // companion to a tach total is the per-flight average — typical mission
+    // length is what makes 6.4h read as "four normal lessons" vs "two long
+    // XCs". Same shape as the FUEL BURN tile next to it (which already
+    // surfaces avg g/h instead of restating the gal total). Keep tone dim:
+    // mission length isn't a fragility/alert state on its own; it's a
+    // distribution-context disclosure. Dim to "—" when there are no
+    // post-flight rows so a "0.0h" doesn't claim a 0/0 average.
+    const avgTachPerFlight = POSTFLIGHT.length > 0 ? totalTach / POSTFLIGHT.length : 0
     return (
       <div className="view-pad">
         <div className="stat-grid">
           <div className="stat"><div className="stat-k mono">TODAY · LANDED</div><div className="stat-v">{POSTFLIGHT.length}</div><div className="stat-delta dim">{POSTFLIGHT.length === 1 ? 'flight' : 'flights'} closed</div></div>
           <div className="stat"><div className="stat-k mono">FUEL BURN</div><div className="stat-v">{totalFuel.toFixed(1)} gal</div><div className="stat-delta dim">{avgFuelRate > 0 ? `avg ${avgFuelRate.toFixed(1)} g/h` : '—'}</div></div>
-          <div className="stat"><div className="stat-k mono">TACH · TOTAL</div><div className="stat-v">{POSTFLIGHT.reduce((s, p) => s + p.tach, 0).toFixed(1)} h</div><div className="stat-delta dim">{POSTFLIGHT.length} flights</div></div>
+          <div className="stat"><div className="stat-k mono">TACH · TOTAL</div><div className="stat-v">{totalTach.toFixed(1)} h</div><div className="stat-delta dim">{avgTachPerFlight > 0 ? `avg ${avgTachPerFlight.toFixed(1)}h per flight` : '—'}</div></div>
           <div className="stat"><div className="stat-k mono">DEBRIEFS PENDING</div><div className="stat-v">{pendingDebriefs.length}</div><div className={pendingDebriefs.length > 0 ? 'stat-delta warn' : 'stat-delta pos'}>{pendingDebriefs.length > 0 ? 'awaiting CFI sign-off' : 'all signed'}</div></div>
         </div>
         <div className="sect-head"><h3>Post-flight close-out</h3></div>
@@ -2472,10 +2487,28 @@ export function DebriefsView({ bookings = [] }: { bookings?: Booking[] }) {
       </div>
     )
   }
+  // LANDED · SIGNED tile previously hardcoded `stat-delta dim` with subtitle
+  // "debriefs complete" — same dishonest-label / never-moves-with-data
+  // pattern as the recently-fixed Schedule UNASSIGNED + GROUND TIME tiles.
+  // The subtitle just restated the tile's own definition (LANDED · SIGNED
+  // already means "completed bookings whose debriefs are signed"); it stayed
+  // identical at every count and added no signal. A "5" reads the same
+  // whether 5-of-5 (workflow done for the day) or 5-of-12 (still 7 debriefs
+  // outstanding) — wildly different end-of-day states. The actually useful
+  // disclosure is the *share* of the day's tracked flights that are signed:
+  // a denominator like "of N today" (same shape as Integrity STALE PENDING
+  // "of N pending" and Schedule UNASSIGNED "of N active"). And because a
+  // fully-signed day is a workflow-complete signal worth telegraphing, tone
+  // pos when completed equals total; dim otherwise (a partial day is normal
+  // mid-shift, not an alert state — IN FLIGHT next door already names the
+  // outstanding count). Pos with "all signed today" when total > 0 and
+  // everything is closed; dim with "of N today" otherwise.
+  const signedSub = completed.length === total ? 'all signed today' : `of ${total} today`
+  const signedTone = completed.length === total && total > 0 ? 'stat-delta pos' : 'stat-delta dim'
   return (
     <div className="view-pad">
       <div className="stat-grid">
-        <div className="stat"><div className="stat-k mono">LANDED · SIGNED</div><div className="stat-v">{completed.length}</div><div className="stat-delta dim">debriefs complete</div></div>
+        <div className="stat"><div className="stat-k mono">LANDED · SIGNED</div><div className="stat-v">{completed.length}</div><div className={signedTone}>{signedSub}</div></div>
         <div className="stat"><div className="stat-k mono">IN FLIGHT</div><div className="stat-v">{inFlight.length}</div><div className="stat-delta dim">awaiting landing</div></div>
         <div className="stat"><div className="stat-k mono">TOTAL TODAY</div><div className="stat-v">{total}</div><div className="stat-delta dim">flights tracked</div></div>
         <div className="stat"><div className="stat-k mono">ASSIGNED CFIS</div><div className="stat-v">{new Set([...completed, ...inFlight].map(b => b.cfi).filter(Boolean)).size}</div><div className="stat-delta dim">with debriefs</div></div>
