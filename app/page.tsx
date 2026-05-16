@@ -180,7 +180,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Visit Republic Airport */}
+      {/* Visit Northeast Philadelphia Airport */}
       <section className="py-16 sm:py-20 md:py-24 bg-white relative">
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-golden to-transparent" />
 
@@ -190,10 +190,10 @@ export default function Home() {
               <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
             </div>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-black mb-4 tracking-tight">
-              Visit Republic Airport
+              Visit Northeast Philadelphia Airport
             </h2>
             <p className="text-gray-600 text-base sm:text-lg max-w-2xl mx-auto font-light">
-              Find us at FRG in Farmingdale, NY.
+              Find us at KPNE in Philadelphia, PA.
             </p>
           </div>
 
@@ -203,15 +203,15 @@ export default function Home() {
             </div>
 
             <a
-              href="https://maps.google.com/?q=Republic+Airport+Farmingdale+NY"
+              href="https://maps.google.com/?q=Northeast+Philadelphia+Airport+KPNE"
               target="_blank"
               rel="noopener noreferrer"
               className="group relative rounded-2xl overflow-hidden border border-gray-200 shadow-lg hover:shadow-2xl transition-all duration-300"
             >
               <div className="absolute inset-0 overflow-hidden">
                 <Image
-                  src="/images/republic-airport.png"
-                  alt="Aerial view of Republic Airport (FRG) in Farmingdale, Long Island, NY — home base of Merlin Flight Training"
+                  src="/images/golden-hour-skyline-flight.png"
+                  alt="Golden-hour flight near Northeast Philadelphia Airport (KPNE) — home base of Merlin Flight Training"
                   fill
                   className="object-cover group-hover:scale-105 transition-transform duration-300"
                   sizes="(max-width: 1024px) 100vw, 50vw"
@@ -219,9 +219,9 @@ export default function Home() {
               </div>
               <div className="absolute inset-0 bg-black/45" />
               <div className="relative z-10 h-full min-h-[350px] sm:min-h-[420px] flex flex-col justify-end p-6 sm:p-8">
-                <h3 className="text-2xl sm:text-3xl font-bold text-white mb-2">Long Island, NY</h3>
-                <p className="text-golden font-semibold mb-2">FRG - Republic Airport</p>
-                <p className="text-gray-200 text-sm mb-4">208 NY-109, Farmingdale, NY 11735</p>
+                <h3 className="text-2xl sm:text-3xl font-bold text-white mb-2">Philadelphia, PA</h3>
+                <p className="text-golden font-semibold mb-2">KPNE - Northeast Philadelphia Airport</p>
+                <p className="text-gray-200 text-sm mb-4">9800 Ashton Rd, Philadelphia, PA 19114</p>
                 <span className="inline-block w-fit px-5 py-2 bg-black text-white font-semibold rounded-lg group-hover:bg-golden group-hover:text-black transition-colors">
                   Open in Google Maps
                 </span>

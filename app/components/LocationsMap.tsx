@@ -14,10 +14,10 @@ const geoUrl = 'https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json'
 const airports = [
   {
     id: 'n9725u',
-    name: 'FRG - Republic Airport',
-    location: 'Farmingdale, NY',
+    name: 'KPNE - Northeast Philadelphia Airport',
+    location: 'Philadelphia, PA',
     aircraft: 'N9725U',
-    coordinates: [-73.4134, 40.7288] as [number, number],
+    coordinates: [-75.0107, 40.0820] as [number, number],
   },
 ]
 
@@ -46,7 +46,7 @@ export default function LocationsMap() {
         projection="geoMercator"
         projectionConfig={{
           scale: 8000,
-          center: [-74.1, 40.5],
+          center: [-75.0, 40.1],
         }}
         style={{
           width: '100%',
