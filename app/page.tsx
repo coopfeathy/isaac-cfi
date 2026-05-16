@@ -87,7 +87,7 @@ export default function Home() {
             <div className="text-white leading-none">Flight Training</div>
           </h1>
           <p className="text-base sm:text-lg md:text-xl mb-8 sm:mb-10 text-gray-300 max-w-3xl mx-auto font-light leading-relaxed px-4">
-            Become a pilot from the skies over Manhattan. Personalized 1-on-1 instruction with Isaac at Republic Airport, Farmingdale, NY.
+            Become a pilot from the skies over Philadelphia. Personalized 1-on-1 instruction with Isaac at Northeast Philadelphia Airport, KPNE.
           </p>
           {/* Social proof badge */}
           <div className="flex justify-center mb-8 sm:mb-10">
@@ -95,7 +95,7 @@ export default function Home() {
               <span className="text-golden">★★★★★</span>
               <span>5.0 Rating on Google</span>
               <span className="w-px h-4 bg-white/30" />
-              <span className="text-gray-300">Republic Airport, FRG</span>
+              <span className="text-gray-300">Northeast Philadelphia Airport, KPNE</span>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
