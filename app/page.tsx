@@ -62,13 +62,25 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       <section className="relative min-h-[85vh] sm:min-h-[90vh] flex items-center justify-center bg-black overflow-hidden">
+        {/* Mobile hero video */}
         <video
           autoPlay
           loop
           muted
           playsInline
           poster="/images/golden-hour-skyline-flight.png"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="md:hidden absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/flightTakeoffMobile.mp4" type="video/mp4" />
+        </video>
+        {/* Desktop / tablet hero video */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          poster="/images/golden-hour-skyline-flight.png"
+          className="hidden md:block absolute inset-0 w-full h-full object-cover"
         >
           <source src="/flightTakeoff.mov" type="video/quicktime" />
           <source src="/flightTakeoff.mov" type="video/mp4" />
