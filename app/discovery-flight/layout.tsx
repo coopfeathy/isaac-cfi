@@ -2,20 +2,20 @@ import type { Metadata } from "next"
 import type React from "react"
 
 export const metadata: Metadata = {
-  title: "Discovery Flight near NYC | $265 | Republic Airport FRG – Merlin Flight Training",
-  description: "Book a discovery flight at Republic Airport (FRG), Farmingdale, NY. See the Manhattan skyline from above. $265, ~90 minutes, no experience needed. FAA-certified instructor Isaac Prestwich.",
+  title: "Discovery Flight in Philadelphia | $265 | KPNE Philadelphia – Merlin Flight Training",
+  description: "Book a discovery flight at Northeast Philadelphia Airport (KPNE), Philadelphia, PA. See the Philadelphia skyline from above. $265, ~90 minutes, no experience needed. FAA-certified instructor Isaac Prestwich.",
   keywords: [
-    "discovery flight near NYC",
-    "discovery flight Long Island",
+    "discovery flight in Philadelphia",
+    "discovery flight Philadelphia",
     "intro flight lesson New York",
-    "discovery flight Republic Airport",
+    "discovery flight Northeast Philadelphia Airport",
     "first flight experience NY",
     "try flying near me",
     "scenic flight New York",
   ],
   openGraph: {
-    title: "Discovery Flight near NYC | $265 | Merlin Flight Training",
-    description: "Experience flying over Manhattan for $265. No experience needed. Republic Airport (FRG), Farmingdale, NY. Book today.",
+    title: "Discovery Flight in Philadelphia | $265 | Merlin Flight Training",
+    description: "Experience flying over Manhattan for $265. No experience needed. Northeast Philadelphia Airport (KPNE), Philadelphia, PA. Book today.",
     url: "https://merlinflighttraining.com/discovery-flight",
     type: "website",
     images: [
@@ -23,14 +23,14 @@ export const metadata: Metadata = {
         url: "/images/merlin-og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Discovery Flight near NYC – Merlin Flight Training",
+        alt: "Discovery Flight in Philadelphia – Merlin Flight Training",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Discovery Flight near NYC | $265 – Merlin Flight Training",
-    description: "Fly over Manhattan for $265. No experience needed. Book at Republic Airport (FRG).",
+    title: "Discovery Flight in Philadelphia | $265 – Merlin Flight Training",
+    description: "Fly over Manhattan for $265. No experience needed. Book at Northeast Philadelphia Airport (KPNE).",
     images: ["/images/merlin-og-image.jpg"],
   },
   alternates: {
@@ -42,7 +42,7 @@ const discoveryFlightSchema = {
   "@context": "https://schema.org",
   "@type": "Product",
   name: "Discovery Flight – Merlin Flight Training",
-  description: "Your first hour in the air at Republic Airport (FRG), Farmingdale, NY. See the Manhattan skyline and Statue of Liberty from above. No experience needed. 1-on-1 with FAA-certified instructor Isaac Prestwich.",
+  description: "Your first hour in the air at Northeast Philadelphia Airport (KPNE), Philadelphia, PA. See the Philadelphia skyline and Independence Hall from above. No experience needed. 1-on-1 with FAA-certified instructor Isaac Prestwich.",
   brand: { "@type": "Brand", name: "Merlin Flight Training" },
   offers: {
     "@type": "Offer",

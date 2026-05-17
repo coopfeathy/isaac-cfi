@@ -21,15 +21,15 @@ const Footer = () => {
               <h3 className="text-lg sm:text-xl font-bold">Merlin Flight Training</h3>
             </div>
             <p className="text-gray-400 font-light leading-relaxed text-sm sm:text-base">
-              Professional flight training and personalized discovery flights in New York.
+              Professional flight training and personalized discovery flights at Northeast Philadelphia Airport (KPNE).
             </p>
             <a
-              href="https://maps.google.com/?q=208+NY-109+Farmingdale+NY+11735"
+              href="https://maps.google.com/?q=Northeast+Philadelphia+Airport+KPNE"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-4 inline-block text-gray-400 hover:text-golden transition-colors duration-300 font-light text-sm sm:text-base"
             >
-              208 NY-109, Farmingdale, NY 11735
+              Northeast Philadelphia Airport · Philadelphia, PA
             </a>
           </div>
           

@@ -110,9 +110,9 @@ export default function SupportPage() {
                 </svg>
               </div>
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Location</h3>
-              <p className="text-gray-900 font-medium">Republic Airport</p>
-              <p className="text-gray-700 text-sm">208 NY-109</p>
-              <p className="text-gray-700 text-sm">Farmingdale, NY 11735</p>
+              <p className="text-gray-900 font-medium">Northeast Philadelphia Airport</p>
+              <p className="text-gray-700 text-sm">Northeast Philadelphia Airport</p>
+              <p className="text-gray-700 text-sm">Philadelphia, PA 19114</p>
             </div>
 
             {/* Email */}

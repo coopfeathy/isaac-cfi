@@ -316,7 +316,7 @@ export default function PrivacyPolicyPage() {
               </p>
               <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm">
                 <p className="font-semibold text-darkText">Merlin Flight Training</p>
-                <p>208 NY-109, Farmingdale, NY 11735</p>
+                <p>Northeast Philadelphia Airport, Philadelphia, PA 19114</p>
                 <p>
                   <a
                     href="mailto:merlinflighttraining@gmail.com"

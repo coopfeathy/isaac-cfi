@@ -329,7 +329,7 @@ export default function Home() {
                 <h3 className="text-2xl sm:text-3xl font-bold text-black mb-2">Isaac Prestwich</h3>
                 <p className="text-golden font-semibold text-lg sm:text-xl mb-1">Certified Flight Instructor (CFI)</p>
                 <p className="text-gray-600 font-medium">Owner, Merlin Flight Training</p>
-                <p className="text-gray-500 text-sm sm:text-base mt-1">Republic Airport (FRG) · Farmingdale, NY</p>
+                <p className="text-gray-500 text-sm sm:text-base mt-1">Northeast Philadelphia Airport (KPNE) · Philadelphia, PA</p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <div className="bg-golden/10 border border-golden/20 rounded-xl px-4 py-3 text-center min-w-[90px]">
@@ -362,7 +362,7 @@ export default function Home() {
                 { icon: '✈', text: 'Personalized 1-on-1 instruction — no group classes' },
                 { icon: '🛡', text: 'Safety-first philosophy: IMSAFE, weather briefing, FAR/AIM' },
                 { icon: '🔄', text: 'Train in your aircraft or Merlin\'s — total flexibility' },
-                { icon: '📍', text: 'Based at Republic Airport (FRG), Farmingdale, NY' },
+                { icon: '📍', text: 'Based at Northeast Philadelphia Airport (KPNE), Philadelphia, PA' },
                 { icon: '⚡', text: 'Fast-track or flexible pacing — you set the timeline' },
                 { icon: '🎯', text: 'From Discovery Flight to Commercial — all levels' },
               ].map((item, i) => (
@@ -570,7 +570,7 @@ export default function Home() {
               </p>
             </div>
 
-            {/* NYC Views */}
+            {/* Philadelphia aerial views */}
             <div className="group bg-gradient-to-br from-gray-50 to-white p-8 sm:p-10 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-2xl">
               <div className="w-14 sm:w-16 h-14 sm:h-16 bg-black rounded-xl flex items-center justify-center mb-5 sm:mb-6 group-hover:bg-golden transition-all duration-300">
                 <svg className="w-7 sm:w-8 h-7 sm:h-8 text-golden group-hover:text-black transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -578,10 +578,10 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="text-xl sm:text-2xl font-bold text-black mb-3 sm:mb-4 group-hover:text-golden transition-colors duration-300">
-                Stunning Views
+                Philadelphia from Above
               </h3>
               <p className="text-gray-600 leading-relaxed font-light text-sm sm:text-base">
-                Witness the Statue of Liberty, Manhattan skyline, and iconic landmarks from a unique aerial perspective.
+                See the Center City Philadelphia skyline, the Delaware River, Independence Hall from the air, and the rolling hills of Bucks and Montgomery counties — a unique aerial perspective on the city you call home.
               </p>
             </div>
           </div>

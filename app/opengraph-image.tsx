@@ -25,7 +25,7 @@ export default async function OpenGraphImage() {
           Merlin Flight Training
         </div>
         <div style={{ fontSize: 40, color: '#FFD700' }}>
-          Professional Pilot Training in NYC & NJ
+          Philadelphia Flight School · KPNE
         </div>
         <div style={{ fontSize: 30, color: '#999999', marginTop: 20 }}>
           FAA-Certified Instructors • Discovery Flights • Pilot Certification

@@ -19,7 +19,7 @@ export default function FAQ() {
     },
     {
       question: "How much does flight training cost?",
-      answer: "We offer fixed hourly costs based on realistic flight times that exceed FAA Part 61 minimums, providing transparent pricing with no surprises. Our aircraft rental rates start at $147.50/hr (10-hour block) for the Sport Cruiser, $150/hr for the Cessna 150, and $185/hr for the Piper Warrior. We accept credit and debit cards for flexible payment options. Contact us for a detailed cost breakdown for your specific training goals."
+      answer: "Our training aircraft is a Grumman Cheetah AA-5A — well-maintained, IFR-equipped, and a great trainer. Rates and packages are shown on the pricing page; contact us for a detailed cost breakdown for your specific training goals. We accept credit and debit cards for flexible payment options."
     },
     {
       question: "Is my money safe with you?",
@@ -27,7 +27,7 @@ export default function FAQ() {
     },
     {
       question: "Is there a way to get flight training for cheaper?",
-      answer: "Yes! We offer 10-hour block rates that provide significant savings compared to our standard hourly rates. For example, our Sport Cruiser is $152.50/hr for single hours or $147.50/hr when you purchase a 10-hour block. This is one of the most competitive rates in the region for glass-cockpit aircraft. We also train in your aircraft if you're an aircraft owner, which can reduce costs."
+      answer: "Yes — we offer block rates that provide savings compared to our standard hourly rates. We also train in your aircraft if you're an aircraft owner, which can reduce costs. Contact us for the current block-rate schedule on the Cheetah."
     },
     {
       question: "What happens if I need to cancel due to weather?",

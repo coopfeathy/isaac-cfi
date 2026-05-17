@@ -85,7 +85,7 @@ export const schedulerConfig: SchedulerConfig = {
   ],
 
   locations: [
-    { value: 'long-island', label: 'Long Island, NY (FRG)' },
+    { value: 'philadelphia', label: 'Philadelphia, PA (KPNE)' },
   ],
 }
 

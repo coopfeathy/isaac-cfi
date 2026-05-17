@@ -97,14 +97,14 @@ export default function PricingPage() {
                 <p className="text-black/60 font-semibold text-sm uppercase tracking-widest mb-1">Start Here</p>
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-black mb-2">Discovery Flight</h2>
                 <p className="text-black/70 text-base sm:text-lg max-w-xl">
-                  Your first hour in the air. No experience needed — Isaac handles everything. See Manhattan from above and decide if flying is for you.
+                  Your first hour in the air. No experience needed — Isaac handles everything. See Center City Philadelphia and the Delaware River from above and decide if flying is for you.
                 </p>
               </div>
               <div className="flex flex-col items-start md:items-end gap-4 flex-shrink-0">
                 <div className="text-left md:text-right">
                   <p className="text-black/60 text-sm font-medium">Starting at</p>
                   <p className="text-4xl sm:text-5xl font-bold text-black">$265</p>
-                  <p className="text-black/60 text-sm">~90 min · Republic Airport (FRG)</p>
+                  <p className="text-black/60 text-sm">~90 min · Northeast Philadelphia Airport (KPNE)</p>
                 </div>
                 <Link
                   href="/discovery-flight-funnel"
@@ -141,7 +141,7 @@ export default function PricingPage() {
                   </svg>
                 </div>
                 <h3 className="text-xl sm:text-2xl font-bold text-black mb-1">Aircraft Rental</h3>
-                <p className="text-sm text-gray-500 mb-5">N9725U · FRG</p>
+                <p className="text-sm text-gray-500 mb-5">N9725U · KPNE</p>
                 <div className="flex items-baseline gap-1 mb-4">
                   <span className="text-4xl sm:text-5xl font-bold text-golden">${aircraftRate}</span>
                   <span className="text-gray-500 text-lg">/hr</span>

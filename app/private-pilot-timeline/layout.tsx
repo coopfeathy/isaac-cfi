@@ -4,7 +4,7 @@ import type React from "react"
 export const metadata: Metadata = {
   title: "Private Pilot Training Timeline | Merlin Flight Training",
   description:
-    "Your step-by-step roadmap from discovery flight to Private Pilot certificate at Merlin Flight Training. Phased training plan covering pre-solo, cross-country, FAA knowledge test, and checkride prep at Republic Airport (FRG), Farmingdale, NY.",
+    "Your step-by-step roadmap from discovery flight to Private Pilot certificate at Merlin Flight Training. Phased training plan covering pre-solo, cross-country, FAA knowledge test, and checkride prep at Northeast Philadelphia Airport (KPNE), Philadelphia, PA.",
   keywords: [
     "how long to get a private pilot license",
     "private pilot training timeline",
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Private Pilot Training Timeline | Merlin Flight Training",
     description:
-      "Phase-by-phase roadmap from discovery flight to Private Pilot certificate, based at Republic Airport (FRG) on Long Island.",
+      "Phase-by-phase roadmap from discovery flight to Private Pilot certificate, based at Northeast Philadelphia Airport (KPNE) in the Philadelphia metro.",
     url: "https://merlinflighttraining.com/private-pilot-timeline",
     type: "website",
     images: [

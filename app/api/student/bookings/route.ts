@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
                 <p style="margin: 4px 0;"><strong>Booking ID:</strong> ${booking.id}</p>
                 <p style="margin: 4px 0;"><strong>Session:</strong> ${slotLabel}</p>
                 <p style="margin: 4px 0;"><strong>Date &amp; Time:</strong> ${startFormatted} – ${endFormatted}</p>
-                <p style="margin: 4px 0;"><strong>Location:</strong> Republic Airport (FRG), Farmingdale, NY</p>
+                <p style="margin: 4px 0;"><strong>Location:</strong> Northeast Philadelphia Airport (KPNE), Philadelphia, PA</p>
               </div>
               <p style="margin-top: 16px; color: #6B7280;">
                 Please arrive 15 minutes early. Wear comfortable clothing and closed-toe shoes.

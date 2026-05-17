@@ -2,19 +2,19 @@ import type { Metadata } from "next"
 import type React from "react"
 
 export const metadata: Metadata = {
-  title: "Flight Training Pricing | Merlin Flight Training – Farmingdale, NY",
-  description: "Transparent flight training pricing at Republic Airport (FRG). Private pilot license from ~$13,810 (cash), instrument rating ~$12,175, discovery flights from $265. Aircraft rental $185/hr, instruction $65/hr.",
+  title: "Flight Training Pricing | Merlin Flight Training – Philadelphia, PA",
+  description: "Transparent flight training pricing at Northeast Philadelphia Airport (KPNE). Private pilot license from ~$13,810 (cash), instrument rating ~$12,175, discovery flights from $265. Aircraft rental $185/hr, instruction $65/hr.",
   keywords: [
     "flight training cost New York",
-    "private pilot license cost Long Island",
+    "private pilot license cost Philadelphia",
     "discovery flight price",
-    "aircraft rental FRG Republic Airport",
+    "aircraft rental KPNE Northeast Philadelphia Airport",
     "how much does flight school cost",
     "pilot training pricing",
   ],
   openGraph: {
     title: "Flight Training Pricing | Merlin Flight Training",
-    description: "Transparent pricing for flight training near NYC. Discovery flights from $265. Private pilot license from $13,810. Aircraft rental $185/hr.",
+    description: "Transparent pricing for flight training in Philadelphia. Discovery flights from $265. Private pilot license from $13,810. Aircraft rental $185/hr.",
     url: "https://merlinflighttraining.com/pricing",
     type: "website",
     images: [
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Flight Training Pricing | Merlin Flight Training",
-    description: "Transparent pricing for flight training near NYC. Discovery flights from $265. Private pilot license from $13,810.",
+    description: "Transparent pricing for flight training in Philadelphia. Discovery flights from $265. Private pilot license from $13,810.",
     images: ["/images/merlin-og-image.jpg"],
   },
   alternates: {
@@ -48,9 +48,9 @@ const pricingSchema = {
       item: {
         "@type": "Service",
         name: "Discovery Flight",
-        description: "Your first hour in the air. No experience needed. See Manhattan from above and decide if flying is for you. Based at Republic Airport (FRG), Farmingdale, NY.",
+        description: "Your first hour in the air. No experience needed. See Center City Philadelphia and the Delaware River from above and decide if flying is for you. Based at Northeast Philadelphia Airport (KPNE), Philadelphia, PA.",
         provider: { "@type": "LocalBusiness", name: "Merlin Flight Training" },
-        areaServed: ["Long Island, NY", "New York City", "New Jersey"],
+        areaServed: ["Philadelphia, PA", "New York City", "New Jersey"],
         offers: {
           "@type": "Offer",
           price: "265",
@@ -65,7 +65,7 @@ const pricingSchema = {
       item: {
         "@type": "Service",
         name: "Private Pilot License Training",
-        description: "FAA Part 61 private pilot certificate training with 1-on-1 personalized instruction at Republic Airport, Farmingdale, NY.",
+        description: "FAA Part 61 private pilot certificate training with 1-on-1 personalized instruction at Northeast Philadelphia Airport, Philadelphia, PA.",
         provider: { "@type": "LocalBusiness", name: "Merlin Flight Training" },
         offers: {
           "@type": "Offer",

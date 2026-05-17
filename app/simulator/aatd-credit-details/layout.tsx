@@ -4,14 +4,14 @@ import type React from "react"
 export const metadata: Metadata = {
   title: "FAA AATD Credit Details | Merlin Flight Training Simulator",
   description:
-    "FAA Advanced Aviation Training Device (AATD) credit details for Redbird LD, SD, FMX, and MCX simulators. Up to 20 hours toward Instrument Rating, 50 hours toward Commercial, 25 hours toward ATP, and instrument currency per Part 61 at Republic Airport (FRG).",
+    "FAA Advanced Aviation Training Device (AATD) credit details for Redbird LD, SD, FMX, and MCX simulators. Up to 20 hours toward Instrument Rating, 50 hours toward Commercial, 25 hours toward ATP, and instrument currency per Part 61 at Northeast Philadelphia Airport (KPNE).",
   keywords: [
     "FAA AATD credit",
     "Redbird simulator credit",
     "instrument rating simulator hours",
     "Part 61 AATD rules",
     "advanced aviation training device",
-    "flight simulator credit Long Island",
+    "flight simulator credit Philadelphia",
   ],
   openGraph: {
     title: "FAA AATD Credit Details | Merlin Flight Training",

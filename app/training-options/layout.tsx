@@ -3,17 +3,17 @@ import type React from "react"
 
 export const metadata: Metadata = {
   title: "Pilot Training Programs | Private, Instrument & Commercial | Merlin Flight Training",
-  description: "Explore flight training programs at Republic Airport (FRG), Farmingdale, NY. Private Pilot License, Instrument Rating, and Commercial Pilot Certificate. 1-on-1 instruction with FAA-certified CFI Isaac Prestwich.",
+  description: "Explore flight training programs at Northeast Philadelphia Airport (KPNE), Philadelphia, PA. Private Pilot License, Instrument Rating, and Commercial Pilot Certificate. 1-on-1 instruction with FAA-certified CFI Isaac Prestwich.",
   keywords: [
     "private pilot training New York",
-    "instrument rating Long Island",
+    "instrument rating Philadelphia metro",
     "commercial pilot training NYC",
     "pilot certification programs",
-    "flight training programs FRG",
+    "flight training programs KPNE",
   ],
   openGraph: {
     title: "Pilot Training Programs | Merlin Flight Training",
-    description: "Private Pilot, Instrument Rating & Commercial Pilot programs near NYC. 1-on-1 instruction at Republic Airport, Farmingdale, NY.",
+    description: "Private Pilot, Instrument Rating & Commercial Pilot programs in Philadelphia. 1-on-1 instruction at Northeast Philadelphia Airport, Philadelphia, PA.",
     url: "https://merlinflighttraining.com/training-options",
     type: "website",
   },
@@ -36,7 +36,7 @@ const trainingOptionsSchema = {
   "@type": "ItemList",
   name: "Pilot Training Programs at Merlin Flight Training",
   description:
-    "Pilot certification programs offered at Republic Airport (FRG), Farmingdale, NY: Private Pilot, Instrument Rating, Commercial Pilot, and additional training.",
+    "Pilot certification programs offered at Northeast Philadelphia Airport (KPNE), Philadelphia, PA: Private Pilot, Instrument Rating, Commercial Pilot, and additional training.",
   itemListOrder: "https://schema.org/ItemListOrderAscending",
   numberOfItems: 4,
   itemListElement: [

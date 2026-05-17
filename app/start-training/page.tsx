@@ -475,8 +475,8 @@ function StartTrainingContent() {
                       <option value="" className="bg-gray-900">
                         Select a location
                       </option>
-                      <option value="long-island" className="bg-gray-900">
-                        Long Island, NY (FRG)
+                      <option value="philadelphia" className="bg-gray-900">
+                        Philadelphia, PA (KPNE)
                       </option>
                     </select>
                   </div>

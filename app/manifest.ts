@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Merlin Flight Training',
     short_name: 'Merlin Flight',
     description:
-      'Professional FAA-certified flight training in NYC and New Jersey.',
+      'FAA-certified flight training at Northeast Philadelphia Airport (KPNE).',
     start_url: '/',
     display: 'standalone',
     background_color: '#000000',

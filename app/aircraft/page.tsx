@@ -144,22 +144,22 @@ export default function AircraftPage() {
               </h2>
 
               <p className="text-base sm:text-lg text-gray-300 leading-relaxed mb-6">
-                Our training aircraft — well-maintained and ready for flight instruction and rental out of Republic Airport. Full aircraft specs and photos coming soon.
+                Our training aircraft — well-maintained and ready for flight instruction and rental out of Northeast Philadelphia Airport. Full aircraft specs and photos coming soon.
               </p>
 
               <div className="space-y-4 mb-8">
                 <div className="flex items-start gap-3">
                   <span className="text-golden text-xl flex-shrink-0">✓</span>
                   <div>
-                    <h4 className="font-semibold text-white mb-1">Republic Airport Based</h4>
+                    <h4 className="font-semibold text-white mb-1">Northeast Philadelphia Airport Based</h4>
                     <p className="text-gray-400 text-sm">
                       <a
-                        href="https://maps.apple.com/?q=FRG+Republic+Airport+Farmingdale+NY"
+                        href="https://maps.apple.com/?q=KPNE+Northeast+Philadelphia+Airport"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:text-golden transition-colors"
                       >
-                        FRG in Farmingdale, New York
+                        KPNE in Philadelphia, Pennsylvania
                       </a>
                     </p>
                   </div>
@@ -187,7 +187,7 @@ export default function AircraftPage() {
                   $185/Hour
                 </div>
                 <p className="text-gray-300 text-sm">
-                  Aircraft rental and training availability from Republic Airport
+                  Aircraft rental and training availability from Northeast Philadelphia Airport
                 </p>
               </div>
 

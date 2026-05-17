@@ -14,10 +14,10 @@ function DiscoveryFlightPt3Content() {
 
   const locations = [
     {
-      id: 'long-island',
-      name: 'Long Island, NY',
-      airport: 'FRG - Republic Airport',
-      address: '208 NY-109, Farmingdale, NY 11735',
+      id: 'philadelphia',
+      name: 'Philadelphia, PA',
+      airport: 'KPNE - Northeast Philadelphia Airport',
+      address: 'Northeast Philadelphia Airport, Philadelphia, PA 19114',
     },
   ]
 

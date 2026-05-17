@@ -46,7 +46,7 @@ const instructorsSchema = {
       familyName: "Prestwich",
       jobTitle: "Chief Flight Instructor",
       description:
-        "Founder of Merlin Flight Training. FAA-certified flight instructor (CFI, CFII, MEI) teaching Private Pilot, Instrument Rating, and Commercial Pilot students at Republic Airport (FRG), Farmingdale, NY.",
+        "Founder of Merlin Flight Training. FAA-certified flight instructor (CFI, CFII, MEI) teaching Private Pilot, Instrument Rating, and Commercial Pilot students at Northeast Philadelphia Airport (KPNE), Philadelphia, PA.",
       worksFor: flightSchoolRef,
       affiliation: flightSchoolRef,
       knowsAbout: [
@@ -85,7 +85,7 @@ const instructorsSchema = {
       name: "Maria",
       jobTitle: "Flight Instructor",
       description:
-        "FAA-certified flight instructor (CFI, CFII) at Merlin Flight Training. Specializes in Private Pilot and Instrument Rating training at Republic Airport (FRG), Farmingdale, NY.",
+        "FAA-certified flight instructor (CFI, CFII) at Merlin Flight Training. Specializes in Private Pilot and Instrument Rating training at Northeast Philadelphia Airport (KPNE), Philadelphia, PA.",
       worksFor: flightSchoolRef,
       affiliation: flightSchoolRef,
       knowsAbout: [

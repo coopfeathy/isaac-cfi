@@ -56,8 +56,8 @@ export default function TermsOfServicePage() {
               <h2 className="text-2xl font-semibold text-darkText mb-3">2. Flight Training Services</h2>
               <p>
                 Merlin Flight Training provides FAA-certified flight instruction, discovery
-                flights, and related educational services at Republic Airport (FRG) in
-                Farmingdale, New York. All flight activities are subject to Federal Aviation
+                flights, and related educational services at Northeast Philadelphia Airport (KPNE) in
+                Philadelphia, Pennsylvania. All flight activities are subject to Federal Aviation
                 Regulations, aircraft availability, weather conditions, and instructor judgment.
                 Scheduling, cancellation, and no-show policies are provided to students during
                 onboarding and may be updated from time to time.
@@ -153,7 +153,7 @@ export default function TermsOfServicePage() {
               </p>
               <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm">
                 <p className="font-semibold text-darkText">Merlin Flight Training</p>
-                <p>208 NY-109, Farmingdale, NY 11735</p>
+                <p>Northeast Philadelphia Airport, Philadelphia, PA 19114</p>
                 <p>
                   <a
                     href="mailto:merlinflighttraining@gmail.com"

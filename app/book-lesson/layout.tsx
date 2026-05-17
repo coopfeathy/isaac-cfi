@@ -2,20 +2,20 @@ import type { Metadata } from "next"
 import type React from "react"
 
 export const metadata: Metadata = {
-  title: "Book a Flight Lesson | Merlin Flight Training – Republic Airport (FRG)",
+  title: "Book a Flight Lesson | Merlin Flight Training – Northeast Philadelphia Airport (KPNE)",
   description:
-    "Schedule your next flight lesson at Merlin Flight Training. Pick an available slot on our in-house calendar for instruction at Republic Airport (FRG), Farmingdale, NY. Private pilot, instrument, and commercial students welcome.",
+    "Schedule your next flight lesson at Merlin Flight Training. Pick an available slot on our in-house calendar for instruction at Northeast Philadelphia Airport (KPNE), Philadelphia, PA. Private pilot, instrument, and commercial students welcome.",
   keywords: [
-    "book flight lesson Long Island",
+    "book flight lessin the Philadelphia metro",
     "schedule pilot training NYC",
-    "Republic Airport flight lesson",
-    "Farmingdale NY flight instructor booking",
+    "Northeast Philadelphia Airport flight lesson",
+    "Philadelphia PA flight instructor booking",
     "private pilot lesson scheduling",
   ],
   openGraph: {
     title: "Book a Flight Lesson | Merlin Flight Training",
     description:
-      "Schedule your next flight lesson at Republic Airport (FRG), Farmingdale, NY. Pick an available slot on our in-house calendar.",
+      "Schedule your next flight lesson at Northeast Philadelphia Airport (KPNE), Philadelphia, PA. Pick an available slot on our in-house calendar.",
     url: "https://merlinflighttraining.com/book-lesson",
     type: "website",
     images: [
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Book a Flight Lesson | Merlin Flight Training",
     description:
-      "Schedule your next flight lesson at Republic Airport (FRG), Farmingdale, NY.",
+      "Schedule your next flight lesson at Northeast Philadelphia Airport (KPNE), Philadelphia, PA.",
     images: ["/images/merlin-og-image.jpg"],
   },
   alternates: {
