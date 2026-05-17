@@ -47,7 +47,7 @@ const faqSchema = {
       name: "How much does flight training cost?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "We offer transparent, fixed hourly rates based on realistic flight times in our Grumman Cheetah AA-5A. A full Private Pilot Certificate typically costs $13,000–$14,000 including aircraft rental, instruction, equipment, and checkride fees. Discovery flights start at $265. Contact us for current rates.",
+        text: "We offer transparent, fixed hourly rates based on realistic flight times in our Grumman Cheetah AA-5A. A full Private Pilot Certificate typically costs $13,000–$14,000 including aircraft rental, instruction, equipment, and checkride fees. Discovery flights start at $150. Contact us for current rates.",
       },
     },
     {

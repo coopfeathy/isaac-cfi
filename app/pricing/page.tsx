@@ -103,7 +103,7 @@ export default function PricingPage() {
               <div className="flex flex-col items-start md:items-end gap-4 flex-shrink-0">
                 <div className="text-left md:text-right">
                   <p className="text-black/60 text-sm font-medium">Starting at</p>
-                  <p className="text-4xl sm:text-5xl font-bold text-black">$265</p>
+                  <p className="text-4xl sm:text-5xl font-bold text-black">$150</p>
                   <p className="text-black/60 text-sm">~90 min · Northeast Philadelphia Airport (KPNE)</p>
                 </div>
                 <Link

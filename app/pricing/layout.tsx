@@ -3,7 +3,7 @@ import type React from "react"
 
 export const metadata: Metadata = {
   title: "Flight Training Pricing | Merlin Flight Training – Philadelphia, PA",
-  description: "Transparent flight training pricing at Northeast Philadelphia Airport (KPNE). Private pilot license from ~$13,810 (cash), instrument rating ~$12,175, discovery flights from $265. Aircraft rental $185/hr, instruction $65/hr.",
+  description: "Transparent flight training pricing at Northeast Philadelphia Airport (KPNE). Private pilot license from ~$13,810 (cash), instrument rating ~$12,175, discovery flights from $150. Aircraft rental $185/hr, instruction $65/hr.",
   keywords: [
     "flight training cost New York",
     "private pilot license cost Philadelphia",
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "Flight Training Pricing | Merlin Flight Training",
-    description: "Transparent pricing for flight training in Philadelphia. Discovery flights from $265. Private pilot license from $13,810. Aircraft rental $185/hr.",
+    description: "Transparent pricing for flight training in Philadelphia. Discovery flights from $150. Private pilot license from $13,810. Aircraft rental $185/hr.",
     url: "https://merlinflighttraining.com/pricing",
     type: "website",
     images: [
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Flight Training Pricing | Merlin Flight Training",
-    description: "Transparent pricing for flight training in Philadelphia. Discovery flights from $265. Private pilot license from $13,810.",
+    description: "Transparent pricing for flight training in Philadelphia. Discovery flights from $150. Private pilot license from $13,810.",
     images: ["/images/merlin-og-image.jpg"],
   },
   alternates: {

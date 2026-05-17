@@ -9,6 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: baseUrl,                                  lastModified: now, changeFrequency: "weekly",  priority: 1.0 },
     { url: `${baseUrl}/discovery-flight`,            lastModified: now, changeFrequency: "weekly",  priority: 0.95 },
     { url: `${baseUrl}/discovery-flight-funnel`,     lastModified: now, changeFrequency: "weekly",  priority: 0.95 },
+    { url: `${baseUrl}/philadelphia-flight-school`,  lastModified: now, changeFrequency: "weekly",  priority: 0.92 },
     { url: `${baseUrl}/start-training`,              lastModified: now, changeFrequency: "monthly", priority: 0.9 },
     { url: `${baseUrl}/book-lesson`,                 lastModified: now, changeFrequency: "daily",   priority: 0.9 },
     { url: `${baseUrl}/pricing`,                     lastModified: now, changeFrequency: "monthly", priority: 0.9 },

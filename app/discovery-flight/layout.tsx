@@ -2,8 +2,8 @@ import type { Metadata } from "next"
 import type React from "react"
 
 export const metadata: Metadata = {
-  title: "Discovery Flight in Philadelphia | $265 | KPNE Philadelphia – Merlin Flight Training",
-  description: "Book a discovery flight at Northeast Philadelphia Airport (KPNE), Philadelphia, PA. See the Philadelphia skyline from above. $265, ~90 minutes, no experience needed. FAA-certified instructor Isaac Prestwich.",
+  title: "Discovery Flight in Philadelphia | $150 | KPNE Philadelphia – Merlin Flight Training",
+  description: "Book a discovery flight at Northeast Philadelphia Airport (KPNE), Philadelphia, PA. See the Philadelphia skyline from above. $150, ~90 minutes, no experience needed. FAA-certified instructor Isaac Prestwich.",
   keywords: [
     "discovery flight in Philadelphia",
     "discovery flight Philadelphia",
@@ -14,8 +14,8 @@ export const metadata: Metadata = {
     "scenic flight New York",
   ],
   openGraph: {
-    title: "Discovery Flight in Philadelphia | $265 | Merlin Flight Training",
-    description: "Experience flying over Manhattan for $265. No experience needed. Northeast Philadelphia Airport (KPNE), Philadelphia, PA. Book today.",
+    title: "Discovery Flight in Philadelphia | $150 | Merlin Flight Training",
+    description: "Experience flying over Center City Philadelphia for $150. No experience needed. Northeast Philadelphia Airport (KPNE), Philadelphia, PA. Book today.",
     url: "https://merlinflighttraining.com/discovery-flight",
     type: "website",
     images: [
@@ -29,8 +29,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Discovery Flight in Philadelphia | $265 – Merlin Flight Training",
-    description: "Fly over Manhattan for $265. No experience needed. Book at Northeast Philadelphia Airport (KPNE).",
+    title: "Discovery Flight in Philadelphia | $150 – Merlin Flight Training",
+    description: "Fly over Center City Philadelphia for $150. No experience needed. Book at Northeast Philadelphia Airport (KPNE).",
     images: ["/images/merlin-og-image.jpg"],
   },
   alternates: {

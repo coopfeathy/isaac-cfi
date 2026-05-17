@@ -231,7 +231,7 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
     setSelEnd(e)
     if (slotType === 'tour') {
       setDescription('Discovery Flight')
-      setPriceDisplay('265.00')
+      setPriceDisplay('150.00')
     }
     setDragDay(null)
     setDragStart(null)
@@ -538,7 +538,7 @@ export default function AdminBookingPlanner({ slots, onCreated }: PlannerProps) 
                   setSlotType(t)
                   if (t === 'tour') {
                     setDescription('Discovery Flight')
-                    setPriceDisplay('265.00')
+                    setPriceDisplay('150.00')
                     setSyllabusId('')
                   } else {
                     setDescription('')
