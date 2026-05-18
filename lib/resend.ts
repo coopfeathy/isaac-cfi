@@ -165,22 +165,44 @@ export const emailTemplates = {
     `),
   }),
 
-  // Prospect welcome email — day-0 confirmation after discovery flight signup
+  // Prospect welcome email — day-0 nurture after any inbound interest in
+  // flight training. Owner-signed (Isaac, CFII) rather than generic "team"
+  // voice. Links to /brochure (digital one-pager) + discovery flight CTA.
+  // Matches the funnel pattern competitors use without copying their copy.
   prospectWelcome: (name: string) => ({
-    subject: 'Your Discovery Flight is Confirmed — What Happens Next',
+    subject: 'Your pilot journey starts here ✈️',
     html: emailWrapper(`
-      <h1 style="color: ${brand.dark}; margin: 0 0 8px 0; font-size: 24px;">Welcome, ${name}!</h1>
+      <h1 style="color: ${brand.dark}; margin: 0 0 8px 0; font-size: 24px;">Hi ${name},</h1>
       <div style="width: 40px; height: 3px; background: ${brand.gold}; margin-bottom: 20px;"></div>
-      <p>Thank you for signing up for a discovery flight with Merlin Flight Training. We're thrilled you're taking this step — here's what to expect next:</p>
-      <ul style="line-height: 1.9; padding-left: 20px;">
-        <li>Your instructor will reach out within 1–2 business days to confirm your time slot.</li>
-        <li>Your discovery flight will be approximately 60–90 minutes.</li>
-        <li>No prior experience is required — just bring your curiosity.</li>
+      <p style="font-size: 15.5px; line-height: 1.65;">Thanks for reaching out about flight training at Merlin. I'm <strong>Isaac Prestwich</strong> — the owner and the CFII you'll fly with. That's the actual person on the other end of this email, not a marketing team.</p>
+
+      <p style="font-size: 15.5px; line-height: 1.65;">Quick orientation on what we do:</p>
+      <ul style="line-height: 1.85; padding-left: 22px; font-size: 14.5px; color: ${brand.dark};">
+        <li><strong>Discovery flight: $150.</strong> ~60 minutes airborne in our Grumman Cheetah AA-5A, you in the left seat, over Center City Philadelphia and the Delaware River. No experience needed.</li>
+        <li><strong>Private Pilot Certificate: ~$13,000–$14,000 end-to-end,</strong> typically 6–12 months while working a day job.</li>
+        <li><strong>Online ground school cohorts</strong> if you want to knock out the FAA written before you fly — live, 3.5 weeks, Mon + Wed evenings.</li>
       </ul>
-      <div style="margin: 28px 0; text-align: center;">
-        <a href="https://merlinflighttraining.com/careers" style="display: inline-block; background: ${brand.gold}; color: ${brand.dark}; font-weight: 700; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-size: 14px;">See Where Training Can Take You</a>
+
+      <p style="font-size: 15.5px; line-height: 1.65; margin-top: 18px;">I put together a one-page brochure with all the details — programs, aircraft, pricing, and what each step looks like:</p>
+
+      <div style="margin: 22px 0; text-align: center;">
+        <a href="https://merlinflighttraining.com/brochure" style="display: inline-block; background: ${brand.gold}; color: ${brand.dark}; font-weight: 700; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-size: 14.5px;">Read the Merlin Brochure →</a>
       </div>
-      <p style="color: ${brand.mutedText}; font-size: 13px;">Blue skies ahead,<br/>The Merlin Flight Training Team</p>
+
+      <p style="font-size: 15.5px; line-height: 1.65;">If you want the fastest answer to &quot;is this for me,&quot; skip the brochure and book a discovery flight. One hour at the controls tells you more than ten hours of reading:</p>
+
+      <div style="margin: 18px 0 26px; text-align: center;">
+        <a href="https://merlinflighttraining.com/discovery-flight-funnel" style="display: inline-block; background: ${brand.dark}; color: #ffffff; font-weight: 700; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-size: 14px; border: 1px solid ${brand.gold};">Book a Discovery Flight — $150</a>
+      </div>
+
+      <p style="font-size: 14.5px; line-height: 1.65;">A few things worth knowing before you reply:</p>
+      <ul style="line-height: 1.85; padding-left: 22px; font-size: 14px; color: ${brand.mutedText};">
+        <li>We&apos;re based at <strong>Northeast Philadelphia Airport (KPNE)</strong> — 9800 Ashton Rd, Philadelphia, PA. Free parking on the field.</li>
+        <li>You don&apos;t need a pilot medical to start. We&apos;ll walk you through that process during your first few lessons.</li>
+        <li>Reply with any question — really. I read every email and reply within a few business days.</li>
+      </ul>
+
+      <p style="font-size: 15px; line-height: 1.65; margin-top: 24px;">Blue skies,<br/><strong>Isaac Prestwich, CFII</strong><br/>Founder, Merlin Flight Training<br/><span style="color: ${brand.mutedText}; font-size: 13px;">isaac@merlinflighttraining.com · KPNE</span></p>
     `),
   }),
 
