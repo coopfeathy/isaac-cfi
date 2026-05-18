@@ -1,5 +1,6 @@
 import Link from "next/link"
 import type { Metadata } from "next"
+import PrintButton from "./PrintButton"
 
 // Print-friendly digital brochure at /brochure. Replaces the "PDF attachment"
 // pattern competitors use — same content, but as a URL we can track clicks
@@ -39,13 +40,7 @@ export default function BrochurePage() {
           Merlin Flight Training · Program Brochure
         </span>
         <div className="flex gap-3">
-          <button
-            onClick={() => window.print()}
-            className="bg-golden text-black px-4 py-2 rounded text-sm font-semibold hover:bg-yellow-500 transition-colors"
-            style={{ fontFamily: 'inherit' }}
-          >
-            Save as PDF
-          </button>
+          <PrintButton />
           <Link
             href="/discovery-flight-funnel"
             className="border border-golden text-golden px-4 py-2 rounded text-sm font-semibold hover:bg-golden hover:text-black transition-colors"
