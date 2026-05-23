@@ -5,9 +5,11 @@ import Image from "next/image"
 import { useState } from "react"
 import { useAuth } from "../contexts/AuthContext"
 import { supabase } from "@/lib/supabase"
+import AuthModal from "./AuthModal"
 
 export default function SimpleHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [authModalOpen, setAuthModalOpen] = useState(false)
   const { user, isAdmin } = useAuth()
   const primaryNavLinks = [
     { href: '/', label: 'Home' },
@@ -25,19 +27,25 @@ export default function SimpleHeader() {
     window.location.href = '/'
   }
 
+  const openAuthModal = () => {
+    setMobileMenuOpen(false)
+    setAuthModalOpen(true)
+  }
+
   return (
-    <header style={{ 
-      backgroundColor: 'white', 
-      borderBottom: '1px solid #e5e7eb',
-      padding: 'calc(10px + env(safe-area-inset-top, 0px)) 16px 10px',
-      position: 'sticky',
-      top: 0,
-      zIndex: 50
-    }}>
-      <nav style={{ 
-        maxWidth: '1200px', 
-        margin: '0 auto',
+    <>
+      <header style={{ 
+        backgroundColor: 'white', 
+        borderBottom: '1px solid #e5e7eb',
+        padding: 'calc(10px + env(safe-area-inset-top, 0px)) 16px 10px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50
       }}>
+        <nav style={{ 
+          maxWidth: '1200px', 
+          margin: '0 auto',
+        }}>
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -145,20 +153,22 @@ export default function SimpleHeader() {
               </>
             ) : (
               <li>
-                <Link
-                  href="https://app.merlinflighttraining.com/login"
+                <button
+                  type="button"
+                  onClick={openAuthModal}
                   style={{
                     backgroundColor: '#000',
                     color: '#fff',
                     padding: '10px 30px',
                     borderRadius: '8px',
                     fontWeight: 600,
-                    textDecoration: 'none',
-                    display: 'inline-block'
+                    border: 'none',
+                    cursor: 'pointer',
+                    font: 'inherit',
                   }}
                 >
                   Sign In
-                </Link>
+                </button>
               </li>
             )}
           </ul>
@@ -270,48 +280,53 @@ export default function SimpleHeader() {
                 </>
               ) : (
                 <li>
-                  <Link 
-                    href="https://app.merlinflighttraining.com/login" 
-                    onClick={() => setMobileMenuOpen(false)}
+                  <button
+                    type="button"
+                    onClick={openAuthModal}
                     style={{ 
                       backgroundColor: '#000', 
                       color: '#fff', 
                       padding: '14px 16px', 
                       borderRadius: '8px', 
                       fontWeight: 600,
-                      textDecoration: 'none',
                       display: 'block',
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      width: '100%',
+                      border: 'none',
+                      cursor: 'pointer',
+                      font: 'inherit',
                     }}
                   >
                     Sign In
-                  </Link>
+                  </button>
                 </li>
               )}
             </ul>
           </div>
         )}
-      </nav>
+        </nav>
 
-      <style jsx>{`
-        @media (max-width: 900px) {
-          .desktop-nav {
-            display: none !important;
+        <style jsx>{`
+          @media (max-width: 900px) {
+            .desktop-nav {
+              display: none !important;
+            }
+            .mobile-menu-btn {
+              display: block !important;
+            }
+            header {
+              backdrop-filter: saturate(180%) blur(8px);
+              background-color: rgba(255, 255, 255, 0.95) !important;
+            }
           }
-          .mobile-menu-btn {
-            display: block !important;
+          @media (min-width: 901px) {
+            .mobile-nav {
+              display: none !important;
+            }
           }
-          header {
-            backdrop-filter: saturate(180%) blur(8px);
-            background-color: rgba(255, 255, 255, 0.95) !important;
-          }
-        }
-        @media (min-width: 901px) {
-          .mobile-nav {
-            display: none !important;
-          }
-        }
-      `}</style>
-    </header>
+        `}</style>
+      </header>
+      <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+    </>
   )
 }
