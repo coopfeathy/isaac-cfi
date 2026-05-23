@@ -42,6 +42,7 @@ const authTabs = [
 
 export default function AuthModal({ open, onClose }: AuthModalProps) {
   const { signIn } = useAuth()
+  const [view, setView] = useState<"main" | "email">("main")
   const [email, setEmail] = useState("")
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "error">("idle")
   const [message, setMessage] = useState("")
@@ -49,10 +50,10 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
   const emailRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!open) return
+    if (!open || view !== "email") return
     const focusTimer = window.setTimeout(() => emailRef.current?.focus(), 120)
     return () => window.clearTimeout(focusTimer)
-  }, [open])
+  }, [open, view])
 
   useEffect(() => {
     if (!open) return
@@ -79,6 +80,16 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
 
   const active = authTabs[activeTab]
 
+  const showEmailView = () => {
+    setView("email")
+  }
+
+  const showMainView = () => {
+    setView("main")
+    setStatus("idle")
+    setMessage("")
+  }
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setStatus("loading")
@@ -97,44 +108,103 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
   return (
     <div className="authOverlay" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
       <div className="authModal">
+        {view === "email" && (
+          <button className="authBack" type="button" onClick={showMainView} aria-label="Back to sign in options">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+        )}
+
         <section className="authLeft">
-          <div className="authLogo">
-            <Image src="/merlin-logo.png" alt="Merlin Flight Training" width={128} height={128} priority />
-          </div>
-          <h1 id="authModalTitle">Log in using your email</h1>
-          <p className="authSub">We'll send a secure magic link. No password needed.</p>
+          {view === "main" ? (
+            <div className="authView">
+              <div className="authLogo">
+                <Image src="/merlin-logo.png" alt="Merlin Flight Training" width={128} height={128} priority />
+              </div>
+              <h1 id="authModalTitle">Welcome to Merlin Flight Training</h1>
+              <p className="authSub">Sign in to plan your future for free</p>
 
-          <form className="authForm" onSubmit={handleSubmit}>
-            <label className="srOnly" htmlFor="magic-link-email">Email address</label>
-            <input
-              ref={emailRef}
-              id="magic-link-email"
-              type="email"
-              className="authInput"
-              placeholder="Email address"
-              autoComplete="email"
-              required
-              value={email}
-              disabled={status === "loading"}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-            <button className="authSubmit" type="submit" disabled={status === "loading"}>
-              {status === "loading" ? "Sending..." : status === "sent" ? "Send again" : "Send magic link"}
-            </button>
-          </form>
+              <button className="authProviderButton" type="button" onClick={showEmailView}>
+                <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                  <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
+                  <path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
+                  <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
+                  <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
+                </svg>
+                Continue with Google
+              </button>
+              <button className="authProviderButton" type="button" onClick={showEmailView}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffffff" aria-hidden="true">
+                  <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+                </svg>
+                Continue with Apple
+              </button>
+              <button className="authProviderButton" type="button" onClick={showEmailView}>
+                <svg width="18" height="18" viewBox="0 0 23 23" aria-hidden="true">
+                  <path fill="#f25022" d="M1 1h10v10H1z" />
+                  <path fill="#7fba00" d="M12 1h10v10H12z" />
+                  <path fill="#00a4ef" d="M1 12h10v10H1z" />
+                  <path fill="#ffb900" d="M12 12h10v10H12z" />
+                </svg>
+                Continue with Microsoft
+              </button>
 
-          {message && (
-            <div className={`authStatus ${status === "error" ? "authStatusError" : ""}`} role="status" aria-live="polite">
-              <strong>{status === "error" ? "Could not send link" : "Magic link sent"}</strong>
-              {message}
+              <div className="authDivider">OR</div>
+
+              <button className="authProviderButton" type="button" onClick={showEmailView}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <polyline points="3 7 12 13 21 7" />
+                </svg>
+                Continue with Email
+              </button>
+
+              <p className="authLegal">
+                By continuing, I acknowledge the <a href="/privacy">Privacy Policy</a> and agree to the <a href="/terms">Terms of Use</a>. I also confirm that I am at least 16 years old.
+              </p>
+            </div>
+          ) : (
+            <div className="authView">
+              <div className="authLogo">
+                <Image src="/merlin-logo.png" alt="Merlin Flight Training" width={128} height={128} priority />
+              </div>
+              <h1 id="authModalTitle">Log in using your email</h1>
+              <p className="authSub">We'll send a secure magic link. No password needed.</p>
+
+              <form className="authForm" onSubmit={handleSubmit}>
+                <label className="srOnly" htmlFor="magic-link-email">Email address</label>
+                <input
+                  ref={emailRef}
+                  id="magic-link-email"
+                  type="email"
+                  className="authInput"
+                  placeholder="Email address"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  disabled={status === "loading"}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+                <button className="authSubmit" type="submit" disabled={status === "loading"}>
+                  {status === "loading" ? "Sending..." : status === "sent" ? "Send again" : "Send magic link"}
+                </button>
+              </form>
+
+              {message && (
+                <div className={`authStatus ${status === "error" ? "authStatusError" : ""}`} role="status" aria-live="polite">
+                  <strong>{status === "error" ? "Could not send link" : "Magic link sent"}</strong>
+                  {message}
+                </div>
+              )}
+
+              <p className="authNewUser">New here? The magic link creates your account automatically.</p>
+
+              <p className="authLegal">
+                By continuing, I acknowledge the <a href="/privacy">Privacy Policy</a> and agree to the <a href="/terms">Terms of Use</a>. I also confirm that I am at least 16 years old.
+              </p>
             </div>
           )}
-
-          <p className="authNewUser">New here? The magic link creates your account automatically.</p>
-
-          <p className="authLegal">
-            By continuing, I acknowledge the <a href="/privacy">Privacy Policy</a> and agree to the <a href="/terms">Terms of Use</a>. I also confirm that I am at least 16 years old.
-          </p>
         </section>
 
         <section className="authRight" aria-hidden="true">
@@ -213,6 +283,33 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
         .authLeft::-webkit-scrollbar {
           display: none;
         }
+        .authBack {
+          position: absolute;
+          top: 16px;
+          left: 16px;
+          z-index: 10;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border: 0;
+          border-radius: 50%;
+          background: rgba(0, 0, 0, 0.45);
+          color: #fff;
+          cursor: pointer;
+          transition: background 0.2s ease;
+        }
+        .authBack:hover {
+          background: rgba(0, 0, 0, 0.6);
+        }
+        .authView {
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
         .authLogo {
           width: 128px;
           margin-bottom: 28px;
@@ -237,6 +334,47 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
           margin: 0 0 36px;
           color: rgba(255, 255, 255, 0.56);
           font-size: 15px;
+        }
+        .authProviderButton {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          margin-bottom: 10px;
+          padding: 14px 20px;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 12px;
+          background: transparent;
+          color: #fff;
+          cursor: pointer;
+          font: inherit;
+          font-size: 15px;
+          font-weight: 500;
+          transition: border-color 0.18s ease;
+        }
+        .authProviderButton:hover {
+          border-color: #fff;
+        }
+        .authProviderButton svg {
+          flex-shrink: 0;
+        }
+        .authDivider {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          margin: 14px 0;
+          color: rgba(255, 255, 255, 0.42);
+          font-size: 12px;
+          font-weight: 500;
+        }
+        .authDivider::before,
+        .authDivider::after {
+          content: "";
+          flex: 1;
+          height: 1px;
+          background: rgba(255, 255, 255, 0.1);
         }
         .authForm {
           width: 100%;
