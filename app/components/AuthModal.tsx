@@ -48,7 +48,47 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
   const [providerLoading, setProviderLoading] = useState<"google" | "apple" | "azure" | null>(null)
   const [message, setMessage] = useState("")
   const [activeTab, setActiveTab] = useState(0)
+  const [modalReady, setModalReady] = useState(false)
   const emailRef = useRef<HTMLInputElement>(null)
+  const videoRefs = useRef<Array<HTMLVideoElement | null>>([])
+
+  useEffect(() => {
+    const preloaders = authTabs.map((tab) => {
+      const video = document.createElement("video")
+      video.src = tab.video
+      video.muted = true
+      video.playsInline = true
+      video.preload = "auto"
+      video.load()
+      return video
+    })
+
+    return () => {
+      preloaders.forEach((video) => {
+        video.removeAttribute("src")
+        video.load()
+      })
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    setModalReady(false)
+
+    if (window.matchMedia("(max-width: 1280px)").matches) {
+      setModalReady(true)
+      return
+    }
+
+    const activeVideo = videoRefs.current[activeTab]
+    if (activeVideo && activeVideo.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      setModalReady(true)
+      return
+    }
+
+    const fallback = window.setTimeout(() => setModalReady(true), 1400)
+    return () => window.clearTimeout(fallback)
+  }, [open, activeTab])
 
   useEffect(() => {
     if (!open || view !== "email") return
@@ -126,7 +166,7 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
 
   return (
     <div className="authOverlay" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
-      <div className="authModal">
+      <div className={`authModal ${modalReady ? "authModalReady" : ""}`}>
         {view === "email" && (
           <button className="authBack" type="button" onClick={showMainView} aria-label="Back to sign in options">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -250,9 +290,23 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
 
         <section className="authRight" aria-hidden="true">
           <div className="authVideoCarousel" style={{ transform: `translateX(-${activeTab * 100}%)` }}>
-            {authTabs.map((tab) => (
+            {authTabs.map((tab, index) => (
               <div className="authVideoSlide" key={tab.label}>
-                <video className="authVideo" src={tab.video} autoPlay muted loop playsInline preload="auto" />
+                <video
+                  ref={(node) => {
+                    videoRefs.current[index] = node
+                  }}
+                  className="authVideo"
+                  src={tab.video}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="auto"
+                  onLoadedData={() => {
+                    if (index === activeTab) setModalReady(true)
+                  }}
+                />
               </div>
             ))}
           </div>
@@ -310,6 +364,15 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
           border-radius: 18px;
           background: #161616;
           box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+          opacity: 0;
+          transform: scale(0.985);
+          transition: opacity 0.16s ease, transform 0.16s ease;
+          pointer-events: none;
+        }
+        .authModalReady {
+          opacity: 1;
+          transform: scale(1);
+          pointer-events: auto;
         }
         .authLeft {
           max-height: 92vh;
