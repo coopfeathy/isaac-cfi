@@ -11,6 +11,7 @@ interface AuthContextType {
   session: Session | null
   loading: boolean
   signIn: (email: string) => Promise<void>
+  signInWithProvider: (provider: 'google' | 'apple' | 'azure') => Promise<void>
   signOut: () => Promise<void>
   isAdmin: boolean
   isCFI: boolean
@@ -97,6 +98,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const signInWithProvider = async (provider: 'google' | 'apple' | 'azure') => {
+    try {
+      const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/login`
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: redirectUrl,
+        },
+      })
+
+      if (error) {
+        throw new Error(error.message || 'Failed to start sign in')
+      }
+    } catch (error: any) {
+      console.error('OAuth sign in error:', error)
+      throw new Error(error.message || 'Failed to connect to authentication service. Please try again.')
+    }
+  }
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
@@ -116,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     loading,
     signIn,
+    signInWithProvider,
     signOut,
     isAdmin,
     isCFI,
