@@ -34,4 +34,4 @@ https://docs.google.com/spreadsheets/d/1F7ltC4JD-fHWc7QCl4yWNaIVrsIKw9ty3HQvcQHD
 2. Events we want to track.
 3. Google Sheet columns.
 4. Summary view for conversion rates.
-5. Credentials and final Sheet connection.
+5. Apps Script webhook and final Sheet connection.
