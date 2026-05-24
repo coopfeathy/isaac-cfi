@@ -34,16 +34,16 @@ export default function SimpleHeader() {
 
   return (
     <>
-      <header style={{ 
-        backgroundColor: 'white', 
-        borderBottom: '1px solid #e5e7eb',
+      <header style={{
+        backgroundColor: '#000000',
+        borderBottom: '1px solid #1f2937',
         padding: 'calc(10px + env(safe-area-inset-top, 0px)) 16px 10px',
         position: 'sticky',
         top: 0,
         zIndex: 50
       }}>
-        <nav style={{ 
-          maxWidth: '1200px', 
+        <nav style={{
+          maxWidth: '1200px',
           margin: '0 auto',
         }}>
         <div style={{
@@ -52,16 +52,16 @@ export default function SimpleHeader() {
           alignItems: 'center'
         }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-            <Image 
-              src="/merlin-logo.png" 
-              alt="Merlin Flight Training" 
-              width={150} 
-              height={150}
+            <Image
+              src="/merlin-logo-white-textonly.png"
+              alt="Merlin Flight Training"
+              width={325}
+              height={100}
               style={{ height: 'auto', maxHeight: '60px', width: 'auto' }}
               priority
             />
           </Link>
-          
+
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -74,7 +74,8 @@ export default function SimpleHeader() {
               padding: '10px',
               border: 'none',
               background: 'transparent',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              color: '#ffffff'
             }}
             className="mobile-menu-btn"
           >
@@ -86,7 +87,7 @@ export default function SimpleHeader() {
               )}
             </svg>
           </button>
-          
+
           {/* Desktop navigation */}
           <ul style={{
             display: 'flex',
@@ -100,7 +101,7 @@ export default function SimpleHeader() {
           >
             {primaryNavLinks.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} style={{ color: '#374151', fontWeight: 500, textDecoration: 'none' }}>
+                <Link href={link.href} style={{ color: '#ffffff', fontWeight: 500, textDecoration: 'none' }}>
                   {link.label}
                 </Link>
               </li>
@@ -131,7 +132,7 @@ export default function SimpleHeader() {
                     </Link>
                   </li>
                 )}
-                <li style={{ color: '#6B7280', fontSize: '14px' }}>
+                <li style={{ color: '#D1D5DB', fontSize: '14px' }}>
                   {user.email}
                 </li>
                 <li>
@@ -157,8 +158,8 @@ export default function SimpleHeader() {
                   type="button"
                   onClick={openAuthModal}
                   style={{
-                    backgroundColor: '#000',
-                    color: '#fff',
+                    backgroundColor: '#ffffff',
+                    color: '#000000',
                     padding: '10px 30px',
                     borderRadius: '8px',
                     fontWeight: 600,
@@ -179,13 +180,13 @@ export default function SimpleHeader() {
           <div style={{
             marginTop: '20px',
             paddingTop: '12px',
-            borderTop: '1px solid #e5e7eb'
+            borderTop: '1px solid #1f2937'
           }}
           className="mobile-nav"
           >
-            <ul style={{ 
-              listStyle: 'none', 
-              margin: 0, 
+            <ul style={{
+              listStyle: 'none',
+              margin: 0,
               padding: 0,
               display: 'flex',
               flexDirection: 'column',
@@ -197,7 +198,7 @@ export default function SimpleHeader() {
                     href={link.href}
                     onClick={() => setMobileMenuOpen(false)}
                     style={{
-                      color: '#374151',
+                      color: '#ffffff',
                       fontWeight: 500,
                       textDecoration: 'none',
                       display: 'block',
@@ -231,12 +232,12 @@ export default function SimpleHeader() {
                 <>
                   {isAdmin && (
                     <li>
-                      <Link 
-                        href="https://app.merlinflighttraining.com/admin" 
+                      <Link
+                        href="https://app.merlinflighttraining.com/admin"
                         onClick={() => setMobileMenuOpen(false)}
-                        style={{ 
-                          color: '#C59A2A', 
-                          fontWeight: 600, 
+                        style={{
+                          color: '#C59A2A',
+                          fontWeight: 600,
                           textDecoration: 'none',
                           display: 'block',
                           padding: '14px 16px',
@@ -247,24 +248,24 @@ export default function SimpleHeader() {
                       </Link>
                     </li>
                   )}
-                  <li style={{ 
-                    color: '#6B7280', 
+                  <li style={{
+                    color: '#D1D5DB',
                     fontSize: '14px',
                     padding: '12px 16px'
                   }}>
                     {user.email}
                   </li>
                   <li>
-                    <button 
+                    <button
                       onClick={() => {
                         setMobileMenuOpen(false)
                         handleSignOut()
                       }}
-                      style={{ 
-                        backgroundColor: '#EF4444', 
-                        color: '#fff', 
-                        padding: '14px 16px', 
-                        borderRadius: '8px', 
+                      style={{
+                        backgroundColor: '#EF4444',
+                        color: '#fff',
+                        padding: '14px 16px',
+                        borderRadius: '8px',
                         fontWeight: 600,
                         textDecoration: 'none',
                         display: 'block',
@@ -283,11 +284,11 @@ export default function SimpleHeader() {
                   <button
                     type="button"
                     onClick={openAuthModal}
-                    style={{ 
-                      backgroundColor: '#000', 
-                      color: '#fff', 
-                      padding: '14px 16px', 
-                      borderRadius: '8px', 
+                    style={{
+                      backgroundColor: '#ffffff',
+                      color: '#000000',
+                      padding: '14px 16px',
+                      borderRadius: '8px',
                       fontWeight: 600,
                       display: 'block',
                       textAlign: 'center',
@@ -316,7 +317,7 @@ export default function SimpleHeader() {
             }
             header {
               backdrop-filter: saturate(180%) blur(8px);
-              background-color: rgba(255, 255, 255, 0.95) !important;
+              background-color: rgba(0, 0, 0, 0.95) !important;
             }
           }
           @media (min-width: 901px) {
