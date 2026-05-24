@@ -54,6 +54,12 @@ async function appendEventViaWebhook(
     const errorText = await response.text().catch(() => '')
     throw new Error(`CTA experiment webhook failed: ${response.status} ${errorText}`)
   }
+
+  const result = await response.json().catch(() => null) as { ok?: boolean; error?: string } | null
+
+  if (!result?.ok) {
+    throw new Error(`CTA experiment webhook failed: ${result?.error || 'Unknown webhook error'}`)
+  }
 }
 
 export async function POST(request: NextRequest) {
