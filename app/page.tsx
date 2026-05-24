@@ -5,6 +5,13 @@ import Link from "next/link"
 import Image from "next/image"
 import LocationsMap from "@/app/components/LocationsMap"
 import TypingEffect from "@/app/components/TypingEffect"
+import { CTA_EXPERIMENT_VARIANTS } from "@/lib/cta-experiment"
+import {
+  getAssignedCtaVariant,
+  hasTrackedCtaViewThisSession,
+  markCtaViewTrackedThisSession,
+  trackCtaExperimentEvent,
+} from "@/lib/cta-experiment-client"
 
 type LiveGoogleReview = {
   authorName: string
@@ -14,11 +21,32 @@ type LiveGoogleReview = {
   text: string
 }
 
+const fallbackReviewQuotes = [
+  'Isaac makes learning to fly feel safe, clear, and exciting.',
+  'Professional, patient, and exactly the kind of instructor you want.',
+  'A great first step into aviation with real confidence.',
+]
+
+function shortenReviewQuote(text: string) {
+  const cleanText = text.replace(/\s+/g, ' ').replace(/^["']|["']$/g, '').trim()
+
+  if (cleanText.length <= 54) {
+    return cleanText
+  }
+
+  const shortened = cleanText.slice(0, 51)
+  const lastSpace = shortened.lastIndexOf(' ')
+
+  return `${shortened.slice(0, lastSpace > 32 ? lastSpace : 51)}...`
+}
+
 export default function Home() {
   const [reviews, setReviews] = useState<LiveGoogleReview[]>([])
   const [reviewSummary, setReviewSummary] = useState<{ rating: number; userRatingCount: number } | null>(null)
   const [reviewsLoading, setReviewsLoading] = useState(true)
   const [reviewsError, setReviewsError] = useState<string | null>(null)
+  const [activeReviewQuoteIndex, setActiveReviewQuoteIndex] = useState(0)
+  const [heroCtaVariant, setHeroCtaVariant] = useState(CTA_EXPERIMENT_VARIANTS[0])
 
   useEffect(() => {
     let cancelled = false
@@ -59,6 +87,42 @@ export default function Home() {
     }
   }, [])
 
+  const reviewQuotes = reviews
+    .map((review) => review.text)
+    .filter((text): text is string => Boolean(text && text.trim()))
+    .map(shortenReviewQuote)
+    .slice(0, 6)
+  const rotatingReviewQuotes = reviewQuotes.length > 0 ? reviewQuotes : fallbackReviewQuotes
+  const activeReviewQuote = rotatingReviewQuotes[activeReviewQuoteIndex % rotatingReviewQuotes.length]
+
+  useEffect(() => {
+    setActiveReviewQuoteIndex(0)
+  }, [rotatingReviewQuotes.length])
+
+  useEffect(() => {
+    if (rotatingReviewQuotes.length <= 1) {
+      return
+    }
+
+    const intervalId = window.setInterval(() => {
+      setActiveReviewQuoteIndex((currentIndex) => (currentIndex + 1) % rotatingReviewQuotes.length)
+    }, 4500)
+
+    return () => window.clearInterval(intervalId)
+  }, [rotatingReviewQuotes.length])
+
+  useEffect(() => {
+    const assignedVariant = getAssignedCtaVariant()
+    setHeroCtaVariant(assignedVariant)
+
+    if (!hasTrackedCtaViewThisSession()) {
+      markCtaViewTrackedThisSession()
+      trackCtaExperimentEvent('cta_viewed', assignedVariant, {
+        placement: 'homepage_hero_primary',
+      })
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-white">
       <section className="relative min-h-[85vh] sm:min-h-[90vh] flex items-center justify-center bg-black overflow-hidden">
@@ -88,42 +152,63 @@ export default function Home() {
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/50 to-black/60" />
         
-        <div className="relative z-10 text-center text-white px-4 sm:px-6 max-w-6xl mx-auto">
-          <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-8xl font-bold mb-6 sm:mb-8 tracking-tight">
-            <div className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent leading-none mb-2">
-              <TypingEffect 
-                words={['Merlin', 'Tailored', 'One - on - One', 'Career', 'Private Pilot', 'Instrument Pilot', 'Commercial Pilot']}
-                wordPauseDuration={{ 0: 10000 }}
-              />
-            </div>
-            <div className="text-white leading-none">Flight Training</div>
-          </h1>
-          <p className="text-base sm:text-lg md:text-xl mb-8 sm:mb-10 text-gray-300 max-w-3xl mx-auto font-light leading-relaxed px-4">
-            Become a pilot from the skies over Philadelphia. Personalized 1-on-1 instruction with Isaac at Northeast Philadelphia Airport, KPNE.
-          </p>
-          {/* Social proof badge */}
-          <div className="flex justify-center mb-8 sm:mb-10">
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-5 py-2 text-white text-sm font-medium">
-              <span className="text-golden">★★★★★</span>
-              <span>5.0 Rating on Google</span>
-              <span className="w-px h-4 bg-white/30" />
-              <span className="text-gray-300">Northeast Philadelphia Airport, KPNE</span>
-            </div>
+        <div className="relative z-10 min-h-[85vh] sm:min-h-[90vh] w-full px-4 sm:px-6">
+          <div className="mx-auto flex min-h-[85vh] sm:min-h-[90vh] max-w-6xl flex-col items-center justify-start pt-16 sm:pt-20 md:pt-24 pb-72 text-center text-white">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-[7.5rem] font-bold mb-6 sm:mb-8 tracking-tight">
+              <div className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent leading-none mb-2">
+                <TypingEffect
+                  words={['Merlin', 'Tailored', 'One - on - One', 'Career', 'Private Pilot', 'Instrument Pilot', 'Commercial Pilot']}
+                  wordPauseDuration={{ 0: 1800 }}
+                />
+              </div>
+              <div className="text-white leading-none">Flight Training</div>
+            </h1>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Link
-              href="/discovery-flight-funnel"
-              className="group px-8 sm:px-10 py-3 sm:py-4 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-golden/50 text-base sm:text-lg relative overflow-hidden text-center w-full sm:w-auto"
-            >
-              <span className="relative z-10">Book Your Discovery Flight</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-golden opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            </Link>
-            <Link
-              href="/pricing"
-              className="px-8 sm:px-10 py-3 sm:py-4 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-semibold rounded-lg hover:bg-white/20 transition-all duration-300 text-base sm:text-lg text-center w-full sm:w-auto"
-            >
-              View Training & Pricing
-            </Link>
+
+          <div
+            style={{
+              position: 'absolute',
+              left: '1rem',
+              right: '1rem',
+              bottom: 'clamp(2rem, 6vh, 3rem)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '1rem',
+              zIndex: 20,
+            }}
+          >
+            {/* Social proof badge */}
+            <div className="flex w-full justify-center">
+              <div className="w-full max-w-[22rem] rounded-2xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-semibold text-white shadow-xl backdrop-blur-sm sm:max-w-2xl sm:px-5 sm:text-sm">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="shrink-0 text-golden">★★★★★</span>
+                  <span>5.0 Rating on Google</span>
+                </div>
+                <p className="mt-1 text-center italic leading-snug text-white/90">&ldquo;{activeReviewQuote}&rdquo;</p>
+              </div>
+            </div>
+            <div className="flex w-full max-w-sm flex-col sm:max-w-none sm:flex-row gap-4 justify-center items-center">
+              <Link
+                href="/discovery-flight-funnel"
+                onClick={() => {
+                  trackCtaExperimentEvent('cta_clicked', heroCtaVariant, {
+                    placement: 'homepage_hero_primary',
+                    destination: '/discovery-flight-funnel',
+                  })
+                }}
+                className="group px-8 sm:px-10 py-3 sm:py-4 bg-golden text-black font-semibold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl hover:shadow-golden/50 text-base sm:text-lg relative overflow-hidden text-center w-full sm:w-auto"
+              >
+                <span className="relative z-10">{heroCtaVariant.label}</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-golden opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </Link>
+              <Link
+                href="/pricing"
+                className="px-8 sm:px-10 py-3 sm:py-4 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-semibold rounded-lg hover:bg-white/20 transition-all duration-300 text-base sm:text-lg text-center w-full sm:w-auto"
+              >
+                View Training & Pricing
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -702,4 +787,3 @@ export default function Home() {
     </div>
   )
 }
-

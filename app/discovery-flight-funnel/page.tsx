@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { AlertCircle } from 'lucide-react'
+import { getStoredCtaVariant, trackCtaExperimentEvent } from '@/lib/cta-experiment-client'
 
 export default function DiscoveryFlightFunnel() {
   const router = useRouter()
@@ -11,11 +12,27 @@ export default function DiscoveryFlightFunnel() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [isRateLimited, setIsRateLimited] = useState(false)
+  const [hasTrackedFormStart, setHasTrackedFormStart] = useState(false)
+
+  const trackFormStart = () => {
+    if (hasTrackedFormStart) {
+      return
+    }
+
+    setHasTrackedFormStart(true)
+    trackCtaExperimentEvent('form_started', getStoredCtaVariant(), {
+      form: 'discovery_flight_email',
+    })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     setError('')
+    trackFormStart()
+    trackCtaExperimentEvent('form_submit_attempted', getStoredCtaVariant(), {
+      form: 'discovery_flight_email',
+    })
 
     try {
       // Send email to backend to save to prospect_information table
@@ -38,14 +55,19 @@ export default function DiscoveryFlightFunnel() {
           const data = await response.json()
           errorMessage = data.error || errorMessage
         } catch (e) {
-            // If JSON parse fails, use status text
-            console.error('Failed to parse error response', e)
-            errorMessage = `Server Error: ${response.status} ${response.statusText}`
+          // If JSON parse fails, use status text
+          console.error('Failed to parse error response', e)
+          errorMessage = `Server Error: ${response.status} ${response.statusText}`
         }
         setError(errorMessage)
         setIsSubmitting(false)
         return
       }
+
+      trackCtaExperimentEvent('form_submitted', getStoredCtaVariant(), {
+        form: 'discovery_flight_email',
+        emailDomain: email.split('@')[1] || '',
+      })
     } catch (error) {
       console.error('Error submitting form:', error)
       setError(error instanceof Error ? error.message : 'An unexpected error occurred')
@@ -84,7 +106,11 @@ export default function DiscoveryFlightFunnel() {
                 type="email"
                 id="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onFocus={trackFormStart}
+                onChange={(e) => {
+                  trackFormStart()
+                  setEmail(e.target.value)
+                }}
                 required
                 placeholder="your@email.com"
                 className="w-full px-4 py-3 rounded-lg bg-white/10 border border-golden/30 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-golden focus:border-transparent transition-all duration-300"
