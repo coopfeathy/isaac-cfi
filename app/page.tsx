@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import LocationsMap from "@/app/components/LocationsMap"
 import TypingEffect from "@/app/components/TypingEffect"
 import { CTA_EXPERIMENT_VARIANTS } from "@/lib/cta-experiment"
 import {
@@ -213,575 +212,235 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Google Reviews */}
-      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-gray-50 to-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <div className="inline-block mb-4">
-              <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
+      {/* Training Paths */}
+      <section className="bg-white py-14 sm:py-20 md:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="mb-10 flex flex-col gap-4 md:mb-14 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-3xl">
+              <p className="mb-3 text-sm font-black uppercase tracking-[0.2em] text-golden">Choose your route</p>
+              <h2 className="text-4xl font-black uppercase tracking-normal text-black sm:text-5xl md:text-6xl">
+                Flight training built around your next certificate.
+              </h2>
             </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-black mb-4 tracking-tight">Google Reviews</h2>
-            <p className="text-gray-600 text-base sm:text-lg max-w-2xl mx-auto font-light">
-              Verified public feedback from our Google Business Profile.
+            <p className="max-w-md text-base leading-relaxed text-gray-600 sm:text-lg">
+              Start with a discovery flight, then move into focused one-on-one training at Northeast Philadelphia Airport.
             </p>
-            {reviewSummary && (
-              <p className="text-sm text-gray-500 mt-2">
-                {reviewSummary.rating.toFixed(1)} average from {reviewSummary.userRatingCount} Google ratings
-              </p>
-            )}
           </div>
 
-          {reviewsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map((index) => (
-                <div key={index} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm animate-pulse">
-                  <div className="h-4 w-24 bg-gray-200 rounded mb-4" />
-                  <div className="h-3 w-full bg-gray-200 rounded mb-2" />
-                  <div className="h-3 w-5/6 bg-gray-200 rounded mb-2" />
-                  <div className="h-3 w-3/4 bg-gray-200 rounded" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                title: 'Discovery Flight',
+                copy: 'A first flight with a CFI so you can see if training feels right.',
+                image: '/images/golden-hour-skyline-flight.png',
+                href: '/discovery-flight-funnel',
+              },
+              {
+                title: 'Private Pilot',
+                copy: 'Structured lessons for the certificate that turns you into pilot in command.',
+                image: '/images/n888ms-1.JPG',
+                href: '/training-options',
+              },
+              {
+                title: 'Instrument Rating',
+                copy: 'Build confidence, precision, and weather decision-making after private pilot.',
+                image: '/images/n1624q-2.JPG',
+                href: '/training-options',
+              },
+              {
+                title: 'Commercial Pilot',
+                copy: 'Sharpen aircraft control and professional standards for the next step.',
+                image: '/images/our-aircraft-header.JPG',
+                href: '/training-options',
+              },
+            ].map((item) => (
+              <Link
+                key={item.title}
+                href={item.href}
+                className="group relative min-h-[24rem] overflow-hidden rounded-lg bg-black shadow-lg transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl"
+              >
+                <Image
+                  src={item.image}
+                  alt={item.title}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/5" />
+                <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
+                  <p className="mb-2 text-xs font-black uppercase tracking-[0.18em] text-golden">Merlin</p>
+                  <h3 className="text-2xl font-black uppercase leading-none tracking-normal">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-white/85">{item.copy}</p>
+                  <span className="mt-5 inline-flex text-sm font-bold uppercase italic text-golden">Explore training</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Training Flow */}
+      <section className="bg-black py-16 text-white sm:py-20 md:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+            <div>
+              <p className="mb-3 text-sm font-black uppercase tracking-[0.2em] text-golden">How it works</p>
+              <h2 className="text-4xl font-black uppercase leading-none tracking-normal sm:text-5xl md:text-6xl">
+                Simple steps. Serious training.
+              </h2>
+              <p className="mt-5 max-w-xl text-base leading-relaxed text-gray-300 sm:text-lg">
+                The goal is to make the path feel clear before you spend money: pick the right starting point, understand the timeline, and train with a plan.
+              </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/discovery-flight-funnel"
+                  className="rounded-lg bg-golden px-7 py-4 text-center font-bold text-black transition-colors hover:bg-yellow-500"
+                >
+                  Start My Free Training Plan
+                </Link>
+                <Link
+                  href="/pricing"
+                  className="rounded-lg border border-white/25 px-7 py-4 text-center font-bold text-white transition-colors hover:bg-white/10"
+                >
+                  View Pricing
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[
+                ['01', 'Pick your goal', 'Tell us whether you are brand new, returning to flying, or working toward a rating.'],
+                ['02', 'Get a plan', 'We map the first steps, expected training path, and the right way to start.'],
+                ['03', 'Fly at KPNE', 'Train one-on-one from Northeast Philadelphia Airport with practical local instruction.'],
+              ].map(([number, title, copy]) => (
+                <div key={number} className="rounded-lg border border-white/15 bg-white/5 p-6 backdrop-blur-sm">
+                  <p className="text-5xl font-black leading-none text-golden">{number}</p>
+                  <h3 className="mt-6 text-xl font-black uppercase tracking-normal text-white">{title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-gray-300">{copy}</p>
                 </div>
               ))}
             </div>
-          ) : reviewsError ? (
-            <div className="bg-white rounded-2xl border border-red-200 p-6 text-center">
-              <p className="text-sm text-red-600">{reviewsError}</p>
-              <p className="text-xs text-gray-500 mt-2">Live reviews are temporarily unavailable. Use the Google link below.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Proof + Reviews */}
+      <section className="bg-white py-14 sm:py-20 md:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="mb-10 grid gap-6 md:grid-cols-[0.9fr_1.1fr] md:items-end">
+            <div>
+              <p className="mb-3 text-sm font-black uppercase tracking-[0.2em] text-golden">Student proof</p>
+              <h2 className="text-4xl font-black uppercase tracking-normal text-black sm:text-5xl md:text-6xl">Real reactions after flying.</h2>
             </div>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="text-lg text-golden">★★★★★</span>
+                <span className="font-black text-black">{reviewSummary ? reviewSummary.rating.toFixed(1) : '5.0'} on Google</span>
+                {reviewSummary && <span className="text-sm text-gray-500">from {reviewSummary.userRatingCount} ratings</span>}
+              </div>
+              <p className="mt-2 text-sm italic leading-relaxed text-gray-700">&ldquo;{activeReviewQuote}&rdquo;</p>
+            </div>
+          </div>
+
+          {reviewsLoading ? (
+            <div className="grid gap-4 md:grid-cols-3">
+              {[1, 2, 3].map((index) => (
+                <div key={index} className="h-48 animate-pulse rounded-lg bg-gray-100" />
+              ))}
+            </div>
+          ) : reviewsError ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700">{reviewsError}</div>
           ) : reviews.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid gap-4 md:grid-cols-3">
               {reviews.slice(0, 3).map((review, index) => (
-                <div key={`${review.authorName}-${index}`} className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-lg transition-shadow">
-                  <div className="text-golden text-lg mb-2">{'★'.repeat(Math.max(1, Math.min(5, Math.round(review.rating || 0))))}</div>
-                  <p className="text-gray-700 text-sm leading-relaxed mb-4 line-clamp-5">"{review.text || 'Great instruction and professional service.'}"</p>
-                  <p className="text-sm font-semibold text-black">{review.authorName}</p>
-                  {review.relativeTime && <p className="text-xs text-gray-500 mt-1">{review.relativeTime}</p>}
+                <div key={review.authorName + index} className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+                  <div className="mb-3 text-golden">{'★'.repeat(Math.max(1, Math.min(5, Math.round(review.rating || 0))))}</div>
+                  <p className="text-sm leading-relaxed text-gray-700">&ldquo;{review.text || 'Great instruction and professional service.'}&rdquo;</p>
+                  <div className="mt-5 border-t border-gray-100 pt-4">
+                    <p className="font-bold text-black">{review.authorName}</p>
+                    {review.relativeTime && <p className="text-xs text-gray-500">{review.relativeTime}</p>}
+                  </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 text-center">
-              <p className="text-sm text-gray-500">No live review content is available yet. Use the Google link below.</p>
-            </div>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-sm text-gray-600">Live review content is temporarily unavailable.</div>
           )}
-
-          <div className="text-center mt-10">
-            <a
-              href="https://www.google.com/search?q=Merlin+Flight+Training+reviews"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block px-8 py-3 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-colors"
-            >
-              Read Reviews on Google
-            </a>
-          </div>
         </div>
       </section>
 
-      {/* Visit Northeast Philadelphia Airport */}
-      <section className="py-16 sm:py-20 md:py-24 bg-white relative">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-golden to-transparent" />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10 sm:mb-12">
-            <div className="inline-block mb-4">
-              <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
-            </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-black mb-4 tracking-tight">
-              Visit Northeast Philadelphia Airport
-            </h2>
-            <p className="text-gray-600 text-base sm:text-lg max-w-2xl mx-auto font-light">
-              Find us at KPNE in Philadelphia, PA.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-stretch">
-            <div className="h-[350px] sm:h-[420px] rounded-2xl overflow-hidden border border-gray-200 shadow-lg">
-              <LocationsMap />
-            </div>
-
-            <a
-              href="https://maps.google.com/?q=Northeast+Philadelphia+Airport+KPNE"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative rounded-2xl overflow-hidden border border-gray-200 shadow-lg hover:shadow-2xl transition-all duration-300"
-            >
-              <div className="absolute inset-0 overflow-hidden">
-                <Image
-                  src="/images/golden-hour-skyline-flight.png"
-                  alt="Golden-hour flight near Northeast Philadelphia Airport (KPNE) — home base of Merlin Flight Training"
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                />
+      {/* Isaac + KPNE */}
+      <section className="bg-gray-50 py-14 sm:py-20 md:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="grid overflow-hidden rounded-lg bg-white shadow-xl md:grid-cols-2">
+            <div className="relative min-h-[28rem] bg-black">
+              <Image
+                src="/images/golden-hour-skyline-flight.png"
+                alt="Golden-hour flight near Northeast Philadelphia Airport"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+              <div className="absolute bottom-0 p-6 text-white sm:p-8">
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-golden">Home airport</p>
+                <h2 className="mt-2 text-4xl font-black uppercase leading-none tracking-normal">KPNE Philadelphia</h2>
               </div>
-              <div className="absolute inset-0 bg-black/45" />
-              <div className="relative z-10 h-full min-h-[350px] sm:min-h-[420px] flex flex-col justify-end p-6 sm:p-8">
-                <h3 className="text-2xl sm:text-3xl font-bold text-white mb-2">Philadelphia, PA</h3>
-                <p className="text-golden font-semibold mb-2">KPNE - Northeast Philadelphia Airport</p>
-                <p className="text-gray-200 text-sm mb-4">9800 Ashton Rd, Philadelphia, PA 19114</p>
-                <span className="inline-block w-fit px-5 py-2 bg-black text-white font-semibold rounded-lg group-hover:bg-golden group-hover:text-black transition-colors">
-                  Open in Google Maps
-                </span>
-              </div>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-16 sm:py-20 md:py-24 bg-white relative">
-        {/* Subtle Top Border */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-golden to-transparent" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12 sm:mb-16 md:mb-20">
-            <div className="inline-block mb-4">
-              <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
             </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-4 sm:mb-5 tracking-tight px-4">
-              We are Flight Training
-            </h2>
-            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-3xl mx-auto font-light px-4 leading-relaxed">
-              Merlin Flight Training is a newly founded independent instruction school specialized in training pilots. The unique aspect of our instruction is that we train inside of our aircraft or your aircraft, making our instruction available to aircraft owners and those who prefer to rent.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            {/* Fixed Hourly Cost */}
-            <div className="group bg-gradient-to-br from-gray-50 to-white p-8 sm:p-10 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-2xl">
-              <div className="w-14 sm:w-16 h-14 sm:h-16 bg-black rounded-xl flex items-center justify-center mb-5 sm:mb-6 group-hover:bg-golden transition-all duration-300">
-                <svg className="w-7 sm:w-8 h-7 sm:h-8 text-golden group-hover:text-black transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-black mb-3 sm:mb-4 group-hover:text-golden transition-colors duration-300">
-                Fixed Hourly Cost
-              </h3>
-              <p className="text-gray-600 leading-relaxed font-light text-sm sm:text-base">
-                Based on realistic flight times that exceed FAA Part 61 minimums, providing an expected cost of training with no surprises.
+            <div className="p-6 sm:p-8 md:p-10">
+              <p className="mb-3 text-sm font-black uppercase tracking-[0.2em] text-golden">Meet your CFI</p>
+              <h2 className="text-3xl font-black uppercase tracking-normal text-black sm:text-4xl">Isaac Prestwich</h2>
+              <p className="mt-3 text-lg font-semibold text-gray-800">Certified Flight Instructor and owner of Merlin Flight Training.</p>
+              <p className="mt-5 leading-relaxed text-gray-600">
+                Merlin is built around one-on-one instruction, realistic expectations, and training that fits your aircraft, Merlin&apos;s aircraft, or your schedule. You get a clear plan before you commit to the next step.
               </p>
-            </div>
-
-            {/* Flexible Payment */}
-            <div className="group bg-gradient-to-br from-gray-50 to-white p-8 sm:p-10 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-2xl">
-              <div className="w-14 sm:w-16 h-14 sm:h-16 bg-black rounded-xl flex items-center justify-center mb-5 sm:mb-6 group-hover:bg-golden transition-all duration-300">
-                <svg className="w-7 sm:w-8 h-7 sm:h-8 text-golden group-hover:text-black transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
+              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                {['CFI-led', 'One-on-one', 'KPNE based'].map((item) => (
+                  <div key={item} className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-center font-bold text-black">{item}</div>
+                ))}
               </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-black mb-3 sm:mb-4 group-hover:text-golden transition-colors duration-300">
-                Flexible Payment
-              </h3>
-              <p className="text-gray-600 leading-relaxed font-light text-sm sm:text-base">
-                Accepts credit or debit offering multiple ways to pay for flight training at Merlin Flight Training.
-              </p>
-            </div>
-
-            {/* Your Schedule */}
-            <div className="group bg-gradient-to-br from-gray-50 to-white p-8 sm:p-10 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-2xl">
-              <div className="w-14 sm:w-16 h-14 sm:h-16 bg-black rounded-xl flex items-center justify-center mb-5 sm:mb-6 group-hover:bg-golden transition-all duration-300">
-                <svg className="w-7 sm:w-8 h-7 sm:h-8 text-golden group-hover:text-black transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-black mb-3 sm:mb-4 group-hover:text-golden transition-colors duration-300">
-                Fast Track or Flexible
-              </h3>
-              <p className="text-gray-600 leading-relaxed font-light text-sm sm:text-base">
-                Fast Track Training or Normal Training enables you to meet time frame requirements or continue training around a job or obligation.
-              </p>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* Welcome / About Isaac Section */}
-      <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-br from-gray-50 to-white relative">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12 sm:mb-16">
-            <div className="inline-block mb-4">
-              <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
-            </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-6 tracking-tight">
-              WELCOME!
-            </h2>
-          </div>
-
-          <div className="bg-white p-8 sm:p-10 md:p-12 rounded-3xl shadow-xl border border-gray-200">
-            <div className="flex flex-col md:flex-row md:items-start gap-8 mb-8 pb-8 border-b border-gray-200">
-              <div className="flex-1">
-                <h3 className="text-2xl sm:text-3xl font-bold text-black mb-2">Isaac Prestwich</h3>
-                <p className="text-golden font-semibold text-lg sm:text-xl mb-1">Certified Flight Instructor (CFI)</p>
-                <p className="text-gray-600 font-medium">Owner, Merlin Flight Training</p>
-                <p className="text-gray-500 text-sm sm:text-base mt-1">Northeast Philadelphia Airport (KPNE) · Philadelphia, PA</p>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                <div className="bg-golden/10 border border-golden/20 rounded-xl px-4 py-3 text-center min-w-[90px]">
-                  <p className="text-golden font-bold text-xl">CFI</p>
-                  <p className="text-gray-600 text-xs mt-1">Certified</p>
-                </div>
-                <div className="bg-golden/10 border border-golden/20 rounded-xl px-4 py-3 text-center min-w-[90px]">
-                  <p className="text-golden font-bold text-xl">FAA</p>
-                  <p className="text-gray-600 text-xs mt-1">Approved</p>
-                </div>
-                <div className="bg-golden/10 border border-golden/20 rounded-xl px-4 py-3 text-center min-w-[90px]">
-                  <p className="text-golden font-bold text-xl">1-on-1</p>
-                  <p className="text-gray-600 text-xs mt-1">Only</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-6 text-gray-700 leading-relaxed font-light mb-8">
-              <p className="text-base sm:text-lg">
-                My name is Isaac Prestwich and I'm the creator of Merlin Flight Training. I started my training in October 2022 and was taught by an instructor who now flies for the airlines. That mentorship shaped my safety-first philosophy, which I bring to every single lesson.
-              </p>
-              <p className="text-base sm:text-lg">
-                I train in <strong className="text-black font-semibold">your aircraft or mine</strong>—making personalized instruction accessible whether you own a plane or prefer to rent. My teaching method challenges every student to be not just a licensed pilot, but a <em>safer</em> one.
-              </p>
-            </div>
-
-            {/* Why Isaac bullets */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-              {[
-                { icon: '✈', text: 'Personalized 1-on-1 instruction — no group classes' },
-                { icon: '🛡', text: 'Safety-first philosophy: IMSAFE, weather briefing, FAR/AIM' },
-                { icon: '🔄', text: 'Train in your aircraft or Merlin\'s — total flexibility' },
-                { icon: '📍', text: 'Based at Northeast Philadelphia Airport (KPNE), Philadelphia, PA' },
-                { icon: '⚡', text: 'Fast-track or flexible pacing — you set the timeline' },
-                { icon: '🎯', text: 'From Discovery Flight to Commercial — all levels' },
-              ].map((item, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <span className="text-xl mt-0.5">{item.icon}</span>
-                  <span className="text-gray-700 text-sm sm:text-base font-light">{item.text}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href="/discovery-flight-funnel"
-                className="flex-1 px-6 py-4 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300 text-center"
-              >
-                Book Your Discovery Flight
-              </Link>
-              <Link
-                href="https://app.merlinflighttraining.com/schedule"
-                className="flex-1 px-6 py-4 border-2 border-black text-black font-semibold rounded-lg hover:border-golden hover:text-golden transition-all duration-300 text-center"
-              >
-                Check Availability
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* What Makes a Safe Pilot Section */}
-      <section className="py-16 sm:py-20 md:py-24 bg-black text-white relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 0 L60 40 L100 50 L60 60 L50 100 L40 60 L0 50 L40 40 Z' fill='%23C59A2A' fill-opacity='0.1'/%3E%3C/svg%3E")`,
-            backgroundSize: '100px 100px',
-          }} />
-        </div>
-
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 relative z-10">
-          <div className="text-center mb-12 sm:mb-16">
-            <div className="inline-block mb-4">
-              <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
-            </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 tracking-tight">
-              What Makes a <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Safe Pilot</span>
-            </h2>
-            <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-4xl mx-auto font-light leading-relaxed">
-              Throughout my years of flying, I have learned many aspects of what determines a safe pilot. When I first started my training in October of 2022, my instructor at the time—who now flies for the airlines—taught me the fundamentals of what it means to be a safe pilot.
-            </p>
-          </div>
-
-          <div className="mb-12 text-gray-300 leading-relaxed font-light text-base sm:text-lg max-w-4xl mx-auto">
-            <p className="mb-6">
-              Those early lessons laid the foundation for how I approach aviation today. As I continue to learn and grow in experience, I've come to realize that safety isn't just determined by the rules, but instead it is defined by mindset, discipline, and ability to manage risk. Through my own experiences and shared wisdom of other fellow aviators, I have identified a few key traits of what makes a safe pilot.
-            </p>
-            <p>
-              These principles have guided me throughout my training and career as a pro-pilot, and I will continue to rely on these concepts every time I step into the cockpit.
-            </p>
-          </div>
-
-          {/* Safety Principles */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-12">
-            {/* Weather Briefer */}
-            <div className="bg-gradient-to-br from-gray-900 to-black p-8 rounded-2xl border border-golden/20 hover:border-golden/50 transition-all duration-300">
-              <div className="w-12 h-12 bg-golden/10 rounded-xl flex items-center justify-center mb-5">
-                <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                </svg>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">Weather Briefer</h3>
-              <p className="text-gray-300 font-light text-sm sm:text-base leading-relaxed mb-4">
-                Not all pilots are meteorologists. A weather briefer is a professional who gives a synopsis on forecast weather conditions. Safe pilots understand they are most likely not professional meteorologists, so they will call ahead of their flight and get a weather briefing.
-              </p>
-              <p className="text-gray-400 text-sm font-light mb-3">
-                It's free and takes 10-15 minutes! This helps determine whether it is safe to fly, weather permitting.
-              </p>
-              <div className="bg-golden/10 p-4 rounded-lg">
-                <p className="text-golden font-semibold text-sm">📞 Dial 1-800-WXBRIEF</p>
-                <p className="text-gray-300 text-xs mt-1">Enter your state code to connect with a professional</p>
-              </div>
-            </div>
-
-            {/* IMSAFE */}
-            <div className="bg-gradient-to-br from-gray-900 to-black p-8 rounded-2xl border border-golden/20 hover:border-golden/50 transition-all duration-300">
-              <div className="w-12 h-12 bg-golden/10 rounded-xl flex items-center justify-center mb-5">
-                <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">Pilots Are Human Beings Too</h3>
-              <p className="text-gray-300 font-light text-sm sm:text-base leading-relaxed mb-4">
-                Have you ever tried to do something strenuous while sick? It can be difficult—simple tasks become burdensome. Now imagine being in an aircraft trying to do a plethora of tasks while sick. That's why pilots use the IMSAFE acronym before flights:
-              </p>
-              <div className="bg-golden/10 p-4 rounded-lg space-y-1 text-sm">
-                <p className="text-white"><span className="text-golden font-bold">I</span>llness</p>
-                <p className="text-white"><span className="text-golden font-bold">M</span>edications</p>
-                <p className="text-white"><span className="text-golden font-bold">S</span>tress</p>
-                <p className="text-white"><span className="text-golden font-bold">A</span>lcohol</p>
-                <p className="text-white"><span className="text-golden font-bold">F</span>atigue</p>
-                <p className="text-white"><span className="text-golden font-bold">E</span>motion (and Eating!)</p>
-              </div>
-              <p className="text-gray-400 text-sm font-light mt-4">
-                Paying attention to our body will pay back in the future, especially when flying.
-              </p>
-            </div>
-
-            {/* Regulations */}
-            <div className="bg-gradient-to-br from-gray-900 to-black p-8 rounded-2xl border border-golden/20 hover:border-golden/50 transition-all duration-300">
-              <div className="w-12 h-12 bg-golden/10 rounded-xl flex items-center justify-center mb-5">
-                <svg className="w-6 h-6 text-golden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-white mb-4">Know the Regulations</h3>
-              <p className="text-gray-300 font-light text-sm sm:text-base leading-relaxed mb-4">
-                The FAR/AIM (Federal Aviation Regulations and Aeronautical Information Manual) is lengthy—over 1200+ pages. Great pilots sit down, memorize the regulations, and then apply them to their everyday flying.
-              </p>
-              <p className="text-gray-400 text-sm font-light mb-3">
-                Some great starting points:
-              </p>
-              <div className="space-y-2 text-sm mb-4">
-                <div className="bg-golden/10 p-3 rounded-lg">
-                  <p className="text-white font-semibold">14 CFR 91.205</p>
-                  <p className="text-golden text-xs">ATOMATOFLAMES</p>
-                </div>
-                <div className="bg-golden/10 p-3 rounded-lg">
-                  <p className="text-white font-semibold">14 CFR 91.103</p>
-                  <p className="text-golden text-xs">NWKRAFT</p>
-                </div>
-                <div className="bg-golden/10 p-3 rounded-lg">
-                  <p className="text-white font-semibold">14 CFR 91.3</p>
-                  <p className="text-gray-300 text-xs">Pilot in Command Authority</p>
-                </div>
-              </div>
-              <p className="text-gray-400 text-sm font-light italic">
-                Remember: All regulations have a reason—they may have possibly been written in blood.
-              </p>
-            </div>
-          </div>
-
-          <div className="text-center max-w-4xl mx-auto">
-            <p className="text-gray-300 text-base sm:text-lg font-light leading-relaxed">
-              Overall, what makes a safe pilot is the preparation they take before the flight to be as prepared as possible. Besides the actual flying aspect, that's one way I have found that works for others in making a safe choice. I hope you all enjoyed this read and were able to get something from it.
-            </p>
-            <p className="text-golden text-xl font-semibold mt-6">
-              As always, Fly Safe!
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Why Choose Merlin Section */}
-      <section className="py-16 sm:py-20 md:py-24 bg-white relative">
-        {/* Subtle Top Border */}
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-golden to-transparent" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12 sm:mb-16 md:mb-20">
-            <div className="inline-block mb-4">
-              <div className="w-12 sm:w-16 h-1 bg-golden rounded-full" />
-            </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-black mb-4 sm:mb-5 tracking-tight px-4">
-              Why Choose Merlin
-            </h2>
-            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto font-light px-4">
-              Professional instruction, modern aircraft, and unforgettable experiences
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            {/* Safety First */}
-            <div className="group bg-gradient-to-br from-gray-50 to-white p-8 sm:p-10 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-2xl">
-              <div className="w-14 sm:w-16 h-14 sm:h-16 bg-black rounded-xl flex items-center justify-center mb-5 sm:mb-6 group-hover:bg-golden transition-all duration-300">
-                <svg className="w-7 sm:w-8 h-7 sm:h-8 text-golden group-hover:text-black transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-black mb-3 sm:mb-4 group-hover:text-golden transition-colors duration-300">
-                Safety First
-              </h3>
-              <p className="text-gray-600 leading-relaxed font-light text-sm sm:text-base">
-                Meticulously maintained aircraft and strict safety protocols ensure every flight meets the highest standards.
-              </p>
-            </div>
-
-            {/* Experienced Instructors */}
-            <div className="group bg-gradient-to-br from-gray-50 to-white p-8 sm:p-10 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-2xl">
-              <div className="w-14 sm:w-16 h-14 sm:h-16 bg-black rounded-xl flex items-center justify-center mb-5 sm:mb-6 group-hover:bg-golden transition-all duration-300">
-                <svg className="w-7 sm:w-8 h-7 sm:h-8 text-golden group-hover:text-black transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-black mb-3 sm:mb-4 group-hover:text-golden transition-colors duration-300">
-                Expert Instructors
-              </h3>
-              <p className="text-gray-600 leading-relaxed font-light text-sm sm:text-base">
-                Learn from FAA-certified flight instructors with thousands of hours of experience and a passion for teaching.
-              </p>
-              <p className="text-base text-gray-700 mt-4">
-                Every Merlin student trains with an instructor who was once in your seat.
-                The best candidates earn a spot on our team.{' '}
-                <Link href="/careers" className="text-golden underline-offset-2 hover:underline">
-                  Learn about the career path &rarr;
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link href="/discovery-flight-funnel" className="rounded-lg bg-black px-6 py-4 text-center font-bold text-white transition-colors hover:bg-golden hover:text-black">
+                  Get My Free Training Plan
                 </Link>
-              </p>
-            </div>
-
-            {/* Philadelphia aerial views */}
-            <div className="group bg-gradient-to-br from-gray-50 to-white p-8 sm:p-10 rounded-2xl border border-gray-200 hover:border-golden transition-all duration-300 hover:shadow-2xl">
-              <div className="w-14 sm:w-16 h-14 sm:h-16 bg-black rounded-xl flex items-center justify-center mb-5 sm:mb-6 group-hover:bg-golden transition-all duration-300">
-                <svg className="w-7 sm:w-8 h-7 sm:h-8 text-golden group-hover:text-black transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-bold text-black mb-3 sm:mb-4 group-hover:text-golden transition-colors duration-300">
-                Philadelphia from Above
-              </h3>
-              <p className="text-gray-600 leading-relaxed font-light text-sm sm:text-base">
-                See the Center City Philadelphia skyline, the Delaware River, Independence Hall from the air, and the rolling hills of Bucks and Montgomery counties — a unique aerial perspective on the city you call home.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Services Section */}
-      <section className="py-16 sm:py-20 md:py-24 bg-gray-50 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 sm:gap-12 md:gap-16 items-center">
-            <div className="order-2 md:order-1">
-              <div className="inline-block mb-4">
-                <div className="w-10 sm:w-12 h-1 bg-golden rounded-full" />
-              </div>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-black mb-4 sm:mb-6 tracking-tight">
-                Flight Training Programs
-              </h2>
-              <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8 leading-relaxed font-light">
-                Whether you're pursuing your private pilot license or looking for an introductory discovery flight, our comprehensive training programs are designed to help you achieve your aviation goals.
-              </p>
-              <ul className="space-y-4 sm:space-y-5 mb-8 sm:mb-10">
-                <li className="flex items-start group">
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-golden flex items-center justify-center mr-3 sm:mr-4 mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                    <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-black" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <span className="text-gray-700 font-light text-sm sm:text-base">Introductory Discovery Flights</span>
-                </li>
-                <li className="flex items-start group">
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-golden flex items-center justify-center mr-3 sm:mr-4 mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                    <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-black" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <span className="text-gray-700 font-light text-sm sm:text-base">Private Pilot License Training</span>
-                </li>
-                <li className="flex items-start group">
-                  <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-golden flex items-center justify-center mr-3 sm:mr-4 mt-0.5 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                    <svg className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-black" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <span className="text-gray-700 font-light text-sm sm:text-base">Instrument Rating Courses</span>
-                </li>
-              </ul>
-              <Link
-                href="/training-options"
-                className="inline-block w-full sm:w-auto text-center px-8 sm:px-10 py-3 sm:py-4 bg-black text-white font-semibold rounded-lg hover:bg-golden hover:text-black transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-              >
-                View Training Options
-              </Link>
-            </div>
-            <div className="order-1 md:order-2 bg-gradient-to-br from-black to-gray-900 p-8 sm:p-10 md:p-12 rounded-3xl shadow-2xl border border-golden/20">
-              <div className="inline-block mb-4">
-                <div className="w-10 sm:w-12 h-1 bg-golden rounded-full" />
-              </div>
-              <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4 sm:mb-5">Focused Flight Training</h3>
-              <p className="text-gray-300 mb-6 sm:mb-8 leading-relaxed font-light text-sm sm:text-base">
-                We focus on one-on-one flight instruction and practical training that helps you progress confidently toward your pilot goals.
-              </p>
-              <div className="space-y-3 sm:space-y-4">
-                <div className="flex items-center group">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-golden/10 flex items-center justify-center mr-3 group-hover:bg-golden transition-colors duration-300 flex-shrink-0">
-                    <span className="text-golden text-base sm:text-lg group-hover:text-black transition-colors duration-300">✈</span>
-                  </div>
-                  <span className="text-gray-200 font-light text-sm sm:text-base">Discovery flights for new students</span>
-                </div>
-                <div className="flex items-center group">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-golden/10 flex items-center justify-center mr-3 group-hover:bg-golden transition-colors duration-300 flex-shrink-0">
-                    <span className="text-golden text-base sm:text-lg group-hover:text-black transition-colors duration-300">✈</span>
-                  </div>
-                  <span className="text-gray-200 font-light text-sm sm:text-base">Private, Instrument, and Commercial training</span>
-                </div>
-                <div className="flex items-center group">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-golden/10 flex items-center justify-center mr-3 group-hover:bg-golden transition-colors duration-300 flex-shrink-0">
-                    <span className="text-golden text-base sm:text-lg group-hover:text-black transition-colors duration-300">✈</span>
-                  </div>
-                  <span className="text-gray-200 font-light text-sm sm:text-base">Structured progression with FAA-certified instructors</span>
-                </div>
+                <a
+                  href="https://maps.google.com/?q=Northeast+Philadelphia+Airport+KPNE"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-lg border border-gray-300 px-6 py-4 text-center font-bold text-black transition-colors hover:border-golden hover:text-golden"
+                >
+                  Open KPNE in Maps
+                </a>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 sm:py-24 md:py-32 bg-black text-white relative overflow-hidden">
-        {/* Animated Background */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 0 L60 40 L100 50 L60 60 L50 100 L40 60 L0 50 L40 40 Z' fill='%23C59A2A' fill-opacity='0.1'/%3E%3C/svg%3E")`,
-            backgroundSize: '100px 100px',
-          }} />
-        </div>
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black via-gray-900 to-black opacity-80" />
-        
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center relative z-10">
-          <div className="mb-4 sm:mb-6 inline-block">
-            <div className="w-16 sm:w-20 h-1 bg-golden mx-auto rounded-full" />
-          </div>
-          <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 sm:mb-8 tracking-tight px-4">
-            Ready to <span className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent">Take Flight</span>?
-          </h2>
-          <p className="text-lg sm:text-xl md:text-2xl mb-10 sm:mb-12 text-gray-300 max-w-3xl mx-auto font-light leading-relaxed px-4">
-            Browse available slots and book your next adventure today.
+      {/* Final CTA */}
+      <section className="relative overflow-hidden bg-black py-20 text-white sm:py-24 md:py-32">
+        <Image
+          src="/images/our-aircraft-header.JPG"
+          alt="Merlin aircraft on the ramp"
+          fill
+          className="object-cover opacity-35"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-black/30" />
+        <div className="relative z-10 mx-auto max-w-5xl px-4 text-center sm:px-6">
+          <p className="mb-3 text-sm font-black uppercase tracking-[0.2em] text-golden">Ready when you are</p>
+          <h2 className="text-4xl font-black uppercase leading-none tracking-normal sm:text-5xl md:text-7xl">Start with a plan, then take the left seat.</h2>
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-gray-200 sm:text-lg">
+            Fill out the form and get free information on becoming a pilot with Merlin Flight Training.
           </p>
-          <Link
-            href="https://app.merlinflighttraining.com/schedule"
-            className="inline-block w-full sm:w-auto px-10 sm:px-14 py-4 sm:py-5 bg-golden text-black font-bold rounded-lg hover:bg-yellow-500 transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-golden/50 text-base sm:text-lg relative overflow-hidden group mx-4"
-          >
-            <span className="relative z-10">View Schedule</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-golden opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          </Link>
+          <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
+            <Link href="/discovery-flight-funnel" className="rounded-lg bg-golden px-8 py-4 text-center font-black text-black transition-colors hover:bg-yellow-500">
+              Get My Free Training Plan
+            </Link>
+            <Link href="/pricing" className="rounded-lg border border-white/30 bg-white/10 px-8 py-4 text-center font-bold text-white backdrop-blur-sm transition-colors hover:bg-white/20">
+              View Training & Pricing
+            </Link>
+          </div>
         </div>
       </section>
     </div>
