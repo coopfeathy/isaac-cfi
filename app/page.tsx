@@ -232,7 +232,7 @@ export default function Home() {
               {
                 title: 'Discovery Flight',
                 copy: 'A first flight with a CFI so you can see if training feels right.',
-                image: '/images/golden-hour-skyline-flight.png',
+                image: '/images/discovery-flight-n9725u.jpg',
                 href: '/discovery-flight-funnel',
               },
               {
