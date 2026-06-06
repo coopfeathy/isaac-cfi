@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import CFIPageShell from '@/app/components/CFIPageShell'
+import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { Badge, I } from '@/app/admin/ops-console/primitives'
 import { useAuth } from '@/app/contexts/AuthContext'
 
 type Student = {
@@ -22,10 +23,15 @@ function formatHours(hours: number | null | undefined): string {
 
 function RosterSkeleton() {
   return (
-    <div className="space-y-2" aria-busy="true">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="h-12 w-full animate-pulse rounded-lg bg-slate-200" />
-      ))}
+    <div className="view-pad">
+      <div className="skeleton">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="sk-row">
+            <div className="sk-bar" style={{ width: `${38 + i * 4}%` }} />
+            <div className="sk-bar sk-thin" style={{ width: `${20 + i * 2}%` }} />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -46,101 +52,94 @@ export default function CFIStudentsPage() {
 
         const token = session?.access_token
         const res = await fetch('/api/cfi/students', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {} as Record<string, string>,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
 
-        if (!res.ok) {
-          throw new Error(`Failed to load student roster (${res.status})`)
-        }
+        if (!res.ok) throw new Error(`Failed to load student roster (${res.status})`)
 
         const data = await res.json()
-        if (!cancelled) {
-          setStudents(data)
-        }
+        if (!cancelled) setStudents(data)
       } catch {
-        if (!cancelled) {
-          setError('Could not load your student roster. Refresh the page to try again.')
-        }
+        if (!cancelled) setError('Could not load student roster. Refresh the page to try again.')
       } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
+        if (!cancelled) setLoading(false)
       }
     }
 
     fetchStudents()
-
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [session])
 
+  const stats = useMemo(() => {
+    const dual = students.reduce((sum, student) => sum + Number(student.dual_hours ?? 0), 0)
+    const total = students.reduce((sum, student) => sum + Number(student.total_hours ?? 0), 0)
+    const endorsements = students.reduce((sum, student) => sum + Number(student.endorsement_count ?? 0), 0)
+    return { dual, total, endorsements }
+  }, [students])
+
+  if (loading) return <RosterSkeleton />
+
   return (
-    <CFIPageShell title="My Students">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        {loading ? (
-          <RosterSkeleton />
-        ) : error ? (
-          <p className="text-sm text-red-600">{error}</p>
+    <>
+      <div className="cfi-toolbar">
+        <div className="tb-date">
+          <span className="mono dim">ROSTER</span>
+          <span className="mono">{students.length} assigned</span>
+        </div>
+        <div className="tb-divider" />
+        <div className="tb-group mono dim">active students only</div>
+        <div className="tb-spacer" />
+        <Link href="/cfi/log" className="btn-primary"><I name="plus" /> Log Training</Link>
+      </div>
+
+      <div className="view-pad">
+        <div className="stat-grid">
+          <div className="stat"><div className="stat-k mono">STUDENTS</div><div className="stat-v">{students.length}</div><div className="stat-delta dim">assigned</div></div>
+          <div className="stat"><div className="stat-k mono">DUAL HOURS</div><div className="stat-v">{stats.dual.toFixed(1)}</div><div className="stat-delta pos">logged with you</div></div>
+          <div className="stat"><div className="stat-k mono">TOTAL HOURS</div><div className="stat-v">{stats.total.toFixed(1)}</div><div className="stat-delta dim">student totals</div></div>
+          <div className="stat"><div className="stat-k mono">ENDORSEMENTS</div><div className="stat-v">{stats.endorsements}</div><div className="stat-delta warn">review currency</div></div>
+        </div>
+
+        <div className="sect-head">
+          <h3>Assigned students</h3>
+          <span className="mono dim">training state · hours · endorsements</span>
+        </div>
+
+        {error ? (
+          <div className="cfi-muted-panel neg">{error}</div>
         ) : students.length === 0 ? (
-          <div role="status" aria-live="polite" className="py-12 text-center">
-            <h3 className="text-lg font-semibold text-darkText">No students yet</h3>
-            <p className="mt-2 text-sm text-slate-500">
-              Students will appear here once an admin assigns you as their instructor.
-            </p>
+          <div className="empty-state">
+            <div className="empty-ico"><I name="users" size={22} /></div>
+            <div className="empty-title">No students assigned</div>
+            <div className="empty-sub mono dim">Students appear here once an admin assigns you as their instructor.</div>
           </div>
         ) : (
-          <div className="overflow-x-auto" aria-busy="false">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th
-                    scope="col"
-                    className="pb-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-                  >
-                    Name
-                  </th>
-                  <th
-                    scope="col"
-                    className="pb-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-                  >
-                    Email
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[100px] pb-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-                  >
-                    Dual Hours
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[100px] pb-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-                  >
-                    Total Hours
-                  </th>
-                  <th
-                    scope="col"
-                    className="w-[120px] pb-3 text-left text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-                  >
-                    Endorsements
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {students.map((student) => (
-                  <tr key={student.id} className="hover:bg-[#FFFDF7]">
-                    <td className="py-3 font-medium text-darkText">{student.full_name}</td>
-                    <td className="py-3 text-slate-600">{student.email}</td>
-                    <td className="py-3 text-slate-700">{formatHours(student.dual_hours)}</td>
-                    <td className="py-3 text-slate-700">{formatHours(student.total_hours)}</td>
-                    <td className="py-3 text-slate-700">{student.endorsement_count}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="cfi-card-grid">
+            {students.map((student) => (
+              <div key={student.id} className="cfi-card">
+                <div className="cfi-card-head">
+                  <div>
+                    <div className="cfi-card-title">{student.full_name}</div>
+                    <div className="cfi-card-sub mono">{student.email}</div>
+                  </div>
+                  <Badge kind={student.endorsement_count > 0 ? 'ok' : 'muted'}>
+                    {student.endorsement_count} END
+                  </Badge>
+                </div>
+                <div className="cfi-metric-row">
+                  <div className="cfi-mini-stat"><span>Dual</span><strong>{formatHours(student.dual_hours)}</strong></div>
+                  <div className="cfi-mini-stat"><span>Total</span><strong>{formatHours(student.total_hours)}</strong></div>
+                  <div className="cfi-mini-stat"><span>ID</span><strong className="mono">{student.user_id.slice(0, 4)}</strong></div>
+                </div>
+                <div className="dc-actions">
+                  <Link className="btn-ghost" href="/cfi/log">Log hours</Link>
+                  <Link className="btn-primary" href="/cfi/log"><I name="check" /> Endorse</Link>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
-    </CFIPageShell>
+    </>
   )
 }

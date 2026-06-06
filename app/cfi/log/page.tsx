@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import CFIPageShell from '@/app/components/CFIPageShell'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
+import { Badge, I } from '@/app/admin/ops-console/primitives'
 import { useAuth } from '@/app/contexts/AuthContext'
-
-// ── Types ─────────────────────────────────────────────────────────────────────
 
 type Student = {
   user_id: string
@@ -39,8 +38,6 @@ type EndorsementType =
   | 'flight_review'
   | 'other'
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
 const ENDORSEMENT_TYPE_LABELS: Record<EndorsementType, string> = {
   solo: 'Solo',
   xc_solo: 'XC Solo',
@@ -53,8 +50,6 @@ const ENDORSEMENT_TYPE_LABELS: Record<EndorsementType, string> = {
 
 const ENDORSEMENT_TYPES = Object.keys(ENDORSEMENT_TYPE_LABELS) as EndorsementType[]
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 function formatDate(isoString: string): string {
   const date = new Date(isoString)
   return date.toLocaleDateString('en-US', {
@@ -65,91 +60,54 @@ function formatDate(isoString: string): string {
   })
 }
 
-function truncate(text: string | null, max = 50): string {
-  if (!text) return '—'
-  return text.length > max ? text.slice(0, max) + '…' : text
+function truncate(text: string | null, max = 62): string {
+  if (!text) return '-'
+  return text.length > max ? text.slice(0, max) + '...' : text
 }
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-// ── Badge components ──────────────────────────────────────────────────────────
-
-function EndorsementBadge({ type }: { type: string }) {
-  const label = ENDORSEMENT_TYPE_LABELS[type as EndorsementType] ?? type
-  const isOther = type === 'other'
+function TableSkeleton({ lines = 6 }: { lines?: number }) {
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-        isOther
-          ? 'bg-slate-100 text-slate-700 border border-slate-300'
-          : 'bg-[#FFF3C9] text-[#7A5C00] border border-[#D7B24A]'
-      }`}
-    >
-      {label}
-    </span>
-  )
-}
-
-// ── Skeleton ──────────────────────────────────────────────────────────────────
-
-function TableSkeleton({ rows = 5 }: { rows?: number }) {
-  return (
-    <div className="space-y-2" aria-hidden="true">
-      {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="h-12 w-full animate-pulse rounded-lg bg-slate-200" />
+    <div className="skeleton">
+      {Array.from({ length: lines }).map((_, i) => (
+        <div key={i} className="sk-row">
+          <div className="sk-bar" style={{ width: `${34 + i * 6}%` }} />
+          <div className="sk-bar sk-thin" style={{ width: `${20 + i * 2}%` }} />
+        </div>
       ))}
     </div>
   )
 }
 
-// ── Dialog (modal overlay, matches schedule/page.tsx pattern) ────────────────
-
-function ModalOverlay({
+function ModalShell({
   open,
-  onClose,
   title,
-  dialogId,
+  onClose,
   children,
 }: {
   open: boolean
-  onClose: () => void
   title: string
-  dialogId: string
-  children: React.ReactNode
+  onClose: () => void
+  children: ReactNode
 }) {
   if (!open) return null
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={dialogId}
-    >
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between rounded-t-2xl border-b border-slate-100 px-6 py-4">
-          <h2 id={dialogId} className="text-xl font-semibold text-darkText">
-            {title}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close dialog"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-darkText"
-          >
-            ×
-          </button>
+    <div className="ops-console-modal-scrim" onClick={onClose}>
+      <div className="ops-console-modal" style={{ width: 520 }} onClick={(event) => event.stopPropagation()}>
+        <div className="modal-head">
+          <span className="mono">{title}</span>
+          <button className="btn-ghost icon" onClick={onClose} aria-label="Close"><I name="x-oct" /></button>
         </div>
-        <div className="p-6">{children}</div>
+        {children}
       </div>
     </div>
   )
 }
 
-// ── Log Hours Dialog ──────────────────────────────────────────────────────────
-
-function LogHoursDialog({
+function LogHoursModal({
   open,
   onClose,
   students,
@@ -169,7 +127,7 @@ function LogHoursDialog({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  function resetForm() {
+  function reset() {
     setStudentId('')
     setHours('')
     setDate(todayISO())
@@ -177,18 +135,10 @@ function LogHoursDialog({
     setError(null)
   }
 
-  function handleClose() {
-    resetForm()
-    onClose()
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function submit() {
     if (!studentId || !hours || !date) return
-
     setSaving(true)
     setError(null)
-
     try {
       const res = await fetch('/api/cfi/flight-log', {
         method: 'POST',
@@ -203,127 +153,55 @@ function LogHoursDialog({
           notes: notes.trim() || undefined,
         }),
       })
-
       if (!res.ok) {
-        setError(
-          'The flight hours could not be recorded. Check your connection and try again. If the problem persists, contact support.'
-        )
+        setError('Flight hours could not be recorded. Check the roster and try again.')
         return
       }
-
-      resetForm()
+      reset()
       onSuccess()
       onClose()
     } catch {
-      setError(
-        'The flight hours could not be recorded. Check your connection and try again. If the problem persists, contact support.'
-      )
+      setError('Flight hours could not be recorded. Check your connection and try again.')
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <ModalOverlay open={open} onClose={handleClose} title="Log Hours" dialogId="log-hours-title">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Student */}
-        <div>
-          <label htmlFor="log-student" className="mb-1.5 block text-sm font-medium text-darkText">
-            Student
-          </label>
-          <select
-            id="log-student"
-            value={studentId}
-            onChange={(e) => setStudentId(e.target.value)}
-            required
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-darkText focus:outline-none focus:ring-2 focus:ring-golden/40"
-          >
-            <option value="">Select a student…</option>
-            {students.map((s) => (
-              <option key={s.user_id} value={s.user_id}>
-                {s.full_name}
-              </option>
-            ))}
+    <ModalShell open={open} title="LOG HOURS" onClose={() => { reset(); onClose() }}>
+      <div className="modal-body form-grid">
+        <div className="f-row">
+          <label className="f-label">Student</label>
+          <select className="f-input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+            <option value="">Select student...</option>
+            {students.map((student) => <option key={student.user_id} value={student.user_id}>{student.full_name}</option>)}
           </select>
         </div>
-
-        {/* Hours Flown */}
-        <div>
-          <label htmlFor="log-hours" className="mb-1.5 block text-sm font-medium text-darkText">
-            Hours Flown
-          </label>
-          <input
-            id="log-hours"
-            type="number"
-            step="0.1"
-            min="0.1"
-            max="24"
-            value={hours}
-            onChange={(e) => setHours(e.target.value)}
-            required
-            placeholder="1.5"
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-darkText focus:outline-none focus:ring-2 focus:ring-golden/40"
-          />
+        <div className="f-row">
+          <label className="f-label">Hours</label>
+          <input className="f-input mono" type="number" step="0.1" min="0.1" max="24" value={hours} onChange={(e) => setHours(e.target.value)} placeholder="1.5" />
         </div>
-
-        {/* Date */}
-        <div>
-          <label htmlFor="log-date" className="mb-1.5 block text-sm font-medium text-darkText">
-            Date
-          </label>
-          <input
-            id="log-date"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-darkText focus:outline-none focus:ring-2 focus:ring-golden/40"
-          />
+        <div className="f-row">
+          <label className="f-label">Date</label>
+          <input className="f-input mono" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
-
-        {/* Notes */}
-        <div>
-          <label htmlFor="log-notes" className="mb-1.5 block text-sm font-medium text-darkText">
-            Notes <span className="text-slate-400 font-normal">(optional)</span>
-          </label>
-          <textarea
-            id="log-notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            placeholder="Flight notes…"
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-darkText focus:outline-none focus:ring-2 focus:ring-golden/40"
-          />
+        <div className="f-row" style={{ alignItems: 'start' }}>
+          <label className="f-label">Notes</label>
+          <textarea className="cfi-form-textarea" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Flight notes" />
         </div>
-
-        {error && (
-          <p className="text-sm text-red-600">{error}</p>
-        )}
-
-        <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-golden/40"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={saving || !studentId || !hours || !date}
-            className="rounded-xl bg-golden px-4 py-2 text-sm font-semibold text-darkText transition-colors hover:bg-[#FFE79A] disabled:pointer-events-none disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-golden/40"
-          >
-            {saving ? 'Logging…' : 'Save Flight Log'}
-          </button>
-        </div>
-      </form>
-    </ModalOverlay>
+        {error && <div className="confirm-msg neg">{error}</div>}
+      </div>
+      <div className="modal-foot">
+        <button className="btn-ghost" onClick={() => { reset(); onClose() }}>Cancel</button>
+        <button className="btn-primary" disabled={saving || !studentId || !hours || !date} onClick={() => void submit()}>
+          {saving ? 'Saving...' : 'Save Flight Log'}
+        </button>
+      </div>
+    </ModalShell>
   )
 }
 
-// ── Log Endorsement Dialog ────────────────────────────────────────────────────
-
-function LogEndorsementDialog({
+function EndorsementModal({
   open,
   onClose,
   students,
@@ -342,25 +220,17 @@ function LogEndorsementDialog({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  function resetForm() {
+  function reset() {
     setStudentId('')
     setEndorsementType('')
     setNotes('')
     setError(null)
   }
 
-  function handleClose() {
-    resetForm()
-    onClose()
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  async function submit() {
     if (!studentId || !endorsementType) return
-
     setSaving(true)
     setError(null)
-
     try {
       const res = await fetch('/api/cfi/endorsements', {
         method: 'POST',
@@ -374,142 +244,69 @@ function LogEndorsementDialog({
           notes: notes.trim() || undefined,
         }),
       })
-
       if (!res.ok) {
-        setError(
-          'The endorsement could not be saved. Check your connection and try again. If the problem persists, contact support.'
-        )
+        setError('Endorsement could not be saved. Check the roster and try again.')
         return
       }
-
-      resetForm()
+      reset()
       onSuccess()
       onClose()
     } catch {
-      setError(
-        'The endorsement could not be saved. Check your connection and try again. If the problem persists, contact support.'
-      )
+      setError('Endorsement could not be saved. Check your connection and try again.')
     } finally {
       setSaving(false)
     }
   }
 
   return (
-    <ModalOverlay
-      open={open}
-      onClose={handleClose}
-      title="Log Endorsement"
-      dialogId="log-endorsement-title"
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Student */}
-        <div>
-          <label htmlFor="endorse-student" className="mb-1.5 block text-sm font-medium text-darkText">
-            Student
-          </label>
-          <select
-            id="endorse-student"
-            value={studentId}
-            onChange={(e) => setStudentId(e.target.value)}
-            required
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-darkText focus:outline-none focus:ring-2 focus:ring-golden/40"
-          >
-            <option value="">Select a student…</option>
-            {students.map((s) => (
-              <option key={s.user_id} value={s.user_id}>
-                {s.full_name}
-              </option>
-            ))}
+    <ModalShell open={open} title="LOG ENDORSEMENT" onClose={() => { reset(); onClose() }}>
+      <div className="modal-body form-grid">
+        <div className="f-row">
+          <label className="f-label">Student</label>
+          <select className="f-input" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+            <option value="">Select student...</option>
+            {students.map((student) => <option key={student.user_id} value={student.user_id}>{student.full_name}</option>)}
           </select>
         </div>
-
-        {/* Endorsement Type */}
-        <div>
-          <label htmlFor="endorse-type" className="mb-1.5 block text-sm font-medium text-darkText">
-            Endorsement Type
-          </label>
-          <select
-            id="endorse-type"
-            value={endorsementType}
-            onChange={(e) => setEndorsementType(e.target.value as EndorsementType)}
-            required
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-darkText focus:outline-none focus:ring-2 focus:ring-golden/40"
-          >
-            <option value="">Select type…</option>
-            {ENDORSEMENT_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {ENDORSEMENT_TYPE_LABELS[t]}
-              </option>
-            ))}
+        <div className="f-row">
+          <label className="f-label">Type</label>
+          <select className="f-input" value={endorsementType} onChange={(e) => setEndorsementType(e.target.value as EndorsementType)}>
+            <option value="">Select type...</option>
+            {ENDORSEMENT_TYPES.map((type) => <option key={type} value={type}>{ENDORSEMENT_TYPE_LABELS[type]}</option>)}
           </select>
         </div>
-
-        {/* Notes */}
-        <div>
-          <label htmlFor="endorse-notes" className="mb-1.5 block text-sm font-medium text-darkText">
-            Notes{' '}
-            <span className="text-slate-400 font-normal">
-              {endorsementType === 'other' ? '(encouraged for "Other")' : '(optional)'}
-            </span>
-          </label>
-          <textarea
-            id="endorse-notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={3}
-            placeholder="Endorsement notes…"
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-darkText focus:outline-none focus:ring-2 focus:ring-golden/40"
-          />
+        <div className="f-row" style={{ alignItems: 'start' }}>
+          <label className="f-label">Notes</label>
+          <textarea className="cfi-form-textarea" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Endorsement notes" />
         </div>
-
-        {error && (
-          <p className="text-sm text-red-600">{error}</p>
-        )}
-
-        <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="button"
-            onClick={handleClose}
-            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-golden/40"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={saving || !studentId || !endorsementType}
-            className="rounded-xl bg-golden px-4 py-2 text-sm font-semibold text-darkText transition-colors hover:bg-[#FFE79A] disabled:pointer-events-none disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-golden/40"
-          >
-            {saving ? 'Recording…' : 'Record Endorsement'}
-          </button>
-        </div>
-      </form>
-    </ModalOverlay>
+        {error && <div className="confirm-msg neg">{error}</div>}
+      </div>
+      <div className="modal-foot">
+        <button className="btn-ghost" onClick={() => { reset(); onClose() }}>Cancel</button>
+        <button className="btn-primary" disabled={saving || !studentId || !endorsementType} onClick={() => void submit()}>
+          {saving ? 'Recording...' : 'Record Endorsement'}
+        </button>
+      </div>
+    </ModalShell>
   )
 }
-
-// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CFILogPage() {
   const { session } = useAuth()
   const token = session?.access_token
-
   const [students, setStudents] = useState<Student[]>([])
   const [flightLogs, setFlightLogs] = useState<FlightLogEntry[]>([])
   const [endorsements, setEndorsements] = useState<EndorsementEntry[]>([])
-
   const [loadingStudents, setLoadingStudents] = useState(true)
   const [loadingLogs, setLoadingLogs] = useState(true)
   const [loadingEndorsements, setLoadingEndorsements] = useState(true)
-
-  const [logHoursOpen, setLogHoursOpen] = useState(false)
-  const [logEndorsementOpen, setLogEndorsementOpen] = useState(false)
+  const [hoursOpen, setHoursOpen] = useState(false)
+  const [endorsementOpen, setEndorsementOpen] = useState(false)
 
   const authHeaders = useCallback(
     (): Record<string, string> => (token ? { Authorization: `Bearer ${token}` } : {}),
     [token]
   )
-
-  // ── Data fetching ──────────────────────────────────────────────────────────
 
   const fetchStudents = useCallback(async () => {
     setLoadingStudents(true)
@@ -519,8 +316,6 @@ export default function CFILogPage() {
         const data = await res.json()
         setStudents(Array.isArray(data) ? data : (data.students ?? []))
       }
-    } catch {
-      // silent — students will be empty, form will show no options
     } finally {
       setLoadingStudents(false)
     }
@@ -530,12 +325,7 @@ export default function CFILogPage() {
     setLoadingLogs(true)
     try {
       const res = await fetch('/api/cfi/flight-log', { headers: authHeaders() })
-      if (res.ok) {
-        const data = await res.json()
-        setFlightLogs(Array.isArray(data) ? data : [])
-      }
-    } catch {
-      // silent
+      if (res.ok) setFlightLogs(await res.json())
     } finally {
       setLoadingLogs(false)
     }
@@ -545,182 +335,105 @@ export default function CFILogPage() {
     setLoadingEndorsements(true)
     try {
       const res = await fetch('/api/cfi/endorsements', { headers: authHeaders() })
-      if (res.ok) {
-        const data = await res.json()
-        setEndorsements(Array.isArray(data) ? data : [])
-      }
-    } catch {
-      // silent
+      if (res.ok) setEndorsements(await res.json())
     } finally {
       setLoadingEndorsements(false)
     }
   }, [authHeaders])
 
   useEffect(() => {
-    let cancelled = false
-
-    async function fetchAll() {
-      await Promise.all([
-        fetchStudents(),
-        fetchFlightLogs(),
-        fetchEndorsements(),
-      ])
-    }
-
-    fetchAll()
-
-    return () => {
-      cancelled = true
-    }
+    fetchStudents()
+    fetchFlightLogs()
+    fetchEndorsements()
   }, [fetchStudents, fetchFlightLogs, fetchEndorsements])
 
-  // ── Student name lookup ────────────────────────────────────────────────────
-
-  const studentNameMap = new Map(students.map((s) => [s.user_id, s.full_name]))
-
-  // ── Actions slot ──────────────────────────────────────────────────────────
-
-  const actions = (
-    <>
-      <button
-        type="button"
-        onClick={() => setLogHoursOpen(true)}
-        className="inline-flex items-center rounded-xl bg-golden px-4 py-2 text-sm font-semibold text-darkText transition-colors hover:bg-[#FFE79A] focus:outline-none focus:ring-2 focus:ring-golden/40"
-      >
-        Log Hours
-      </button>
-      <button
-        type="button"
-        onClick={() => setLogEndorsementOpen(true)}
-        className="inline-flex items-center rounded-xl bg-golden px-4 py-2 text-sm font-semibold text-darkText transition-colors hover:bg-[#FFE79A] focus:outline-none focus:ring-2 focus:ring-golden/40"
-      >
-        Log Endorsement
-      </button>
-    </>
-  )
+  const studentNameMap = useMemo(() => new Map(students.map((student) => [student.user_id, student.full_name])), [students])
 
   return (
-    <CFIPageShell title="Flight Log" actions={actions}>
-      {/* ── Flight Hours Section ─────────────────────────────────────────── */}
-      <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-5 text-lg font-semibold text-darkText">Flight Hours</h2>
+    <>
+      <div className="cfi-toolbar">
+        <div className="tb-date">
+          <span className="mono dim">LOGBOOK</span>
+          <span className="mono">{flightLogs.length} completions</span>
+        </div>
+        <div className="tb-divider" />
+        <div className="tb-group mono dim">{endorsements.length} endorsements</div>
+        <div className="tb-spacer" />
+        <button className="btn-primary" onClick={() => setHoursOpen(true)}><I name="plus" /> Log Hours</button>
+        <button className="btn-ghost" onClick={() => setEndorsementOpen(true)}><I name="check" /> Endorsement</button>
+      </div>
 
+      <div className="view-pad">
+        <div className="stat-grid">
+          <div className="stat"><div className="stat-k mono">COMPLETIONS</div><div className="stat-v">{flightLogs.length}</div><div className="stat-delta dim">recent 50</div></div>
+          <div className="stat"><div className="stat-k mono">ENDORSEMENTS</div><div className="stat-v">{endorsements.length}</div><div className="stat-delta pos">recorded</div></div>
+          <div className="stat"><div className="stat-k mono">ROSTER</div><div className="stat-v">{students.length}</div><div className={loadingStudents ? 'stat-delta warn' : 'stat-delta dim'}>{loadingStudents ? 'loading' : 'selectable'}</div></div>
+          <div className="stat"><div className="stat-k mono">AUDIT</div><div className="stat-v">{loadingLogs || loadingEndorsements ? '-' : 'OK'}</div><div className="stat-delta dim">server-backed</div></div>
+        </div>
+
+        <div className="sect-head">
+          <h3>Flight hours</h3>
+          <span className="mono dim">lesson completion records</span>
+        </div>
         {loadingLogs ? (
           <TableSkeleton />
         ) : flightLogs.length === 0 ? (
-          <div role="status" aria-live="polite" className="py-12 text-center">
-            <h3 className="text-base font-semibold text-darkText">No flight hours logged</h3>
-            <p className="mt-2 text-sm text-slate-500">
-              Use the Log Hours button above to record hours for a completed lesson.
-            </p>
-          </div>
+          <div className="cfi-muted-panel">No flight hours logged. Use Log Hours to record a completed lesson.</div>
         ) : (
-          <div className="overflow-x-auto" aria-busy={loadingLogs}>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th scope="col" className="pb-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                    Date
-                  </th>
-                  <th scope="col" className="pb-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                    Student
-                  </th>
-                  <th scope="col" className="pb-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                    Notes
-                  </th>
+          <table className="dt">
+            <thead><tr><th>Date</th><th>Student</th><th>Instructor ID</th><th>Notes</th></tr></thead>
+            <tbody>
+              {flightLogs.map((entry) => (
+                <tr key={entry.id}>
+                  <td className="mono dim">{formatDate(entry.completed_at)}</td>
+                  <td className="strong">{entry.student_name ?? studentNameMap.get(entry.student_id) ?? 'Unknown'}</td>
+                  <td className="mono dim">{entry.instructor_id.slice(0, 8)}</td>
+                  <td>{truncate(entry.notes)}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {flightLogs.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-[#FFFDF7]">
-                    <td className="py-3 text-slate-700">
-                      {formatDate(entry.completed_at)}
-                    </td>
-                    <td className="py-3 font-medium text-darkText">
-                      {entry.student_name ?? studentNameMap.get(entry.student_id) ?? 'Unknown'}
-                    </td>
-                    <td className="py-3 text-slate-600">
-                      {truncate(entry.notes)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         )}
-      </div>
 
-      {/* ── Endorsements Section ─────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-5 text-lg font-semibold text-darkText">Endorsements</h2>
-
+        <div className="sect-head" style={{ marginTop: 18 }}>
+          <h3>Endorsements</h3>
+          <span className="mono dim">student endorsements issued by this CFI</span>
+        </div>
         {loadingEndorsements ? (
-          <TableSkeleton />
+          <TableSkeleton lines={4} />
         ) : endorsements.length === 0 ? (
-          <div role="status" aria-live="polite" className="py-12 text-center">
-            <h3 className="text-base font-semibold text-darkText">No endorsements on record</h3>
-            <p className="mt-2 text-sm text-slate-500">
-              Use the Log Endorsement button above to record your first endorsement.
-            </p>
-          </div>
+          <div className="cfi-muted-panel">No endorsements on record. Use Log Endorsement when a student is ready.</div>
         ) : (
-          <div className="overflow-x-auto" aria-busy={loadingEndorsements}>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th scope="col" className="pb-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                    Date
-                  </th>
-                  <th scope="col" className="pb-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                    Student
-                  </th>
-                  <th scope="col" className="pb-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                    Type
-                  </th>
-                  <th scope="col" className="pb-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                    Notes
-                  </th>
+          <table className="dt">
+            <thead><tr><th>Date</th><th>Student</th><th>Type</th><th>Notes</th></tr></thead>
+            <tbody>
+              {endorsements.map((entry) => (
+                <tr key={entry.id}>
+                  <td className="mono dim">{formatDate(entry.endorsed_at)}</td>
+                  <td className="strong">{studentNameMap.get(entry.student_id) ?? 'Unknown'}</td>
+                  <td><Badge kind={entry.endorsement_type === 'other' ? 'muted' : 'info'}>{ENDORSEMENT_TYPE_LABELS[entry.endorsement_type as EndorsementType] ?? entry.endorsement_type}</Badge></td>
+                  <td>{truncate(entry.notes)}</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {endorsements.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-[#FFFDF7]">
-                    <td className="py-3 text-slate-700">
-                      {formatDate(entry.endorsed_at)}
-                    </td>
-                    <td className="py-3 font-medium text-darkText">
-                      {studentNameMap.get(entry.student_id) ?? 'Unknown'}
-                    </td>
-                    <td className="py-3">
-                      <EndorsementBadge type={entry.endorsement_type} />
-                    </td>
-                    <td className="py-3 text-slate-600">
-                      {truncate(entry.notes)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 
-      {/* ── Dialogs ──────────────────────────────────────────────────────── */}
-      <LogHoursDialog
-        open={logHoursOpen}
-        onClose={() => setLogHoursOpen(false)}
+      <LogHoursModal
+        open={hoursOpen}
+        onClose={() => setHoursOpen(false)}
         students={students}
         token={token}
         onSuccess={fetchFlightLogs}
       />
-
-      <LogEndorsementDialog
-        open={logEndorsementOpen}
-        onClose={() => setLogEndorsementOpen(false)}
+      <EndorsementModal
+        open={endorsementOpen}
+        onClose={() => setEndorsementOpen(false)}
         students={students}
         token={token}
         onSuccess={fetchEndorsements}
       />
-    </CFIPageShell>
+    </>
   )
 }

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
-import CFITopNav from '@/app/components/CFITopNav'
+import '@/app/admin/ops-console/ops-console.css'
+import './cfi-ops.css'
+import CFIOpsShell from '@/app/components/CFIOpsShell'
 import CFIGuard from './CFIGuard'
 
 export const metadata: Metadata = {
@@ -9,10 +11,7 @@ export const metadata: Metadata = {
 export default function CFILayout({ children }: { children: React.ReactNode }) {
   return (
     <CFIGuard>
-      <div className="min-h-screen bg-slate-50">
-        <CFITopNav />
-        <main>{children}</main>
-      </div>
+      <CFIOpsShell>{children}</CFIOpsShell>
     </CFIGuard>
   )
 }

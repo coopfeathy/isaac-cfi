@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import CFIPageShell from '@/app/components/CFIPageShell'
+import { Badge, I } from '@/app/admin/ops-console/primitives'
 import { useAuth } from '@/app/contexts/AuthContext'
 
 type ScheduleEntry = {
@@ -32,25 +32,40 @@ function formatDateTime(isoString: string): string {
   })
 }
 
-function StatusBadge({ status }: { status: ScheduleEntry['status'] }) {
-  const classes: Record<ScheduleEntry['status'], string> = {
-    pending: 'bg-slate-100 text-slate-700 border border-slate-300',
-    confirmed: 'bg-[#FFF3C9] text-[#7A5C00] border border-[#D7B24A]',
-    completed: 'bg-white text-slate-500 border border-slate-200',
-  }
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${classes[status]}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
-  )
+function formatTimeRange(entry: ScheduleEntry): string {
+  if (!entry.slots?.start_time || !entry.slots?.end_time) return '-'
+  const start = new Date(entry.slots.start_time).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'America/New_York',
+  })
+  const end = new Date(entry.slots.end_time).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'America/New_York',
+  })
+  return `${start} - ${end}`
+}
+
+function statusKind(status: ScheduleEntry['status']) {
+  if (status === 'confirmed') return 'ok'
+  if (status === 'pending') return 'warn'
+  return 'muted'
 }
 
 function ScheduleSkeleton() {
   return (
-    <div className="space-y-2" aria-hidden="true">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="h-12 w-full animate-pulse rounded-lg bg-slate-200" />
-      ))}
+    <div className="view-pad">
+      <div className="skeleton">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="sk-row">
+            <div className="sk-bar" style={{ width: `${42 + i * 3}%` }} />
+            <div className="sk-bar sk-thin" style={{ width: `${24 + i * 2}%` }} />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -71,7 +86,7 @@ export default function CFISchedulePage() {
 
         const token = session?.access_token
         const res = await fetch('/api/cfi/schedule', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {} as Record<string, string>,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
 
         if (!res.ok) {
@@ -79,99 +94,95 @@ export default function CFISchedulePage() {
         }
 
         const data = await res.json()
-        if (!cancelled) {
-          setSchedule(data)
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError('Could not load your schedule. Refresh the page to try again.')
-        }
+        if (!cancelled) setSchedule(data)
+      } catch {
+        if (!cancelled) setError('Could not load schedule. Refresh the page to try again.')
       } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
+        if (!cancelled) setLoading(false)
       }
     }
 
     fetchSchedule()
-
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [session])
 
-  const actions = (
-    <>
-      <Link
-        href="/cfi/log"
-        className="inline-flex items-center rounded-xl bg-golden px-4 py-2 text-sm font-semibold text-darkText transition-colors hover:bg-[#FFE79A]"
-      >
-        Log Hours
-      </Link>
-      <Link
-        href="/cfi/log"
-        className="inline-flex items-center rounded-xl bg-golden px-4 py-2 text-sm font-semibold text-darkText transition-colors hover:bg-[#FFE79A]"
-      >
-        Log Endorsement
-      </Link>
-    </>
-  )
+  const stats = useMemo(() => {
+    const pending = schedule.filter((entry) => entry.status === 'pending').length
+    const confirmed = schedule.filter((entry) => entry.status === 'confirmed').length
+    const completed = schedule.filter((entry) => entry.status === 'completed').length
+    const next = schedule.find((entry) => entry.slots?.start_time)?.slots?.start_time
+    return { pending, confirmed, completed, next }
+  }, [schedule])
+
+  if (loading) return <ScheduleSkeleton />
 
   return (
-    <CFIPageShell title="Your Schedule" actions={actions}>
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        {loading ? (
-          <ScheduleSkeleton />
-        ) : error ? (
-          <p className="text-sm text-red-600">{error}</p>
+    <>
+      <div className="cfi-toolbar">
+        <div className="tb-date">
+          <span className="mono dim">CFI SCHEDULE</span>
+          <span className="mono">{schedule.length} lessons</span>
+        </div>
+        <div className="tb-divider" />
+        <div className="tb-group mono dim">next 7 days</div>
+        <div className="tb-spacer" />
+        <Link href="/cfi/log" className="btn-primary"><I name="plus" /> Log Hours</Link>
+        <Link href="/cfi/availability" className="btn-ghost"><I name="cal" /> Availability</Link>
+      </div>
+
+      <div className="view-pad">
+        <div className="stat-grid">
+          <div className="stat"><div className="stat-k mono">CONFIRMED</div><div className="stat-v">{stats.confirmed}</div><div className="stat-delta pos">ready to fly</div></div>
+          <div className="stat"><div className="stat-k mono">PENDING</div><div className="stat-v">{stats.pending}</div><div className={stats.pending ? 'stat-delta warn' : 'stat-delta dim'}>{stats.pending ? 'confirm today' : 'clear'}</div></div>
+          <div className="stat"><div className="stat-k mono">COMPLETED</div><div className="stat-v">{stats.completed}</div><div className="stat-delta dim">needs log check</div></div>
+          <div className="stat"><div className="stat-k mono">NEXT</div><div className="stat-v">{stats.next ? formatTimeRange({ slots: { start_time: stats.next, end_time: stats.next, type: '' } } as ScheduleEntry).split(' - ')[0] : '-'}</div><div className="stat-delta dim">America/New_York</div></div>
+        </div>
+
+        <div className="sect-head">
+          <h3>Lesson queue</h3>
+          <span className="mono dim">student · mission · status</span>
+        </div>
+
+        {error ? (
+          <div className="cfi-muted-panel neg">{error}</div>
         ) : schedule.length === 0 ? (
-          <div role="status" aria-live="polite" className="py-12 text-center">
-            <h3 className="text-lg font-semibold text-darkText">No lessons scheduled</h3>
-            <p className="mt-2 text-sm text-slate-500">
-              You have no confirmed or pending lessons in the next 7 days.
-            </p>
+          <div className="empty-state">
+            <div className="empty-ico"><I name="cal" size={22} /></div>
+            <div className="empty-title">No lessons scheduled</div>
+            <div className="empty-sub mono dim">No confirmed or pending lessons in the next 7 days.</div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="pb-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                    Date / Time
-                  </th>
-                  <th className="pb-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                    Student
-                  </th>
-                  <th className="pb-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                    Type
-                  </th>
-                  <th className="pb-3 text-left text-xs font-semibold uppercase tracking-[0.1em] text-slate-500">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {schedule.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-slate-50">
-                    <td className="py-3 text-slate-700">
-                      {entry.slots?.start_time
-                        ? formatDateTime(entry.slots.start_time)
-                        : '—'}
-                    </td>
-                    <td className="py-3 font-medium text-darkText">{entry.student_name}</td>
-                    <td className="py-3 capitalize text-slate-600">
-                      {entry.slots?.type ?? '—'}
-                    </td>
-                    <td className="py-3">
-                      <StatusBadge status={entry.status} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="cfi-board-list">
+            <div className="cfi-board-row cfi-board-head mono">
+              <div>Time</div>
+              <div>Student</div>
+              <div>Lesson</div>
+              <div>Status</div>
+              <div>Action</div>
+            </div>
+            {schedule.map((entry) => (
+              <div key={entry.id} className="cfi-board-row">
+                <div>
+                  <div className="mono strong">{entry.slots?.start_time ? formatTimeRange(entry) : '-'}</div>
+                  <div className="mono dim">{entry.slots?.start_time ? formatDateTime(entry.slots.start_time).split(',')[0] : 'unscheduled'}</div>
+                </div>
+                <div>
+                  <div className="strong">{entry.student_name}</div>
+                  <div className="mono dim">{entry.user_id.slice(0, 8)}</div>
+                </div>
+                <div>
+                  <div>{entry.slots?.type ?? 'Lesson'}</div>
+                  <div className="mono dim">{entry.notes || 'no notes'}</div>
+                </div>
+                <div><Badge kind={statusKind(entry.status)}>{entry.status.toUpperCase()}</Badge></div>
+                <div className="dc-actions">
+                  <Link className="btn-ghost" href="/cfi/log">Debrief</Link>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
-    </CFIPageShell>
+    </>
   )
 }
