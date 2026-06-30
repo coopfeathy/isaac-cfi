@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Stripe from 'stripe'
+import { getStripe } from '@/lib/stripe'
 import { requireUser } from '@/lib/auth'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia',
-})
 
 /**
  * Charge-or-flag logic extracted for testability.

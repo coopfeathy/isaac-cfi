@@ -1,4 +1,4 @@
-import Stripe from 'stripe'
+import { getStripe } from '@/lib/stripe'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
@@ -12,8 +12,6 @@ type CheckoutItemSelection = {
   quantity: number
 }
 
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-02-24.acacia' })
   : null
 
 async function requireAdmin(request: NextRequest) {
