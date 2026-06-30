@@ -1,0 +1,1410 @@
+[
+  {
+    "id": "aircraft-single-engine",
+    "name": "Single Engine",
+    "category": "Aircraft Types",
+    "file": "merlin-aircraft-single-engine.svg",
+    "path": "/icons/merlin/icons/merlin-aircraft-single-engine.svg",
+    "description": "A high-wing single-engine training aircraft viewed from above. Pointed fuselage, full-span wings, and a small T-tail. Use as the default plane mark across the fleet, lesson, and rental pages."
+  },
+  {
+    "id": "aircraft-twin-engine",
+    "name": "Twin Engine",
+    "category": "Aircraft Types",
+    "file": "merlin-aircraft-twin-engine.svg",
+    "path": "/icons/merlin/icons/merlin-aircraft-twin-engine.svg",
+    "description": "A twin-engine aircraft top-down with two prop nacelles on the wings. Same fuselage as the single but with paired engine markers. Use for multi-engine training, complex endorsement, or advanced rating pages."
+  },
+  {
+    "id": "aircraft-high-wing",
+    "name": "High Wing",
+    "category": "Aircraft Types",
+    "file": "merlin-aircraft-high-wing.svg",
+    "path": "/icons/merlin/icons/merlin-aircraft-high-wing.svg",
+    "description": "Side profile of a high-wing aircraft showing the wing across the top of the cabin. Cabin sits below the wing with tricycle gear extended. Use on Cessna-family pages and 'introductory flight' touchpoints."
+  },
+  {
+    "id": "aircraft-low-wing",
+    "name": "Low Wing",
+    "category": "Aircraft Types",
+    "file": "merlin-aircraft-low-wing.svg",
+    "path": "/icons/merlin/icons/merlin-aircraft-low-wing.svg",
+    "description": "Side profile of a low-wing aircraft with the wing attached beneath the cabin. Bubble canopy sits above the wing line. Use for Piper, Cirrus, and Diamond-style training fleets."
+  },
+  {
+    "id": "aircraft-taildragger",
+    "name": "Taildragger",
+    "category": "Aircraft Types",
+    "file": "merlin-aircraft-taildragger.svg",
+    "path": "/icons/merlin/icons/merlin-aircraft-taildragger.svg",
+    "description": "A conventional-gear aircraft with two main wheels forward and a small tailwheel aft. Classic 'taildragger' stance with raised nose. Use for tailwheel endorsement, vintage, and aerobatic course pages."
+  },
+  {
+    "id": "aircraft-glider",
+    "name": "Glider",
+    "category": "Aircraft Types",
+    "file": "merlin-aircraft-glider.svg",
+    "path": "/icons/merlin/icons/merlin-aircraft-glider.svg",
+    "description": "A sleek sailplane with long, narrow wings and a high T-tail. Elongated streamlined silhouette. Use for soaring, mountain flying, and energy-management curriculum pages."
+  },
+  {
+    "id": "aircraft-helicopter",
+    "name": "Helicopter",
+    "category": "Aircraft Types",
+    "file": "merlin-aircraft-helicopter.svg",
+    "path": "/icons/merlin/icons/merlin-aircraft-helicopter.svg",
+    "description": "A rotorcraft side view with main rotor disc above the cabin and tail boom extending right. Includes tail rotor mark and skid landing gear. Use for rotary endorsement, photo flights, and utility ops."
+  },
+  {
+    "id": "aircraft-biplane",
+    "name": "Biplane",
+    "category": "Aircraft Types",
+    "file": "merlin-aircraft-biplane.svg",
+    "path": "/icons/merlin/icons/merlin-aircraft-biplane.svg",
+    "description": "A two-wing biplane with parallel upper and lower wings joined by struts. Vintage profile with engine cowl and prop spinner forward. Use for heritage aircraft, antique fleet, and tailwheel courses."
+  },
+  {
+    "id": "aircraft-seaplane",
+    "name": "Seaplane",
+    "category": "Aircraft Types",
+    "file": "merlin-aircraft-seaplane.svg",
+    "path": "/icons/merlin/icons/merlin-aircraft-seaplane.svg",
+    "description": "A high-wing aircraft mounted on twin floats for water operations. Pontoons sit below the fuselage with struts attaching them. Use for floatplane rating and seaplane-base destination pages."
+  },
+  {
+    "id": "aircraft-light-jet",
+    "name": "Light Jet",
+    "category": "Aircraft Types",
+    "file": "merlin-aircraft-light-jet.svg",
+    "path": "/icons/merlin/icons/merlin-aircraft-light-jet.svg",
+    "description": "A streamlined light business jet with swept wings and a fuselage-mounted engine. Pointed nose and T-tail aft. Use for jet transition, type rating, and corporate pilot pages."
+  },
+  {
+    "id": "aircraft-airliner",
+    "name": "Airliner",
+    "category": "Aircraft Types",
+    "file": "merlin-aircraft-airliner.svg",
+    "path": "/icons/merlin/icons/merlin-aircraft-airliner.svg",
+    "description": "A long commercial airliner with swept wings, two visible windows, and a tall T-tail. Slim cigar-shaped fuselage. Use for airline transport pilot (ATP) and career path pages."
+  },
+  {
+    "id": "aircraft-cargo",
+    "name": "Cargo Plane",
+    "category": "Aircraft Types",
+    "file": "merlin-aircraft-cargo.svg",
+    "path": "/icons/merlin/icons/merlin-aircraft-cargo.svg",
+    "description": "A boxy high-wing cargo aircraft with a raised tail and rear loading ramp. Wide fuselage built for freight. Use for cargo ops, aerial freight, and humanitarian flying pages."
+  },
+  {
+    "id": "aircraft-drone",
+    "name": "Drone (Uav)",
+    "category": "Aircraft Types",
+    "file": "merlin-aircraft-drone.svg",
+    "path": "/icons/merlin/icons/merlin-aircraft-drone.svg",
+    "description": "A quadcopter UAV with four propeller discs arranged at the corners of an X-frame. Central body holds the camera or payload. Use for drone certification, aerial photography, and sUAS courses."
+  },
+  {
+    "id": "aircraft-balloon",
+    "name": "Hot Air Balloon",
+    "category": "Aircraft Types",
+    "file": "merlin-aircraft-balloon.svg",
+    "path": "/icons/merlin/icons/merlin-aircraft-balloon.svg",
+    "description": "A round hot-air balloon envelope with rigging lines descending to a square wicker basket. Drawn as a perfect teardrop. Use for scenic flights, recreational aviation, or balloon-rating offerings."
+  },
+  {
+    "id": "aircraft-ultralight",
+    "name": "Microlight",
+    "category": "Aircraft Types",
+    "file": "merlin-aircraft-ultralight.svg",
+    "path": "/icons/merlin/icons/merlin-aircraft-ultralight.svg",
+    "description": "A delta-wing weight-shift microlight with a triangular wing above a small trike pod. Minimal silhouette captures the open-frame character. Use for sport-pilot certification and ultralight rental pages."
+  },
+  {
+    "id": "part-propeller",
+    "name": "Propeller",
+    "category": "Aircraft Parts",
+    "file": "merlin-part-propeller.svg",
+    "path": "/icons/merlin/icons/merlin-part-propeller.svg",
+    "description": "A four-bladed propeller seen head-on with a small central hub. Curved teardrop blades radiate outward. Use for engine-out drills, propeller theory, and aircraft-systems pages."
+  },
+  {
+    "id": "part-wing",
+    "name": "Wing",
+    "category": "Aircraft Parts",
+    "file": "merlin-part-wing.svg",
+    "path": "/icons/merlin/icons/merlin-part-wing.svg",
+    "description": "An airfoil cross-section showing the wing's curved upper surface and flatter underside. Trailing-edge tick suggests the aileron hinge. Use for aerodynamics, lift theory, and design-feature explainers."
+  },
+  {
+    "id": "part-tail",
+    "name": "Tail Empennage",
+    "category": "Aircraft Parts",
+    "file": "merlin-part-tail.svg",
+    "path": "/icons/merlin/icons/merlin-part-tail.svg",
+    "description": "The empennage profile showing vertical stabilizer, rudder, and horizontal stabilizer. Classic conventional tail shape. Use for stability/control sections and pre-flight inspection guides."
+  },
+  {
+    "id": "part-landing-gear",
+    "name": "Landing Gear",
+    "category": "Aircraft Parts",
+    "file": "merlin-part-landing-gear.svg",
+    "path": "/icons/merlin/icons/merlin-part-landing-gear.svg",
+    "description": "Tricycle landing gear: two main wheels and a nose wheel with struts. Each wheel is a circle on a strut. Use for gear-system pages, hydraulics, and preflight walkaround guides."
+  },
+  {
+    "id": "part-cockpit",
+    "name": "Cockpit",
+    "category": "Aircraft Parts",
+    "file": "merlin-part-cockpit.svg",
+    "path": "/icons/merlin/icons/merlin-part-cockpit.svg",
+    "description": "A canopy or windshield viewed from the front, split by a central frame. Curved bubble shape with the cabin floor as the base. Use for crew-resource-management and cockpit-familiarization content."
+  },
+  {
+    "id": "part-aileron",
+    "name": "Aileron",
+    "category": "Aircraft Parts",
+    "file": "merlin-part-aileron.svg",
+    "path": "/icons/merlin/icons/merlin-part-aileron.svg",
+    "description": "A wing trailing edge with an aileron deflected downward, hinged at the wing rear spar. Hatched separation shows the moving surface. Use for primary-controls and roll-axis training pages."
+  },
+  {
+    "id": "part-engine",
+    "name": "Radial Engine",
+    "category": "Aircraft Parts",
+    "file": "merlin-part-engine.svg",
+    "path": "/icons/merlin/icons/merlin-part-engine.svg",
+    "description": "A radial piston engine seen face-on with eight cylinders arrayed around a central hub. Outer ring binds the cylinders. Use for powerplant systems, maintenance, and engine-theory pages."
+  },
+  {
+    "id": "part-cowling",
+    "name": "Cowling",
+    "category": "Aircraft Parts",
+    "file": "merlin-part-cowling.svg",
+    "path": "/icons/merlin/icons/merlin-part-cowling.svg",
+    "description": "The engine cowling profile with cooling intake and side louvers. Rectangular body wraps the engine bay. Use for preflight, oil-check access, and powerplant inspection walkthroughs."
+  },
+  {
+    "id": "part-pitot-tube",
+    "name": "Pitot Tube",
+    "category": "Aircraft Parts",
+    "file": "merlin-part-pitot-tube.svg",
+    "path": "/icons/merlin/icons/merlin-part-pitot-tube.svg",
+    "description": "A forward-pointing pitot probe extending from under the wing, with a drain hole below. Slim cylindrical sensor. Use for airspeed-system pages, pitot-static blockage, and preflight checks."
+  },
+  {
+    "id": "part-antenna",
+    "name": "Antenna",
+    "category": "Aircraft Parts",
+    "file": "merlin-part-antenna.svg",
+    "path": "/icons/merlin/icons/merlin-part-antenna.svg",
+    "description": "A blade-style VHF antenna shown mounted to the fuselage skin. Triangular blade tapers upward. Use for avionics, communications, and ADS-B/transponder system pages."
+  },
+  {
+    "id": "part-tire",
+    "name": "Tire & Wheel",
+    "category": "Aircraft Parts",
+    "file": "merlin-part-tire.svg",
+    "path": "/icons/merlin/icons/merlin-part-tire.svg",
+    "description": "An aircraft tire and hub seen flat-on with rim and lug pattern visible. Three concentric circles plus four spoke marks. Use for tire pressure checks, gear maintenance, and brake-system pages."
+  },
+  {
+    "id": "part-spinner",
+    "name": "Spinner",
+    "category": "Aircraft Parts",
+    "file": "merlin-part-spinner.svg",
+    "path": "/icons/merlin/icons/merlin-part-spinner.svg",
+    "description": "A propeller spinner cone seen from the side covering the prop hub. Smooth aerodynamic nose with hub seam. Use for cowl assemblies, performance optimization, and aircraft customization pages."
+  },
+  {
+    "id": "part-flaps",
+    "name": "Flaps Extended",
+    "category": "Aircraft Parts",
+    "file": "merlin-part-flaps.svg",
+    "path": "/icons/merlin/icons/merlin-part-flaps.svg",
+    "description": "A wing in flapped configuration with the trailing edge extended down. Two-step profile shows wing then flap deflection. Use for short-field landings, approach configuration, and slow-flight content."
+  },
+  {
+    "id": "part-elevator",
+    "name": "Elevator",
+    "category": "Aircraft Parts",
+    "file": "merlin-part-elevator.svg",
+    "path": "/icons/merlin/icons/merlin-part-elevator.svg",
+    "description": "A horizontal stabilizer with the elevator pitched up at the trailing edge. Two-segment surface with hinge line. Use for pitch-axis training, longitudinal stability, and trim-tab tutorials."
+  },
+  {
+    "id": "part-rudder",
+    "name": "Rudder",
+    "category": "Aircraft Parts",
+    "file": "merlin-part-rudder.svg",
+    "path": "/icons/merlin/icons/merlin-part-rudder.svg",
+    "description": "A vertical fin with the rudder kicked out to one side, hinged at the rear spar. Tall trapezoidal surface. Use for yaw control, rudder coordination, and crosswind landing material."
+  },
+  {
+    "id": "inst-compass",
+    "name": "Magnetic Compass",
+    "category": "Instruments",
+    "file": "merlin-inst-compass.svg",
+    "path": "/icons/merlin/icons/merlin-inst-compass.svg",
+    "description": "A whiskey compass housed in a rectangular bezel with a heading card visible through the lens. North indicator inside the card. Use as the compass-system anchor and 'magnetic vs. true' lessons."
+  },
+  {
+    "id": "inst-altimeter",
+    "name": "Altimeter",
+    "category": "Instruments",
+    "file": "merlin-inst-altimeter.svg",
+    "path": "/icons/merlin/icons/merlin-inst-altimeter.svg",
+    "description": "A round altimeter face with a long thousands needle and shorter hundreds pointer. Tick marks every 90\u00b0. Use for pressure altitude lessons and instrument scan training."
+  },
+  {
+    "id": "inst-asi",
+    "name": "Airspeed Indicator",
+    "category": "Instruments",
+    "file": "merlin-inst-asi.svg",
+    "path": "/icons/merlin/icons/merlin-inst-asi.svg",
+    "description": "An airspeed indicator with a single needle, color-arc placeholder along the dial, and Vne mark. Round case with internal tick scale. Use for V-speeds, stall awareness, and instrument scan training."
+  },
+  {
+    "id": "inst-vsi",
+    "name": "Vertical Speed",
+    "category": "Instruments",
+    "file": "merlin-inst-vsi.svg",
+    "path": "/icons/merlin/icons/merlin-inst-vsi.svg",
+    "description": "A VSI dial with a horizontal pointer at zero, climb arc above and descent below. Concentric tick markings. Use for climbs, descents, and stabilized-approach training."
+  },
+  {
+    "id": "inst-attitude",
+    "name": "Attitude Indicator",
+    "category": "Instruments",
+    "file": "merlin-inst-attitude.svg",
+    "path": "/icons/merlin/icons/merlin-inst-attitude.svg",
+    "description": "An attitude indicator with a horizon line bisecting sky and ground, plus pitch-ladder ticks. Wing-bar reference marks at the sides. Use for IFR training, partial panel, and attitude-recovery drills."
+  },
+  {
+    "id": "inst-heading",
+    "name": "Heading Indicator",
+    "category": "Instruments",
+    "file": "merlin-inst-heading.svg",
+    "path": "/icons/merlin/icons/merlin-inst-heading.svg",
+    "description": "A directional gyro with cardinal headings around the rim and an aircraft silhouette in the center. North index at the top. Use for heading hold, course intercepts, and instrument scan instruction."
+  },
+  {
+    "id": "inst-turn-coord",
+    "name": "Turn Coordinator",
+    "category": "Instruments",
+    "file": "merlin-inst-turn-coord.svg",
+    "path": "/icons/merlin/icons/merlin-inst-turn-coord.svg",
+    "description": "A turn coordinator with a small aircraft symbol banked and an inclinometer ball below. Tick marks at 'L' and 'R'. Use for standard-rate turns, slip/skid awareness, and stall-spin training."
+  },
+  {
+    "id": "inst-tachometer",
+    "name": "Tachometer",
+    "category": "Instruments",
+    "file": "merlin-inst-tachometer.svg",
+    "path": "/icons/merlin/icons/merlin-inst-tachometer.svg",
+    "description": "An engine tachometer dial with single RPM needle and arc indicators. Red-line tick at the high end. Use for engine ops, run-up checks, and power-setting tutorials."
+  },
+  {
+    "id": "inst-fuel",
+    "name": "Fuel Gauge",
+    "category": "Instruments",
+    "file": "merlin-inst-fuel.svg",
+    "path": "/icons/merlin/icons/merlin-inst-fuel.svg",
+    "description": "A rectangular fuel quantity indicator with E and F endpoints and a needle near three-quarters. Bezel sits flush in the panel. Use for fuel management, planning reserves, and W&B discussions."
+  },
+  {
+    "id": "inst-oil-pressure",
+    "name": "Oil Pressure",
+    "category": "Instruments",
+    "file": "merlin-inst-oil-pressure.svg",
+    "path": "/icons/merlin/icons/merlin-inst-oil-pressure.svg",
+    "description": "A horizontal half-moon oil-pressure gauge with green band and a needle indicating normal pressure. Numeric scale implied by ticks. Use for engine-instruments cluster and pre-takeoff checklists."
+  },
+  {
+    "id": "inst-oil-temp",
+    "name": "Oil Temperature",
+    "category": "Instruments",
+    "file": "merlin-inst-oil-temp.svg",
+    "path": "/icons/merlin/icons/merlin-inst-oil-temp.svg",
+    "description": "A horizontal oil-temperature gauge matching the oil-pressure layout but with a needle in the cold quadrant. Same physical bezel. Use for cold-start procedures and engine warm-up briefings."
+  },
+  {
+    "id": "inst-egt",
+    "name": "Egt",
+    "category": "Instruments",
+    "file": "merlin-inst-egt.svg",
+    "path": "/icons/merlin/icons/merlin-inst-egt.svg",
+    "description": "A digital EGT (exhaust gas temperature) bar gauge with stacked tick rows and a moving column marker. Compact display style. Use for mixture leaning, fuel-injection systems, and engine optimization."
+  },
+  {
+    "id": "inst-gmeter",
+    "name": "G-Meter",
+    "category": "Instruments",
+    "file": "merlin-inst-gmeter.svg",
+    "path": "/icons/merlin/icons/merlin-inst-gmeter.svg",
+    "description": "A G-meter with positive and negative arcs and a needle indicating mild positive load. Pointer originates from center. Use for aerobatic course, upset training, and aircraft limits content."
+  },
+  {
+    "id": "inst-clock",
+    "name": "Panel Clock",
+    "category": "Instruments",
+    "file": "merlin-inst-clock.svg",
+    "path": "/icons/merlin/icons/merlin-inst-clock.svg",
+    "description": "An analog panel clock with hour and minute hands at a 2:30 reading. Twelve hour marks around the dial. Use for time-distance calculations, fuel burn timing, and IFR holds."
+  },
+  {
+    "id": "inst-gps",
+    "name": "Gps Display",
+    "category": "Instruments",
+    "file": "merlin-inst-gps.svg",
+    "path": "/icons/merlin/icons/merlin-inst-gps.svg",
+    "description": "A landscape GPS screen with a moving-map area showing waypoint legs and aircraft position. Rounded frame with two side keys hinted. Use for cross-country planning and GPS-navigation lessons."
+  },
+  {
+    "id": "inst-radio-stack",
+    "name": "Radio Stack",
+    "category": "Instruments",
+    "file": "merlin-inst-radio-stack.svg",
+    "path": "/icons/merlin/icons/merlin-inst-radio-stack.svg",
+    "description": "A vertical radio stack with multiple frequency rows and rotary tuning knobs. Four bezels arranged top to bottom. Use for COMM/NAV setup, audio panels, and IFR comm tutorials."
+  },
+  {
+    "id": "inst-yoke",
+    "name": "Yoke",
+    "category": "Instruments",
+    "file": "merlin-inst-yoke.svg",
+    "path": "/icons/merlin/icons/merlin-inst-yoke.svg",
+    "description": "A traditional U-shaped control yoke with horn grips and a central control column attachment. Squared-off horns with mounted buttons implied. Use for primary-controls training and trainer-fleet specs."
+  },
+  {
+    "id": "inst-stick",
+    "name": "Control Stick",
+    "category": "Instruments",
+    "file": "merlin-inst-stick.svg",
+    "path": "/icons/merlin/icons/merlin-inst-stick.svg",
+    "description": "A center-mounted control stick with grip top and pivot mount on the floor. Used in low-wing trainers and aerobatic aircraft. Use for sport-pilot, aerobatic, and tailwheel curriculum pages."
+  },
+  {
+    "id": "inst-pedals",
+    "name": "Rudder Pedals",
+    "category": "Instruments",
+    "file": "merlin-inst-pedals.svg",
+    "path": "/icons/merlin/icons/merlin-inst-pedals.svg",
+    "description": "A pair of rudder pedals tilted forward with toe-brake faces. Two trapezoids on parallel rails. Use for taxi training, crosswind technique, and stall-spin awareness."
+  },
+  {
+    "id": "inst-throttle",
+    "name": "Throttle Quadrant",
+    "category": "Instruments",
+    "file": "merlin-inst-throttle.svg",
+    "path": "/icons/merlin/icons/merlin-inst-throttle.svg",
+    "description": "A vertical throttle quadrant with three levers staggered at different positions (full, mid, idle). Side-by-side slots cut into the panel. Use for twin-engine, complex, and powerplant training pages."
+  },
+  {
+    "id": "nav-sectional",
+    "name": "Sectional Chart",
+    "category": "Navigation",
+    "file": "merlin-nav-sectional.svg",
+    "path": "/icons/merlin/icons/merlin-nav-sectional.svg",
+    "description": "A folded paper sectional chart in tri-panel form. Z-fold seen edge-on with three creases. Use for VFR navigation, chart reading, and dead-reckoning lessons."
+  },
+  {
+    "id": "nav-plotter",
+    "name": "Plotter",
+    "category": "Navigation",
+    "file": "merlin-nav-plotter.svg",
+    "path": "/icons/merlin/icons/merlin-nav-plotter.svg",
+    "description": "A navigation plotter \u2014 a ruler with a built-in protractor in the center. Long rectangle with circular cutout. Use for cross-country planning, true course measurement, and chart work."
+  },
+  {
+    "id": "nav-e6b",
+    "name": "E6B Flight Computer",
+    "category": "Navigation",
+    "file": "merlin-nav-e6b.svg",
+    "path": "/icons/merlin/icons/merlin-nav-e6b.svg",
+    "description": "A circular slide-rule flight computer with three rotating scales. Concentric rings and an index mark. Use for wind correction, time-speed-distance, and fuel calculation lessons."
+  },
+  {
+    "id": "nav-map",
+    "name": "Map",
+    "category": "Navigation",
+    "file": "merlin-nav-map.svg",
+    "path": "/icons/merlin/icons/merlin-nav-map.svg",
+    "description": "A generic folded outdoor map with two crease lines. Small route marks scattered across the surface. Use for trip planning, navigation logs, and route briefing pages."
+  },
+  {
+    "id": "nav-globe",
+    "name": "Globe",
+    "category": "Navigation",
+    "file": "merlin-nav-globe.svg",
+    "path": "/icons/merlin/icons/merlin-nav-globe.svg",
+    "description": "An idealized globe with equator and prime meridian, plus latitude curve lines. Round outline crossed by guides. Use for great-circle navigation, time zones, and international flying."
+  },
+  {
+    "id": "nav-waypoint",
+    "name": "Waypoint",
+    "category": "Navigation",
+    "file": "merlin-nav-waypoint.svg",
+    "path": "/icons/merlin/icons/merlin-nav-waypoint.svg",
+    "description": "A diamond-shaped waypoint symbol with a central dot. Matches IFR fix conventions on charts. Use for flight planning, GPS routing, and en-route navigation tutorials."
+  },
+  {
+    "id": "nav-heading",
+    "name": "Heading",
+    "category": "Navigation",
+    "file": "merlin-nav-heading.svg",
+    "path": "/icons/merlin/icons/merlin-nav-heading.svg",
+    "description": "A circle with an arrow pointing north and tick marks at each cardinal. Heading-bug graphic style. Use for heading control, magnetic deviation, and compass-correction tutorials."
+  },
+  {
+    "id": "nav-course",
+    "name": "Course Line",
+    "category": "Navigation",
+    "file": "merlin-nav-course.svg",
+    "path": "/icons/merlin/icons/merlin-nav-course.svg",
+    "description": "A multi-leg course line connecting four waypoints with dots at each fix. Polyline that turns at each waypoint. Use for flight planning, route design, and IFR enroute charts."
+  },
+  {
+    "id": "nav-radial",
+    "name": "Vor Radial",
+    "category": "Navigation",
+    "file": "merlin-nav-radial.svg",
+    "path": "/icons/merlin/icons/merlin-nav-radial.svg",
+    "description": "A VOR station with eight numbered radials emanating from a central hub. Cardinal and intercardinal lines. Use for VOR navigation, radial intercepts, and IFR instruction."
+  },
+  {
+    "id": "nav-vor",
+    "name": "Vor Station",
+    "category": "Navigation",
+    "file": "merlin-nav-vor.svg",
+    "path": "/icons/merlin/icons/merlin-nav-vor.svg",
+    "description": "A hexagonal VOR ground station symbol with a central dot and tick rays. Matches the chart-standard glyph. Use for radio-navigation aids and chart-legend explanations."
+  },
+  {
+    "id": "nav-ndb",
+    "name": "Ndb Station",
+    "category": "Navigation",
+    "file": "merlin-nav-ndb.svg",
+    "path": "/icons/merlin/icons/merlin-nav-ndb.svg",
+    "description": "A non-directional beacon with concentric dashed rings simulating its omnidirectional signal. Center hub solid. Use for ADF/NDB navigation and legacy nav-aid training content."
+  },
+  {
+    "id": "nav-ils",
+    "name": "Ils Approach",
+    "category": "Navigation",
+    "file": "merlin-nav-ils.svg",
+    "path": "/icons/merlin/icons/merlin-nav-ils.svg",
+    "description": "An ILS cone narrowing toward the runway threshold with glideslope and localizer planes implied. Triangular funnel shape. Use for instrument approaches, decision altitudes, and CFII content."
+  },
+  {
+    "id": "nav-compass-rose",
+    "name": "Compass Rose",
+    "category": "Navigation",
+    "file": "merlin-nav-compass-rose.svg",
+    "path": "/icons/merlin/icons/merlin-nav-compass-rose.svg",
+    "description": "A four-point compass rose with primary cardinal arrows and dashed intercardinal lines. Centered within a circle. Use for chart legends, navigation primers, and dead-reckoning material."
+  },
+  {
+    "id": "nav-north-arrow",
+    "name": "North Arrow",
+    "category": "Navigation",
+    "file": "merlin-nav-north-arrow.svg",
+    "path": "/icons/merlin/icons/merlin-nav-north-arrow.svg",
+    "description": "A long arrow pointing up with an 'N' character beneath it. Streamlined compass-north indicator. Use for chart orientation, true-vs-magnetic lessons, and map keys."
+  },
+  {
+    "id": "nav-flight-plan",
+    "name": "Flight Plan",
+    "category": "Navigation",
+    "file": "merlin-nav-flight-plan.svg",
+    "path": "/icons/merlin/icons/merlin-nav-flight-plan.svg",
+    "description": "A flight-plan form filled with rows of data fields. Header band plus a grid of entry cells. Use for ICAO/FAA flight plan submission, briefing prep, and dispatch pages."
+  },
+  {
+    "id": "wx-cloud",
+    "name": "Cloud",
+    "category": "Weather",
+    "file": "merlin-wx-cloud.svg",
+    "path": "/icons/merlin/icons/merlin-wx-cloud.svg",
+    "description": "A puffy generic cloud silhouette. Three lobes joined under a flatter base. Use for general weather pages, METAR overview, and IFR vs VFR comparisons."
+  },
+  {
+    "id": "wx-cumulus",
+    "name": "Cumulus",
+    "category": "Weather",
+    "file": "merlin-wx-cumulus.svg",
+    "path": "/icons/merlin/icons/merlin-wx-cumulus.svg",
+    "description": "Fair-weather cumulus with a flat base and a domed top. Cauliflower bumps on the upper surface. Use for thermal soaring, daytime weather, and fair-weather flying material."
+  },
+  {
+    "id": "wx-cumulonimbus",
+    "name": "Cumulonimbus",
+    "category": "Weather",
+    "file": "merlin-wx-cumulonimbus.svg",
+    "path": "/icons/merlin/icons/merlin-wx-cumulonimbus.svg",
+    "description": "A towering thunderstorm cell with a spreading anvil top and rain shafts below. Wide, flat anvil with vertical streaks. Use for thunderstorm avoidance, convective weather, and embedded TS content."
+  },
+  {
+    "id": "wx-lightning",
+    "name": "Lightning",
+    "category": "Weather",
+    "file": "merlin-wx-lightning.svg",
+    "path": "/icons/merlin/icons/merlin-wx-lightning.svg",
+    "description": "A jagged lightning bolt. Sharp zigzag from upper right to lower left. Use for thunderstorm hazards, electrical storms, and weather-advisory content."
+  },
+  {
+    "id": "wx-rain",
+    "name": "Rain",
+    "category": "Weather",
+    "file": "merlin-wx-rain.svg",
+    "path": "/icons/merlin/icons/merlin-wx-rain.svg",
+    "description": "A cloud above a row of vertical raindrops. Drops appear as short parallel strokes. Use for precipitation, METAR symbology, and rain-flying decision pages."
+  },
+  {
+    "id": "wx-snow",
+    "name": "Snow",
+    "category": "Weather",
+    "file": "merlin-wx-snow.svg",
+    "path": "/icons/merlin/icons/merlin-wx-snow.svg",
+    "description": "A cloud above two simple snowflake symbols. Asterisk-style six-point flakes. Use for icing risk, winter operations, and cold-weather flying material."
+  },
+  {
+    "id": "wx-fog",
+    "name": "Fog",
+    "category": "Weather",
+    "file": "merlin-wx-fog.svg",
+    "path": "/icons/merlin/icons/merlin-wx-fog.svg",
+    "description": "Five horizontal strokes suggesting layered fog. Alternating offsets imply ground-level mist. Use for visibility minimums, IFR conditions, and 'go/no-go' weather pages."
+  },
+  {
+    "id": "wx-wind",
+    "name": "Wind",
+    "category": "Weather",
+    "file": "merlin-wx-wind.svg",
+    "path": "/icons/merlin/icons/merlin-wx-wind.svg",
+    "description": "Three curling lines representing wind currents moving across the field. Streamlines with curl marks. Use for surface winds, wind correction angle, and crosswind topics."
+  },
+  {
+    "id": "wx-windsock",
+    "name": "Windsock",
+    "category": "Weather",
+    "file": "merlin-wx-windsock.svg",
+    "path": "/icons/merlin/icons/merlin-wx-windsock.svg",
+    "description": "A striped windsock on a tall pole, inflated and pointing right. Cone tapers along its length. Use for runway selection, surface-wind interpretation, and airport-operations content."
+  },
+  {
+    "id": "wx-tornado",
+    "name": "Tornado",
+    "category": "Weather",
+    "file": "merlin-wx-tornado.svg",
+    "path": "/icons/merlin/icons/merlin-wx-tornado.svg",
+    "description": "A funnel-cloud silhouette built from horizontal bands that taper toward the ground. Stepped descending widths. Use for severe weather, supercell training, and convective-storm pages."
+  },
+  {
+    "id": "wx-sun",
+    "name": "Sun",
+    "category": "Weather",
+    "file": "merlin-wx-sun.svg",
+    "path": "/icons/merlin/icons/merlin-wx-sun.svg",
+    "description": "A central sun disc surrounded by eight short rays. Symmetrical compass-like layout. Use for VFR weather, daytime ops, and 'day-VFR-only' rating content."
+  },
+  {
+    "id": "wx-moon",
+    "name": "Moon",
+    "category": "Weather",
+    "file": "merlin-wx-moon.svg",
+    "path": "/icons/merlin/icons/merlin-wx-moon.svg",
+    "description": "A crescent moon facing right. Smooth bean shape. Use for night flying, night currency, and twilight-operations content."
+  },
+  {
+    "id": "wx-rainbow",
+    "name": "Rainbow",
+    "category": "Weather",
+    "file": "merlin-wx-rainbow.svg",
+    "path": "/icons/merlin/icons/merlin-wx-rainbow.svg",
+    "description": "Four concentric arcs forming a rainbow over the horizon line. Stacked arcs spaced apart. Use for post-precipitation visibility, post-storm flight resumption, and atmospheric optics."
+  },
+  {
+    "id": "wx-hail",
+    "name": "Hail",
+    "category": "Weather",
+    "file": "merlin-wx-hail.svg",
+    "path": "/icons/merlin/icons/merlin-wx-hail.svg",
+    "description": "A cloud above four falling hailstones drawn as circles. Mixed sizes for realism. Use for severe-weather hazards, hail damage, and convective-weather avoidance."
+  },
+  {
+    "id": "wx-icing",
+    "name": "Icing",
+    "category": "Weather",
+    "file": "merlin-wx-icing.svg",
+    "path": "/icons/merlin/icons/merlin-wx-icing.svg",
+    "description": "A wing leading edge with icicle barbs forming along it. Curved camber with downward spikes. Use for icing conditions, anti-ice systems, and winter weather hazards."
+  },
+  {
+    "id": "apt-runway",
+    "name": "Runway",
+    "category": "Airport",
+    "file": "merlin-apt-runway.svg",
+    "path": "/icons/merlin/icons/merlin-apt-runway.svg",
+    "description": "A perspective runway with dashed centerline markings narrowing toward the horizon. Trapezoid with stripe ticks. Use for runway operations, landing technique, and airport-diagram pages."
+  },
+  {
+    "id": "apt-taxiway",
+    "name": "Taxiway",
+    "category": "Airport",
+    "file": "merlin-apt-taxiway.svg",
+    "path": "/icons/merlin/icons/merlin-apt-taxiway.svg",
+    "description": "A curving taxiway with dashed centerline emerging from the runway edge. Continuous side stripes. Use for ground operations, taxi instructions, and runway-incursion training."
+  },
+  {
+    "id": "apt-tower",
+    "name": "Control Tower",
+    "category": "Airport",
+    "file": "merlin-apt-tower.svg",
+    "path": "/icons/merlin/icons/merlin-apt-tower.svg",
+    "description": "A control tower silhouette with cab on top, tapered shaft, and antenna mast. Wider observation cab atop a slim column. Use for ATC, tower-controlled operations, and Class B/C/D airspace topics."
+  },
+  {
+    "id": "apt-hangar",
+    "name": "Hangar",
+    "category": "Airport",
+    "file": "merlin-apt-hangar.svg",
+    "path": "/icons/merlin/icons/merlin-apt-hangar.svg",
+    "description": "An arched hangar with arched roof and full-height door. Wide opening at the front. Use for aircraft storage, rental fleet pages, and maintenance shop locations."
+  },
+  {
+    "id": "apt-terminal",
+    "name": "Terminal",
+    "category": "Airport",
+    "file": "merlin-apt-terminal.svg",
+    "path": "/icons/merlin/icons/merlin-apt-terminal.svg",
+    "description": "A passenger terminal building with sloped roof, multiple windows, and a central entry. Long horizontal facade. Use for commercial-airport material, ground transport, and travel topics."
+  },
+  {
+    "id": "apt-ramp",
+    "name": "Apron",
+    "category": "Airport",
+    "file": "merlin-apt-ramp.svg",
+    "path": "/icons/merlin/icons/merlin-apt-ramp.svg",
+    "description": "An aircraft parking apron with marked tie-down boxes and centerline guidance lines. Grid of small rectangles within a frame. Use for ramp operations, ground handling, and FBO content."
+  },
+  {
+    "id": "apt-beacon",
+    "name": "Airport Beacon",
+    "category": "Airport",
+    "file": "merlin-apt-beacon.svg",
+    "path": "/icons/merlin/icons/merlin-apt-beacon.svg",
+    "description": "An airport rotating beacon on a short pylon with two-color rotating optic. Tapered upper segment denotes the light. Use for night ops, airport identification, and beacon-color recognition."
+  },
+  {
+    "id": "apt-papi",
+    "name": "Papi Lights",
+    "category": "Airport",
+    "file": "merlin-apt-papi.svg",
+    "path": "/icons/merlin/icons/merlin-apt-papi.svg",
+    "description": "Four side-by-side PAPI light boxes representing the precision approach path indicator. Equal-spaced circles. Use for stabilized-approach training, glide-path control, and visual aids."
+  },
+  {
+    "id": "apt-approach",
+    "name": "Approach Lights",
+    "category": "Airport",
+    "file": "merlin-apt-approach.svg",
+    "path": "/icons/merlin/icons/merlin-apt-approach.svg",
+    "description": "A centerline approach-light array radiating outward in increasing bars. Christmas-tree pattern. Use for runway approach lighting systems and instrument approach training."
+  },
+  {
+    "id": "apt-tetrahedron",
+    "name": "Tetrahedron",
+    "category": "Airport",
+    "file": "merlin-apt-tetrahedron.svg",
+    "path": "/icons/merlin/icons/merlin-apt-tetrahedron.svg",
+    "description": "A landing-direction tetrahedron pointing into the wind. Wedge-like 3D form. Use for non-towered fields, wind indication, and airport familiarization."
+  },
+  {
+    "id": "apt-helipad",
+    "name": "Helipad",
+    "category": "Airport",
+    "file": "merlin-apt-helipad.svg",
+    "path": "/icons/merlin/icons/merlin-apt-helipad.svg",
+    "description": "A circular helipad with a large 'H' painted in the center. Concentric circle and three strokes for the letter. Use for rotorcraft pages, hospital ops, and helipad design."
+  },
+  {
+    "id": "apt-tiedown",
+    "name": "Tie Down",
+    "category": "Airport",
+    "file": "merlin-apt-tiedown.svg",
+    "path": "/icons/merlin/icons/merlin-apt-tiedown.svg",
+    "description": "An aircraft tie-down spot with four anchor points and crossed ropes meeting at center. Square layout with corner rings. Use for parking procedures, transient parking, and FBO content."
+  },
+  {
+    "id": "apt-fuel-pump",
+    "name": "Fuel Pump",
+    "category": "Airport",
+    "file": "merlin-apt-fuel-pump.svg",
+    "path": "/icons/merlin/icons/merlin-apt-fuel-pump.svg",
+    "description": "A fuel pump with the display housing on the left and a nozzle hose to the right. 100LL/Jet A pump styling. Use for fueling procedures, FBO services, and avgas content."
+  },
+  {
+    "id": "apt-chocks",
+    "name": "Chocks",
+    "category": "Airport",
+    "file": "merlin-apt-chocks.svg",
+    "path": "/icons/merlin/icons/merlin-apt-chocks.svg",
+    "description": "A pair of wheel chocks placed fore and aft of two tires. Triangular wedges beside circles. Use for parking procedures, ramp safety, and securing-the-aircraft checklists."
+  },
+  {
+    "id": "apt-jetway",
+    "name": "Jetway",
+    "category": "Airport",
+    "file": "merlin-apt-jetway.svg",
+    "path": "/icons/merlin/icons/merlin-apt-jetway.svg",
+    "description": "A passenger jetway bridge angled toward an aircraft doorway. Rectangular tunnel meeting a flared mouth. Use for commercial-airport pages and airline-pilot career content."
+  },
+  {
+    "id": "comm-headset",
+    "name": "Headset",
+    "category": "Communication",
+    "file": "merlin-comm-headset.svg",
+    "path": "/icons/merlin/icons/merlin-comm-headset.svg",
+    "description": "A pilot headset with padded ear cups, a curved headband, and a boom microphone curling down. Symmetric profile. Use for COMM training, headset reviews, and student-gear lists."
+  },
+  {
+    "id": "comm-mic",
+    "name": "Microphone",
+    "category": "Communication",
+    "file": "merlin-comm-mic.svg",
+    "path": "/icons/merlin/icons/merlin-comm-mic.svg",
+    "description": "A handheld push-to-talk microphone with a rounded mesh head, stand bracket, and base. Classic stage-mic style. Use for radio procedures and pre-flight COMM checks."
+  },
+  {
+    "id": "comm-transponder",
+    "name": "Transponder",
+    "category": "Communication",
+    "file": "merlin-comm-transponder.svg",
+    "path": "/icons/merlin/icons/merlin-comm-transponder.svg",
+    "description": "A transponder bezel with a digital code readout on the left and four squawk-entry knobs on the right. Landscape rectangle layout. Use for squawk code instruction and Mode-C/S explanations."
+  },
+  {
+    "id": "comm-radio-tower",
+    "name": "Radio Tower",
+    "category": "Communication",
+    "file": "merlin-comm-radio-tower.svg",
+    "path": "/icons/merlin/icons/merlin-comm-radio-tower.svg",
+    "description": "A tall transmission tower with cross-braces and two radio waves emanating from the top. Triangular silhouette. Use for communications coverage, FAA facilities, and FSS pages."
+  },
+  {
+    "id": "comm-atc",
+    "name": "Atc",
+    "category": "Communication",
+    "file": "merlin-comm-atc.svg",
+    "path": "/icons/merlin/icons/merlin-comm-atc.svg",
+    "description": "A controller workstation with a screen and a person silhouette behind it. Trapezoidal screen housing. Use for ATC services, tower operations, and controller-communication topics."
+  },
+  {
+    "id": "comm-squawk",
+    "name": "Squawk Code",
+    "category": "Communication",
+    "file": "merlin-comm-squawk.svg",
+    "path": "/icons/merlin/icons/merlin-comm-squawk.svg",
+    "description": "A four-digit transponder display showing three numeric cells and one blinking digit space. Boxed segments side by side. Use for emergency codes, VFR codes, and squawk training."
+  },
+  {
+    "id": "comm-frequency",
+    "name": "Frequency",
+    "category": "Communication",
+    "file": "merlin-comm-frequency.svg",
+    "path": "/icons/merlin/icons/merlin-comm-frequency.svg",
+    "description": "A frequency-display panel with a stylized audio waveform across the screen. Single trace from quiet to peaks. Use for radio tuning, audio panels, and COMM-frequency selection."
+  },
+  {
+    "id": "comm-adsb",
+    "name": "Ads-B",
+    "category": "Communication",
+    "file": "merlin-comm-adsb.svg",
+    "path": "/icons/merlin/icons/merlin-comm-adsb.svg",
+    "description": "A central aircraft icon with two concentric pairs of radio-wave arcs broadcasting outward. ADS-B-style omnidirectional broadcast. Use for traffic-awareness systems and 2020 mandate content."
+  },
+  {
+    "id": "comm-antenna",
+    "name": "Antenna",
+    "category": "Communication",
+    "file": "merlin-comm-antenna.svg",
+    "path": "/icons/merlin/icons/merlin-comm-antenna.svg",
+    "description": "A whip antenna on a tripod base with concentric reception arcs to either side. Radial signal pattern. Use for avionics installation, navaid receivers, and cell-coverage diagrams."
+  },
+  {
+    "id": "comm-speaker",
+    "name": "Speaker",
+    "category": "Communication",
+    "file": "merlin-comm-speaker.svg",
+    "path": "/icons/merlin/icons/merlin-comm-speaker.svg",
+    "description": "A speaker icon with cone and two arcs indicating sound emission. Classic volume-output symbol. Use for cabin announcements, audio panel controls, and intercom systems."
+  },
+  {
+    "id": "doc-logbook",
+    "name": "Logbook",
+    "category": "Documents",
+    "file": "merlin-doc-logbook.svg",
+    "path": "/icons/merlin/icons/merlin-doc-logbook.svg",
+    "description": "A bound pilot logbook with a thick spine and ruled rows visible on the page. Three short lines suggest entries. Use for logbook endorsements, hour tracking, and currency requirements."
+  },
+  {
+    "id": "doc-checklist",
+    "name": "Checklist",
+    "category": "Documents",
+    "file": "merlin-doc-checklist.svg",
+    "path": "/icons/merlin/icons/merlin-doc-checklist.svg",
+    "description": "A clipboard with three completed rows, each marked by a check and a short line for the item text. Top-clip rectangle hints at a paper clamp. Use for preflight, run-up, and checklist-discipline content."
+  },
+  {
+    "id": "doc-license",
+    "name": "Pilot License",
+    "category": "Documents",
+    "file": "merlin-doc-license.svg",
+    "path": "/icons/merlin/icons/merlin-doc-license.svg",
+    "description": "A pilot certificate card with a portrait circle and three lines of issued data to the right. Landscape ID format. Use for certificate types, ratings, and licensing requirements."
+  },
+  {
+    "id": "doc-medical",
+    "name": "Medical Certificate",
+    "category": "Documents",
+    "file": "merlin-doc-medical.svg",
+    "path": "/icons/merlin/icons/merlin-doc-medical.svg",
+    "description": "A medical-class certificate showing a central cross emblem. Equal-armed cross within a rectangle. Use for FAA medical class 1/2/3, BasicMed, and aeromedical content."
+  },
+  {
+    "id": "doc-wings",
+    "name": "Pilot Wings",
+    "category": "Documents",
+    "file": "merlin-doc-wings.svg",
+    "path": "/icons/merlin/icons/merlin-doc-wings.svg",
+    "description": "A classic aviator wings badge: central medallion with feathered wings outstretched. Symmetrical heraldic device. Use for graduation, milestones, and pilot-club membership pages."
+  },
+  {
+    "id": "doc-endorsement",
+    "name": "Endorsement",
+    "category": "Documents",
+    "file": "merlin-doc-endorsement.svg",
+    "path": "/icons/merlin/icons/merlin-doc-endorsement.svg",
+    "description": "A document with a circular instructor stamp imprinted across the center. Stamped seal feel. Use for solo endorsements, currency stamps, and CFI sign-off content."
+  },
+  {
+    "id": "doc-poh",
+    "name": "Poh Manual",
+    "category": "Documents",
+    "file": "merlin-doc-poh.svg",
+    "path": "/icons/merlin/icons/merlin-doc-poh.svg",
+    "description": "A pilot's operating handbook with section title and multiple text lines. Same bound-book form as the logbook. Use for aircraft specs, V-speeds reference, and systems training."
+  },
+  {
+    "id": "doc-calendar",
+    "name": "Calendar",
+    "category": "Documents",
+    "file": "merlin-doc-calendar.svg",
+    "path": "/icons/merlin/icons/merlin-doc-calendar.svg",
+    "description": "A monthly calendar with header strip and a grid of date cells, with two hanging rings on top. Day markers as small squares. Use for scheduling lessons, currency tracking, and event pages."
+  },
+  {
+    "id": "doc-stopwatch",
+    "name": "Stopwatch",
+    "category": "Documents",
+    "file": "merlin-doc-stopwatch.svg",
+    "path": "/icons/merlin/icons/merlin-doc-stopwatch.svg",
+    "description": "A round stopwatch with crown button and side lap button visible. Hands set to a recent split. Use for timed approaches, holding entries, and timer-based maneuvers."
+  },
+  {
+    "id": "doc-calculator",
+    "name": "Calculator",
+    "category": "Documents",
+    "file": "merlin-doc-calculator.svg",
+    "path": "/icons/merlin/icons/merlin-doc-calculator.svg",
+    "description": "A handheld calculator with screen header and a 3x3 button grid below. Compact form factor. Use for performance calculations, fuel planning, and weight-and-balance worksheets."
+  },
+  {
+    "id": "doc-flight-plan",
+    "name": "Flight Plan Form",
+    "category": "Documents",
+    "file": "merlin-doc-flight-plan.svg",
+    "path": "/icons/merlin/icons/merlin-doc-flight-plan.svg",
+    "description": "A flight plan form with a header band and a two-column grid of entry rows. ICAO/FAA layout suggestion. Use for filing flight plans, pre-flight briefings, and dispatch pages."
+  },
+  {
+    "id": "doc-wb",
+    "name": "Weight & Balance",
+    "category": "Documents",
+    "file": "merlin-doc-wb.svg",
+    "path": "/icons/merlin/icons/merlin-doc-wb.svg",
+    "description": "A balance scale with two equal-weight pans suspended from a central beam. Triangular pans hang from cross-bar. Use for W&B calculations, CG management, and loading procedures."
+  },
+  {
+    "id": "doc-perf-chart",
+    "name": "Performance Chart",
+    "category": "Documents",
+    "file": "merlin-doc-perf-chart.svg",
+    "path": "/icons/merlin/icons/merlin-doc-perf-chart.svg",
+    "description": "A line graph plotted within a frame, ascending from lower left to upper right. Single curve over axes. Use for takeoff/landing distance charts, density altitude, and climb performance."
+  },
+  {
+    "id": "doc-notam",
+    "name": "Notam",
+    "category": "Documents",
+    "file": "merlin-doc-notam.svg",
+    "path": "/icons/merlin/icons/merlin-doc-notam.svg",
+    "description": "A notice-to-airmen document with several rows of text and a small exclamation indicator beneath. Document with attention mark. Use for airport NOTAMs, GPS outages, and TFR content."
+  },
+  {
+    "id": "doc-metar",
+    "name": "Metar",
+    "category": "Documents",
+    "file": "merlin-doc-metar.svg",
+    "path": "/icons/merlin/icons/merlin-doc-metar.svg",
+    "description": "A METAR report with header bar and parsed observation rows below. Top band plus tabular data. Use for weather briefings, METAR/TAF decoding, and weather-minimums pages."
+  },
+  {
+    "id": "train-instructor",
+    "name": "Instructor",
+    "category": "Training",
+    "file": "merlin-train-instructor.svg",
+    "path": "/icons/merlin/icons/merlin-train-instructor.svg",
+    "description": "A person silhouette with a circular head and a small tie or lanyard indicating the instructor role. Standing torso shape. Use for CFI listings, instructor bios, and 'meet the team' pages."
+  },
+  {
+    "id": "train-student",
+    "name": "Student",
+    "category": "Training",
+    "file": "merlin-train-student.svg",
+    "path": "/icons/merlin/icons/merlin-train-student.svg",
+    "description": "A person silhouette with a small angled strap suggesting a backpack. Matches the instructor figure for visual parity. Use for student portal, training enrollment, and learner resources."
+  },
+  {
+    "id": "train-grad-cap",
+    "name": "Graduation Cap",
+    "category": "Training",
+    "file": "merlin-train-grad-cap.svg",
+    "path": "/icons/merlin/icons/merlin-train-grad-cap.svg",
+    "description": "A mortarboard graduation cap with tassel hanging from the right side. Square board atop a base. Use for course completion, ground-school graduation, and certificate ceremonies."
+  },
+  {
+    "id": "train-trophy",
+    "name": "Trophy",
+    "category": "Training",
+    "file": "merlin-train-trophy.svg",
+    "path": "/icons/merlin/icons/merlin-train-trophy.svg",
+    "description": "A two-handled trophy on a base. Symmetric goblet with side handles and pedestal. Use for awards, competitions, and pilot-of-the-year acknowledgements."
+  },
+  {
+    "id": "train-star",
+    "name": "Star Rating",
+    "category": "Training",
+    "file": "merlin-train-star.svg",
+    "path": "/icons/merlin/icons/merlin-train-star.svg",
+    "description": "A classic five-point star. Sharp pentagonal points centered on the canvas. Use for ratings, reviews, and excellence indicators throughout the site."
+  },
+  {
+    "id": "train-books",
+    "name": "Books",
+    "category": "Training",
+    "file": "merlin-train-books.svg",
+    "path": "/icons/merlin/icons/merlin-train-books.svg",
+    "description": "Three textbooks of different heights standing side by side on a shelf. Spine lines visible. Use for ground school, study materials, and curriculum pages."
+  },
+  {
+    "id": "train-school",
+    "name": "Flight School",
+    "category": "Training",
+    "file": "merlin-train-school.svg",
+    "path": "/icons/merlin/icons/merlin-train-school.svg",
+    "description": "A schoolhouse-style building with peaked roof, central door, and side windows. Classic institution profile. Use for flight school overview, location pages, and contact info."
+  },
+  {
+    "id": "train-bulb",
+    "name": "Lightbulb",
+    "category": "Training",
+    "file": "merlin-train-bulb.svg",
+    "path": "/icons/merlin/icons/merlin-train-bulb.svg",
+    "description": "A classic lightbulb with filament-like vertical lines inside and a screw-base below. Soft round dome. Use for tips, learning moments, and 'did you know' content."
+  },
+  {
+    "id": "train-question",
+    "name": "Question",
+    "category": "Training",
+    "file": "merlin-train-question.svg",
+    "path": "/icons/merlin/icons/merlin-train-question.svg",
+    "description": "A question mark inside a round badge. Centered punctuation with dot below. Use for FAQ, help, and 'what to expect' onboarding pages."
+  },
+  {
+    "id": "train-medal",
+    "name": "Medal",
+    "category": "Training",
+    "file": "merlin-train-medal.svg",
+    "path": "/icons/merlin/icons/merlin-train-medal.svg",
+    "description": "A circular medal hanging from a peaked ribbon. Star or notch detail in the center. Use for milestones, hour-club recognition, and pilot achievements."
+  },
+  {
+    "id": "safe-life-vest",
+    "name": "Life Vest",
+    "category": "Safety",
+    "file": "merlin-safe-life-vest.svg",
+    "path": "/icons/merlin/icons/merlin-safe-life-vest.svg",
+    "description": "A pilot life vest with collar, two buckle straps, and a chest pocket. Vest cut with central opening. Use for water-survival, ditching procedures, and overwater flight gear."
+  },
+  {
+    "id": "safe-parachute",
+    "name": "Parachute",
+    "category": "Safety",
+    "file": "merlin-safe-parachute.svg",
+    "path": "/icons/merlin/icons/merlin-safe-parachute.svg",
+    "description": "An open parachute canopy with multiple risers converging on a single load point. Domed silhouette with line array. Use for emergency egress, aerobatic safety, and skydive partnerships."
+  },
+  {
+    "id": "safe-extinguisher",
+    "name": "Fire Extinguisher",
+    "category": "Safety",
+    "file": "merlin-safe-extinguisher.svg",
+    "path": "/icons/merlin/icons/merlin-safe-extinguisher.svg",
+    "description": "A handheld fire extinguisher with body, top handle, and side hose nozzle. Cylindrical bottle profile. Use for cockpit safety equipment, emergency procedures, and ramp safety."
+  },
+  {
+    "id": "safe-first-aid",
+    "name": "First Aid",
+    "category": "Safety",
+    "file": "merlin-safe-first-aid.svg",
+    "path": "/icons/merlin/icons/merlin-safe-first-aid.svg",
+    "description": "A first-aid kit case with a centered medical cross. Boxy carrier with handle implied. Use for emergency procedures, in-flight medical events, and safety equipment lists."
+  },
+  {
+    "id": "safe-elt",
+    "name": "Elt",
+    "category": "Safety",
+    "file": "merlin-safe-elt.svg",
+    "path": "/icons/merlin/icons/merlin-safe-elt.svg",
+    "description": "An emergency locator transmitter box with antenna ridge and two signal arcs to either side. ELT pulse broadcasting. Use for emergency procedures, 406 MHz beacons, and survival gear."
+  },
+  {
+    "id": "safe-distress",
+    "name": "Distress Signal",
+    "category": "Safety",
+    "file": "merlin-safe-distress.svg",
+    "path": "/icons/merlin/icons/merlin-safe-distress.svg",
+    "description": "A central transmitter dot surrounded by two pairs of concentric arcs broadcasting outward. Mayday/PAN PAN broadcast. Use for emergency communications, distress procedures, and CPDLC content."
+  },
+  {
+    "id": "safe-lock",
+    "name": "Lock",
+    "category": "Safety",
+    "file": "merlin-safe-lock.svg",
+    "path": "/icons/merlin/icons/merlin-safe-lock.svg",
+    "description": "A padlock with rectangular body, shackle above, and keyhole on the face. Secure-storage symbol. Use for cabin security, pilot-account login, and ramp access pages."
+  },
+  {
+    "id": "safe-shield",
+    "name": "Shield",
+    "category": "Safety",
+    "file": "merlin-safe-shield.svg",
+    "path": "/icons/merlin/icons/merlin-safe-shield.svg",
+    "description": "A protective shield with a checkmark inside. Heater silhouette with verified mark. Use for risk management, safety culture, and insurance/coverage content."
+  },
+  {
+    "id": "safe-warning",
+    "name": "Warning",
+    "category": "Safety",
+    "file": "merlin-safe-warning.svg",
+    "path": "/icons/merlin/icons/merlin-safe-warning.svg",
+    "description": "A triangular warning sign with an exclamation point inside. Equilateral safety triangle. Use for cautions, hazards, and ADM (aeronautical decision making) pages."
+  },
+  {
+    "id": "safe-exit",
+    "name": "Exit",
+    "category": "Safety",
+    "file": "merlin-safe-exit.svg",
+    "path": "/icons/merlin/icons/merlin-safe-exit.svg",
+    "description": "A doorway frame with a directional arrow pointing out to the right. Door-with-arrow exit pictogram. Use for emergency egress, evacuation diagrams, and ramp safety pages."
+  },
+  {
+    "id": "ui-world",
+    "name": "World",
+    "category": "Ui",
+    "file": "merlin-ui-world.svg",
+    "path": "/icons/merlin/icons/merlin-ui-world.svg",
+    "description": "A globe with equator and curved meridian lines. Same vocabulary as the navigation globe but in the UI bucket. Use for international flights, time zones, and worldwide flight planning."
+  },
+  {
+    "id": "ui-takeoff",
+    "name": "Takeoff",
+    "category": "Ui",
+    "file": "merlin-ui-takeoff.svg",
+    "path": "/icons/merlin/icons/merlin-ui-takeoff.svg",
+    "description": "A small aircraft climbing away from a runway baseline. Wing-up takeoff posture. Use for departure procedures, takeoff calculations, and 'start your training' CTAs."
+  },
+  {
+    "id": "ui-landing",
+    "name": "Landing",
+    "category": "Ui",
+    "file": "merlin-ui-landing.svg",
+    "path": "/icons/merlin/icons/merlin-ui-landing.svg",
+    "description": "A small aircraft descending toward a runway baseline. Wing-down landing posture. Use for approach planning, landing technique, and arrival content."
+  },
+  {
+    "id": "ui-in-flight",
+    "name": "In Flight",
+    "category": "Ui",
+    "file": "merlin-ui-in-flight.svg",
+    "path": "/icons/merlin/icons/merlin-ui-in-flight.svg",
+    "description": "A side-view aircraft silhouette in level flight, pointed right. Compact, streamlined profile. Use for live flight tracking, en-route services, and general aviation content."
+  },
+  {
+    "id": "ui-route",
+    "name": "Route",
+    "category": "Ui",
+    "file": "merlin-ui-route.svg",
+    "path": "/icons/merlin/icons/merlin-ui-route.svg",
+    "description": "Two endpoint markers connected by a dashed curving line between them. Origin-to-destination route. Use for itineraries, flight tracking, and trip planning."
+  },
+  {
+    "id": "ui-search",
+    "name": "Search",
+    "category": "Ui",
+    "file": "merlin-ui-search.svg",
+    "path": "/icons/merlin/icons/merlin-ui-search.svg",
+    "description": "A magnifying glass with circular lens and angled handle. Classic search affordance. Use for site search, course catalog, and pilot directory."
+  },
+  {
+    "id": "ui-settings",
+    "name": "Settings",
+    "category": "Ui",
+    "file": "merlin-ui-settings.svg",
+    "path": "/icons/merlin/icons/merlin-ui-settings.svg",
+    "description": "An eight-spoke gear icon with a central hub. Standard configuration affordance. Use for account settings, instrument calibration, and aircraft setup pages."
+  },
+  {
+    "id": "ui-profile",
+    "name": "Profile",
+    "category": "Ui",
+    "file": "merlin-ui-profile.svg",
+    "path": "/icons/merlin/icons/merlin-ui-profile.svg",
+    "description": "A user avatar with head and shoulders silhouette in a generic stance. Round head and torso shape. Use for account pages, student dashboards, and instructor profiles."
+  },
+  {
+    "id": "ui-phone",
+    "name": "Phone",
+    "category": "Ui",
+    "file": "merlin-ui-phone.svg",
+    "path": "/icons/merlin/icons/merlin-ui-phone.svg",
+    "description": "A classic handset silhouette mid-call. Bent receiver with sound dish ends. Use for contact info, AOPA help lines, and ATC phone briefings."
+  },
+  {
+    "id": "ui-mail",
+    "name": "Mail",
+    "category": "Ui",
+    "file": "merlin-ui-mail.svg",
+    "path": "/icons/merlin/icons/merlin-ui-mail.svg",
+    "description": "An envelope viewed straight-on with a folded V flap showing. Standard email/mail glyph. Use for newsletter signup, lesson reminders, and instructor communications."
+  },
+  {
+    "id": "sym-arrow-up",
+    "name": "Arrow Up",
+    "category": "Symbols",
+    "file": "merlin-sym-arrow-up.svg",
+    "path": "/icons/merlin/icons/merlin-sym-arrow-up.svg",
+    "description": "A vertical arrow pointing up with a clean V-shaped head. Use for ascent, scroll-to-top, upload affordances, and sort-ascending controls."
+  },
+  {
+    "id": "sym-arrow-down",
+    "name": "Arrow Down",
+    "category": "Symbols",
+    "file": "merlin-sym-arrow-down.svg",
+    "path": "/icons/merlin/icons/merlin-sym-arrow-down.svg",
+    "description": "A vertical arrow pointing down. Use for descent, expand-below indicators, download buttons, and sort-descending controls."
+  },
+  {
+    "id": "sym-arrow-left",
+    "name": "Arrow Left",
+    "category": "Symbols",
+    "file": "merlin-sym-arrow-left.svg",
+    "path": "/icons/merlin/icons/merlin-sym-arrow-left.svg",
+    "description": "A horizontal arrow pointing left. Use for back navigation, previous-slide controls, rewind affordances, and reverse direction."
+  },
+  {
+    "id": "sym-arrow-right",
+    "name": "Arrow Right",
+    "category": "Symbols",
+    "file": "merlin-sym-arrow-right.svg",
+    "path": "/icons/merlin/icons/merlin-sym-arrow-right.svg",
+    "description": "A horizontal arrow pointing right. Use for forward navigation, next-slide controls, primary CTAs, and 'learn more' links."
+  },
+  {
+    "id": "sym-arrow-up-right",
+    "name": "Arrow Up-Right",
+    "category": "Symbols",
+    "file": "merlin-sym-arrow-up-right.svg",
+    "path": "/icons/merlin/icons/merlin-sym-arrow-up-right.svg",
+    "description": "A diagonal arrow pointing up and to the right. Use for growth, takeoff direction, external destinations, and trending-up indicators."
+  },
+  {
+    "id": "sym-arrow-down-right",
+    "name": "Arrow Down-Right",
+    "category": "Symbols",
+    "file": "merlin-sym-arrow-down-right.svg",
+    "path": "/icons/merlin/icons/merlin-sym-arrow-down-right.svg",
+    "description": "A diagonal arrow pointing down and to the right. Use for descent path, landing direction, or decreasing trend indicators."
+  },
+  {
+    "id": "sym-arrow-down-left",
+    "name": "Arrow Down-Left",
+    "category": "Symbols",
+    "file": "merlin-sym-arrow-down-left.svg",
+    "path": "/icons/merlin/icons/merlin-sym-arrow-down-left.svg",
+    "description": "A diagonal arrow pointing down and to the left. Use for return-to-origin patterns and downward reverse motion."
+  },
+  {
+    "id": "sym-arrow-up-left",
+    "name": "Arrow Up-Left",
+    "category": "Symbols",
+    "file": "merlin-sym-arrow-up-left.svg",
+    "path": "/icons/merlin/icons/merlin-sym-arrow-up-left.svg",
+    "description": "A diagonal arrow pointing up and to the left. Use for back-and-up navigation or reverse-trend indicators."
+  },
+  {
+    "id": "sym-chevron-up",
+    "name": "Chevron Up",
+    "category": "Symbols",
+    "file": "merlin-sym-chevron-up.svg",
+    "path": "/icons/merlin/icons/merlin-sym-chevron-up.svg",
+    "description": "A bare upward chevron with no tail. Use for collapse, dropdown-closed, scroll-up, and stacking indicators in compact UI."
+  },
+  {
+    "id": "sym-chevron-down",
+    "name": "Chevron Down",
+    "category": "Symbols",
+    "file": "merlin-sym-chevron-down.svg",
+    "path": "/icons/merlin/icons/merlin-sym-chevron-down.svg",
+    "description": "A bare downward chevron. Use for expand, dropdown-open, accordion toggle, and 'more' reveal affordances."
+  },
+  {
+    "id": "sym-chevron-left",
+    "name": "Chevron Left",
+    "category": "Symbols",
+    "file": "merlin-sym-chevron-left.svg",
+    "path": "/icons/merlin/icons/merlin-sym-chevron-left.svg",
+    "description": "A bare leftward chevron. Use for previous-page navigation, carousel back controls, and 'go back' affordances."
+  },
+  {
+    "id": "sym-chevron-right",
+    "name": "Chevron Right",
+    "category": "Symbols",
+    "file": "merlin-sym-chevron-right.svg",
+    "path": "/icons/merlin/icons/merlin-sym-chevron-right.svg",
+    "description": "A bare rightward chevron. Use for next-page navigation, carousel forward, list-item reveals, and breadcrumb separators."
+  },
+  {
+    "id": "sym-arrow-long-right",
+    "name": "Long Arrow",
+    "category": "Symbols",
+    "file": "merlin-sym-arrow-long-right.svg",
+    "path": "/icons/merlin/icons/merlin-sym-arrow-long-right.svg",
+    "description": "A long horizontal arrow stretching across the full width. Use for emphatic 'continue', 'next section', and primary forward CTAs."
+  },
+  {
+    "id": "sym-arrow-return",
+    "name": "Return",
+    "category": "Symbols",
+    "file": "merlin-sym-arrow-return.svg",
+    "path": "/icons/merlin/icons/merlin-sym-arrow-return.svg",
+    "description": "An arrow that bends back leftward, suggesting return or reply. Use for back-to-previous, undo, reset, and reply actions."
+  },
+  {
+    "id": "sym-arrow-refresh",
+    "name": "Refresh",
+    "category": "Symbols",
+    "file": "merlin-sym-arrow-refresh.svg",
+    "path": "/icons/merlin/icons/merlin-sym-arrow-refresh.svg",
+    "description": "A circular arrow loop with an open notch at the top right. Use for reload, refresh, restart, and 'try again' affordances."
+  },
+  {
+    "id": "sym-external-link",
+    "name": "External Link",
+    "category": "Symbols",
+    "file": "merlin-sym-external-link.svg",
+    "path": "/icons/merlin/icons/merlin-sym-external-link.svg",
+    "description": "A box with an outbound arrow leaving the top-right corner. Use for external links, opening new tabs, and off-site references."
+  },
+  {
+    "id": "sym-check",
+    "name": "Check",
+    "category": "Symbols",
+    "file": "merlin-sym-check.svg",
+    "path": "/icons/merlin/icons/merlin-sym-check.svg",
+    "description": "A simple checkmark formed by two clean strokes. Use for completed items, confirmations, and success states throughout the site."
+  },
+  {
+    "id": "sym-check-circle",
+    "name": "Check Circle",
+    "category": "Symbols",
+    "file": "merlin-sym-check-circle.svg",
+    "path": "/icons/merlin/icons/merlin-sym-check-circle.svg",
+    "description": "A checkmark inside a thin circle. Use for verified status, lesson completed, validation passed, and success notifications."
+  },
+  {
+    "id": "sym-check-square",
+    "name": "Check Square",
+    "category": "Symbols",
+    "file": "merlin-sym-check-square.svg",
+    "path": "/icons/merlin/icons/merlin-sym-check-square.svg",
+    "description": "A checkmark inside a rounded square \u2014 a 'checked' checkbox. Use for selected items, checklist rows, and form confirmations."
+  },
+  {
+    "id": "sym-x",
+    "name": "Close",
+    "category": "Symbols",
+    "file": "merlin-sym-x.svg",
+    "path": "/icons/merlin/icons/merlin-sym-x.svg",
+    "description": "A simple X formed by two crossed strokes. Use for close, cancel, dismiss, and remove actions across the interface."
+  },
+  {
+    "id": "sym-x-circle",
+    "name": "X Circle",
+    "category": "Symbols",
+    "file": "merlin-sym-x-circle.svg",
+    "path": "/icons/merlin/icons/merlin-sym-x-circle.svg",
+    "description": "An X inside a thin circle. Use for error states, cancelled actions, removal confirmations, and rejected items."
+  },
+  {
+    "id": "sym-x-square",
+    "name": "X Square",
+    "category": "Symbols",
+    "file": "merlin-sym-x-square.svg",
+    "path": "/icons/merlin/icons/merlin-sym-x-square.svg",
+    "description": "An X inside a rounded square. Use for delete actions, declined entries, and removing tagged items from lists."
+  },
+  {
+    "id": "sym-plus",
+    "name": "Plus",
+    "category": "Symbols",
+    "file": "merlin-sym-plus.svg",
+    "path": "/icons/merlin/icons/merlin-sym-plus.svg",
+    "description": "A plus sign with equal-length arms. Use for add, create, new entry, and expand-content actions."
+  },
+  {
+    "id": "sym-minus",
+    "name": "Minus",
+    "category": "Symbols",
+    "file": "merlin-sym-minus.svg",
+    "path": "/icons/merlin/icons/merlin-sym-minus.svg",
+    "description": "A single horizontal stroke. Use for remove, collapse, decrement, and 'less' controls."
+  },
+  {
+    "id": "sym-plus-circle",
+    "name": "Plus Circle",
+    "category": "Symbols",
+    "file": "merlin-sym-plus-circle.svg",
+    "path": "/icons/merlin/icons/merlin-sym-plus-circle.svg",
+    "description": "A plus sign inside a thin circle. Use for primary 'add' affordances, FAB-style controls, and 'add to collection' actions."
+  },
+  {
+    "id": "sym-minus-circle",
+    "name": "Minus Circle",
+    "category": "Symbols",
+    "file": "merlin-sym-minus-circle.svg",
+    "path": "/icons/merlin/icons/merlin-sym-minus-circle.svg",
+    "description": "A minus sign inside a thin circle. Use for remove-item, decrement counters, or 'subtract from' controls. END OF FILE \u00b7 176 icons total"
+  }
+]

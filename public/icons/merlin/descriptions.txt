@@ -1,0 +1,1285 @@
+================================================================
+  MERLIN FLIGHT TRAINING — HAIRLINE ICON SET
+  176 icons · 1px stroke · white · 64x64 viewBox
+  Generated: 2026-05-23
+================================================================
+
+
+────────────────────────────────────────────────────────────────
+  AIRCRAFT TYPES  (15)
+────────────────────────────────────────────────────────────────
+
+01.  SINGLE ENGINE
+     ID:   aircraft-single-engine
+     FILE: merlin-aircraft-single-engine.svg
+     A high-wing single-engine training aircraft viewed from above.
+     Pointed fuselage, full-span wings, and a small T-tail. Use as the
+     default plane mark across the fleet, lesson, and rental pages.
+
+02.  TWIN ENGINE
+     ID:   aircraft-twin-engine
+     FILE: merlin-aircraft-twin-engine.svg
+     A twin-engine aircraft top-down with two prop nacelles on the
+     wings. Same fuselage as the single but with paired engine markers.
+     Use for multi-engine training, complex endorsement, or advanced
+     rating pages.
+
+03.  HIGH WING
+     ID:   aircraft-high-wing
+     FILE: merlin-aircraft-high-wing.svg
+     Side profile of a high-wing aircraft showing the wing across the
+     top of the cabin. Cabin sits below the wing with tricycle gear
+     extended. Use on Cessna-family pages and 'introductory flight'
+     touchpoints.
+
+04.  LOW WING
+     ID:   aircraft-low-wing
+     FILE: merlin-aircraft-low-wing.svg
+     Side profile of a low-wing aircraft with the wing attached beneath
+     the cabin. Bubble canopy sits above the wing line. Use for Piper,
+     Cirrus, and Diamond-style training fleets.
+
+05.  TAILDRAGGER
+     ID:   aircraft-taildragger
+     FILE: merlin-aircraft-taildragger.svg
+     A conventional-gear aircraft with two main wheels forward and a
+     small tailwheel aft. Classic 'taildragger' stance with raised nose.
+     Use for tailwheel endorsement, vintage, and aerobatic course pages.
+
+06.  GLIDER
+     ID:   aircraft-glider
+     FILE: merlin-aircraft-glider.svg
+     A sleek sailplane with long, narrow wings and a high T-tail.
+     Elongated streamlined silhouette. Use for soaring, mountain flying,
+     and energy-management curriculum pages.
+
+07.  HELICOPTER
+     ID:   aircraft-helicopter
+     FILE: merlin-aircraft-helicopter.svg
+     A rotorcraft side view with main rotor disc above the cabin and
+     tail boom extending right. Includes tail rotor mark and skid
+     landing gear. Use for rotary endorsement, photo flights, and
+     utility ops.
+
+08.  BIPLANE
+     ID:   aircraft-biplane
+     FILE: merlin-aircraft-biplane.svg
+     A two-wing biplane with parallel upper and lower wings joined by
+     struts. Vintage profile with engine cowl and prop spinner forward.
+     Use for heritage aircraft, antique fleet, and tailwheel courses.
+
+09.  SEAPLANE
+     ID:   aircraft-seaplane
+     FILE: merlin-aircraft-seaplane.svg
+     A high-wing aircraft mounted on twin floats for water operations.
+     Pontoons sit below the fuselage with struts attaching them. Use for
+     floatplane rating and seaplane-base destination pages.
+
+10.  LIGHT JET
+     ID:   aircraft-light-jet
+     FILE: merlin-aircraft-light-jet.svg
+     A streamlined light business jet with swept wings and a
+     fuselage-mounted engine. Pointed nose and T-tail aft. Use for jet
+     transition, type rating, and corporate pilot pages.
+
+11.  AIRLINER
+     ID:   aircraft-airliner
+     FILE: merlin-aircraft-airliner.svg
+     A long commercial airliner with swept wings, two visible windows,
+     and a tall T-tail. Slim cigar-shaped fuselage. Use for airline
+     transport pilot (ATP) and career path pages.
+
+12.  CARGO PLANE
+     ID:   aircraft-cargo
+     FILE: merlin-aircraft-cargo.svg
+     A boxy high-wing cargo aircraft with a raised tail and rear loading
+     ramp. Wide fuselage built for freight. Use for cargo ops, aerial
+     freight, and humanitarian flying pages.
+
+13.  DRONE (UAV)
+     ID:   aircraft-drone
+     FILE: merlin-aircraft-drone.svg
+     A quadcopter UAV with four propeller discs arranged at the corners
+     of an X-frame. Central body holds the camera or payload. Use for
+     drone certification, aerial photography, and sUAS courses.
+
+14.  HOT AIR BALLOON
+     ID:   aircraft-balloon
+     FILE: merlin-aircraft-balloon.svg
+     A round hot-air balloon envelope with rigging lines descending to a
+     square wicker basket. Drawn as a perfect teardrop. Use for scenic
+     flights, recreational aviation, or balloon-rating offerings.
+
+15.  MICROLIGHT
+     ID:   aircraft-ultralight
+     FILE: merlin-aircraft-ultralight.svg
+     A delta-wing weight-shift microlight with a triangular wing above a
+     small trike pod. Minimal silhouette captures the open-frame
+     character. Use for sport-pilot certification and ultralight rental
+     pages.
+
+
+────────────────────────────────────────────────────────────────
+  AIRCRAFT PARTS  (15)
+────────────────────────────────────────────────────────────────
+
+01.  PROPELLER
+     ID:   part-propeller
+     FILE: merlin-part-propeller.svg
+     A four-bladed propeller seen head-on with a small central hub.
+     Curved teardrop blades radiate outward. Use for engine-out drills,
+     propeller theory, and aircraft-systems pages.
+
+02.  WING
+     ID:   part-wing
+     FILE: merlin-part-wing.svg
+     An airfoil cross-section showing the wing's curved upper surface
+     and flatter underside. Trailing-edge tick suggests the aileron
+     hinge. Use for aerodynamics, lift theory, and design-feature
+     explainers.
+
+03.  TAIL EMPENNAGE
+     ID:   part-tail
+     FILE: merlin-part-tail.svg
+     The empennage profile showing vertical stabilizer, rudder, and
+     horizontal stabilizer. Classic conventional tail shape. Use for
+     stability/control sections and pre-flight inspection guides.
+
+04.  LANDING GEAR
+     ID:   part-landing-gear
+     FILE: merlin-part-landing-gear.svg
+     Tricycle landing gear: two main wheels and a nose wheel with
+     struts. Each wheel is a circle on a strut. Use for gear-system
+     pages, hydraulics, and preflight walkaround guides.
+
+05.  COCKPIT
+     ID:   part-cockpit
+     FILE: merlin-part-cockpit.svg
+     A canopy or windshield viewed from the front, split by a central
+     frame. Curved bubble shape with the cabin floor as the base. Use
+     for crew-resource-management and cockpit-familiarization content.
+
+06.  AILERON
+     ID:   part-aileron
+     FILE: merlin-part-aileron.svg
+     A wing trailing edge with an aileron deflected downward, hinged at
+     the wing rear spar. Hatched separation shows the moving surface.
+     Use for primary-controls and roll-axis training pages.
+
+07.  RADIAL ENGINE
+     ID:   part-engine
+     FILE: merlin-part-engine.svg
+     A radial piston engine seen face-on with eight cylinders arrayed
+     around a central hub. Outer ring binds the cylinders. Use for
+     powerplant systems, maintenance, and engine-theory pages.
+
+08.  COWLING
+     ID:   part-cowling
+     FILE: merlin-part-cowling.svg
+     The engine cowling profile with cooling intake and side louvers.
+     Rectangular body wraps the engine bay. Use for preflight, oil-check
+     access, and powerplant inspection walkthroughs.
+
+09.  PITOT TUBE
+     ID:   part-pitot-tube
+     FILE: merlin-part-pitot-tube.svg
+     A forward-pointing pitot probe extending from under the wing, with
+     a drain hole below. Slim cylindrical sensor. Use for
+     airspeed-system pages, pitot-static blockage, and preflight checks.
+
+10.  ANTENNA
+     ID:   part-antenna
+     FILE: merlin-part-antenna.svg
+     A blade-style VHF antenna shown mounted to the fuselage skin.
+     Triangular blade tapers upward. Use for avionics, communications,
+     and ADS-B/transponder system pages.
+
+11.  TIRE & WHEEL
+     ID:   part-tire
+     FILE: merlin-part-tire.svg
+     An aircraft tire and hub seen flat-on with rim and lug pattern
+     visible. Three concentric circles plus four spoke marks. Use for
+     tire pressure checks, gear maintenance, and brake-system pages.
+
+12.  SPINNER
+     ID:   part-spinner
+     FILE: merlin-part-spinner.svg
+     A propeller spinner cone seen from the side covering the prop hub.
+     Smooth aerodynamic nose with hub seam. Use for cowl assemblies,
+     performance optimization, and aircraft customization pages.
+
+13.  FLAPS EXTENDED
+     ID:   part-flaps
+     FILE: merlin-part-flaps.svg
+     A wing in flapped configuration with the trailing edge extended
+     down. Two-step profile shows wing then flap deflection. Use for
+     short-field landings, approach configuration, and slow-flight
+     content.
+
+14.  ELEVATOR
+     ID:   part-elevator
+     FILE: merlin-part-elevator.svg
+     A horizontal stabilizer with the elevator pitched up at the
+     trailing edge. Two-segment surface with hinge line. Use for
+     pitch-axis training, longitudinal stability, and trim-tab
+     tutorials.
+
+15.  RUDDER
+     ID:   part-rudder
+     FILE: merlin-part-rudder.svg
+     A vertical fin with the rudder kicked out to one side, hinged at
+     the rear spar. Tall trapezoidal surface. Use for yaw control,
+     rudder coordination, and crosswind landing material.
+
+
+────────────────────────────────────────────────────────────────
+  INSTRUMENTS  (20)
+────────────────────────────────────────────────────────────────
+
+01.  MAGNETIC COMPASS
+     ID:   inst-compass
+     FILE: merlin-inst-compass.svg
+     A whiskey compass housed in a rectangular bezel with a heading card
+     visible through the lens. North indicator inside the card. Use as
+     the compass-system anchor and 'magnetic vs. true' lessons.
+
+02.  ALTIMETER
+     ID:   inst-altimeter
+     FILE: merlin-inst-altimeter.svg
+     A round altimeter face with a long thousands needle and shorter
+     hundreds pointer. Tick marks every 90°. Use for pressure altitude
+     lessons and instrument scan training.
+
+03.  AIRSPEED INDICATOR
+     ID:   inst-asi
+     FILE: merlin-inst-asi.svg
+     An airspeed indicator with a single needle, color-arc placeholder
+     along the dial, and Vne mark. Round case with internal tick scale.
+     Use for V-speeds, stall awareness, and instrument scan training.
+
+04.  VERTICAL SPEED
+     ID:   inst-vsi
+     FILE: merlin-inst-vsi.svg
+     A VSI dial with a horizontal pointer at zero, climb arc above and
+     descent below. Concentric tick markings. Use for climbs, descents,
+     and stabilized-approach training.
+
+05.  ATTITUDE INDICATOR
+     ID:   inst-attitude
+     FILE: merlin-inst-attitude.svg
+     An attitude indicator with a horizon line bisecting sky and ground,
+     plus pitch-ladder ticks. Wing-bar reference marks at the sides. Use
+     for IFR training, partial panel, and attitude-recovery drills.
+
+06.  HEADING INDICATOR
+     ID:   inst-heading
+     FILE: merlin-inst-heading.svg
+     A directional gyro with cardinal headings around the rim and an
+     aircraft silhouette in the center. North index at the top. Use for
+     heading hold, course intercepts, and instrument scan instruction.
+
+07.  TURN COORDINATOR
+     ID:   inst-turn-coord
+     FILE: merlin-inst-turn-coord.svg
+     A turn coordinator with a small aircraft symbol banked and an
+     inclinometer ball below. Tick marks at 'L' and 'R'. Use for
+     standard-rate turns, slip/skid awareness, and stall-spin training.
+
+08.  TACHOMETER
+     ID:   inst-tachometer
+     FILE: merlin-inst-tachometer.svg
+     An engine tachometer dial with single RPM needle and arc
+     indicators. Red-line tick at the high end. Use for engine ops,
+     run-up checks, and power-setting tutorials.
+
+09.  FUEL GAUGE
+     ID:   inst-fuel
+     FILE: merlin-inst-fuel.svg
+     A rectangular fuel quantity indicator with E and F endpoints and a
+     needle near three-quarters. Bezel sits flush in the panel. Use for
+     fuel management, planning reserves, and W&B discussions.
+
+10.  OIL PRESSURE
+     ID:   inst-oil-pressure
+     FILE: merlin-inst-oil-pressure.svg
+     A horizontal half-moon oil-pressure gauge with green band and a
+     needle indicating normal pressure. Numeric scale implied by ticks.
+     Use for engine-instruments cluster and pre-takeoff checklists.
+
+11.  OIL TEMPERATURE
+     ID:   inst-oil-temp
+     FILE: merlin-inst-oil-temp.svg
+     A horizontal oil-temperature gauge matching the oil-pressure layout
+     but with a needle in the cold quadrant. Same physical bezel. Use
+     for cold-start procedures and engine warm-up briefings.
+
+12.  EGT
+     ID:   inst-egt
+     FILE: merlin-inst-egt.svg
+     A digital EGT (exhaust gas temperature) bar gauge with stacked tick
+     rows and a moving column marker. Compact display style. Use for
+     mixture leaning, fuel-injection systems, and engine optimization.
+
+13.  G-METER
+     ID:   inst-gmeter
+     FILE: merlin-inst-gmeter.svg
+     A G-meter with positive and negative arcs and a needle indicating
+     mild positive load. Pointer originates from center. Use for
+     aerobatic course, upset training, and aircraft limits content.
+
+14.  PANEL CLOCK
+     ID:   inst-clock
+     FILE: merlin-inst-clock.svg
+     An analog panel clock with hour and minute hands at a 2:30 reading.
+     Twelve hour marks around the dial. Use for time-distance
+     calculations, fuel burn timing, and IFR holds.
+
+15.  GPS DISPLAY
+     ID:   inst-gps
+     FILE: merlin-inst-gps.svg
+     A landscape GPS screen with a moving-map area showing waypoint legs
+     and aircraft position. Rounded frame with two side keys hinted. Use
+     for cross-country planning and GPS-navigation lessons.
+
+16.  RADIO STACK
+     ID:   inst-radio-stack
+     FILE: merlin-inst-radio-stack.svg
+     A vertical radio stack with multiple frequency rows and rotary
+     tuning knobs. Four bezels arranged top to bottom. Use for COMM/NAV
+     setup, audio panels, and IFR comm tutorials.
+
+17.  YOKE
+     ID:   inst-yoke
+     FILE: merlin-inst-yoke.svg
+     A traditional U-shaped control yoke with horn grips and a central
+     control column attachment. Squared-off horns with mounted buttons
+     implied. Use for primary-controls training and trainer-fleet specs.
+
+18.  CONTROL STICK
+     ID:   inst-stick
+     FILE: merlin-inst-stick.svg
+     A center-mounted control stick with grip top and pivot mount on the
+     floor. Used in low-wing trainers and aerobatic aircraft. Use for
+     sport-pilot, aerobatic, and tailwheel curriculum pages.
+
+19.  RUDDER PEDALS
+     ID:   inst-pedals
+     FILE: merlin-inst-pedals.svg
+     A pair of rudder pedals tilted forward with toe-brake faces. Two
+     trapezoids on parallel rails. Use for taxi training, crosswind
+     technique, and stall-spin awareness.
+
+20.  THROTTLE QUADRANT
+     ID:   inst-throttle
+     FILE: merlin-inst-throttle.svg
+     A vertical throttle quadrant with three levers staggered at
+     different positions (full, mid, idle). Side-by-side slots cut into
+     the panel. Use for twin-engine, complex, and powerplant training
+     pages.
+
+
+────────────────────────────────────────────────────────────────
+  NAVIGATION  (15)
+────────────────────────────────────────────────────────────────
+
+01.  SECTIONAL CHART
+     ID:   nav-sectional
+     FILE: merlin-nav-sectional.svg
+     A folded paper sectional chart in tri-panel form. Z-fold seen
+     edge-on with three creases. Use for VFR navigation, chart reading,
+     and dead-reckoning lessons.
+
+02.  PLOTTER
+     ID:   nav-plotter
+     FILE: merlin-nav-plotter.svg
+     A navigation plotter — a ruler with a built-in protractor in the
+     center. Long rectangle with circular cutout. Use for cross-country
+     planning, true course measurement, and chart work.
+
+03.  E6B FLIGHT COMPUTER
+     ID:   nav-e6b
+     FILE: merlin-nav-e6b.svg
+     A circular slide-rule flight computer with three rotating scales.
+     Concentric rings and an index mark. Use for wind correction,
+     time-speed-distance, and fuel calculation lessons.
+
+04.  MAP
+     ID:   nav-map
+     FILE: merlin-nav-map.svg
+     A generic folded outdoor map with two crease lines. Small route
+     marks scattered across the surface. Use for trip planning,
+     navigation logs, and route briefing pages.
+
+05.  GLOBE
+     ID:   nav-globe
+     FILE: merlin-nav-globe.svg
+     An idealized globe with equator and prime meridian, plus latitude
+     curve lines. Round outline crossed by guides. Use for great-circle
+     navigation, time zones, and international flying.
+
+06.  WAYPOINT
+     ID:   nav-waypoint
+     FILE: merlin-nav-waypoint.svg
+     A diamond-shaped waypoint symbol with a central dot. Matches IFR
+     fix conventions on charts. Use for flight planning, GPS routing,
+     and en-route navigation tutorials.
+
+07.  HEADING
+     ID:   nav-heading
+     FILE: merlin-nav-heading.svg
+     A circle with an arrow pointing north and tick marks at each
+     cardinal. Heading-bug graphic style. Use for heading control,
+     magnetic deviation, and compass-correction tutorials.
+
+08.  COURSE LINE
+     ID:   nav-course
+     FILE: merlin-nav-course.svg
+     A multi-leg course line connecting four waypoints with dots at each
+     fix. Polyline that turns at each waypoint. Use for flight planning,
+     route design, and IFR enroute charts.
+
+09.  VOR RADIAL
+     ID:   nav-radial
+     FILE: merlin-nav-radial.svg
+     A VOR station with eight numbered radials emanating from a central
+     hub. Cardinal and intercardinal lines. Use for VOR navigation,
+     radial intercepts, and IFR instruction.
+
+10.  VOR STATION
+     ID:   nav-vor
+     FILE: merlin-nav-vor.svg
+     A hexagonal VOR ground station symbol with a central dot and tick
+     rays. Matches the chart-standard glyph. Use for radio-navigation
+     aids and chart-legend explanations.
+
+11.  NDB STATION
+     ID:   nav-ndb
+     FILE: merlin-nav-ndb.svg
+     A non-directional beacon with concentric dashed rings simulating
+     its omnidirectional signal. Center hub solid. Use for ADF/NDB
+     navigation and legacy nav-aid training content.
+
+12.  ILS APPROACH
+     ID:   nav-ils
+     FILE: merlin-nav-ils.svg
+     An ILS cone narrowing toward the runway threshold with glideslope
+     and localizer planes implied. Triangular funnel shape. Use for
+     instrument approaches, decision altitudes, and CFII content.
+
+13.  COMPASS ROSE
+     ID:   nav-compass-rose
+     FILE: merlin-nav-compass-rose.svg
+     A four-point compass rose with primary cardinal arrows and dashed
+     intercardinal lines. Centered within a circle. Use for chart
+     legends, navigation primers, and dead-reckoning material.
+
+14.  NORTH ARROW
+     ID:   nav-north-arrow
+     FILE: merlin-nav-north-arrow.svg
+     A long arrow pointing up with an 'N' character beneath it.
+     Streamlined compass-north indicator. Use for chart orientation,
+     true-vs-magnetic lessons, and map keys.
+
+15.  FLIGHT PLAN
+     ID:   nav-flight-plan
+     FILE: merlin-nav-flight-plan.svg
+     A flight-plan form filled with rows of data fields. Header band
+     plus a grid of entry cells. Use for ICAO/FAA flight plan
+     submission, briefing prep, and dispatch pages.
+
+
+────────────────────────────────────────────────────────────────
+  WEATHER  (15)
+────────────────────────────────────────────────────────────────
+
+01.  CLOUD
+     ID:   wx-cloud
+     FILE: merlin-wx-cloud.svg
+     A puffy generic cloud silhouette. Three lobes joined under a
+     flatter base. Use for general weather pages, METAR overview, and
+     IFR vs VFR comparisons.
+
+02.  CUMULUS
+     ID:   wx-cumulus
+     FILE: merlin-wx-cumulus.svg
+     Fair-weather cumulus with a flat base and a domed top. Cauliflower
+     bumps on the upper surface. Use for thermal soaring, daytime
+     weather, and fair-weather flying material.
+
+03.  CUMULONIMBUS
+     ID:   wx-cumulonimbus
+     FILE: merlin-wx-cumulonimbus.svg
+     A towering thunderstorm cell with a spreading anvil top and rain
+     shafts below. Wide, flat anvil with vertical streaks. Use for
+     thunderstorm avoidance, convective weather, and embedded TS
+     content.
+
+04.  LIGHTNING
+     ID:   wx-lightning
+     FILE: merlin-wx-lightning.svg
+     A jagged lightning bolt. Sharp zigzag from upper right to lower
+     left. Use for thunderstorm hazards, electrical storms, and
+     weather-advisory content.
+
+05.  RAIN
+     ID:   wx-rain
+     FILE: merlin-wx-rain.svg
+     A cloud above a row of vertical raindrops. Drops appear as short
+     parallel strokes. Use for precipitation, METAR symbology, and
+     rain-flying decision pages.
+
+06.  SNOW
+     ID:   wx-snow
+     FILE: merlin-wx-snow.svg
+     A cloud above two simple snowflake symbols. Asterisk-style
+     six-point flakes. Use for icing risk, winter operations, and
+     cold-weather flying material.
+
+07.  FOG
+     ID:   wx-fog
+     FILE: merlin-wx-fog.svg
+     Five horizontal strokes suggesting layered fog. Alternating offsets
+     imply ground-level mist. Use for visibility minimums, IFR
+     conditions, and 'go/no-go' weather pages.
+
+08.  WIND
+     ID:   wx-wind
+     FILE: merlin-wx-wind.svg
+     Three curling lines representing wind currents moving across the
+     field. Streamlines with curl marks. Use for surface winds, wind
+     correction angle, and crosswind topics.
+
+09.  WINDSOCK
+     ID:   wx-windsock
+     FILE: merlin-wx-windsock.svg
+     A striped windsock on a tall pole, inflated and pointing right.
+     Cone tapers along its length. Use for runway selection,
+     surface-wind interpretation, and airport-operations content.
+
+10.  TORNADO
+     ID:   wx-tornado
+     FILE: merlin-wx-tornado.svg
+     A funnel-cloud silhouette built from horizontal bands that taper
+     toward the ground. Stepped descending widths. Use for severe
+     weather, supercell training, and convective-storm pages.
+
+11.  SUN
+     ID:   wx-sun
+     FILE: merlin-wx-sun.svg
+     A central sun disc surrounded by eight short rays. Symmetrical
+     compass-like layout. Use for VFR weather, daytime ops, and
+     'day-VFR-only' rating content.
+
+12.  MOON
+     ID:   wx-moon
+     FILE: merlin-wx-moon.svg
+     A crescent moon facing right. Smooth bean shape. Use for night
+     flying, night currency, and twilight-operations content.
+
+13.  RAINBOW
+     ID:   wx-rainbow
+     FILE: merlin-wx-rainbow.svg
+     Four concentric arcs forming a rainbow over the horizon line.
+     Stacked arcs spaced apart. Use for post-precipitation visibility,
+     post-storm flight resumption, and atmospheric optics.
+
+14.  HAIL
+     ID:   wx-hail
+     FILE: merlin-wx-hail.svg
+     A cloud above four falling hailstones drawn as circles. Mixed sizes
+     for realism. Use for severe-weather hazards, hail damage, and
+     convective-weather avoidance.
+
+15.  ICING
+     ID:   wx-icing
+     FILE: merlin-wx-icing.svg
+     A wing leading edge with icicle barbs forming along it. Curved
+     camber with downward spikes. Use for icing conditions, anti-ice
+     systems, and winter weather hazards.
+
+
+────────────────────────────────────────────────────────────────
+  AIRPORT  (15)
+────────────────────────────────────────────────────────────────
+
+01.  RUNWAY
+     ID:   apt-runway
+     FILE: merlin-apt-runway.svg
+     A perspective runway with dashed centerline markings narrowing
+     toward the horizon. Trapezoid with stripe ticks. Use for runway
+     operations, landing technique, and airport-diagram pages.
+
+02.  TAXIWAY
+     ID:   apt-taxiway
+     FILE: merlin-apt-taxiway.svg
+     A curving taxiway with dashed centerline emerging from the runway
+     edge. Continuous side stripes. Use for ground operations, taxi
+     instructions, and runway-incursion training.
+
+03.  CONTROL TOWER
+     ID:   apt-tower
+     FILE: merlin-apt-tower.svg
+     A control tower silhouette with cab on top, tapered shaft, and
+     antenna mast. Wider observation cab atop a slim column. Use for
+     ATC, tower-controlled operations, and Class B/C/D airspace topics.
+
+04.  HANGAR
+     ID:   apt-hangar
+     FILE: merlin-apt-hangar.svg
+     An arched hangar with arched roof and full-height door. Wide
+     opening at the front. Use for aircraft storage, rental fleet pages,
+     and maintenance shop locations.
+
+05.  TERMINAL
+     ID:   apt-terminal
+     FILE: merlin-apt-terminal.svg
+     A passenger terminal building with sloped roof, multiple windows,
+     and a central entry. Long horizontal facade. Use for
+     commercial-airport material, ground transport, and travel topics.
+
+06.  APRON
+     ID:   apt-ramp
+     FILE: merlin-apt-ramp.svg
+     An aircraft parking apron with marked tie-down boxes and centerline
+     guidance lines. Grid of small rectangles within a frame. Use for
+     ramp operations, ground handling, and FBO content.
+
+07.  AIRPORT BEACON
+     ID:   apt-beacon
+     FILE: merlin-apt-beacon.svg
+     An airport rotating beacon on a short pylon with two-color rotating
+     optic. Tapered upper segment denotes the light. Use for night ops,
+     airport identification, and beacon-color recognition.
+
+08.  PAPI LIGHTS
+     ID:   apt-papi
+     FILE: merlin-apt-papi.svg
+     Four side-by-side PAPI light boxes representing the precision
+     approach path indicator. Equal-spaced circles. Use for
+     stabilized-approach training, glide-path control, and visual aids.
+
+09.  APPROACH LIGHTS
+     ID:   apt-approach
+     FILE: merlin-apt-approach.svg
+     A centerline approach-light array radiating outward in increasing
+     bars. Christmas-tree pattern. Use for runway approach lighting
+     systems and instrument approach training.
+
+10.  TETRAHEDRON
+     ID:   apt-tetrahedron
+     FILE: merlin-apt-tetrahedron.svg
+     A landing-direction tetrahedron pointing into the wind. Wedge-like
+     3D form. Use for non-towered fields, wind indication, and airport
+     familiarization.
+
+11.  HELIPAD
+     ID:   apt-helipad
+     FILE: merlin-apt-helipad.svg
+     A circular helipad with a large 'H' painted in the center.
+     Concentric circle and three strokes for the letter. Use for
+     rotorcraft pages, hospital ops, and helipad design.
+
+12.  TIE DOWN
+     ID:   apt-tiedown
+     FILE: merlin-apt-tiedown.svg
+     An aircraft tie-down spot with four anchor points and crossed ropes
+     meeting at center. Square layout with corner rings. Use for parking
+     procedures, transient parking, and FBO content.
+
+13.  FUEL PUMP
+     ID:   apt-fuel-pump
+     FILE: merlin-apt-fuel-pump.svg
+     A fuel pump with the display housing on the left and a nozzle hose
+     to the right. 100LL/Jet A pump styling. Use for fueling procedures,
+     FBO services, and avgas content.
+
+14.  CHOCKS
+     ID:   apt-chocks
+     FILE: merlin-apt-chocks.svg
+     A pair of wheel chocks placed fore and aft of two tires. Triangular
+     wedges beside circles. Use for parking procedures, ramp safety, and
+     securing-the-aircraft checklists.
+
+15.  JETWAY
+     ID:   apt-jetway
+     FILE: merlin-apt-jetway.svg
+     A passenger jetway bridge angled toward an aircraft doorway.
+     Rectangular tunnel meeting a flared mouth. Use for
+     commercial-airport pages and airline-pilot career content.
+
+
+────────────────────────────────────────────────────────────────
+  COMMUNICATION  (10)
+────────────────────────────────────────────────────────────────
+
+01.  HEADSET
+     ID:   comm-headset
+     FILE: merlin-comm-headset.svg
+     A pilot headset with padded ear cups, a curved headband, and a boom
+     microphone curling down. Symmetric profile. Use for COMM training,
+     headset reviews, and student-gear lists.
+
+02.  MICROPHONE
+     ID:   comm-mic
+     FILE: merlin-comm-mic.svg
+     A handheld push-to-talk microphone with a rounded mesh head, stand
+     bracket, and base. Classic stage-mic style. Use for radio
+     procedures and pre-flight COMM checks.
+
+03.  TRANSPONDER
+     ID:   comm-transponder
+     FILE: merlin-comm-transponder.svg
+     A transponder bezel with a digital code readout on the left and
+     four squawk-entry knobs on the right. Landscape rectangle layout.
+     Use for squawk code instruction and Mode-C/S explanations.
+
+04.  RADIO TOWER
+     ID:   comm-radio-tower
+     FILE: merlin-comm-radio-tower.svg
+     A tall transmission tower with cross-braces and two radio waves
+     emanating from the top. Triangular silhouette. Use for
+     communications coverage, FAA facilities, and FSS pages.
+
+05.  ATC
+     ID:   comm-atc
+     FILE: merlin-comm-atc.svg
+     A controller workstation with a screen and a person silhouette
+     behind it. Trapezoidal screen housing. Use for ATC services, tower
+     operations, and controller-communication topics.
+
+06.  SQUAWK CODE
+     ID:   comm-squawk
+     FILE: merlin-comm-squawk.svg
+     A four-digit transponder display showing three numeric cells and
+     one blinking digit space. Boxed segments side by side. Use for
+     emergency codes, VFR codes, and squawk training.
+
+07.  FREQUENCY
+     ID:   comm-frequency
+     FILE: merlin-comm-frequency.svg
+     A frequency-display panel with a stylized audio waveform across the
+     screen. Single trace from quiet to peaks. Use for radio tuning,
+     audio panels, and COMM-frequency selection.
+
+08.  ADS-B
+     ID:   comm-adsb
+     FILE: merlin-comm-adsb.svg
+     A central aircraft icon with two concentric pairs of radio-wave
+     arcs broadcasting outward. ADS-B-style omnidirectional broadcast.
+     Use for traffic-awareness systems and 2020 mandate content.
+
+09.  ANTENNA
+     ID:   comm-antenna
+     FILE: merlin-comm-antenna.svg
+     A whip antenna on a tripod base with concentric reception arcs to
+     either side. Radial signal pattern. Use for avionics installation,
+     navaid receivers, and cell-coverage diagrams.
+
+10.  SPEAKER
+     ID:   comm-speaker
+     FILE: merlin-comm-speaker.svg
+     A speaker icon with cone and two arcs indicating sound emission.
+     Classic volume-output symbol. Use for cabin announcements, audio
+     panel controls, and intercom systems.
+
+
+────────────────────────────────────────────────────────────────
+  DOCUMENTS  (15)
+────────────────────────────────────────────────────────────────
+
+01.  LOGBOOK
+     ID:   doc-logbook
+     FILE: merlin-doc-logbook.svg
+     A bound pilot logbook with a thick spine and ruled rows visible on
+     the page. Three short lines suggest entries. Use for logbook
+     endorsements, hour tracking, and currency requirements.
+
+02.  CHECKLIST
+     ID:   doc-checklist
+     FILE: merlin-doc-checklist.svg
+     A clipboard with three completed rows, each marked by a check and a
+     short line for the item text. Top-clip rectangle hints at a paper
+     clamp. Use for preflight, run-up, and checklist-discipline content.
+
+03.  PILOT LICENSE
+     ID:   doc-license
+     FILE: merlin-doc-license.svg
+     A pilot certificate card with a portrait circle and three lines of
+     issued data to the right. Landscape ID format. Use for certificate
+     types, ratings, and licensing requirements.
+
+04.  MEDICAL CERTIFICATE
+     ID:   doc-medical
+     FILE: merlin-doc-medical.svg
+     A medical-class certificate showing a central cross emblem.
+     Equal-armed cross within a rectangle. Use for FAA medical class
+     1/2/3, BasicMed, and aeromedical content.
+
+05.  PILOT WINGS
+     ID:   doc-wings
+     FILE: merlin-doc-wings.svg
+     A classic aviator wings badge: central medallion with feathered
+     wings outstretched. Symmetrical heraldic device. Use for
+     graduation, milestones, and pilot-club membership pages.
+
+06.  ENDORSEMENT
+     ID:   doc-endorsement
+     FILE: merlin-doc-endorsement.svg
+     A document with a circular instructor stamp imprinted across the
+     center. Stamped seal feel. Use for solo endorsements, currency
+     stamps, and CFI sign-off content.
+
+07.  POH MANUAL
+     ID:   doc-poh
+     FILE: merlin-doc-poh.svg
+     A pilot's operating handbook with section title and multiple text
+     lines. Same bound-book form as the logbook. Use for aircraft specs,
+     V-speeds reference, and systems training.
+
+08.  CALENDAR
+     ID:   doc-calendar
+     FILE: merlin-doc-calendar.svg
+     A monthly calendar with header strip and a grid of date cells, with
+     two hanging rings on top. Day markers as small squares. Use for
+     scheduling lessons, currency tracking, and event pages.
+
+09.  STOPWATCH
+     ID:   doc-stopwatch
+     FILE: merlin-doc-stopwatch.svg
+     A round stopwatch with crown button and side lap button visible.
+     Hands set to a recent split. Use for timed approaches, holding
+     entries, and timer-based maneuvers.
+
+10.  CALCULATOR
+     ID:   doc-calculator
+     FILE: merlin-doc-calculator.svg
+     A handheld calculator with screen header and a 3x3 button grid
+     below. Compact form factor. Use for performance calculations, fuel
+     planning, and weight-and-balance worksheets.
+
+11.  FLIGHT PLAN FORM
+     ID:   doc-flight-plan
+     FILE: merlin-doc-flight-plan.svg
+     A flight plan form with a header band and a two-column grid of
+     entry rows. ICAO/FAA layout suggestion. Use for filing flight
+     plans, pre-flight briefings, and dispatch pages.
+
+12.  WEIGHT & BALANCE
+     ID:   doc-wb
+     FILE: merlin-doc-wb.svg
+     A balance scale with two equal-weight pans suspended from a central
+     beam. Triangular pans hang from cross-bar. Use for W&B
+     calculations, CG management, and loading procedures.
+
+13.  PERFORMANCE CHART
+     ID:   doc-perf-chart
+     FILE: merlin-doc-perf-chart.svg
+     A line graph plotted within a frame, ascending from lower left to
+     upper right. Single curve over axes. Use for takeoff/landing
+     distance charts, density altitude, and climb performance.
+
+14.  NOTAM
+     ID:   doc-notam
+     FILE: merlin-doc-notam.svg
+     A notice-to-airmen document with several rows of text and a small
+     exclamation indicator beneath. Document with attention mark. Use
+     for airport NOTAMs, GPS outages, and TFR content.
+
+15.  METAR
+     ID:   doc-metar
+     FILE: merlin-doc-metar.svg
+     A METAR report with header bar and parsed observation rows below.
+     Top band plus tabular data. Use for weather briefings, METAR/TAF
+     decoding, and weather-minimums pages.
+
+
+────────────────────────────────────────────────────────────────
+  TRAINING  (10)
+────────────────────────────────────────────────────────────────
+
+01.  INSTRUCTOR
+     ID:   train-instructor
+     FILE: merlin-train-instructor.svg
+     A person silhouette with a circular head and a small tie or lanyard
+     indicating the instructor role. Standing torso shape. Use for CFI
+     listings, instructor bios, and 'meet the team' pages.
+
+02.  STUDENT
+     ID:   train-student
+     FILE: merlin-train-student.svg
+     A person silhouette with a small angled strap suggesting a
+     backpack. Matches the instructor figure for visual parity. Use for
+     student portal, training enrollment, and learner resources.
+
+03.  GRADUATION CAP
+     ID:   train-grad-cap
+     FILE: merlin-train-grad-cap.svg
+     A mortarboard graduation cap with tassel hanging from the right
+     side. Square board atop a base. Use for course completion,
+     ground-school graduation, and certificate ceremonies.
+
+04.  TROPHY
+     ID:   train-trophy
+     FILE: merlin-train-trophy.svg
+     A two-handled trophy on a base. Symmetric goblet with side handles
+     and pedestal. Use for awards, competitions, and pilot-of-the-year
+     acknowledgements.
+
+05.  STAR RATING
+     ID:   train-star
+     FILE: merlin-train-star.svg
+     A classic five-point star. Sharp pentagonal points centered on the
+     canvas. Use for ratings, reviews, and excellence indicators
+     throughout the site.
+
+06.  BOOKS
+     ID:   train-books
+     FILE: merlin-train-books.svg
+     Three textbooks of different heights standing side by side on a
+     shelf. Spine lines visible. Use for ground school, study materials,
+     and curriculum pages.
+
+07.  FLIGHT SCHOOL
+     ID:   train-school
+     FILE: merlin-train-school.svg
+     A schoolhouse-style building with peaked roof, central door, and
+     side windows. Classic institution profile. Use for flight school
+     overview, location pages, and contact info.
+
+08.  LIGHTBULB
+     ID:   train-bulb
+     FILE: merlin-train-bulb.svg
+     A classic lightbulb with filament-like vertical lines inside and a
+     screw-base below. Soft round dome. Use for tips, learning moments,
+     and 'did you know' content.
+
+09.  QUESTION
+     ID:   train-question
+     FILE: merlin-train-question.svg
+     A question mark inside a round badge. Centered punctuation with dot
+     below. Use for FAQ, help, and 'what to expect' onboarding pages.
+
+10.  MEDAL
+     ID:   train-medal
+     FILE: merlin-train-medal.svg
+     A circular medal hanging from a peaked ribbon. Star or notch detail
+     in the center. Use for milestones, hour-club recognition, and pilot
+     achievements.
+
+
+────────────────────────────────────────────────────────────────
+  SAFETY  (10)
+────────────────────────────────────────────────────────────────
+
+01.  LIFE VEST
+     ID:   safe-life-vest
+     FILE: merlin-safe-life-vest.svg
+     A pilot life vest with collar, two buckle straps, and a chest
+     pocket. Vest cut with central opening. Use for water-survival,
+     ditching procedures, and overwater flight gear.
+
+02.  PARACHUTE
+     ID:   safe-parachute
+     FILE: merlin-safe-parachute.svg
+     An open parachute canopy with multiple risers converging on a
+     single load point. Domed silhouette with line array. Use for
+     emergency egress, aerobatic safety, and skydive partnerships.
+
+03.  FIRE EXTINGUISHER
+     ID:   safe-extinguisher
+     FILE: merlin-safe-extinguisher.svg
+     A handheld fire extinguisher with body, top handle, and side hose
+     nozzle. Cylindrical bottle profile. Use for cockpit safety
+     equipment, emergency procedures, and ramp safety.
+
+04.  FIRST AID
+     ID:   safe-first-aid
+     FILE: merlin-safe-first-aid.svg
+     A first-aid kit case with a centered medical cross. Boxy carrier
+     with handle implied. Use for emergency procedures, in-flight
+     medical events, and safety equipment lists.
+
+05.  ELT
+     ID:   safe-elt
+     FILE: merlin-safe-elt.svg
+     An emergency locator transmitter box with antenna ridge and two
+     signal arcs to either side. ELT pulse broadcasting. Use for
+     emergency procedures, 406 MHz beacons, and survival gear.
+
+06.  DISTRESS SIGNAL
+     ID:   safe-distress
+     FILE: merlin-safe-distress.svg
+     A central transmitter dot surrounded by two pairs of concentric
+     arcs broadcasting outward. Mayday/PAN PAN broadcast. Use for
+     emergency communications, distress procedures, and CPDLC content.
+
+07.  LOCK
+     ID:   safe-lock
+     FILE: merlin-safe-lock.svg
+     A padlock with rectangular body, shackle above, and keyhole on the
+     face. Secure-storage symbol. Use for cabin security, pilot-account
+     login, and ramp access pages.
+
+08.  SHIELD
+     ID:   safe-shield
+     FILE: merlin-safe-shield.svg
+     A protective shield with a checkmark inside. Heater silhouette with
+     verified mark. Use for risk management, safety culture, and
+     insurance/coverage content.
+
+09.  WARNING
+     ID:   safe-warning
+     FILE: merlin-safe-warning.svg
+     A triangular warning sign with an exclamation point inside.
+     Equilateral safety triangle. Use for cautions, hazards, and ADM
+     (aeronautical decision making) pages.
+
+10.  EXIT
+     ID:   safe-exit
+     FILE: merlin-safe-exit.svg
+     A doorway frame with a directional arrow pointing out to the right.
+     Door-with-arrow exit pictogram. Use for emergency egress,
+     evacuation diagrams, and ramp safety pages.
+
+
+────────────────────────────────────────────────────────────────
+  UI  (10)
+────────────────────────────────────────────────────────────────
+
+01.  WORLD
+     ID:   ui-world
+     FILE: merlin-ui-world.svg
+     A globe with equator and curved meridian lines. Same vocabulary as
+     the navigation globe but in the UI bucket. Use for international
+     flights, time zones, and worldwide flight planning.
+
+02.  TAKEOFF
+     ID:   ui-takeoff
+     FILE: merlin-ui-takeoff.svg
+     A small aircraft climbing away from a runway baseline. Wing-up
+     takeoff posture. Use for departure procedures, takeoff
+     calculations, and 'start your training' CTAs.
+
+03.  LANDING
+     ID:   ui-landing
+     FILE: merlin-ui-landing.svg
+     A small aircraft descending toward a runway baseline. Wing-down
+     landing posture. Use for approach planning, landing technique, and
+     arrival content.
+
+04.  IN FLIGHT
+     ID:   ui-in-flight
+     FILE: merlin-ui-in-flight.svg
+     A side-view aircraft silhouette in level flight, pointed right.
+     Compact, streamlined profile. Use for live flight tracking,
+     en-route services, and general aviation content.
+
+05.  ROUTE
+     ID:   ui-route
+     FILE: merlin-ui-route.svg
+     Two endpoint markers connected by a dashed curving line between
+     them. Origin-to-destination route. Use for itineraries, flight
+     tracking, and trip planning.
+
+06.  SEARCH
+     ID:   ui-search
+     FILE: merlin-ui-search.svg
+     A magnifying glass with circular lens and angled handle. Classic
+     search affordance. Use for site search, course catalog, and pilot
+     directory.
+
+07.  SETTINGS
+     ID:   ui-settings
+     FILE: merlin-ui-settings.svg
+     An eight-spoke gear icon with a central hub. Standard configuration
+     affordance. Use for account settings, instrument calibration, and
+     aircraft setup pages.
+
+08.  PROFILE
+     ID:   ui-profile
+     FILE: merlin-ui-profile.svg
+     A user avatar with head and shoulders silhouette in a generic
+     stance. Round head and torso shape. Use for account pages, student
+     dashboards, and instructor profiles.
+
+09.  PHONE
+     ID:   ui-phone
+     FILE: merlin-ui-phone.svg
+     A classic handset silhouette mid-call. Bent receiver with sound
+     dish ends. Use for contact info, AOPA help lines, and ATC phone
+     briefings.
+
+10.  MAIL
+     ID:   ui-mail
+     FILE: merlin-ui-mail.svg
+     An envelope viewed straight-on with a folded V flap showing.
+     Standard email/mail glyph. Use for newsletter signup, lesson
+     reminders, and instructor communications.
+
+
+────────────────────────────────────────────────────────────────
+  SYMBOLS  (26)
+────────────────────────────────────────────────────────────────
+
+01.  ARROW UP
+     ID:   sym-arrow-up
+     FILE: merlin-sym-arrow-up.svg
+     A vertical arrow pointing up with a clean V-shaped head. Use for
+     ascent, scroll-to-top, upload affordances, and sort-ascending
+     controls.
+
+02.  ARROW DOWN
+     ID:   sym-arrow-down
+     FILE: merlin-sym-arrow-down.svg
+     A vertical arrow pointing down. Use for descent, expand-below
+     indicators, download buttons, and sort-descending controls.
+
+03.  ARROW LEFT
+     ID:   sym-arrow-left
+     FILE: merlin-sym-arrow-left.svg
+     A horizontal arrow pointing left. Use for back navigation,
+     previous-slide controls, rewind affordances, and reverse direction.
+
+04.  ARROW RIGHT
+     ID:   sym-arrow-right
+     FILE: merlin-sym-arrow-right.svg
+     A horizontal arrow pointing right. Use for forward navigation,
+     next-slide controls, primary CTAs, and 'learn more' links.
+
+05.  ARROW UP-RIGHT
+     ID:   sym-arrow-up-right
+     FILE: merlin-sym-arrow-up-right.svg
+     A diagonal arrow pointing up and to the right. Use for growth,
+     takeoff direction, external destinations, and trending-up
+     indicators.
+
+06.  ARROW DOWN-RIGHT
+     ID:   sym-arrow-down-right
+     FILE: merlin-sym-arrow-down-right.svg
+     A diagonal arrow pointing down and to the right. Use for descent
+     path, landing direction, or decreasing trend indicators.
+
+07.  ARROW DOWN-LEFT
+     ID:   sym-arrow-down-left
+     FILE: merlin-sym-arrow-down-left.svg
+     A diagonal arrow pointing down and to the left. Use for
+     return-to-origin patterns and downward reverse motion.
+
+08.  ARROW UP-LEFT
+     ID:   sym-arrow-up-left
+     FILE: merlin-sym-arrow-up-left.svg
+     A diagonal arrow pointing up and to the left. Use for back-and-up
+     navigation or reverse-trend indicators.
+
+09.  CHEVRON UP
+     ID:   sym-chevron-up
+     FILE: merlin-sym-chevron-up.svg
+     A bare upward chevron with no tail. Use for collapse,
+     dropdown-closed, scroll-up, and stacking indicators in compact UI.
+
+10.  CHEVRON DOWN
+     ID:   sym-chevron-down
+     FILE: merlin-sym-chevron-down.svg
+     A bare downward chevron. Use for expand, dropdown-open, accordion
+     toggle, and 'more' reveal affordances.
+
+11.  CHEVRON LEFT
+     ID:   sym-chevron-left
+     FILE: merlin-sym-chevron-left.svg
+     A bare leftward chevron. Use for previous-page navigation, carousel
+     back controls, and 'go back' affordances.
+
+12.  CHEVRON RIGHT
+     ID:   sym-chevron-right
+     FILE: merlin-sym-chevron-right.svg
+     A bare rightward chevron. Use for next-page navigation, carousel
+     forward, list-item reveals, and breadcrumb separators.
+
+13.  LONG ARROW
+     ID:   sym-arrow-long-right
+     FILE: merlin-sym-arrow-long-right.svg
+     A long horizontal arrow stretching across the full width. Use for
+     emphatic 'continue', 'next section', and primary forward CTAs.
+
+14.  RETURN
+     ID:   sym-arrow-return
+     FILE: merlin-sym-arrow-return.svg
+     An arrow that bends back leftward, suggesting return or reply. Use
+     for back-to-previous, undo, reset, and reply actions.
+
+15.  REFRESH
+     ID:   sym-arrow-refresh
+     FILE: merlin-sym-arrow-refresh.svg
+     A circular arrow loop with an open notch at the top right. Use for
+     reload, refresh, restart, and 'try again' affordances.
+
+16.  EXTERNAL LINK
+     ID:   sym-external-link
+     FILE: merlin-sym-external-link.svg
+     A box with an outbound arrow leaving the top-right corner. Use for
+     external links, opening new tabs, and off-site references.
+
+17.  CHECK
+     ID:   sym-check
+     FILE: merlin-sym-check.svg
+     A simple checkmark formed by two clean strokes. Use for completed
+     items, confirmations, and success states throughout the site.
+
+18.  CHECK CIRCLE
+     ID:   sym-check-circle
+     FILE: merlin-sym-check-circle.svg
+     A checkmark inside a thin circle. Use for verified status, lesson
+     completed, validation passed, and success notifications.
+
+19.  CHECK SQUARE
+     ID:   sym-check-square
+     FILE: merlin-sym-check-square.svg
+     A checkmark inside a rounded square — a 'checked' checkbox. Use for
+     selected items, checklist rows, and form confirmations.
+
+20.  CLOSE
+     ID:   sym-x
+     FILE: merlin-sym-x.svg
+     A simple X formed by two crossed strokes. Use for close, cancel,
+     dismiss, and remove actions across the interface.
+
+21.  X CIRCLE
+     ID:   sym-x-circle
+     FILE: merlin-sym-x-circle.svg
+     An X inside a thin circle. Use for error states, cancelled actions,
+     removal confirmations, and rejected items.
+
+22.  X SQUARE
+     ID:   sym-x-square
+     FILE: merlin-sym-x-square.svg
+     An X inside a rounded square. Use for delete actions, declined
+     entries, and removing tagged items from lists.
+
+23.  PLUS
+     ID:   sym-plus
+     FILE: merlin-sym-plus.svg
+     A plus sign with equal-length arms. Use for add, create, new entry,
+     and expand-content actions.
+
+24.  MINUS
+     ID:   sym-minus
+     FILE: merlin-sym-minus.svg
+     A single horizontal stroke. Use for remove, collapse, decrement,
+     and 'less' controls.
+
+25.  PLUS CIRCLE
+     ID:   sym-plus-circle
+     FILE: merlin-sym-plus-circle.svg
+     A plus sign inside a thin circle. Use for primary 'add'
+     affordances, FAB-style controls, and 'add to collection' actions.
+
+26.  MINUS CIRCLE
+     ID:   sym-minus-circle
+     FILE: merlin-sym-minus-circle.svg
+     A minus sign inside a thin circle. Use for remove-item, decrement
+     counters, or 'subtract from' controls.
+
+
+================================================================
+  END OF FILE · 176 icons total
+================================================================
