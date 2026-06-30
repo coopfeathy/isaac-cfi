@@ -16,6 +16,7 @@ export default function QuizLayout({ children }: { children: React.ReactNode }) 
         -ms-overflow-style: none;
         background-color: #0D0F10;
       }
+      body header, body footer { display: none !important; }
     `
     document.head.appendChild(style)
     return () => {

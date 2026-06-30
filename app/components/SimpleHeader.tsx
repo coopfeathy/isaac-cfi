@@ -79,7 +79,7 @@ function FingerprintSignIn({ onClick }: { onClick: () => void }) {
         .fp-container {
           position: relative;
           width: 120px;
-          height: 44px;
+          height: 40px;
           border-radius: 8px;
           background: #ffffff;
           border: none;
@@ -88,6 +88,7 @@ function FingerprintSignIn({ onClick }: { onClick: () => void }) {
           justify-content: center;
           overflow: hidden;
           flex-shrink: 0;
+          vertical-align: middle;
         }
         .fp-container.fp-active {
           animation: 2.8s fpContainer forwards;
