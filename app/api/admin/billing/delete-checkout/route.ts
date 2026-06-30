@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 
-  : null
 
 async function requireAdmin(request: NextRequest) {
   const authHeader = request.headers.get('authorization')

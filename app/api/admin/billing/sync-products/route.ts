@@ -9,7 +9,6 @@ type ItemRow = {
   type: string
 }
 
-  : null
 
 async function requireAdmin(request: NextRequest) {
   const authHeader = request.headers.get('authorization')

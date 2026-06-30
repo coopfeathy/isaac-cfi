@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { sendTwilioMessage } from '@/lib/twilio'
 
-  : null
 
 type TransactionRow = {
   id: string

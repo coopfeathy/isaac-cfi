@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabase'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { resend } from '@/lib/resend'
 
-  : null
 
 async function requireAdmin(request: NextRequest) {
   const authHeader = request.headers.get('authorization')

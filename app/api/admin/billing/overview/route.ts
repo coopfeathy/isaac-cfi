@@ -32,7 +32,6 @@ type ItemRow = {
   is_active: boolean
 }
 
-  : null
 
 async function requireAdmin(request: NextRequest) {
   const authHeader = request.headers.get('authorization')

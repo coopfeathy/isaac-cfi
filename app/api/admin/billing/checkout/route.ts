@@ -12,7 +12,6 @@ type CheckoutItemSelection = {
   quantity: number
 }
 
-  : null
 
 async function requireAdmin(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
