@@ -157,7 +157,7 @@ export default function Home() {
             <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-[7.5rem] font-bold mb-6 sm:mb-8 tracking-tight">
               <div className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent mb-2" style={{ lineHeight: 1.15, paddingBottom: '0.1em', overflow: 'visible' }}>
                 <TypingEffect
-                  words={['Merlin', 'Career', 'Private Pilot', 'Instrument', 'Commercial', 'Cargo', 'Airline']}
+                  words={['Merlin', 'Private Pilot', 'Instrument', 'Commercial', 'Career', 'Cargo', 'Airline']}
                   wordPauseDuration={{ 0: 1800 }}
                 />
               </div>
