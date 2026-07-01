@@ -16,8 +16,24 @@ export default function AircraftPage() {
 
   const images: AircraftImage[] = [
     {
-      src: '/images/our-aircraft-header.JPG',
-      alt: 'N9725U - photos coming soon',
+      src: '/images/aircraft/aircraft-1.jpeg',
+      alt: 'N9725U Grumman Cheetah AA-5A',
+    },
+    {
+      src: '/images/aircraft/aircraft-2.jpeg',
+      alt: 'N9725U Grumman Cheetah AA-5A',
+    },
+    {
+      src: '/images/aircraft/aircraft-3.jpeg',
+      alt: 'N9725U Grumman Cheetah AA-5A',
+    },
+    {
+      src: '/images/aircraft/aircraft-4.jpeg',
+      alt: 'N9725U Grumman Cheetah AA-5A',
+    },
+    {
+      src: '/images/aircraft/aircraft-5.jpeg',
+      alt: 'N9725U Grumman Cheetah AA-5A',
     },
   ]
 
