@@ -444,16 +444,16 @@ export default function Home() {
             {/* Why Isaac bullets */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
               {[
-                { icon: '✈', text: 'Personalized 1-on-1 instruction — no group classes' },
-                { icon: '🛡', text: 'Safety-first philosophy: IMSAFE, weather briefing, FAR/AIM' },
-                { icon: '🔄', text: 'Train in your aircraft or Merlin\'s — total flexibility' },
-                { icon: '📍', text: 'Based at Northeast Philadelphia Airport (KPNE), Philadelphia, PA' },
-                { icon: '⚡', text: 'Fast-track or flexible pacing — you set the timeline' },
-                { icon: '🎯', text: 'From Discovery Flight to Commercial — all levels' },
-              ].map((item, i) => (
+                'Personalized 1-on-1 instruction — no group classes',
+                'Safety-first philosophy: IMSAFE, weather briefing, FAR/AIM',
+                'Train in your aircraft or Merlin\'s — total flexibility',
+                'Based at Northeast Philadelphia Airport (KPNE), Philadelphia, PA',
+                'Fast-track or flexible pacing — you set the timeline',
+                'From Discovery Flight to Commercial — all levels',
+              ].map((text, i) => (
                 <div key={i} className="flex items-start gap-3">
-                  <span className="text-xl mt-0.5">{item.icon}</span>
-                  <span className="text-gray-700 text-sm sm:text-base font-light">{item.text}</span>
+                  <span className="text-golden mt-0.5 flex-shrink-0">✈</span>
+                  <span className="text-gray-700 text-sm sm:text-base font-light">{text}</span>
                 </div>
               ))}
             </div>
