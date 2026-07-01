@@ -69,19 +69,29 @@ textarea {
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0a0a0a;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #FFBF00;
+  background: transparent;
   border-radius: 5px;
+  transition: background 0.3s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 191, 0, 0.8);
+  background: #FFBF00;
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+html:hover {
+  scrollbar-color: #FFBF00 transparent;
 }
 
