@@ -43,8 +43,6 @@ export default function SimpleHeader() {
       }}>
         {/* ── Main row — 3-col grid so nav is truly centred ── */}
         <div style={{
-          maxWidth: '1400px',
-          margin: '0 auto',
           display: 'grid',
           gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center',
@@ -67,14 +65,14 @@ export default function SimpleHeader() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '20px',
+            gap: '40px',
             listStyle: 'none',
             margin: 0,
             padding: 0,
           }}>
             {primaryNavLinks.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} style={{ color: '#fff', fontWeight: 500, textDecoration: 'none', fontSize: '14px', whiteSpace: 'nowrap' }}>
+                <Link href={link.href} style={{ color: '#fff', fontWeight: 500, textDecoration: 'none', fontSize: '16px', whiteSpace: 'nowrap' }}>
                   {link.label}
                 </Link>
               </li>
