@@ -14,14 +14,11 @@ export default function SimpleHeader() {
 
   const primaryNavLinks = [
     { href: '/', label: 'Home' },
-    { href: '/schedule', label: 'Schedule' },
     { href: '/aircraft', label: 'Aircraft' },
-    { href: '/learn', label: 'Learn' },
-    { href: '/pricing', label: 'Pricing' },
-    { href: '/offers', label: 'Offers' },
-    { href: '/store', label: 'Store' },
-    { href: '/weddings', label: 'Weddings' },
+    { href: '/calculator', label: 'Calculator' },
+    { href: '/start-training', label: 'Start Training' },
     { href: '/faq', label: 'FAQ' },
+    { href: '/contact', label: 'Contact' },
   ]
 
   const handleSignOut = async () => {
@@ -44,13 +41,14 @@ export default function SimpleHeader() {
         top: 0,
         zIndex: 50,
       }}>
-        {/* ── Main row ── */}
+        {/* ── Main row — 3-col grid so nav is truly centred ── */}
         <div style={{
           maxWidth: '1400px',
           margin: '0 auto',
-          display: 'flex',
+          display: 'grid',
+          gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center',
-          gap: '24px',
+          gap: '16px',
         }}>
           {/* Logo — far left */}
           <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', flexShrink: 0 }}>
@@ -68,11 +66,11 @@ export default function SimpleHeader() {
           <ul className="desktop-nav" style={{
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: '20px',
             listStyle: 'none',
             margin: 0,
             padding: 0,
-            flex: 1,
           }}>
             {primaryNavLinks.map((link) => (
               <li key={link.href}>
@@ -87,9 +85,8 @@ export default function SimpleHeader() {
           <div className="desktop-actions" style={{
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'flex-end',
             gap: '12px',
-            flexShrink: 0,
-            marginLeft: 'auto',
           }}>
             {user ? (
               <>
@@ -135,7 +132,7 @@ export default function SimpleHeader() {
               minHeight: '44px', minWidth: '44px',
               padding: '10px', border: 'none',
               background: 'transparent', cursor: 'pointer',
-              color: '#fff', flexShrink: 0, marginLeft: 'auto',
+              color: '#fff',
             }}
           >
             <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
