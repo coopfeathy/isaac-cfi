@@ -155,9 +155,9 @@ export default function Home() {
         <div className="relative z-10 min-h-[85vh] sm:min-h-[90vh] w-full px-4 sm:px-6">
           <div className="mx-auto flex min-h-[85vh] sm:min-h-[90vh] max-w-6xl flex-col items-center justify-start pt-16 sm:pt-20 md:pt-24 pb-72 text-center text-white">
             <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-[7.5rem] font-bold mb-6 sm:mb-8 tracking-tight">
-              <div className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent leading-none mb-2">
+              <div className="bg-gradient-to-r from-golden via-yellow-400 to-golden bg-clip-text text-transparent mb-2" style={{ lineHeight: 1.15, paddingBottom: '0.1em', overflow: 'visible' }}>
                 <TypingEffect
-                  words={['Career Path', 'Cargo', 'Airline']}
+                  words={['Merlin', 'Career', 'Private Pilot', 'Instrument', 'Commercial', 'Cargo', 'Airline']}
                   wordPauseDuration={{ 0: 1800 }}
                 />
               </div>
