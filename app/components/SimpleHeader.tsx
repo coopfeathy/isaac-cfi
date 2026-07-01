@@ -65,14 +65,14 @@ export default function SimpleHeader() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '40px',
+            gap: '80px',
             listStyle: 'none',
             margin: 0,
             padding: 0,
           }}>
             {primaryNavLinks.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} style={{ color: '#fff', fontWeight: 500, textDecoration: 'none', fontSize: '16px', whiteSpace: 'nowrap' }}>
+                <Link href={link.href} style={{ color: '#fff', fontWeight: 500, textDecoration: 'none', fontSize: '18px', whiteSpace: 'nowrap' }}>
                   {link.label}
                 </Link>
               </li>
